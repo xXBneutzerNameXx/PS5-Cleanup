@@ -1,5 +1,8 @@
 # PS5 Cleanup
 
+<img width="600" height="600" alt="image" src="https://github.com/user-attachments/assets/5bc025d3-b6b1-47f6-9f27-4ea7dd483b52" />
+
+
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
 *Clean up your PS5 as if freshly set up – no reinstall, no reset. [English below](#english)*
 
