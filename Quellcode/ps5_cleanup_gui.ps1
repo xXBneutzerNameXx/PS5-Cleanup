@@ -216,7 +216,7 @@ function Stand([string]$t) { $script:STAND_BASIS = $t; $script:tbStand.Text = $t
 $script:GroesseStand = { param([int64]$bytes, [int]$dateien)
     Stand ('Ermittle die Größe ... bisher {0} in {1:N0} Dateien' -f (Groesse-Text $bytes), $dateien) }
 function Frage-JaNein([string]$text, [string]$titel = 'PS5 Cleanup') {
-    $r = [System.Windows.MessageBox]::Show($W, $text, $titel, 'YesNo', 'Question')
+    $r = [System.Windows.MessageBox]::Show($W, $text, $titel, 'YesNo', 'Question', 'No')   # Enter = Nein
     return ($r -eq 'Yes')
 }
 function Meldung([string]$text, [string]$titel = 'PS5 Cleanup', [string]$art = 'Information') {
@@ -290,8 +290,9 @@ function Sperre([bool]$an) {
 function Knoepfe([bool]$an) {
     if ($script:BESCHAEFTIGT) { $an = $false }
     foreach ($b in @($script:btSuchen, $script:btVerbinden, $script:btAuswahl, $script:btKomplett)) { $b.IsEnabled = $an }
-    if ($an -and ($script:Funde.Count -eq 0 -or (Testmodus))) { $script:btAuswahl.IsEnabled = $false; $script:btKomplett.IsEnabled = $false }
-    if ($an -and -not (Testmodus) -and $script:Funde.Count -gt 0) { $script:btKomplett.IsEnabled = $true; $script:btAuswahl.IsEnabled = ((Gewaehlt).Count -gt 0) }
+    # Löschen nur mit einer gültigen Liste der gerade verbundenen PS5
+    if ($an -and ($script:Funde.Count -eq 0 -or (Testmodus) -or -not $script:VERBUNDEN)) { $script:btAuswahl.IsEnabled = $false; $script:btKomplett.IsEnabled = $false }
+    if ($an -and -not (Testmodus) -and $script:VERBUNDEN -and $script:Funde.Count -gt 0) { $script:btKomplett.IsEnabled = $true; $script:btAuswahl.IsEnabled = ((Gewaehlt).Count -gt 0) }
     Pumpe
 }
 
@@ -397,7 +398,7 @@ function Aktualisiere-Stand {
     $t = if ($n -eq 0) { 'Nichts ausgewählt.' } else { "$n Einträge ausgewählt." }
     if (Testmodus) { $t = "TESTMODUS - es wird nichts gelöscht.  $t" }
     Stand $t
-    $script:btAuswahl.IsEnabled = ($n -gt 0 -and -not (Testmodus) -and -not $script:BESCHAEFTIGT)
+    $script:btAuswahl.IsEnabled = ($n -gt 0 -and -not (Testmodus) -and -not $script:BESCHAEFTIGT -and $script:VERBUNDEN)
 }
 function Zeige-Haken { foreach ($cb in $script:Kaestchen.Values) { $cb.IsChecked = [bool]$cb.Tag.Wahl }; Gruppen-Abgleich }
 # Ist ein Spiel angehakt, sind sein Update und seine DLCs ebenfalls angehakt und
@@ -425,6 +426,11 @@ function Verbinde {
     if ($eingabe -match '^(.+):(\d+)$') { $ip = $Matches[1]; $port = [int]$Matches[2] }
     if ($ip -notmatch '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { Meldung 'Bitte eine gültige IP-Adresse eingeben (Beispiel: 192.168.1.50).' 'PS5 Cleanup' 'Warning'; return }
     Knoepfe $false
+    # Alte Liste sofort verwerfen - sie gehört evtl. zu einer anderen PS5
+    $script:VERBUNDEN = $false; $script:FUNDE_IP = ''; $script:DDD_STATUS = $null; $script:tbInfo.Text = 'Verbinde ...'
+    $script:Funde = New-Object System.Collections.ArrayList
+    $script:spBereiche.Children.Clear(); $script:Kaestchen = @{}
+    $script:tbLeer.Visibility = 'Visible'; $null = $script:spBereiche.Children.Add($script:tbLeer)
     $script:tbLog.Clear()
     Log "Verbinde mit PS5 ($ip, Port $port) ..."
     $ok = $false
@@ -445,7 +451,7 @@ function Verbinde {
     }
     $script:MODELL_TYP = Modell-Typ $modell
     $script:MODELL_DIGITAL = Modell-Digital $modell
-$reihe = Modell-Reihe $script:MODELL_TYP $script:MODELL_DIGITAL
+    $reihe = Modell-Reihe $script:MODELL_TYP $script:MODELL_DIGITAL
     if ($modell -eq '') { $modell = 'unbekannt' }
     $script:tbInfo.Text = "Modell: $modell   |   Reihe: $reihe   |   Firmware: $firmware   |   $(Laufwerk-Text)"
     Log "Modell: $modell  Reihe: $reihe  Firmware: $firmware"
@@ -459,7 +465,7 @@ $reihe = Modell-Reihe $script:MODELL_TYP $script:MODELL_DIGITAL
     }
     $script:tbLeer.Visibility = 'Collapsed'
     Zeige-Bereiche
-    $script:VERBUNDEN = $true
+    $script:VERBUNDEN = ($script:FUNDE_IP -ne '')
     if ($script:Funde.Count -eq 0) { Log 'Nichts zu tun - die PS5 ist bereits sauber.' }
     else { Log "$($script:Funde.Count) Einträge gefunden. Nichts wurde verändert." }
     if (Testmodus) { Log '(Testmodus - zum Löschen den Haken "Testmodus" entfernen.)' }
@@ -501,11 +507,11 @@ function Lösche-Jetzt([bool]$komplett) {
     Log ''
     $script:LAEUFT = $true
     try {
-        $erg = Fuehre-Loeschung { return (Frage-JaNein "ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich wieder angelegt und die Spiele könnten gerade eingebunden sein.`n`nTrotzdem weitermachen?" 'ShadowMount') }
+        $erg = Fuehre-Loeschung { return (Frage-Wahl "ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich wieder angelegt und die Spiele könnten gerade eingebunden sein.`n`nEmpfehlung: abbrechen, die PS5 neu starten, nur den FTP-Server laden und dann nochmal löschen." 'ShadowMount' 'Abbrechen (empfohlen)' 'Trotzdem löschen') }
     } finally { $script:LAEUFT = $false }
     $script:pbFortschritt.IsIndeterminate = $false
     Stand ''
-    if ($erg.Abgebrochen) { Log 'Abgebrochen - nichts verändert.'; Knoepfe $true; return }
+    if ($erg.Abgebrochen) { Log 'Abgebrochen - nichts verändert.'; SM-Zuruecksetzen; Knoepfe $true; return }
     $script:pbFortschritt.Value = 100
     Log ''
     if ($erg.Fehler -eq 0) { Log 'Fertig - alles Ausgewählte ist gelöscht.' } else { Log "Fertig, aber mit $($erg.Fehler) Fehler(n) - siehe oben." }
@@ -516,14 +522,22 @@ function Lösche-Jetzt([bool]$komplett) {
     $schluss = ($script:SCHLUSS_TEXT -join "`n")
     $sm = if ($erg.SmText) { "$($erg.SmText)`n`n" } else { '' }
     Meldung "$(if ($erg.Fehler -eq 0) { 'Fertig - alles Ausgewählte ist gelöscht.' } else { "Fertig, aber mit $($erg.Fehler) Fehler(n) - siehe Protokoll." })`n`n$(Freigeraeumt-Text $erg.Frei)`n`n$sm$schluss`n`nProtokoll: $($script:LOGDATEI)" 'Fertig'
-    # neu nachschauen, damit die Liste stimmt
-    Suche-Funde; Zeige-Bereiche
+    # neu nachschauen, damit die Liste stimmt. Klappt das nicht, keine alte
+    # Liste stehen lassen - lieber neu verbinden lassen.
+    try { Suche-Funde } catch {
+        Log "Konnte nicht neu nachschauen: $($_.Exception.Message) - bitte neu verbinden."
+        $script:Funde = New-Object System.Collections.ArrayList; $script:FUNDE_IP = ''
+    }
+    $script:VERBUNDEN = ($script:FUNDE_IP -ne '')
+    Zeige-Bereiche
     Knoepfe $true
 }
 function Komplett-Klick {
     $t = "KOMPLETT: Auf der internen SSD wird ALLES gelöscht:`n"
     foreach ($k in 1..6) { $t += ('   - {0}: {1}' -f $script:KatName[$k], (Anzahl-Komplett $k)) + "`n" }
-    $t += "`nDas heißt:`n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.`n - Nie mit dem PSN abgeglichene Trophäen sind weg.`n - Die Jailbreak-Tools samt Einstellungen sind weg - danach musst du deinen Jailbreak NEU EINRICHTEN.`n - Wer per Browser-Seite jailbreakt: ein offline gespeicherter Zugang im Browserspeicher kann auch weg sein.`n`nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Lizenzen und die Sony-Systemanwendungen.`n`nWeiter?"
+    $t += "`nDas heißt:`n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.`n - Nie mit dem PSN abgeglichene Trophäen sind weg.`n - Die Jailbreak-Tools samt Einstellungen sind weg - danach musst du deinen Jailbreak NEU EINRICHTEN.`n - Wer per Browser-Seite jailbreakt: ein offline gespeicherter Zugang im Browserspeicher kann auch weg sein.`n`nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Lizenzen und die Sony-Systemanwendungen."
+    if (-not $script:m2Da) { $t += "`n`nHINWEIS: Es wurde keine M.2-SSD gefunden. Steckt eine M.2 mit Spielen in der PS5, die gerade nicht erkannt wird: jetzt abbrechen und die PS5 neu starten. Sonst gelten diese Spiele als nicht installiert und ihre Lizenzen und Kacheln werden mit gelöscht." }
+    $t += "`n`nWeiter?"
     if (-not (Frage-JaNein $t 'KOMPLETT')) { return }
     $m2Leeren = $false
     if ($script:m2Da -and (Anzahl 7) -gt 0) {
@@ -535,7 +549,7 @@ function Komplett-Klick {
     Groesse-Ermitteln
     $warn = if ($m2Leeren) { "!!! ACHTUNG: DIE M.2-SSD WIRD MIT GELEERT - $(Anzahl 7) Einträge, alle Spiele darauf sind danach weg !!!`n`n" } else { "Die M.2-SSD bleibt unangetastet.`n`n" }
     $a = Frage-Text ($warn + (Zusammenfassung $true) + "`n`nZum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):") 'Endgültig löschen?'
-    if ($a -cne 'LOESCHEN' -and $a -cne 'LÖSCHEN') { Log 'Abgebrochen - nichts verändert.'; foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken; Aktualisiere-Stand; return }
+    if ($a -cne 'LOESCHEN' -and $a -cne 'LÖSCHEN') { Log 'Abgebrochen - nichts verändert.'; foreach ($f in $script:Funde) { $f.Wahl = $false }; SM-Zuruecksetzen; Zeige-Haken; Aktualisiere-Stand; return }
     Lösche-Jetzt $true
 }
 function Auswahl-Klick {
@@ -545,9 +559,10 @@ function Auswahl-Klick {
         $mit = Frage-Wahl "Du hast $($sm.Count) ShadowMount-Spiel(e) gewählt:`n$l`n`nNUR KACHELN LÖSCHEN: Die Spiele bleiben auf der Platte und erscheinen wieder, sobald ShadowMount neu geladen ist.`n`nSPIELE + KACHELN LÖSCHEN: Die Spieldateien werden endgültig gelöscht." 'ShadowMount-Spiele' 'Nur Kacheln löschen (empfohlen)' 'Spiele + Kacheln löschen'
         Setze-SM-Spieldateien $mit
     }
+    else { SM-Zuruecksetzen }
     Groesse-Ermitteln
-    if (-not (Frage-JaNein ((Zusammenfassung $false) + "`n`nJetzt endgültig löschen?") 'Endgültig löschen?')) {
-        Log 'Abgebrochen - nichts verändert.'; return
+    if (-not (Frage-Wahl (Zusammenfassung $false) 'Endgültig löschen?' 'Abbrechen' 'Jetzt endgültig löschen')) {
+        Log 'Abgebrochen - nichts verändert.'; SM-Zuruecksetzen; return
     }
     Lösche-Jetzt $false
 }
@@ -597,7 +612,7 @@ $btHilfe.Add_Click({
     if ($p -ne '') { Start-Process notepad.exe $p } else { Meldung 'LIESMICH.txt nicht gefunden.' }
 })
 $W.Add_Closed({ if ($script:VERBUNDEN) { Ftp-Trennen }; Log-Zeile 'Ende.' })
-Log-Datei-Anlegen
+if (-not $SelbstTest) { Log-Datei-Anlegen }     # der Selbsttest schreibt nicht ins echte Protokoll
 $tbFuss.Text = "PS5 Cleanup $VERSION  ·  da_Chris86  ·  Inoffizielles Community-Projekt, keine Verbindung zu Sony"
 
 if ($SelbstTest) {
@@ -621,11 +636,11 @@ if ($SelbstTest) {
         @(7, "homebrew/Red Dead Redemption - PPSA30528.exfat  [Spiel: Red Dead Redemption (PPSA30528) - Kachel geht mit]", '/mnt/ext1/homebrew/x.exfat', $false))
     foreach ($e in $probe) {
         $t = $e[1]; if ($e[3]) { $t += '  [GESPERRT: Game Compressor arbeitet gerade daran]' }
-        $null = $script:Funde.Add([pscustomobject]@{ Pfade = @('/x'); Kat = $e[0]; Text = $t; Wahl = $false; Quelle = $e[2]; Gesperrt = $e[3] })
+        $null = $script:Funde.Add([pscustomobject]@{ Pfade = @('/x'); Kat = $e[0]; Text = $t; Wahl = $false; Quelle = $e[2]; Gesperrt = $e[3]; PfadeBasis = @('/x'); TextBasis = $t })
     }
     # ein normal installiertes PS4-Spiel mit Update und DLC
     foreach ($t in @(@('DLC', 'Bloodborne (CUSA00900) - Zusatzinhalt: The Old Hunters'), @('Update', 'Bloodborne (CUSA00900) - Update (Version 01.09)'), @('Spiel', 'Bloodborne (CUSA00900) - Spiel'))) {   # rückwärts, weil jeweils an Stelle 1 eingefügt
-        $o = [pscustomobject]@{ Pfade = @('/x'); Kat = 1; Text = $t[1]; Wahl = $false; Quelle = ''; Gesperrt = $false; Gruppe = 'CUSA00900'; Teil = $t[0] }
+        $o = [pscustomobject]@{ Pfade = @('/x'); Kat = 1; Text = $t[1]; Wahl = $false; Quelle = ''; Gesperrt = $false; PfadeBasis = @('/x'); TextBasis = $t[1]; Gruppe = '/user|CUSA00900'; Teil = $t[0] }
         $null = $script:Funde.Insert(1, $o)
     }
     # absichtlich durcheinander: M.2-Eintrag nach vorn (so wie es eine Suche liefern könnte)
@@ -681,6 +696,21 @@ if ($SelbstTest) {
             $script:TEIL_OK = ($teilCbs.Count -eq 2 -and $mit -eq 2 -and $frei -eq 2 -and $einzeln)
             & $schreib "Teil-Probe: mitgenommen=$mit/2, wieder frei=$frei/2, Update einzeln=$einzeln -> $(if ($script:TEIL_OK) {'OK'} else {'FEHLER'})"
             foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken
+            # Knopf-Probe: Löschen geht nur mit gültiger Liste der verbundenen PS5
+            $script:cbTest.IsChecked = $false
+            $script:VERBUNDEN = $true; Knoepfe $true; $mitListe = [bool]$script:btKomplett.IsEnabled
+            $script:VERBUNDEN = $false; Knoepfe $true; $ohneListe = (-not $script:btKomplett.IsEnabled -and -not $script:btAuswahl.IsEnabled)
+            $script:cbTest.IsChecked = $true; Knoepfe $true; $test = (-not $script:btKomplett.IsEnabled)
+            $script:KNOPF_OK = ($mitListe -and $ohneListe -and $test)
+            & $schreib "Knopf-Probe: verbunden=$mitListe, ohne gültige Liste gesperrt=$ohneListe, Testmodus gesperrt=$test -> $(if ($script:KNOPF_OK) {'OK'} else {'FEHLER'})"
+            # SM-Probe: KOMPLETT abgebrochen, dann "nur Kacheln" -> keine Spieldatei mehr
+            $smf = @($script:Funde | Where-Object { $_.Kat -eq 1 -and $_.Quelle -ne '' -and -not $_.Gesperrt })[0]
+            $smf.Pfade = @('/user/app/PPSA30528'); $smf.PfadeBasis = $smf.Pfade; $smf.Quelle = '/user/data/x.exfat'
+            Waehle-Komplett $false; foreach ($f in $script:Funde) { $f.Wahl = $false }
+            $smf.Wahl = $true; Setze-SM-Spieldateien $false
+            $script:SM_OK = (@($smf.Pfade | Where-Object { $_ -eq '/user/data/x.exfat' }).Count -eq 0 -and $smf.Text -eq "$($smf.TextBasis) - nur Kachel, Spiel bleibt")
+            SM-Zuruecksetzen; foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken
+            & $schreib "SM-Probe: nach abgebrochenem KOMPLETT 'nur Kacheln' ohne Spieldatei -> $(if ($script:SM_OK) {'OK'} else {'FEHLER'})"
             & $schreib "ps5info.elf: $(Join-Path $SkriptOrdner 'ps5info.elf') vorhanden=$(Test-Path (Join-Path $SkriptOrdner 'ps5info.elf'))"
             & $schreib "LIESMICH: $(Liesmich-Pfad)"
             if ($Bild -ne '') {
@@ -692,7 +722,7 @@ if ($SelbstTest) {
                 $fs = [System.IO.File]::Create($Bild); $enc.Save($fs); $fs.Close()
                 & $schreib "Bild gespeichert: $Bild"
             }
-            & $schreib $(if ($script:HAKEN_OK -and $script:TEIL_OK) { 'SELBSTTEST OK' } else { 'SELBSTTEST FEHLER (siehe Probe oben)' })
+            & $schreib $(if ($script:HAKEN_OK -and $script:TEIL_OK -and $script:KNOPF_OK -and $script:SM_OK) { 'SELBSTTEST OK' } else { 'SELBSTTEST FEHLER (siehe Probe oben)' })
         } catch { & $schreib "FEHLER: $($_.Exception.Message)" }
         $W.Dispatcher.BeginInvoke([Windows.Threading.DispatcherPriority]::Background, [Action]{ $W.Close() }) | Out-Null })
     try { $null = $W.ShowDialog() } catch { & $schreib "FEHLER beim Anzeigen: $($_.Exception.Message)" }

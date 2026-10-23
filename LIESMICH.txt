@@ -52,6 +52,11 @@ WICHTIG
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
 - Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
+- Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
+  vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
+  verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
+- Steckt eine M.2 in der PS5, das Programm meldet aber "keine M.2
+  gefunden": nicht löschen, sondern die PS5 neu starten.
 - Benutzung auf eigene Gefahr.
 - Bei Problemen: Das Programm schreibt alles in PS5-Cleanup.log (neben der
   .exe, sonst unter %TEMP%\PS5-Cleanup). Mit "Protokoll speichern" lässt

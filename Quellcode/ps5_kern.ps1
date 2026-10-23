@@ -15,7 +15,7 @@ $STANDARD_PORT = 2121
 $BEHALTEN_APP  = 'PPSA01325'      # Astro's Playroom
 $M2            = '/mnt/ext1'
 $SYS_META      = '/system_data/priv/appmeta'   # hier merkt sich die PS5 jede Kachel
-$script:ASTRO_NPWR = 'NPWR20188_00'            # Trophäen-Kennung von Astro (wird unten nachgelesen)
+$script:ASTRO_NPWRS = @('NPWR20188_00')        # Trophäen-Kennung(en) von Astro (die Suche liest sie nach)
 $UTF8          = New-Object System.Text.UTF8Encoding $false
 # Ordner, in dem ps5info.elf und LIESMICH liegen: neben dem Skript - oder,
 # als .exe gebaut (ps2exe), neben der .exe
@@ -63,8 +63,11 @@ function Ftp-Zeile {
         if (-not $script:Ftp.Tcp.Connected) { throw 'FTP-Verbindung unterbrochen' }
         if (((Get-Date) - $start).TotalMilliseconds -gt $script:FTP_TIMEOUT) { throw 'Die PS5 antwortet nicht (Zeitüberschreitung)' }
         & $script:Pumpe ([int]((Get-Date) - $start).TotalMilliseconds)
-        # bis zu 20 ms auf Daten warten - kommt etwas an, geht es sofort weiter
-        $null = $script:Ftp.Tcp.Client.Poll(20000, [System.Net.Sockets.SelectMode]::SelectRead)
+        # bis zu 20 ms auf Daten warten - kommt etwas an, geht es sofort weiter.
+        # Meldet der Socket "lesbar", aber es liegen keine Daten an, hat die PS5
+        # die Verbindung geschlossen (sonst würde hier bis zum Zeitlimit gewartet).
+        if ($script:Ftp.Tcp.Client.Poll(20000, [System.Net.Sockets.SelectMode]::SelectRead) -and
+            $script:Ftp.Tcp.Client.Available -eq 0 -and -not $st.DataAvailable) { throw 'FTP-Verbindung unterbrochen' }
     }
 }
 
@@ -83,6 +86,9 @@ function Ftp-Antwort {
 }
 
 function Ftp-Befehl([string]$cmd) {
+    # Steuerzeichen (z.B. ein Zeilenumbruch in einem Dateinamen) würden einen
+    # zweiten, ungewollten Befehl erzeugen - nie senden.
+    if ($cmd -match '[\x00-\x1f\x7f]') { throw "Ungültiges Zeichen im FTP-Befehl: $($cmd -replace '[\x00-\x1f\x7f]', '?')" }
     $script:Ftp.Writer.Write($cmd + "`r`n")
     $script:Ftp.Writer.Flush()
     return Ftp-Antwort
@@ -90,6 +96,7 @@ function Ftp-Befehl([string]$cmd) {
 
 function Ftp-Verbinden([string]$ip, [int]$port) {
     if ($null -ne $script:Ftp) { try { $script:Ftp.Tcp.Close() } catch { } }   # alte (evtl. hängende) Verbindung schließen
+    $script:Ftp = $null                                   # klappt die neue nicht, bleibt keine alte übrig
     $tcp = New-Object System.Net.Sockets.TcpClient
     $ar = $tcp.BeginConnect($ip, $port, $null, $null)
     if (-not $ar.AsyncWaitHandle.WaitOne(5000)) { $tcp.Close(); return $false }
@@ -122,7 +129,8 @@ function Ftp-Daten([string]$cmd) {
     $ms = New-Object System.IO.MemoryStream
     $d.GetStream().CopyTo($ms)
     $d.Close()
-    $null = Ftp-Antwort                                   # 226
+    $a = Ftp-Antwort                                      # 226 = vollständig übertragen
+    if ($a.Code -ge 400) { return $null }                 # abgebrochen - Inhalt unvollständig
     return ,$ms.ToArray()
 }
 
@@ -142,11 +150,21 @@ function Ftp-Cwd([string]$pfad) {
 }
 
 # Ordnerinhalt: Liste von Objekten {Name, IstOrdner}; $null wenn es den Ordner nicht gibt
-function Liste([string]$pfad) {
-    if (-not (Ftp-Cwd $pfad)) { return $null }
+# $streng: nur "gibt es nicht" (550) liefert $null, jeder andere Fehler bricht ab.
+# Für Listen, aus denen geschlossen wird "Spiel ist nicht mehr da" - eine
+# gescheiterte Liste darf nie wie eine leere aussehen.
+function Liste([string]$pfad, [bool]$streng = $false) {
+    $a = Ftp-Befehl "CWD $pfad"
+    if ($a.Code -ge 400) {
+        if ($streng -and $a.Code -ne 550) { throw "PS5 meldet beim Lesen von $pfad : $($a.Text)" }
+        return $null
+    }
     $bytes = Ftp-Daten 'LIST'
     $null = Ftp-Cwd '/'
-    if ($null -eq $bytes) { return $null }
+    if ($null -eq $bytes) {
+        if ($streng) { throw "Ordner $pfad konnte nicht vollständig gelesen werden - bitte nochmal verbinden." }
+        return $null
+    }
     $erg = @()
     foreach ($z in ($UTF8.GetString($bytes) -split "`r?`n")) {
         if ($z.Trim() -eq '') { continue }
@@ -154,25 +172,36 @@ function Liste([string]$pfad) {
         if ($teile.Count -lt 9) { continue }
         $name = $teile[8]
         if ($name -eq '.' -or $name -eq '..') { continue }
+        if ($name -match '[\x00-\x1f\x7f]') { continue }      # Steuerzeichen im Namen: nie anfassen
         $groesse = 0; if ($teile[4] -match '^\d+$') { $groesse = [int64]$teile[4] }
         $erg += [pscustomobject]@{ Name = $name; IstOrdner = $z.StartsWith('d'); Groesse = $groesse }
     }
     return ,$erg
 }
 
-function Namen([string]$pfad) {
-    $l = Liste $pfad
+function Namen([string]$pfad, [bool]$streng = $false) {
+    $l = Liste $pfad $streng
     if ($null -eq $l) { return @() }
     return ,@($l | ForEach-Object { $_.Name })
 }
 
+# Gibt es den Pfad? Nur ein klares "gibt es nicht" (550) zählt als nein -
+# jeder andere Fehler bricht ab, statt fälschlich "schon weg" zu melden.
 function Existiert([string]$pfad) {
     $eltern = $pfad.Substring(0, $pfad.LastIndexOf('/'))
     if ($eltern -eq '') { $eltern = '/' }
     $name = $pfad.Substring($pfad.LastIndexOf('/') + 1)
-    $l = Liste $eltern
-    if ($null -eq $l) { return $false }
-    return [bool]($l | Where-Object { $_.Name -ceq $name })
+    $a = Ftp-Befehl "CWD $eltern"
+    if ($a.Code -eq 550) { return $false }
+    if ($a.Code -ge 400) { throw "PS5 meldet beim Prüfen von $pfad : $($a.Text)" }
+    $bytes = Ftp-Daten 'LIST'
+    $null = Ftp-Cwd '/'
+    if ($null -eq $bytes) { throw "Ordner $eltern konnte nicht gelesen werden" }
+    foreach ($z in ($UTF8.GetString($bytes) -split "`r?`n")) {
+        $teile = $z -split ' +', 9
+        if ($teile.Count -ge 9 -and $teile[8] -ceq $name) { return $true }
+    }
+    return $false
 }
 
 function Datei-Text([string]$pfad) {
@@ -257,8 +286,19 @@ function Lösche-Baum([string]$d) {
     $null = Ftp-Befehl "RMD $d"
 }
 
+$script:ASTRO_IDS = @($BEHALTEN_APP)     # Astro unter allen Kennungen (die Suche ergänzt weitere Länderfassungen)
+# Gehört der Pfad zu Astro (App, Daten, Spielstand, Update, DLC, Trophäen-
+# fortschritt)? Eigene Aufnahmen aus Astro in der Mediengalerie zählen nicht dazu.
+function Astro-Pfad([string]$p) {
+    if ($p -notlike '/user/av_contents/*') { foreach ($a in $script:ASTRO_IDS) { if ($p -match "/$([regex]::Escape($a))(/|$|[-_.])") { return $true } } }
+    foreach ($n in $script:ASTRO_NPWRS) { if ($p -match "^/user/home/[^/]+/.*/$([regex]::Escape($n))(/|$)") { return $true } }
+    return $false
+}
 function Erlaubt([string]$p) {
-    if ($p -match '(^|/)\.\.?(/|$)' -or $p -match '//' -or $p -match '\s$') { return $false }
+    if ($p -match '(^|/)\.\.?(/|$)' -or $p -match '//' -or $p -match '\s$' -or $p -match '[\x00-\x1f\x7f]' -or $p -notmatch '^/') { return $false }
+    # Astro's Playroom: nie, egal wo und unter welcher Länderkennung
+    # (eigene Aufnahmen aus Astro in der Mediengalerie sind davon ausgenommen)
+    if (Astro-Pfad $p) { return $false }
     # M.2-Verwaltung: nur einzelne Spiele/Updates, nie die Ordner selbst
     if ($p -match "^$M2/user/(app|patch)/[^/]+$") { return ($p -notmatch "/(NPXS|$BEHALTEN_APP)") }
     if ($p -match "^$M2/user/addcont/[A-Z]{4}\d{5}(/[^/]+)?$") { return ($p -notmatch "/(NPXS|$BEHALTEN_APP)") }
@@ -277,15 +317,16 @@ function Erlaubt([string]$p) {
     # Fehlerberichte: nur die einzelnen .json-Dateien
     if ($p -match '^/system_data/priv/error/history/[^/]+\.json$') { return $true }
     # Trophäen-Pakete der Spiele (Astro nie)
-    if ($p -match '^/user/(trophy/conf|trophy2/nobackup/conf|np_uds/nobackup/conf)/NPWR\d{5}_\d{2}$') { return ($p -notlike "*/$script:ASTRO_NPWR") }
+    if ($p -match '^/user/(trophy/conf|trophy2/nobackup/conf|np_uds/nobackup/conf)/(NPWR\d{5}_\d{2})$') { return ($script:ASTRO_NPWRS -notcontains $Matches[2]) }
     # niemals: Systemordner, Konto, Lizenzen, Astro, Sony-Systemanwendungen
     $gesperrt = @(
         "^/user/app/$BEHALTEN_APP(/|$)", "^/user/appmeta/$BEHALTEN_APP(/|$)",
         "^/user/patch/$BEHALTEN_APP(/|$)", "^/user/addcont/$BEHALTEN_APP(/|$)",
         '^/user/appmeta/external$', '^/user/appmeta/addcont$',
-        "^/user/home/[^/]+/savedata[^/]*/$BEHALTEN_APP$",
+        "^/user/home/[^/]+/savedata[^/]*/$BEHALTEN_APP(/|$)",
+        '^/user/home/[^/]+/savedata[^/]*/(NPXS|sce_)',
         "^$M2/user(/|$)", "^$M2/system_data(/|$)", "^$M2/lost\+found(/|$)",
-        '/app/NPXS', '/appmeta/NPXS', '/patch/NPXS', '^/user/download/NPXS',
+        '/app/NPXS', '/appmeta/NPXS', '/patch/NPXS', '/addcont/NPXS', '^/user/download/NPXS',
         '^/user/license/(act\.dat|nobackup)', '^/user/system/share/(trophy|share_)',
         '^/user/catalog_downloader/[^/]+$'
     )
@@ -523,7 +564,16 @@ function Sfo-Titel($h) {
     foreach ($k in @('TITLE_04', 'TITLE_01', 'TITLE')) { if ($h.ContainsKey($k) -and [string]$h[$k] -ne '') { return [string]$h[$k] } }
     return ''
 }
+# Je Suche gemerkt (Suche-Funde leert den Speicher), damit jede Kennung nur
+# einmal gelesen wird - auch für die Astro-Erkennung vorab.
+$script:TITEL_CACHE = @{}
 function App-Titel([string]$id) {
+    if ($script:TITEL_CACHE.ContainsKey($id)) { $c = $script:TITEL_CACHE[$id]; $script:APP_ROH = $c.Roh; return $c.T }
+    $t = App-Titel-Lesen $id
+    $script:TITEL_CACHE[$id] = @{ T = $t; Roh = $script:APP_ROH }
+    return $t
+}
+function App-Titel-Lesen([string]$id) {
     $script:APP_ROH = ''
     foreach ($datei in @("/user/appmeta/$id/param.json", "/user/app/$id/sce_sys/param.json", "$SYS_META/$id/param.json")) {
         $t = (Datei-Text $datei).TrimStart([char]0xFEFF)
@@ -607,6 +657,7 @@ function Galerie-Name([string]$id, [string[]]$ordner = @()) {
 }
 # Prüft alle Sprachfassungen des Namens, nicht nur die angezeigte.
 function Ist-Astro([string]$t) { return (($t + ' ' + $script:APP_ROH).ToUpper() -match 'ASTRO.*PLAYROOM') }
+function Astro-Merken([string]$id) { if ($script:ASTRO_IDS -notcontains $id) { $script:ASTRO_IDS += $id } }
 
 
 # ---------------------------------------------------------------------
@@ -646,14 +697,24 @@ $script:KatInfo = @('',
      ' Kopplung).'))
 $script:ALLE_KAT = @(1, 2, 3, 4, 5, 6, 7)
 $script:Funde = New-Object System.Collections.ArrayList
+$script:MERKE_OK = $false            # hat der letzte Merke-Aufruf einen Eintrag angelegt?
 function Merke([string[]]$pfade, [int]$kat, [string]$text, [string]$quelle = '', [bool]$gesperrt = $false) {
+    # Astro bleibt immer - seine Pfade werden gar nicht erst angeboten
+    $pfade = @($pfade | Where-Object { -not (Astro-Pfad $_) })
+    $script:MERKE_OK = ($pfade.Count -gt 0)
+    if (-not $script:MERKE_OK) { return }
     if ($gesperrt) { $text += '  [GESPERRT: Game Compressor arbeitet gerade daran]' }
-    $null = $script:Funde.Add([pscustomobject]@{ Pfade = $pfade; Kat = $kat; Text = $text; Wahl = $false; Quelle = $quelle; Gesperrt = $gesperrt })
+    # PfadeBasis/TextBasis: der Eintrag wie gefunden. Bei ShadowMount-Spielen
+    # wird Pfade je nach Entscheidung (mit/ohne Spieldateien) jedes Mal neu
+    # daraus gebaut - so wirkt eine abgebrochene Entscheidung nie nach.
+    $null = $script:Funde.Add([pscustomobject]@{ Pfade = $pfade; Kat = $kat; Text = $text; Wahl = $false; Quelle = $quelle; Gesperrt = $gesperrt
+                                                 PfadeBasis = $pfade; TextBasis = $text })
 }
 # Eintrag, der zu einem Spiel gehört (Teil = Spiel, Update oder DLC). Über die
 # Gruppe (Spiel-ID) findet das Programm später zusammengehörige Teile.
 function Merke-Teil([string[]]$pfade, [int]$kat, [string]$text, [string]$gruppe, [string]$teil) {
     Merke $pfade $kat $text
+    if (-not $script:MERKE_OK) { return }
     $f = $script:Funde[$script:Funde.Count - 1]
     $f | Add-Member -NotePropertyName Gruppe -NotePropertyValue $gruppe
     $f | Add-Member -NotePropertyName Teil -NotePropertyValue $teil
@@ -678,24 +739,30 @@ function Patch-Version([string]$id, [string]$basis = '/user') {
 # Spiel, Update und Zusatzinhalte eines normal installierten Spiels als eigene
 # Einträge merken. $basis = '/user' (interne SSD) oder "$M2/user" (M.2).
 function Merke-Spielteile([string[]]$spielPfade, [int]$kat, [string]$name, [string]$id, [string]$basis,
-                          [bool]$hatUpdate, [bool]$hatDlc, [string[]]$dlcInfos, $Benutzt) {
-    # Share-Einstellungen des Spiels gehen mit dem Spiel
-    if ($script:SHARES -contains $id) { $spielPfade = @($spielPfade) + "/user/system/share/$id" }
-    Merke-Teil $spielPfade $kat "$name ($id) - Spiel" $id 'Spiel'
+                          [bool]$hatUpdate, [bool]$hatDlc, [string[]]$dlcInfos, $Benutzt, [bool]$zwilling = $false) {
+    # Share-Einstellungen des Spiels gehen mit dem Spiel (nicht, wenn es dieselbe
+    # Kennung intern und auf der M.2 gibt - dann braucht die andere sie noch)
+    if ($script:SHARES -contains $id -and -not $zwilling) { $spielPfade = @($spielPfade) + "/user/system/share/$id" }
+    # Gruppe = Ort + Kennung: dasselbe Spiel intern und auf der M.2 sind zwei Gruppen
+    $gruppe = "$basis|$id"
+    Merke-Teil $spielPfade $kat "$name ($id) - Spiel" $gruppe 'Spiel'
     if ($hatUpdate) {
         $Benutzt["$basis/patch/$id"] = 1
-        Merke-Teil @("$basis/patch/$id") $kat "$name ($id) - Update$(Patch-Version $id $basis)" $id 'Update'
+        Merke-Teil @("$basis/patch/$id") $kat "$name ($id) - Update$(Patch-Version $id $basis)" $gruppe 'Update'
     }
     if ($hatDlc) {
         $Benutzt["$basis/addcont/$id"] = 1
         $leer = @("$basis/addcont/$id")
         $meta = @()
-        if ($dlcInfos -contains $id) { $Benutzt["/user/appmeta/addcont/$id"] = 1; $leer += "/user/appmeta/addcont/$id"; $meta = Namen "/user/appmeta/addcont/$id" }
-        $script:LEER_DANACH[$id] = $leer
+        if ($dlcInfos -contains $id) {
+            $Benutzt["/user/appmeta/addcont/$id"] = 1
+            if (-not $zwilling) { $leer += "/user/appmeta/addcont/$id"; $meta = Namen "/user/appmeta/addcont/$id" }
+        }
+        $script:LEER_DANACH[$gruppe] = $leer
         foreach ($d in (Namen "$basis/addcont/$id")) {
             $dp = @("$basis/addcont/$id/$d")
             if ($meta -contains $d) { $dp += "/user/appmeta/addcont/$id/$d" }
-            Merke-Teil $dp $kat "$name ($id) - Zusatzinhalt: $(DLC-Name $id $d $basis)" $id 'DLC'
+            Merke-Teil $dp $kat "$name ($id) - Zusatzinhalt: $(DLC-Name $id $d $basis)" $gruppe 'DLC'
         }
     }
 }
@@ -719,28 +786,54 @@ function Abhaengige-Mitnehmen {
     }
 }
 function Suche-Funde {
+    $script:FUNDE_IP = ''              # erst gültig, wenn die Suche ganz durch ist
     $script:Funde = New-Object System.Collections.ArrayList
     $script:LEER_DANACH = @{}          # Spiel-ID -> Ordner, die nach dem Löschen leer sein können
-    $script:SHARES = Namen '/user/system/share'
-    $homes    = Namen '/user/home'
-    $appmeta  = Namen '/user/appmeta'
-    $apps     = Namen '/user/app'
-    $patches  = Namen '/user/patch'
-    $addconts = Namen '/user/addcont'
-    $dlcInfos = Namen '/user/appmeta/addcont'
-    $m2Liste  = Liste $M2
+    # Diese Listen entscheiden, was als "nicht mehr installiert" gilt - darum
+    # streng: scheitert eine, bricht die Suche ab, statt Falsches anzubieten.
+    $script:SHARES = Namen '/user/system/share' $true
+    $homes    = Namen '/user/home' $true
+    $appmeta  = Namen '/user/appmeta' $true
+    $apps     = Namen '/user/app' $true
+    $patches  = Namen '/user/patch' $true
+    $addconts = Namen '/user/addcont' $true
+    $dlcInfos = Namen '/user/appmeta/addcont' $true
+    $m2Liste  = Liste $M2 $true
     $m2Da     = ($null -ne $m2Liste); $script:m2Da = $m2Da
     $m2Apps   = @(); $m2Patches = @()
     $m2Addconts = @()
-    if ($m2Da) { $m2Apps = Namen "$M2/user/app"; $m2Patches = Namen "$M2/user/patch"; $m2Addconts = Namen "$M2/user/addcont" }
+    if ($m2Da) { $m2Apps = Namen "$M2/user/app" $true; $m2Patches = Namen "$M2/user/patch" $true; $m2Addconts = Namen "$M2/user/addcont" $true }
     $Benutzt  = @{}                    # Pfade, die schon zu einem Spiel gehören
     # Die PS5 legt für jede Kachel einen Ordner unter /system_data/priv/appmeta an.
     # Bleibt er stehen, zeigt das Menü nach dem Datenbank-Neuaufbau eine leere
     # Kachel mit Schloss. Darum geht er beim Löschen eines Spiels/einer App mit.
-    $sysmeta  = Namen $SYS_META
+    $sysmeta  = Namen $SYS_META $true
     function Mit-Kachel([string[]]$pfade, [string]$id) {
-        if ($sysmeta -contains $id -and $id -notlike 'NPXS*' -and $id -ne $BEHALTEN_APP) { return ($pfade + "$SYS_META/$id") }
+        if ($sysmeta -contains $id -and $id -notlike 'NPXS*' -and $script:ASTRO_IDS -notcontains $id) { return ($pfade + "$SYS_META/$id") }
         return $pfade
+    }
+    # Namen aller Kacheln mit Trophäen zuerst lesen - dabei wird Astro unter
+    # jeder Länderkennung erkannt, bevor irgendetwas anderes gelistet wird.
+    $script:ASTRO_IDS = @($BEHALTEN_APP); $script:ASTRO_NPWRS = @('NPWR20188_00')
+    $script:NAMEN_CACHE = @{}; $script:TITEL_CACHE = @{}
+    foreach ($id in @(@($apps) + @($m2Apps) + @($appmeta) + @($sysmeta) | Select-Object -Unique)) {
+        if ($id -notmatch '^[A-Z]{4}\d{5}$' -or $id -like 'NPXS*') { continue }
+        if (Ist-Astro (App-Titel $id)) { Astro-Merken $id }
+    }
+    # Zuordnung Trophäen-Kennung (NPWR...) -> Spielname über die Kachel-Infos
+    # der PS5 (npbind.dat). Astro wird darüber erkannt und nie angefasst.
+    $script:NPWR_NAMEN = @{}
+    foreach ($id in $sysmeta) {
+        if ($id -notmatch '^[A-Z]{4}\d{5}$') { continue }
+        foreach ($sub in @('trophy2', 'trophy')) {
+            $nb = Datei-Text "$SYS_META/$id/$sub/npbind.dat"
+            $ms = [regex]::Matches($nb, 'NPWR\d{5}_\d{2}')
+            if ($ms.Count -eq 0) { continue }
+            if (-not $script:NAMEN_CACHE.ContainsKey($id)) { $script:NAMEN_CACHE[$id] = App-Titel $id; if (Ist-Astro $script:NAMEN_CACHE[$id]) { Astro-Merken $id } }
+            if ($script:ASTRO_IDS -contains $id) { foreach ($m in $ms) { if ($script:ASTRO_NPWRS -notcontains $m.Value) { $script:ASTRO_NPWRS += $m.Value } } }
+            foreach ($m in $ms) { if (-not $script:NPWR_NAMEN.ContainsKey($m.Value)) { $script:NPWR_NAMEN[$m.Value] = $script:NAMEN_CACHE[$id] } }
+            break
+        }
     }
     $script:KOMPRIMIERUNG = @()        # halbfertige Game-Compressor-Dateien
     $script:AUFGEKLAPPT   = @()        # Ordner, die wegen ShadowMount-Spielen einzeln gelistet sind
@@ -764,6 +857,7 @@ function Suche-Funde {
         return ''
     }
     function Quelle-Ort([string]$q) {
+        if ($q -match '[\x00-\x1f\x7f]') { return '' }     # unbrauchbarer Eintrag: nur die Kachel anbieten
         $m = [regex]::Escape($M2)
         if ($q -match "^$m/(user|system_data|lost\+found)(/|$)") { return '' }
         if ($q -match "^$m/[^/]+") { return 'M.2' }
@@ -777,7 +871,7 @@ function Suche-Funde {
         $eltern = $q.Substring(0, $q.LastIndexOf('/'))
         $name   = $q.Substring($q.LastIndexOf('/') + 1)
         $basis  = $name -replace '\.[^.]+$', ''
-        if (-not $script:ORDNER_CACHE.ContainsKey($eltern)) { $script:ORDNER_CACHE[$eltern] = Namen $eltern }
+        if (-not $script:ORDNER_CACHE.ContainsKey($eltern)) { $script:ORDNER_CACHE[$eltern] = Namen $eltern $true }
         foreach ($n in $script:ORDNER_CACHE[$eltern]) {
             if (-not (Ist-Zwischendatei $n)) { continue }
             if ($n -like "*$id*" -or $n.TrimStart('.').StartsWith($basis)) { return $true }
@@ -800,7 +894,7 @@ function Suche-Funde {
             $drin = @($SpielQuellen | Where-Object { $_.StartsWith("$p/") })
             if ($drin.Count -gt 0) {
                 $script:AUFGEKLAPPT += $p
-                Merke-Ordner $p (Namen $p) $kat "$vorsatz$x/"
+                Merke-Ordner $p (Namen $p $true) $kat "$vorsatz$x/"
             } else {
                 Merke @($p) $kat "$vorsatz$x"
             }
@@ -809,15 +903,17 @@ function Suche-Funde {
 
     # ---- 1 Spiele & Apps (und Tool-Kacheln -> 6) ------------------------
     foreach ($x in $apps) {
-        if ($x -eq $BEHALTEN_APP -or $x -like 'NPXS*') { continue }
+        if ($script:ASTRO_IDS -contains $x -or $x -like 'NPXS*') { continue }
         $t = App-Titel $x
-        if (Ist-Astro $t) { continue }
+        if (Ist-Astro $t) { Astro-Merken $x; continue }
         $roh = $script:APP_ROH
         if ($t -eq '') { $t = 'unbekannter Name' }
         $p = @("/user/app/$x")
-        if ($appmeta -contains $x) { $p += "/user/appmeta/$x"; $Benutzt["/user/appmeta/$x"] = 1 }
-        $p = Mit-Kachel $p $x
-        $inhalt = Namen "/user/app/$x"
+        # dieselbe Kennung auch auf der M.2: Kachel-Infos & Co. gehören beiden - bleiben
+        $zwilling = ($m2Apps -contains $x)
+        if ($appmeta -contains $x) { $Benutzt["/user/appmeta/$x"] = 1; if (-not $zwilling) { $p += "/user/appmeta/$x" } }
+        if (-not $zwilling) { $p = Mit-Kachel $p $x }
+        $inhalt = Namen "/user/app/$x" $true        # streng: entscheidet ShadowMount-Spiel oder normales Spiel
         if ($roh -match '"deeplinkUri"\s*:\s*"https?://(127\.0\.0\.1|localhost)') {
             # Tool-Kachel (Payload Manager, ShadowMount+, PS5Upload-Minion, ...) - auch
             # wenn sie wie ein ShadowMount-Spiel eine mount.lnk hat
@@ -825,7 +921,9 @@ function Suche-Funde {
         } elseif ($inhalt -contains 'mount.lnk' -or $inhalt -contains 'mount_img.lnk') {
             $q = SM-Quelle $x
             $ort = Quelle-Ort $q
-            if ($ort -ne '' -and (Existiert $q)) {
+            $da = $false
+            if ($ort -ne '') { $da = Existiert $q }      # nicht prüfbar (anderer Fehler als "gibt es nicht"): Suche bricht ab
+            if ($ort -ne '' -and $da) {
                 $g = Wird-Komprimiert $q $x
                 $null = $SpielQuellen.Add($q)
                 $QuelleInfo[$q] = [pscustomobject]@{ Links = $p; Name = "$t ($x)"; Gesperrt = $g }
@@ -839,7 +937,7 @@ function Suche-Funde {
         } else {
             # normal installiertes Spiel (PS5 oder PS4): Spiel, Update und jeder
             # Zusatzinhalt als eigener Eintrag - man kann einzeln wählen.
-            Merke-Spielteile $p 1 $t $x '/user' ($patches -contains $x) ($addconts -contains $x) $dlcInfos $Benutzt
+            Merke-Spielteile $p 1 $t $x '/user' ($patches -contains $x) ($addconts -contains $x) $dlcInfos $Benutzt $zwilling
         }
     }
 
@@ -847,7 +945,7 @@ function Suche-Funde {
     foreach ($u in $homes) {
         foreach ($sd in @('savedata', 'savedata_prospero')) {
             foreach ($x in (Namen "/user/home/$u/$sd")) {
-                if ($x -eq $BEHALTEN_APP -or $x -like 'sce_*') { continue }   # sce_* legt die PS5 selbst an
+                if ($script:ASTRO_IDS -contains $x -or $x -like 'sce_*') { continue }   # sce_* legt die PS5 selbst an
                 Merke @("/user/home/$u/$sd/$x") 2 "Spielstand $(Mit-Name $x)"
             }
         }
@@ -903,24 +1001,10 @@ function Suche-Funde {
         foreach ($x in (Namen "/user/av_contents/$s")) { Merke @("/user/av_contents/$s/$x") 4 "Weitere Galerie-Daten: $s/$(Mit-Name $x)" }
     }
     # ---- 3 Trophäen ----------------------------------------------------
-    # Zuordnung Trophäen-Kennung (NPWR...) -> Spielname über die Kachel-Infos
-    # der PS5 (npbind.dat). Astro wird darüber erkannt und nie angefasst.
-    $script:NPWR_NAMEN = @{}
-    foreach ($id in (Namen $SYS_META)) {
-        if ($id -notmatch '^[A-Z]{4}\d{5}$') { continue }
-        foreach ($sub in @('trophy2', 'trophy')) {
-            $nb = Datei-Text "$SYS_META/$id/$sub/npbind.dat"
-            $ms = [regex]::Matches($nb, 'NPWR\d{5}_\d{2}')
-            if ($ms.Count -eq 0) { continue }
-            if ($id -eq $BEHALTEN_APP) { $script:ASTRO_NPWR = $ms[0].Value }
-            if (-not $script:NAMEN_CACHE.ContainsKey($id)) { $script:NAMEN_CACHE[$id] = App-Titel $id }
-            foreach ($m in $ms) { if (-not $script:NPWR_NAMEN.ContainsKey($m.Value)) { $script:NPWR_NAMEN[$m.Value] = $script:NAMEN_CACHE[$id] } }
-            break
-        }
-    }
     # Trophäen-Stand (Fortschritt) je Spiel
     foreach ($u in $homes) {
         foreach ($x in (Namen "/user/home/$u/trophy/data")) {
+            if ($script:ASTRO_NPWRS -contains $x) { continue }        # Astro bleibt
             $t = if ($x -eq 'sce_trop') { 'Trophäen-Gesamtzähler der Konsole (Level, Anzahl Bronze/Silber/Gold - baut die PS5 neu auf)' }
                  elseif ($x -match '^NPWR') { "Dein Trophäen-Fortschritt in $(Trophaen-Name $x) (PS4-Spiel)$(Trophaen-Weg $x)" }
                  else { "Trophäen-Daten trophy/data/$x" }
@@ -930,6 +1014,7 @@ function Suche-Funde {
             if ($x -ne 'data') { Merke @("/user/home/$u/trophy/$x") 3 "Trophäen-Daten trophy/$x" }
         }
         foreach ($x in (Namen "/user/home/$u/trophy2/nobackup/data")) {
+            if ($script:ASTRO_NPWRS -contains $x) { continue }        # Astro bleibt
             $t = if ($x -match '^NPWR') { "Dein Trophäen-Fortschritt in $(Trophaen-Name $x)$(Trophaen-Weg $x)" } else { "Trophäen-Daten trophy2/nobackup/data/$x" }
             Merke @("/user/home/$u/trophy2/nobackup/data/$x") 3 $t
         }
@@ -946,7 +1031,7 @@ function Suche-Funde {
     $pakete = @{}
     foreach ($o in @('/user/trophy2/nobackup/conf', '/user/trophy/conf', '/user/np_uds/nobackup/conf')) {
         foreach ($x in (Namen $o)) {
-            if ($x -notmatch '^NPWR\d{5}_\d{2}$' -or $x -eq $script:ASTRO_NPWR) { continue }
+            if ($x -notmatch '^NPWR\d{5}_\d{2}$' -or $script:ASTRO_NPWRS -contains $x) { continue }
             if (-not $pakete.ContainsKey($x)) { $pakete[$x] = @() }
             $pakete[$x] += "$o/$x"
         }
@@ -955,7 +1040,7 @@ function Suche-Funde {
         if ($script:NPWR_NAMEN.ContainsKey($k)) {
             # Spiel ist noch da: Paket gehört dazu, geht bei KOMPLETT nur mit der M.2 weg
             Merke $pakete[$k] 3 "Trophäen-Liste von $(Trophaen-Name $k) - Spiel ist noch da, Liste nur weg, wenn das Spiel auch weg soll (nur Namen und Bilder der Trophäen, nicht dein Fortschritt)" '' $false
-            $script:Funde[$script:Funde.Count - 1] | Add-Member -NotePropertyName Paket -NotePropertyValue $true
+            if ($script:MERKE_OK) { $script:Funde[$script:Funde.Count - 1] | Add-Member -NotePropertyName Paket -NotePropertyValue $true }
         } else {
             Merke $pakete[$k] 3 "Trophäen-Liste von $(Trophaen-Name $k) - Spiel ist nicht mehr auf der Konsole, kann weg (nur Namen und Bilder der Trophäen, nicht dein Fortschritt)"
         }
@@ -973,19 +1058,25 @@ function Suche-Funde {
     }
     if ($m2Da) {
         foreach ($e in $m2Liste) {
-            if ($e.Name -like '_zu_loeschen_*') { Merke @("$M2/$($e.Name)") 5 "Rest einer früheren Aufräumaktion: $M2/$($e.Name)" }
+            if ($e.Name -like '_zu_loeschen_*') { Merke @("$M2/$($e.Name)") 7 "Rest einer früheren Aufräumaktion: $M2/$($e.Name)" }
         }
     }
     # ---- 7 M.2 (vor den Resten, damit Spiel-Infos dem M.2-Spiel zugeordnet werden)
     if ($m2Da) {
         foreach ($x in $m2Apps) {
-            if ($x -like 'NPXS*' -or $x -eq $BEHALTEN_APP) { continue }
-            $p = @("$M2/user/app/$x")
-            if ($appmeta -contains $x -and -not ($apps -contains $x)) { $p += "/user/appmeta/$x"; $Benutzt["/user/appmeta/$x"] = 1 }
-            $p = Mit-Kachel $p $x
+            if ($x -like 'NPXS*' -or $script:ASTRO_IDS -contains $x) { continue }
             $t = App-Titel $x
+            if (Ist-Astro $t) { Astro-Merken $x; continue }
             if ($t -eq '') { $t = 'unbekannter Name' }
-            Merke-Spielteile $p 7 $t $x "$M2/user" ($m2Patches -contains $x) ($m2Addconts -contains $x) $dlcInfos $Benutzt
+            $p = @("$M2/user/app/$x")
+            # Ist dieselbe Kennung auch intern installiert, gehören Kachel-Infos,
+            # Share-Einstellungen und DLC-Infos beiden - dann bleiben sie.
+            $zwilling = ($apps -contains $x)
+            if (-not $zwilling) {
+                if ($appmeta -contains $x) { $p += "/user/appmeta/$x"; $Benutzt["/user/appmeta/$x"] = 1 }
+                $p = Mit-Kachel $p $x
+            }
+            Merke-Spielteile $p 7 $t $x "$M2/user" ($m2Patches -contains $x) ($m2Addconts -contains $x) $dlcInfos $Benutzt $zwilling
         }
         foreach ($x in $m2Patches) {
             if (-not $Benutzt.ContainsKey("$M2/user/patch/$x")) { Merke @("$M2/user/patch/$x") 7 "Update ohne Spiel: $(Mit-Name $x)" }
@@ -1000,10 +1091,10 @@ function Suche-Funde {
         }
     }
     foreach ($x in $appmeta) {
-        if ($x -eq $BEHALTEN_APP -or $x -eq 'external' -or $x -eq 'addcont' -or $x -like 'NPXS*') { continue }
+        if ($script:ASTRO_IDS -contains $x -or $x -eq 'external' -or $x -eq 'addcont' -or $x -like 'NPXS*') { continue }
         if ($apps -contains $x -or $Benutzt.ContainsKey("/user/appmeta/$x")) { continue }
         $t = App-Titel $x
-        if (Ist-Astro $t) { continue }
+        if (Ist-Astro $t) { Astro-Merken $x; continue }
         if ($t -eq '') { $t = 'entferntes Spiel' }
         Merke (Mit-Kachel @("/user/appmeta/$x") $x) 5 "Reste: $t ($x)"
     }
@@ -1012,7 +1103,7 @@ function Suche-Funde {
     #  die ganze Liste als EIN Element an)
     $shareIds = @()
     foreach ($x in (Namen '/user/system/share')) {
-        if ($x -notmatch '^[A-Z]{4}\d{5}$' -or $x -like 'NPXS*' -or $x -eq $BEHALTEN_APP) { continue }
+        if ($x -notmatch '^[A-Z]{4}\d{5}$' -or $x -like 'NPXS*' -or $script:ASTRO_IDS -contains $x) { continue }
         if ($apps -contains $x -or $m2Apps -contains $x) { continue }      # Spiel ist noch installiert
         $shareIds += $x
     }
@@ -1039,20 +1130,20 @@ function Suche-Funde {
     if ($ext.Count -gt 0) { Merke $ext 5 "Merkzettel für Spiele auf externen USB-Platten ($($ext.Count) $(if ($ext.Count -eq 1) {'Spiel'} else {'Spiele'}), legt die PS5 beim Anstecken neu an)" }
     # verwaiste Kachel-Infos: Spiel/App gibt es nirgends mehr, nur die Kachel
     foreach ($x in $sysmeta) {
-        if ($x -notmatch '^[A-Z]{4}\d{5}$' -or $x -like 'NPXS*' -or $x -eq $BEHALTEN_APP) { continue }
+        if ($x -notmatch '^[A-Z]{4}\d{5}$' -or $x -like 'NPXS*' -or $script:ASTRO_IDS -contains $x) { continue }
         if ($apps -contains $x -or $appmeta -contains $x -or $m2Apps -contains $x) { continue }
         $t = App-Titel $x
-        if (Ist-Astro $t) { continue }
+        if (Ist-Astro $t) { Astro-Merken $x; continue }
         if ($t -eq '') { $t = 'unbekannter Name' }
         Merke @("$SYS_META/$x") 5 "Leere Kachel (Schloss): $t ($x)"
     }
     # DLC-Infos ohne Spiel (erst hier, damit auch M.2-Spiele ihre schon erhalten haben)
     foreach ($x in $dlcInfos) { if (-not $Benutzt.ContainsKey("/user/appmeta/addcont/$x")) { Merke @("/user/appmeta/addcont/$x") 5 "Zusatzinhalt-Infos: $(Mit-Name $x)" } }
     # ---- 6 Jailbreak-Tools & Homebrew-Daten -----------------------------
-    Merke-Ordner '/user/data' (Namen '/user/data') 6 ''
+    Merke-Ordner '/user/data' (Namen '/user/data' $true) 6 ''
     # Fake-Lizenzen des Jailbreaks (fake*.rif + fake*.idx); echte Lizenzen bleiben
     $fakeLiz = @()
-    foreach ($x in (Namen '/user/license')) { if ($x -match '^fake.+\.(rif|idx)$') { $fakeLiz += $x } }
+    foreach ($x in (Namen '/user/license' $true)) { if ($x -match '^fake.+\.(rif|idx)$') { $fakeLiz += $x } }
     $gruppen = @()
     foreach ($x in $fakeLiz) { $g = $x -replace '\.(rif|idx)$', ''; if ($gruppen -notcontains $g) { $gruppen += $g } }
     foreach ($g in $gruppen) {
@@ -1060,12 +1151,13 @@ function Suche-Funde {
         foreach ($x in $fakeLiz) { if ($x -eq "$g.rif" -or $x -eq "$g.idx") { $pf += "/user/license/$x" } }
         # Gehört die Lizenz zu einem noch installierten Spiel, geht sie nur
         # zusammen mit diesem Spiel weg - sonst startet das Spiel nicht mehr.
-        $spiel = $null
         if ($g -match '([A-Z]{4}\d{5})') {
             $tid = $Matches[1]
-            foreach ($f in $script:Funde) { if ((Ist-Teil $f 'Spiel') -and $f.Gruppe -eq $tid) { $spiel = $f } }
+            $spiele = @($script:Funde | Where-Object { (Ist-Teil $_ 'Spiel') -and $_.Gruppe -like "*|$tid" })
+            if ($spiele.Count -eq 1) { $spiele[0].Pfade = @($spiele[0].Pfade) + $pf; $spiele[0].PfadeBasis = $spiele[0].Pfade; continue }
+            # Spiel ist mehrfach oder als ShadowMount-/Tool-Kachel installiert: Lizenz bleibt
+            if ($spiele.Count -gt 1 -or $apps -contains $tid -or $m2Apps -contains $tid) { continue }
         }
-        if ($null -ne $spiel) { $spiel.Pfade = @($spiel.Pfade) + $pf; continue }
         $n = $g -replace '^fake', ''
         if ($g -match '([A-Z]{4}\d{5})') { $m = Mit-Name $Matches[1]; if ($m -ne $Matches[1]) { $n = "$n - $($m -replace '^[A-Z]{4}\d{5} ', '')" } }
         Merke $pf 6 "Fake-Lizenz: $n (Spiel ist nicht mehr installiert)"
@@ -1080,6 +1172,7 @@ function Suche-Funde {
     $sortiert = New-Object System.Collections.ArrayList
     foreach ($k in 1..7) { foreach ($f in $script:Funde) { if ($f.Kat -eq $k) { $null = $sortiert.Add($f) } } }
     $script:Funde = $sortiert
+    $script:FUNDE_IP = "$($script:Ftp.Ip):$($script:Ftp.Port)"
 }
 
 function Anzahl([int]$k) { return @($script:Funde | Where-Object { $_.Kat -eq $k }).Count }
@@ -1092,7 +1185,15 @@ function Hat-Pakete { return (@($script:Funde | Where-Object { $_.PSObject.Prope
 # ---------------------------------------------------------------------
 # KOMPLETT: alles auf der internen SSD (Bereich 1-6), M.2 nur auf Wunsch.
 # Trophäen-Pakete nur, wenn die M.2 mit geleert wird.
+# ShadowMount-Spiele (Bereich 1) auf "wie gefunden" zurücksetzen: nur Kachel,
+# Text ohne Zusatz. Vor jeder neuen Entscheidung aufrufen.
+function SM-Zuruecksetzen {
+    foreach ($f in $script:Funde) {
+        if ($f.Kat -eq 1 -and $f.Quelle -ne '') { $f.Pfade = $f.PfadeBasis; $f.Text = $f.TextBasis }
+    }
+}
 function Waehle-Komplett([bool]$m2Leeren) {
+    SM-Zuruecksetzen
     foreach ($f in $script:Funde) { $f.Wahl = $false }
     foreach ($f in $script:Funde) { if ($f.Kat -le 6 -and -not $f.Gesperrt -and -not $f.PSObject.Properties['Paket']) { $f.Wahl = $true } }
     if ($m2Leeren) { foreach ($f in $script:Funde) { if (($f.Kat -eq 7 -or $f.PSObject.Properties['Paket']) -and -not $f.Gesperrt) { $f.Wahl = $true } } }
@@ -1100,17 +1201,18 @@ function Waehle-Komplett([bool]$m2Leeren) {
     # liegt es auf der M.2, nur wenn die M.2 geleert wird (dann über Bereich 7).
     foreach ($f in $script:Funde) {
         if ($f.Kat -ne 1 -or $f.Quelle -eq '' -or $f.Gesperrt) { continue }
-        if ($f.Quelle -like '/user/data/*') { $f.Pfade = @($f.Quelle) + $f.Pfade; $f.Text += ' - Spiel + Kachel' }
-        elseif ($m2Leeren)                  { $f.Text += ' - Spiel + Kachel (über Bereich 7)' }
-        else                                { $f.Text += ' - nur Kachel, Spiel bleibt' }
+        if ($f.Quelle -like '/user/data/*') { $f.Pfade = @($f.Quelle) + $f.PfadeBasis; $f.Text = "$($f.TextBasis) - Spiel + Kachel" }
+        elseif ($m2Leeren)                  { $f.Text = "$($f.TextBasis) - Spiel + Kachel (über Bereich 7)" }
+        else                                { $f.Text = "$($f.TextBasis) - nur Kachel, Spiel bleibt" }
     }
 }
 # ERWEITERT: gewählte ShadowMount-Spiele aus Bereich 1 - Spieldateien mit oder nicht
 function SM-Gewaehlt { return ,@($script:Funde | Where-Object { $_.Wahl -and $_.Kat -eq 1 -and $_.Quelle -ne '' }) }
 function Setze-SM-Spieldateien([bool]$mit) {
+    SM-Zuruecksetzen
     foreach ($f in (SM-Gewaehlt)) {
-        if ($mit) { $f.Pfade = @($f.Quelle) + $f.Pfade; $f.Text = "$($f.Text) - Spiel + Kachel" }   # Spieldatei zuerst
-        else      { $f.Text = "$($f.Text) - nur Kachel, Spiel bleibt" }
+        if ($mit) { $f.Pfade = @($f.Quelle) + $f.PfadeBasis; $f.Text = "$($f.TextBasis) - Spiel + Kachel" }   # Spieldatei zuerst
+        else      { $f.Text = "$($f.TextBasis) - nur Kachel, Spiel bleibt" }
     }
 }
 
@@ -1213,11 +1315,28 @@ function Freigeraeumt-Text($g) {
     return ('Freigeräumt: {0}{1} in {2:N0} Dateien und {3:N0} Ordnern' -f $wie, (Groesse-Text $g.Bytes), $g.Dateien, $g.Ordner)
 }
 
+# Nur einen wirklich leeren Ordner entfernen. RMD löscht nie Inhalt mit
+# (anders als RMDA) - auch wenn die Liste davor aus irgendeinem Grund falsch war.
+function Leeren-Ordner-Entfernen([string]$o) {
+    try {
+        if (-not (Erlaubt $o)) { return }
+        $l = Liste $o
+        if ($null -eq $l -or $l.Count -ne 0) { return }
+        $a = Ftp-Befehl "RMD $o"
+        if ($a.Code -lt 400) { & $script:Melde "  gelöscht   leerer Ordner $o" }
+    } catch { }
+}
+$script:FUNDE_IP = ''               # von welcher PS5 (IP:Port) die aktuelle Liste stammt
 function Fuehre-Loeschung([scriptblock]$Weiter) {
     Abhaengige-Mitnehmen
     $gewaehlt = Gewaehlt
     $fehl = 0
     $frei = @{ Bytes = [int64]0; Dateien = 0; Ordner = 0; Gekappt = [bool]$script:GROESSE_GEKAPPT }
+    # Die Liste muss von genau der PS5 stammen, mit der gerade verbunden ist.
+    if ($null -eq $script:Ftp -or $script:FUNDE_IP -eq '' -or "$($script:Ftp.Ip):$($script:Ftp.Port)" -ne $script:FUNDE_IP) {
+        & $script:Melde 'FEHLER: Die Liste stammt nicht von der gerade verbundenen PS5 - nichts gelöscht. Bitte neu verbinden und nachschauen.'
+        return @{ Abgebrochen = $true; Fehler = 1; SmGestoppt = $false; Frei = $frei }
+    }
     # Erst sicherstellen, dass die Verbindung sauber antwortet - sonst würde
     # jede Prüfung "schon weg" melden, ohne dass etwas passiert.
     if (-not (Ftp-Gesund)) {
@@ -1240,50 +1359,69 @@ function Fuehre-Loeschung([scriptblock]$Weiter) {
             & $script:Melde ''
             & $script:Melde ' ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich'
             & $script:Melde ' wieder angelegt und die Spiele könnten gerade eingebunden sein.'
-            if (-not (& $Weiter)) { return @{ Abgebrochen = $true; Fehler = 0; SmGestoppt = $false } }
+            if (-not (& $Weiter)) { return @{ Abgebrochen = $true; Fehler = 0; SmGestoppt = $false; Frei = $frei } }
         }
         & $script:Melde ''
     }
     & $script:Melde 'Lösche ... (große Spiele können etwas dauern)'
+    $altTimeout = $script:FTP_TIMEOUT
     $script:FTP_TIMEOUT = 7200000                     # Löschen großer Dateien kann Minuten dauern - solange die Verbindung steht, warten
-    foreach ($k in @(1, 2, 3, 4, 5, 7, 6)) {
-        foreach ($f in ($gewaehlt | Where-Object { $_.Kat -eq $k })) {
-            $ok = $true
-            $script:WAR_SCHON_WEG = 0
-            foreach ($p in $f.Pfade) {
-                try { if (-not (Loeschen $p)) { $ok = $false } } catch { $ok = $false }
-                if (-not $ok -and $f.Quelle -ne '') { break }    # Kachel nur weg, wenn das Spiel weg ist
+    $spielFehlt = @{}                                 # Gruppen, deren Spiel nicht gelöscht werden konnte
+    $verloren = $false
+    try {
+        foreach ($k in @(1, 2, 3, 4, 5, 7, 6)) {
+            foreach ($f in ($gewaehlt | Where-Object { $_.Kat -eq $k })) {
+                if ($verloren) { $fehl++; continue }
+                # Update/DLC eines Spiels, das selbst nicht gelöscht werden konnte: bleiben
+                if ($null -ne $f.PSObject.Properties['Teil'] -and $f.Teil -ne 'Spiel' -and $spielFehlt.ContainsKey($f.Gruppe)) {
+                    & $script:Melde "  übersprungen   $($f.Text) (das Spiel selbst konnte nicht gelöscht werden)"; $fehl++; continue
+                }
+                $ok = $true
+                $script:WAR_SCHON_WEG = 0
+                foreach ($p in $f.Pfade) {
+                    try { if (-not (Loeschen $p)) { $ok = $false } }
+                    catch {
+                        $ok = $false
+                        & $script:Melde "    ($p : $($_.Exception.Message))"
+                        # Steht die Verbindung noch? Kurz nachfragen (höchstens 10 s).
+                        $t = $script:FTP_TIMEOUT; $script:FTP_TIMEOUT = 10000
+                        try { if ((Ftp-Befehl 'NOOP').Code -ne 200) { $verloren = $true } } catch { $verloren = $true }
+                        $script:FTP_TIMEOUT = $t
+                    }
+                    # Der Rest des Eintrags (Kachel, Infos, Lizenz) nur, wenn das
+                    # Vorherige wirklich weg ist - sonst bliebe ein Spiel ohne Kachel.
+                    if (-not $ok) { break }
+                }
+                if ($ok -and $script:WAR_SCHON_WEG -ge $f.Pfade.Count) { & $script:Melde "  war schon weg   $($f.Text)"; continue }
+                if ($ok) {
+                    & $script:Melde "  gelöscht   $($f.Text)"
+                    if ($f.PSObject.Properties['Bytes']) { $frei.Bytes += $f.Bytes; $frei.Dateien += $f.Dateien; $frei.Ordner += $f.Ordner }
+                } else {
+                    & $script:Melde "  FEHLER      $($f.Text) (konnte nicht ganz gelöscht werden)"; $fehl++
+                    if (Ist-Teil $f 'Spiel') { $spielFehlt[$f.Gruppe] = 1 }
+                }
             }
-            if ($ok -and $script:WAR_SCHON_WEG -ge $f.Pfade.Count) { & $script:Melde "  war schon weg   $($f.Text)"; continue }
-            if ($ok) {
-                & $script:Melde "  gelöscht   $($f.Text)"
-                if ($f.PSObject.Properties['Bytes']) { $frei.Bytes += $f.Bytes; $frei.Dateien += $f.Dateien; $frei.Ordner += $f.Ordner }
+        }
+        if ($verloren) {
+            & $script:Melde 'FEHLER: Die Verbindung zur PS5 ist abgerissen - der Rest wurde nicht gelöscht. Bitte neu verbinden und nachschauen.'
+        } else {
+            # Ordner, die nur wegen ShadowMount-Spielen einzeln gelistet waren und
+            # jetzt leer sind, auch entfernen (innerste zuerst).
+            $aufgeklappt = @($script:AUFGEKLAPPT); [array]::Reverse($aufgeklappt)
+            foreach ($o in $aufgeklappt) {
+                $betroffen = @($gewaehlt | Where-Object { @($_.Pfade | Where-Object { $_.StartsWith("$o/") }).Count -gt 0 }).Count
+                if ($betroffen -gt 0) { Leeren-Ordner-Entfernen $o }
             }
-            else     { & $script:Melde "  FEHLER      $($f.Text) (konnte nicht ganz gelöscht werden)"; $fehl++ }
+            # Ordner von Spielen, deren Teile gelöscht wurden und die jetzt leer sind
+            foreach ($g in @($script:LEER_DANACH.Keys)) {
+                $betroffen = $false
+                foreach ($f in $gewaehlt) { if ($null -ne $f.PSObject.Properties['Gruppe'] -and $f.Gruppe -eq $g) { $betroffen = $true } }
+                if (-not $betroffen) { continue }
+                foreach ($o in $script:LEER_DANACH[$g]) { Leeren-Ordner-Entfernen $o }
+            }
         }
-    }
-    # Ordner, die nur wegen ShadowMount-Spielen einzeln gelistet waren und jetzt
-    # leer sind, auch entfernen (innerste zuerst).
-    [array]::Reverse($script:AUFGEKLAPPT)
-    foreach ($o in $script:AUFGEKLAPPT) {
-        $betroffen = @($gewaehlt | Where-Object { @($_.Pfade | Where-Object { $_.StartsWith("$o/") }).Count -gt 0 }).Count
-        if ($betroffen -eq 0) { continue }
-        $l = Liste $o
-        if ($null -ne $l -and $l.Count -eq 0) {
-            try { if (Loeschen $o) { & $script:Melde "  gelöscht   leerer Ordner $o" } } catch { }
-        }
-    }
-    # Ordner von Spielen, deren Teile gelöscht wurden und die jetzt leer sind
-    foreach ($g in @($script:LEER_DANACH.Keys)) {
-        $betroffen = $false
-        foreach ($f in $gewaehlt) { if ($null -ne $f.PSObject.Properties['Gruppe'] -and $f.Gruppe -eq $g) { $betroffen = $true } }
-        if (-not $betroffen) { continue }
-        foreach ($o in $script:LEER_DANACH[$g]) {
-            $l = Liste $o
-            if ($null -ne $l -and $l.Count -eq 0) { try { if (Loeschen $o) { & $script:Melde "  gelöscht   leerer Ordner $o" } } catch { } }
-        }
-    }
-    return @{ Abgebrochen = $false; Fehler = $fehl; SmGestoppt = $smGestoppt; Frei = $frei; SmText = (SM-Schlusstext $gewaehlt) }
+    } finally { $script:FTP_TIMEOUT = $altTimeout }
+    return @{ Abgebrochen = $false; Fehler = $fehl; SmGestoppt = $smGestoppt; Frei = $frei; SmText = (SM-Schlusstext $gewaehlt); Verloren = $verloren }
 }
 # Was der Nutzer zu ShadowMount wissen muss, je nachdem was gelöscht wurde.
 function SM-Schlusstext($gewaehlt) {

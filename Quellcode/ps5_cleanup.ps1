@@ -135,7 +135,14 @@ Write-Host ''
 Write-Host 'Schaue nach, was drauf ist ...'
 Write-Host ''
 
-Suche-Funde
+try { Suche-Funde } catch {
+    Write-Host ''
+    Write-Host "FEHLER beim Nachschauen: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'Es wurde nichts verändert. Bitte die PS5 und den FTP-Server prüfen und nochmal starten.'
+    Ftp-Trennen
+    if ($LOGDATEI -ne '') { try { Stop-Transcript | Out-Null } catch { } }
+    exit 1
+}
 $Funde = $script:Funde; $KatName = $script:KatName; $KatInfo = $script:KatInfo; $m2Da = $script:m2Da
 function Zeige-Kat([int]$k) {
     $n = 1
@@ -226,6 +233,13 @@ if ($modus -eq '1') {
     Write-Host ''
     Write-Host ' Bleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Lizenzen'
     Write-Host '         und die Sony-Systemanwendungen.'
+    if (-not $m2Da) {
+        Write-Host ''
+        Write-Host ' HINWEIS: Es wurde keine M.2-SSD gefunden. Steckt eine M.2 mit Spielen in' -ForegroundColor Yellow
+        Write-Host ' der PS5, die gerade nicht erkannt wird: gleich NICHT LÖSCHEN eintippen,' -ForegroundColor Yellow
+        Write-Host ' sondern die PS5 neu starten. Sonst gelten diese Spiele als nicht' -ForegroundColor Yellow
+        Write-Host ' installiert und ihre Lizenzen und Kacheln werden mit gelöscht.' -ForegroundColor Yellow
+    }
     Write-Host $linie
     $m2j = 'n'
     if ($m2Da -and (Anzahl 7) -gt 0) {
