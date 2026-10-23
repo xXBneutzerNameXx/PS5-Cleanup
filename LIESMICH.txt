@@ -1,0 +1,144 @@
+﻿PS5 CLEANUP 1.0 BETA by da_Chris86
+==================================
+
+Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
+ohne Neuinstallation und ohne Zurücksetzen. Konto, Lizenzen, Systemsoftware
+und die Laufwerks-Kopplung bleiben unangetastet. Für alle PS5-Modelle
+(PS5, Slim, Pro, jeweils mit Laufwerk oder als Digital Edition).
+
+BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
+Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
+Rückmeldungen bitte mit Modell, Firmware und der Datei PS5-Cleanup.log.
+
+
+SCHNELLSTART
+------------
+1. PS5 einschalten, Jailbreak laden (FTP-Server muss laufen, Port 2121).
+2. PS5-Cleanup.exe starten - eine Datei, Windows 10/11, nichts installieren.
+3. "PS5 im Netz suchen", dann "Verbinden und nachschauen".
+   Das Programm startet im Testmodus: Es zeigt nur an, was weg könnte,
+   die Lösch-Knöpfe sind gesperrt.
+4. Zum Löschen den Haken "Testmodus" entfernen. Dann entweder
+   "KOMPLETT - wie neu installiert"  (alles auf der internen SSD, die M.2
+   wird extra gefragt, zum Bestätigen LÖSCHEN eintippen)
+   oder  Häkchen setzen und  "Nur Auswahl löschen".
+5. Danach an der PS5: Datenbank neu erstellen (siehe WICHTIG).
+
+
+BLEIBT IMMER
+------------
+- Systemsoftware und Laufwerks-Kopplung
+- Benutzerkonto, Aktivierung und echte Lizenzen
+- Sony-Systemanwendungen und Systemeinstellungen
+
+
+KANN WEG (du wählst aus)
+------------------------
+[1] Spiele & Apps auf der internen SSD - Spiel, Update und jedes DLC
+    einzeln wählbar (das Spiel nimmt Update und DLCs mit)
+[2] Spielstände
+[3] Trophäen
+[4] Bilder & Videos
+[5] Downloads, Zusatzinhalte & Reste (Caches, Fehlerberichte, leere Kacheln)
+[6] Jailbreak-Tools & Homebrew-Daten (danach Jailbreak neu einrichten)
+[7] Inhalt der M.2-SSD (nur wenn eine eingebaut ist)
+
+
+WICHTIG
+-------
+- Datenbank neu erstellen, sonst bleiben leere Kacheln im Menü:
+  PS5 ausschalten, Einschaltknopf halten bis zum zweiten Piepton,
+  Controller per USB anstecken, "Datenbank neu erstellen" wählen.
+  NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
+- Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
+- Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
+- Benutzung auf eigene Gefahr.
+- Bei Problemen: Das Programm schreibt alles in PS5-Cleanup.log (neben der
+  .exe, sonst unter %TEMP%\PS5-Cleanup). Mit "Protokoll speichern" lässt
+  sich die Datei auch direkt ablegen - bitte bei einer Fehlermeldung
+  mitschicken.
+- Virenscanner: Die .exe ist ein verpacktes PowerShell-Skript (PS2EXE).
+  Einzelne Virenscanner melden so etwas fälschlich als verdächtig. Der
+  komplette Quellcode liegt bei - wer mag, baut die .exe selbst
+  (Quellcode\bauen\bauen.ps1) oder nutzt die Textversion.
+
+
+DETAILS (nur wenn du es genau wissen willst)
+--------------------------------------------
+
+Laufwerks-Kopplung
+  Bei Slim und Pro ist das abnehmbare Laufwerk mit der Konsole gekoppelt.
+  Das Programm liest den Kopplungs-Status aus und zeigt ihn an. Es fasst
+  Systemsoftware und Systemeinstellungen nie an, darum ist die Kopplung
+  nicht gefährdet. Die erste PS5 hat ein fest eingebautes
+  Laufwerk ohne Kopplung, Digital Editions gar keins.
+
+ShadowMount-Spiele
+  Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2 oder der internen
+  SSD. Wird das Spiel gelöscht, geht die Kachel immer mit. Wird nur die
+  Kachel gelöscht, kommt sie wieder, sobald ShadowMount neu geladen wird.
+  Das Programm hält ShadowMount+ (ab 1.7) vor dem Löschen über dessen
+  Stopp-Datei an, sonst würde es die Kacheln sofort neu anlegen. Danach
+  ShadowMount einfach neu laden. Läuft gerade der Game Compressor, ist das
+  betroffene Spiel gesperrt.
+
+Trophäen
+  Bereich 3 löscht den Trophäen-Stand auf der Konsole; mit dem PSN
+  abgeglichene Trophäen kommen beim nächsten Spielstart zurück, nie
+  abgeglichene sind weg. Die Trophäen-Pakete der Spiele (Beschreibungen)
+  werden bei KOMPLETT nur mitgelöscht, wenn auch die M.2 geleert wird.
+
+Kachel-Infos
+  Zu jedem gelöschten Spiel entfernt das Programm auch die Kachel-Infos der
+  PS5 (/system_data/priv/appmeta). Sonst zeigt das Menü nach dem
+  Datenbank-Neuaufbau eine leere Kachel mit Schloss.
+
+Modell und Firmware
+  Die Firmware wird per FTP gelesen. Für Modell und Laufwerks-Status
+  startet das Programm (nur mit deiner Zustimmung) kurz ps5info.elf auf der
+  PS5 - über den Payload-Lader (Port 9021) oder den Payload-Manager
+  (Port 8084) - und räumt es danach wieder weg. ps5info liest nur, es
+  verändert nichts. Geht beides nicht, kannst du die Modellnummer eintippen
+  oder überspringen.
+
+Textversion
+  Quellcode\PS5_Cleanup.bat macht dasselbe im schwarzen Fenster, mit Fragen.
+  "PS5_Cleanup.bat -Test" zeigt nur an und ändert nichts.
+
+Dateien
+  PS5-Cleanup.exe           das Programm - eine einzige Datei, mehr braucht
+                            es nicht. Modell-Abfrage und diese Anleitung
+                            sind eingebaut (landen beim Start unter
+                            %TEMP%\PS5-Cleanup).
+  LIESMICH.txt              diese Anleitung
+  LICENSE.txt               Lizenz (MIT) und Bestandteile anderer Urheber
+  Quellcode\                alles Weitere, für die, die nachlesen oder selbst
+                            bauen wollen:
+    ps5_kern.ps1            gemeinsamer Kern: Suche, Schutzliste, Löschen
+    ps5_cleanup_gui.ps1     Fenster (Quelltext der .exe)
+    ps5_cleanup.ps1         Textversion, Start über PS5_Cleanup.bat
+    PS5_Cleanup_Fenster.bat Fenster direkt aus dem Skript starten
+    ps5info.elf / ps5info.c Modell- und Laufwerks-Abfrage für die PS5
+                            (GPL-3.0, Bauanleitung in ps5info.mk)
+    bauen\                  Werkzeug, mit dem die .exe gebaut wird
+
+
+RECHTLICHES
+-----------
+PS5 Cleanup ist ein inoffizielles, unabhängiges Community-Projekt von
+da_Chris86. Es steht in keiner Verbindung zu Sony Interactive Entertainment
+und wird von Sony weder unterstützt noch gefördert. PlayStation und PS5 sind
+Marken von Sony Interactive Entertainment Inc.
+
+Lizenz: MIT - Copyright (c) 2026 da_Chris86. Jeder darf das Programm nutzen,
+weitergeben und verändern, solange der Urheber und der Lizenztext erhalten
+bleiben (siehe LICENSE.txt). Die Modell-Abfrage ps5info steht unter der
+GPL-3.0, PS2EXE unter der Ms-LPL - Details in LICENSE.txt.
+
+Entstanden mit Unterstützung der KI Claude (Anthropic). Idee, Vorgaben und
+die Tests an der echten Konsole kommen von da_Chris86.
+
+This is an unofficial, independent community project by da_Chris86. It is
+not affiliated with, endorsed by, or sponsored by Sony Interactive
+Entertainment. PlayStation and PS5 are trademarks of Sony Interactive
+Entertainment Inc. Licensed under the MIT License (see LICENSE.txt).

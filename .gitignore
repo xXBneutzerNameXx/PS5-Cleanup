@@ -1,0 +1,5 @@
+PS5-Cleanup.exe
+*.log
+_selbsttest.txt
+_exe.png
+Quellcode/bauen/_gesamt.ps1
