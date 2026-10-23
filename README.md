@@ -46,6 +46,8 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 
 Die `.exe` ist ein mit [PS2EXE](https://github.com/MScholtes/PS2EXE) verpacktes PowerShell-Skript. Einzelne Virenscanner melden so etwas fälschlich als verdächtig. Der komplette Quellcode liegt in diesem Repository – du kannst die `.exe` mit `Quellcode/bauen/bauen.ps1` selbst bauen oder die Textversion `Quellcode/PS5_Cleanup.bat` nutzen.
 
+[VirusTotal-Prüfung der 1.0 Beta](https://www.virustotal.com/gui/file/da50b622802ba96ed2e6b7abfeb9ce0766e42b8210058b2b61c50f3d6f2f3964): 4 von 70 Scannern (AhnLab, Antiy, McAfee, SecureAge) melden einen allgemeinen Verdacht – Microsoft Defender, Kaspersky, Avast, BitDefender, ESET, Malwarebytes und Norton finden nichts.
+
 ## Aufbau
 
 | Datei | Inhalt |
@@ -86,7 +88,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **Usage:** start `PS5-Cleanup.exe` → *PS5 im Netz suchen* (find PS5) → *Verbinden und nachschauen* (connect and scan) → review in test mode, untick *Testmodus*, delete → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*.
 
-**Antivirus:** the `.exe` is a PowerShell script packed with PS2EXE; a few scanners flag such files as false positives. The full source is in this repository – build it yourself with `Quellcode/bauen/bauen.ps1`.
+**Antivirus:** the `.exe` is a PowerShell script packed with PS2EXE; a few scanners flag such files as false positives. The full source is in this repository – build it yourself with `Quellcode/bauen/bauen.ps1`. [VirusTotal scan of 1.0 Beta](https://www.virustotal.com/gui/file/da50b622802ba96ed2e6b7abfeb9ce0766e42b8210058b2b61c50f3d6f2f3964): 4/70 generic detections (AhnLab, Antiy, McAfee, SecureAge); Microsoft Defender, Kaspersky, Avast, BitDefender, ESET, Malwarebytes and Norton report nothing.
 
 **License:** MIT (c) 2026 da_Chris86 – `ps5info` is GPL-3.0, PS2EXE is Ms-LPL, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
 
