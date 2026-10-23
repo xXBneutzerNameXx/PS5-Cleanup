@@ -261,6 +261,7 @@ function Erlaubt([string]$p) {
     if ($p -match '(^|/)\.\.?(/|$)' -or $p -match '//' -or $p -match '\s$') { return $false }
     # M.2-Verwaltung: nur einzelne Spiele/Updates, nie die Ordner selbst
     if ($p -match "^$M2/user/(app|patch)/[^/]+$") { return ($p -notmatch "/(NPXS|$BEHALTEN_APP)") }
+    if ($p -match "^$M2/user/addcont/[A-Z]{4}\d{5}(/[^/]+)?$") { return ($p -notmatch "/(NPXS|$BEHALTEN_APP)") }
     # Kachel-Infos der PS5: nur einzelne Spiel-/App-Kennungen, nie NPXS, Astro, external
     if ($p -match "^$SYS_META/[A-Z]{4}\d{5}$") { return ($p -notmatch '/NPXS' -and $p -ne "$SYS_META/$BEHALTEN_APP") }
     # Merkzettel für Spiele auf externen USB-Platten (nur einzelne Spiel-Kennungen)
@@ -659,19 +660,51 @@ function Merke-Teil([string[]]$pfade, [int]$kat, [string]$text, [string]$gruppe,
 }
 function Ist-Teil($f, [string]$teil) { return ($null -ne $f.PSObject.Properties['Teil'] -and $f.Teil -eq $teil) }
 # Version eines Updates: PS5 aus param.json (contentVersion), PS4 aus param.sfo (APP_VER)
-function Patch-Version([string]$id) {
-    $t = Datei-Text "/user/patch/$id/sce_sys/param.json"
+function Patch-Version([string]$id, [string]$basis = '/user') {
+    # entpackte Updates (PS5) haben sce_sys im Ordner ...
+    $t = Datei-Text "$basis/patch/$id/sce_sys/param.json"
     if ($t -match '"contentVersion"\s*:\s*"([^"]+)"') { return " (Version $($Matches[1]))" }
-    $h = Sfo-Lesen (Ftp-Daten "RETR /user/patch/$id/sce_sys/param.sfo")
+    $h = Sfo-Lesen (Ftp-Daten "RETR $basis/patch/$id/sce_sys/param.sfo")
     if ($h.ContainsKey('APP_VER') -and [string]$h['APP_VER'] -ne '') { return " (Version $($h['APP_VER']))" }
+    # ... verpackte (PS4: patch.pkg) nicht - dann steht die Version in den Kachel-Infos
+    $t = Datei-Text "$SYS_META/$id/param.json"
+    if ($t -match '"contentVersion"\s*:\s*"([^"]+)"') { return " (Version $($Matches[1]))" }
+    foreach ($d in @("$SYS_META/$id/param.sfo", "/user/appmeta/$id/param.sfo")) {
+        $h = Sfo-Lesen (Ftp-Daten "RETR $d")
+        if ($h.ContainsKey('APP_VER') -and [string]$h['APP_VER'] -ne '') { return " (Version $($h['APP_VER']))" }
+    }
     return ''
 }
+# Spiel, Update und Zusatzinhalte eines normal installierten Spiels als eigene
+# Einträge merken. $basis = '/user' (interne SSD) oder "$M2/user" (M.2).
+function Merke-Spielteile([string[]]$spielPfade, [int]$kat, [string]$name, [string]$id, [string]$basis,
+                          [bool]$hatUpdate, [bool]$hatDlc, [string[]]$dlcInfos, $Benutzt) {
+    # Share-Einstellungen des Spiels gehen mit dem Spiel
+    if ($script:SHARES -contains $id) { $spielPfade = @($spielPfade) + "/user/system/share/$id" }
+    Merke-Teil $spielPfade $kat "$name ($id) - Spiel" $id 'Spiel'
+    if ($hatUpdate) {
+        $Benutzt["$basis/patch/$id"] = 1
+        Merke-Teil @("$basis/patch/$id") $kat "$name ($id) - Update$(Patch-Version $id $basis)" $id 'Update'
+    }
+    if ($hatDlc) {
+        $Benutzt["$basis/addcont/$id"] = 1
+        $leer = @("$basis/addcont/$id")
+        $meta = @()
+        if ($dlcInfos -contains $id) { $Benutzt["/user/appmeta/addcont/$id"] = 1; $leer += "/user/appmeta/addcont/$id"; $meta = Namen "/user/appmeta/addcont/$id" }
+        $script:LEER_DANACH[$id] = $leer
+        foreach ($d in (Namen "$basis/addcont/$id")) {
+            $dp = @("$basis/addcont/$id/$d")
+            if ($meta -contains $d) { $dp += "/user/appmeta/addcont/$id/$d" }
+            Merke-Teil $dp $kat "$name ($id) - Zusatzinhalt: $(DLC-Name $id $d $basis)" $id 'DLC'
+        }
+    }
+}
 # Name eines Zusatzinhalts (DLC) - sonst der Ordnername
-function DLC-Name([string]$id, [string]$dlc) {
-    foreach ($d in @("/user/appmeta/addcont/$id/$dlc/param.json", "/user/addcont/$id/$dlc/sce_sys/param.json")) {
+function DLC-Name([string]$id, [string]$dlc, [string]$basis = '/user') {
+    foreach ($d in @("/user/appmeta/addcont/$id/$dlc/param.json", "$basis/addcont/$id/$dlc/sce_sys/param.json")) {
         $n = Json-Titel (Datei-Text $d); if ($n -ne '') { return $n }
     }
-    foreach ($d in @("/user/appmeta/addcont/$id/$dlc/param.sfo", "/user/addcont/$id/$dlc/sce_sys/param.sfo")) {
+    foreach ($d in @("/user/appmeta/addcont/$id/$dlc/param.sfo", "$basis/addcont/$id/$dlc/sce_sys/param.sfo")) {
         $n = Sfo-Titel (Sfo-Lesen (Ftp-Daten "RETR $d")); if ($n -ne '') { return $n }
     }
     return $dlc
@@ -688,6 +721,7 @@ function Abhaengige-Mitnehmen {
 function Suche-Funde {
     $script:Funde = New-Object System.Collections.ArrayList
     $script:LEER_DANACH = @{}          # Spiel-ID -> Ordner, die nach dem Löschen leer sein können
+    $script:SHARES = Namen '/user/system/share'
     $homes    = Namen '/user/home'
     $appmeta  = Namen '/user/appmeta'
     $apps     = Namen '/user/app'
@@ -697,7 +731,8 @@ function Suche-Funde {
     $m2Liste  = Liste $M2
     $m2Da     = ($null -ne $m2Liste); $script:m2Da = $m2Da
     $m2Apps   = @(); $m2Patches = @()
-    if ($m2Da) { $m2Apps = Namen "$M2/user/app"; $m2Patches = Namen "$M2/user/patch" }
+    $m2Addconts = @()
+    if ($m2Da) { $m2Apps = Namen "$M2/user/app"; $m2Patches = Namen "$M2/user/patch"; $m2Addconts = Namen "$M2/user/addcont" }
     $Benutzt  = @{}                    # Pfade, die schon zu einem Spiel gehören
     # Die PS5 legt für jede Kachel einen Ordner unter /system_data/priv/appmeta an.
     # Bleibt er stehen, zeigt das Menü nach dem Datenbank-Neuaufbau eine leere
@@ -804,23 +839,7 @@ function Suche-Funde {
         } else {
             # normal installiertes Spiel (PS5 oder PS4): Spiel, Update und jeder
             # Zusatzinhalt als eigener Eintrag - man kann einzeln wählen.
-            Merke-Teil $p 1 "$t ($x) - Spiel" $x 'Spiel'
-            if ($patches -contains $x) {
-                $Benutzt["/user/patch/$x"] = 1
-                Merke-Teil @("/user/patch/$x") 1 "$t ($x) - Update$(Patch-Version $x)" $x 'Update'
-            }
-            if ($addconts -contains $x) {
-                $Benutzt["/user/addcont/$x"] = 1
-                $leer = @("/user/addcont/$x")
-                $meta = @()
-                if ($dlcInfos -contains $x) { $Benutzt["/user/appmeta/addcont/$x"] = 1; $leer += "/user/appmeta/addcont/$x"; $meta = Namen "/user/appmeta/addcont/$x" }
-                $script:LEER_DANACH[$x] = $leer
-                foreach ($d in (Namen "/user/addcont/$x")) {
-                    $dp = @("/user/addcont/$x/$d")
-                    if ($meta -contains $d) { $dp += "/user/appmeta/addcont/$x/$d" }
-                    Merke-Teil $dp 1 "$t ($x) - Zusatzinhalt: $(DLC-Name $x $d)" $x 'DLC'
-                }
-            }
+            Merke-Spielteile $p 1 $t $x '/user' ($patches -contains $x) ($addconts -contains $x) $dlcInfos $Benutzt
         }
     }
 
@@ -948,7 +967,6 @@ function Suche-Funde {
     }
     foreach ($x in $patches)  { if (-not $Benutzt.ContainsKey("/user/patch/$x"))   { Merke @("/user/patch/$x") 5 "Update ohne Spiel: $(Mit-Name $x)" } }
     foreach ($x in $addconts) { if (-not $Benutzt.ContainsKey("/user/addcont/$x")) { Merke @("/user/addcont/$x") 5 "Zusatzinhalt: $(Mit-Name $x)" } }
-    foreach ($x in $dlcInfos) { if (-not $Benutzt.ContainsKey("/user/appmeta/addcont/$x")) { Merke @("/user/appmeta/addcont/$x") 5 "Zusatzinhalt-Infos: $(Mit-Name $x)" } }
     foreach ($x in (Namen '/user/appmeta/external/addcont')) { Merke @("/user/appmeta/external/addcont/$x") 5 "Zusatzinhalt-Infos: $(Mit-Name $x)" }
     foreach ($x in (Namen '/user')) {
         if ($x -like '_zu_loeschen_*') { Merke @("/user/$x") 5 "Rest einer früheren Aufräumaktion: /user/$x" }
@@ -963,14 +981,17 @@ function Suche-Funde {
         foreach ($x in $m2Apps) {
             if ($x -like 'NPXS*' -or $x -eq $BEHALTEN_APP) { continue }
             $p = @("$M2/user/app/$x")
-            $extra = ''
-            if ($m2Patches -contains $x) { $p += "$M2/user/patch/$x"; $Benutzt["$M2/user/patch/$x"] = 1; $extra = ' + Update' }
             if ($appmeta -contains $x -and -not ($apps -contains $x)) { $p += "/user/appmeta/$x"; $Benutzt["/user/appmeta/$x"] = 1 }
             $p = Mit-Kachel $p $x
-            Merke $p 7 "Spiel: $(Mit-Name $x)$extra"
+            $t = App-Titel $x
+            if ($t -eq '') { $t = 'unbekannter Name' }
+            Merke-Spielteile $p 7 $t $x "$M2/user" ($m2Patches -contains $x) ($m2Addconts -contains $x) $dlcInfos $Benutzt
         }
         foreach ($x in $m2Patches) {
             if (-not $Benutzt.ContainsKey("$M2/user/patch/$x")) { Merke @("$M2/user/patch/$x") 7 "Update ohne Spiel: $(Mit-Name $x)" }
+        }
+        foreach ($x in $m2Addconts) {
+            if (-not $Benutzt.ContainsKey("$M2/user/addcont/$x")) { Merke @("$M2/user/addcont/$x") 7 "Zusatzinhalte ohne Spiel: $(Mit-Name $x)" }
         }
         foreach ($e in $m2Liste) {
             $x = $e.Name
@@ -990,7 +1011,11 @@ function Suche-Funde {
     # (Namen nie direkt in eine Pipeline geben - erst in eine Variable, sonst kommt
     #  die ganze Liste als EIN Element an)
     $shareIds = @()
-    foreach ($x in (Namen '/user/system/share')) { if ($x -match '^[A-Z]{4}\d{5}$' -and $x -notlike 'NPXS*' -and $x -ne $BEHALTEN_APP) { $shareIds += $x } }
+    foreach ($x in (Namen '/user/system/share')) {
+        if ($x -notmatch '^[A-Z]{4}\d{5}$' -or $x -like 'NPXS*' -or $x -eq $BEHALTEN_APP) { continue }
+        if ($apps -contains $x -or $m2Apps -contains $x) { continue }      # Spiel ist noch installiert
+        $shareIds += $x
+    }
     if ($shareIds.Count -gt 0) {
         Merke @($shareIds | ForEach-Object { "/user/system/share/$_" }) 5 "Share-Einstellungen alter Spiele ($($shareIds.Count) $(if ($shareIds.Count -eq 1) {'Spiel'} else {'Spiele'}), legt die PS5 bei Bedarf neu an)"
     }
@@ -1021,6 +1046,8 @@ function Suche-Funde {
         if ($t -eq '') { $t = 'unbekannter Name' }
         Merke @("$SYS_META/$x") 5 "Leere Kachel (Schloss): $t ($x)"
     }
+    # DLC-Infos ohne Spiel (erst hier, damit auch M.2-Spiele ihre schon erhalten haben)
+    foreach ($x in $dlcInfos) { if (-not $Benutzt.ContainsKey("/user/appmeta/addcont/$x")) { Merke @("/user/appmeta/addcont/$x") 5 "Zusatzinhalt-Infos: $(Mit-Name $x)" } }
     # ---- 6 Jailbreak-Tools & Homebrew-Daten -----------------------------
     Merke-Ordner '/user/data' (Namen '/user/data') 6 ''
     # Fake-Lizenzen des Jailbreaks (fake*.rif + fake*.idx); echte Lizenzen bleiben
@@ -1031,7 +1058,17 @@ function Suche-Funde {
     foreach ($g in $gruppen) {
         $pf = @()
         foreach ($x in $fakeLiz) { if ($x -eq "$g.rif" -or $x -eq "$g.idx") { $pf += "/user/license/$x" } }
-        Merke $pf 6 "Fake-Lizenz: $($g -replace '^fake', '')"
+        # Gehört die Lizenz zu einem noch installierten Spiel, geht sie nur
+        # zusammen mit diesem Spiel weg - sonst startet das Spiel nicht mehr.
+        $spiel = $null
+        if ($g -match '([A-Z]{4}\d{5})') {
+            $tid = $Matches[1]
+            foreach ($f in $script:Funde) { if ((Ist-Teil $f 'Spiel') -and $f.Gruppe -eq $tid) { $spiel = $f } }
+        }
+        if ($null -ne $spiel) { $spiel.Pfade = @($spiel.Pfade) + $pf; continue }
+        $n = $g -replace '^fake', ''
+        if ($g -match '([A-Z]{4}\d{5})') { $m = Mit-Name $Matches[1]; if ($m -ne $Matches[1]) { $n = "$n - $($m -replace '^[A-Z]{4}\d{5} ', '')" } }
+        Merke $pf 6 "Fake-Lizenz: $n (Spiel ist nicht mehr installiert)"
     }
     foreach ($u in $homes) {
         if ((Namen "/user/home/$u/webkit/shell/local").Count -gt 0) {
