@@ -1,4 +1,5 @@
 PS5-Cleanup.exe
+*.zip
 *.log
 _selbsttest.txt
 _exe.png
