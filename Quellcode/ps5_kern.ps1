@@ -10,7 +10,7 @@
 # Fenster sie in sein Protokoll umleiten kann.
 # =====================================================================
 $ErrorActionPreference = 'Stop'
-$VERSION       = '1.0.0 Beta'
+$VERSION       = '1.0.1 Beta'
 $STANDARD_PORT = 2121
 $BEHALTEN_APP  = 'PPSA01325'      # Astro's Playroom
 $M2            = '/mnt/ext1'
