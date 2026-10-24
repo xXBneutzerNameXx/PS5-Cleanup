@@ -250,6 +250,8 @@ namespace PS5Cleanup
         public Ergebnis FuehreLoeschung(Func<bool> weiter)
         {
             var erg = new Ergebnis();
+            // Merker vom letzten Löschlauf zurücksetzen (Schlussmeldung / Meldung bei Abbruch)
+            SM_ANGEHALTEN = false; SM_STOP_GESENDET = false; SM_GRUND = "";
             // Fenster inzwischen zu oder Abbruch angefordert: gar nicht erst anfangen
             if (Abbruch) { erg.Abgebrochen = true; return erg; }
             AbhaengigeMitnehmen();
@@ -275,20 +277,21 @@ namespace PS5Cleanup
                 }
             }
             // Sobald ShadowMount-Kacheln, -Spiele, -Daten oder die M.2 dran sind: erst anhalten.
-            // Merker vom letzten Löschlauf zurücksetzen - sonst meldet die Schlussmeldung
-            // "angehalten", obwohl ShadowMount diesmal gar nicht angehalten wurde.
-            SM_ANGEHALTEN = false;
             int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Kat == 7 || f.Kachel ||
                 f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data")));
             if (smBetroffen > 0)
             {
-                erg.SmGestoppt = ShadowMountAnhalten();
-                if (!erg.SmGestoppt && S.Existiert(SM_ORDNER + "/debug.log"))
+                // Nur bei bestätigt angehaltenem oder nachweislich nicht laufendem ShadowMount
+                // wird ohne Rückfrage gelöscht. Unbekannt -> fragen (Abbrechen ist vorbelegt).
+                var z = ShadowMountAnhalten();
+                erg.SmGestoppt = z != SmZustand.Unbekannt;
+                if (z == SmZustand.Unbekannt)
                 {
                     Melde("");
-                    Melde(T(" ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich", " ShadowMount may still be running. Deleted tiles would then be recreated"));
-                    Melde(T(" wieder angelegt und die Spiele könnten gerade eingebunden sein.", " right away and the games could be mounted at the moment."));
+                    Melde(T(" ShadowMount konnte nicht sicher angehalten werden. Läuft es noch, können", " ShadowMount could not be stopped safely. If it is still running,"));
+                    Melde(T(" eingebundene Spieldaten beim Löschen beschädigt werden.", " mounted game data can be damaged while deleting."));
                     if (!weiter()) { erg.Abgebrochen = true; return erg; }
+                    Melde(T(" Der Nutzer hat 'Trotzdem löschen' gewählt.", " The user chose 'Delete anyway'."));
                 }
                 Melde("");
             }

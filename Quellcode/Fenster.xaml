@@ -54,7 +54,10 @@
       <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0">
-          <TextBlock FontSize="20" FontWeight="SemiBold" Text="PS5 Cleanup"/>
+          <StackPanel Orientation="Horizontal">
+            <Image x:Name="imLogo" Width="34" Height="34" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="PS5 Cleanup" VerticalAlignment="Center"/>
+          </StackPanel>
           <TextBlock x:Name="tbKopf" Foreground="{StaticResource Grau}" Margin="0,2,0,0"
                      Text="Löscht nur, was du auswählst - einzelne Spiele, Spielstände, Trophäen oder alles auf einmal. Kein Zurücksetzen, keine Neuinstallation: Systemsoftware, Laufwerks-Kopplung, Konto und echte Lizenzen bleiben. Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg."/>
           <TextBlock x:Name="tbUpdate" Margin="0,6,0,0" Visibility="Collapsed" Foreground="{StaticResource Gelb}"/>
@@ -76,7 +79,7 @@
         <Button    Grid.Row="0" Grid.Column="2" x:Name="btSuchen" Content="PS5 im Netz suchen"/>
         <Button    Grid.Row="0" Grid.Column="3" x:Name="btVerbinden" Content="Verbinden und nachschauen" Background="{StaticResource Blau}" BorderBrush="{StaticResource Blau}"/>
         <CheckBox  Grid.Row="0" Grid.Column="4" x:Name="cbModell" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Content="Modell automatisch erkennen"
-                   ToolTip="Startet kurz das kleine Programm ps5info.elf auf der PS5 (Port 9021 oder 8084) und entfernt es danach wieder."/>
+                   ToolTip="Startet kurz das kleine Programm ps5info.elf auf der PS5 (Port 9021 oder 8084). Es legt dabei kurz die eigene Datei /data/ps5info.txt an - beides wird danach wieder entfernt."/>
         <CheckBox  Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" x:Name="cbTest" IsChecked="True" Margin="0,10,0,0" FontWeight="SemiBold" Foreground="{StaticResource Gruen}"
                    Content="Testmodus: nur anschauen, nichts löschen" ToolTip="Solange der Haken gesetzt ist, sind die Lösch-Knöpfe gesperrt. Zum Löschen den Haken entfernen."/>
         <TextBlock Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3" x:Name="tbInfo" Margin="10,10,0,0" Foreground="{StaticResource Grau}" Text="Nicht verbunden."/>

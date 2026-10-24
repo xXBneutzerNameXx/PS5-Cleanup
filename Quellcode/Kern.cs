@@ -46,7 +46,7 @@ namespace PS5Cleanup
 
     public partial class Kern
     {
-        public const string VERSION = "1.0.4 Beta";
+        public const string VERSION = "1.0.5 Beta";
         static string T(string de, string en) { return Sp.T(de, en); }
         public const int STANDARD_PORT = 2121;
         public const string BEHALTEN_APP = "PPSA01325";   // Astro's Playroom
@@ -250,42 +250,90 @@ namespace PS5Cleanup
         // -------------------------------------------------------------
         // ShadowMount anhalten
         // -------------------------------------------------------------
-        bool ShadowMountLaeuft()
-        {
-            // Läuft es, holt es sich die STOP-Datei innerhalb von ~3 s selbst ab.
-            if (S.Liste(SM_ORDNER) == null) return false;
-            if (!S.Schreiben(SM_ORDNER + "/STOP", null)) return false;
-            DateTime ende = DateTime.Now.AddSeconds(8);
-            while (DateTime.Now < ende)
-            {
-                Warte(500);
-                if (!S.Existiert(SM_ORDNER + "/STOP")) return true;
-            }
-            S.Befehl("DELE " + SM_ORDNER + "/STOP");          // niemand hat sie abgeholt
-            return false;
-        }
+        // NEU 1.0.5: drei Zustände. Gelöscht wird nur, wenn ShadowMount bestätigt
+        // angehalten ist oder nachweislich nicht läuft - sonst wird gefragt (Abbrechen vorbelegt).
+        public enum SmZustand { Angehalten, LaeuftNicht, Unbekannt }
+        public const string SM_MOUNTS = "/mnt/shadowmnt";   // dort bindet ShadowMount die Spiele ein
         public bool SM_ANGEHALTEN;
+        public bool SM_STOP_GESENDET;                     // STOP wurde abgeholt (für die Meldung bei Abbruch)
+        public string SM_GRUND = "";
         static int Abmeldungen(string log) { return Regex.Matches(log, "\\[SHUTDOWN\\] cleanup complete").Count; }
-        bool ShadowMountAnhalten()
+
+        // Sind gerade Spiele eingebunden? true = keine, false = ja, null = nicht feststellbar
+        bool? KeineSpieleEingebunden()
         {
-            SM_ANGEHALTEN = false;
+            List<Datei> l;
+            try { l = S.Liste(SM_MOUNTS, true); }
+            catch (AbbruchAusnahme) { throw; }
+            catch { return null; }
+            if (l == null) return true;
+            foreach (var e in l)
+            {
+                if (!e.IstOrdner) continue;
+                List<Datei> u;
+                try { u = S.Liste(SM_MOUNTS + "/" + e.Name, true); }
+                catch (AbbruchAusnahme) { throw; }
+                catch { return null; }
+                if (u != null && u.Count > 0) return false;
+            }
+            return true;
+        }
+
+        SmZustand Unbekannt(string grund)
+        {
+            SM_GRUND = grund;
+            Melde("  " + grund);
+            return SmZustand.Unbekannt;
+        }
+
+        public SmZustand ShadowMountAnhalten()
+        {
+            SM_ANGEHALTEN = false; SM_STOP_GESENDET = false; SM_GRUND = "";
             Melde(T("Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...", "Stopping ShadowMount (otherwise it recreates the tiles right away) ..."));
-            // nur eine Abmeldung NACH dem Anhalten zählt (alte Zeilen im Protokoll nicht)
-            int vorher = Abmeldungen(S.Text(SM_ORDNER + "/debug.log"));
-            if (!ShadowMountLaeuft())
+            try
             {
-                Melde(T("  ShadowMount läuft nicht (oder ist älter als 1.7 - dann vorher", "  ShadowMount is not running (or older than 1.7 - then stop it"));
-                Melde(T("  von Hand beenden: PS5 neu starten und nur den FTP-Server laden).", "  by hand first: restart the PS5 and load only the FTP server)."));
-                return true;
+                var ordner = S.Liste(SM_ORDNER, true);
+                if (ordner == null)
+                {
+                    var frei = KeineSpieleEingebunden();
+                    if (frei == true) { Melde(T("  ShadowMount ist nicht eingerichtet und es sind keine Spiele eingebunden.", "  ShadowMount is not set up and no games are mounted.")); return SmZustand.LaeuftNicht; }
+                    return Unbekannt(frei == false ? T("Es sind Spiele eingebunden, aber ShadowMount ist nicht erreichbar.", "Games are mounted, but ShadowMount cannot be reached.")
+                                                   : T("Ob Spiele eingebunden sind, ließ sich nicht prüfen.", "Could not check whether games are mounted."));
+                }
+                // nur eine Abmeldung NACH dem Anhalten zählt (alte Zeilen im Protokoll nicht)
+                int vorher = Abmeldungen(S.Text(SM_ORDNER + "/debug.log"));
+                if (!S.Schreiben(SM_ORDNER + "/STOP", null))
+                    return Unbekannt(T("Die Stopp-Datei für ShadowMount ließ sich nicht anlegen.", "Could not create the stop file for ShadowMount."));
+                // Läuft es, holt es sich die STOP-Datei innerhalb von ~3 s selbst ab.
+                bool abgeholt = false;
+                DateTime ende = DateTime.Now.AddSeconds(8);
+                while (DateTime.Now < ende)
+                {
+                    Warte(500);
+                    if (!S.Existiert(SM_ORDNER + "/STOP")) { abgeholt = true; break; }
+                }
+                if (!abgeholt)
+                {
+                    S.Befehl("DELE " + SM_ORDNER + "/STOP");      // niemand hat sie abgeholt
+                    var frei = KeineSpieleEingebunden();
+                    if (frei == true) { Melde(T("  ShadowMount läuft nicht (keine Reaktion, keine Spiele eingebunden).", "  ShadowMount is not running (no response, no games mounted).")); return SmZustand.LaeuftNicht; }
+                    return Unbekannt(frei == false ? T("ShadowMount reagiert nicht (evtl. älter als 1.7), aber Spiele sind eingebunden.", "ShadowMount does not respond (maybe older than 1.7), but games are mounted.")
+                                                   : T("ShadowMount reagiert nicht und ob Spiele eingebunden sind, ließ sich nicht prüfen.", "ShadowMount does not respond and it could not be checked whether games are mounted."));
+                }
+                SM_STOP_GESENDET = true;
+                // Bestätigung: Abmeldung im Protokoll oder alle Spiele ausgehängt (falls das Protokoll abgeschaltet ist)
+                ende = DateTime.Now.AddSeconds(90);
+                while (DateTime.Now < ende)
+                {
+                    Warte(2000);
+                    bool abgemeldet = Abmeldungen(S.Text(SM_ORDNER + "/debug.log")) > vorher;
+                    if (!abgemeldet && KeineSpieleEingebunden() == true) { Warte(3000); abgemeldet = KeineSpieleEingebunden() == true; }
+                    if (abgemeldet) { Melde(T("  ShadowMount ist beendet.", "  ShadowMount has stopped.")); SM_ANGEHALTEN = true; return SmZustand.Angehalten; }
+                }
+                return Unbekannt(T("ShadowMount hat sich nach 90 s nicht bestätigt beendet.", "ShadowMount did not confirm it stopped within 90 s."));
             }
-            DateTime ende = DateTime.Now.AddSeconds(90);
-            while (DateTime.Now < ende)
-            {
-                Warte(2000);
-                if (Abmeldungen(S.Text(SM_ORDNER + "/debug.log")) > vorher) { Melde(T("  ShadowMount ist beendet.", "  ShadowMount has stopped.")); SM_ANGEHALTEN = true; return true; }
-            }
-            Melde(T("  ShadowMount hat sich nach 90 s nicht sauber beendet.", "  ShadowMount did not stop cleanly within 90 s."));
-            return false;
+            catch (AbbruchAusnahme) { throw; }
+            catch (Exception ex) { return Unbekannt(T("ShadowMount-Zustand nicht feststellbar: ", "ShadowMount state unknown: ") + ex.Message); }
         }
 
         // -------------------------------------------------------------
@@ -430,26 +478,33 @@ namespace PS5Cleanup
         }
 
         // Klartext zum ausgelesenen Laufwerks-Status (nur lesend ermittelt).
+        // NEU 1.0.5: Drei klar getrennte Aussagen - Kopplung bestätigt / keine
+        // Kopplung / nicht sicher bestimmbar bzw. nicht auslesbar. Zuerst das Modell:
+        // Bei der ersten PS5 sagt der Statuswert nichts aus (dort wird auch 0 gemeldet).
+        // Belegt sind nur: 1 = gekoppeltes Laufwerk (PS5 Pro, eigene Messung), 2 = kein
+        // gekoppeltes Laufwerk (Slim/Pro Digital) - siehe earthonion/ddd_status.
+        // 6 wurde dort bei Slim-Konsolen mit ab Werk gekoppeltem Laufwerk beobachtet,
+        // die Bezeichnung des Werts passt aber nicht dazu - darum keine feste Aussage.
+        // Keine Einschränkung auf Modell oder Firmware: jeder gültige Wert wird angezeigt.
         public string LaufwerkText()
         {
-            switch (DDD_STATUS ?? -99)
-            {
-                case 0: return T("Laufwerk ist mit dieser Konsole gekoppelt und einsatzbereit.", "Disc drive is paired with this console and ready.");
-                case 1: return T("Laufwerk ist mit dieser Konsole gekoppelt (nachträglich) und einsatzbereit.", "Disc drive is paired with this console (paired later) and ready.");
-                case 2: return T("Kein gekoppeltes Laufwerk (keins angeschlossen oder nicht gekoppelt).", "No paired disc drive (none attached or not paired).");
-                case 3: return T("Laufwerks-Kopplung ist noch nicht abgeschlossen.", "Disc drive pairing is not finished yet.");
-                case 4: return T("Laufwerks-Entkopplung ist noch nicht abgeschlossen.", "Disc drive unpairing is not finished yet.");
-                case 5: return T("Laufwerk ist ab Werk mit dieser Konsole gekoppelt und einsatzbereit.", "Disc drive is factory-paired with this console and ready.");
-                case 6: return T("Hinweis: Laufwerk ist ab Werk mit einer ANDEREN Konsole gekoppelt - an dieser arbeitet es nicht als Disc-Laufwerk.", "Note: the disc drive is factory-paired with ANOTHER console - it will not work as a disc drive on this one.");
-            }
             if (MODELL_TYP == "fat")
             {
-                if (MODELL_DIGITAL) return T("Kein Laufwerk (Digital Edition) - eine Kopplung gibt es nicht.", "No disc drive (Digital Edition) - there is no pairing.");
-                return T("Fest eingebautes Laufwerk (erste PS5) - keine Kopplung nötig.", "Built-in disc drive (original PS5) - no pairing needed.");
+                if (MODELL_DIGITAL) return T("Keine Kopplung: Digital Edition ohne Laufwerk (erste PS5).", "No pairing: Digital Edition without disc drive (original PS5).");
+                return T("Keine Kopplung nötig: fest eingebautes Laufwerk (erste PS5).", "No pairing needed: built-in disc drive (original PS5).");
             }
-            return T("Laufwerks-Status nicht auslesbar (kein Laufwerk oder Abfrage nicht möglich).", "Disc drive status not readable (no drive attached or query not possible).");
+            if (DDD_STATUS == null) return T("Kopplung nicht abgefragt (Modellabfrage aus oder nicht möglich).", "Pairing not queried (model query off or not possible).");
+            int s = DDD_STATUS.Value;
+            switch (s)
+            {
+                case 1: return T("Kopplung bestätigt: Laufwerk ist gekoppelt (Statuswert 1).", "Pairing confirmed: disc drive is paired (status value 1).");
+                case 2: return T("Keine Kopplung: kein gekoppeltes Laufwerk (keins angeschlossen oder nicht gekoppelt, Statuswert 2).", "No pairing: no paired disc drive (none attached or not paired, status value 2).");
+                case 6: return T("Kopplung nicht sicher bestimmbar: Statuswert 6 (wurde bei Slim-Konsolen mit ab Werk gekoppeltem Laufwerk beobachtet).", "Pairing not reliably determinable: status value 6 (seen on Slim consoles with a factory-paired disc drive).");
+                case 0: case 3: case 4: case 5:
+                    return T("Kopplung nicht sicher bestimmbar: Statuswert ", "Pairing not reliably determinable: status value ") + s + T(" (Bedeutung nicht belegt).", " (meaning not confirmed).");
+            }
+            return T("Kopplung nicht auslesbar: keine gültige Antwort vom Laufwerks-Treiber.", "Pairing not readable: no valid answer from the disc drive driver.");
         }
-        public bool KopplungOk() { return DDD_STATUS == null || new[] { -1, 0, 1, 2, 5 }.Contains(DDD_STATUS.Value); }
         public string KopplungsText()
         {
             string l = LaufwerkText();

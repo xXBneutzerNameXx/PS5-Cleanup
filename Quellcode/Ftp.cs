@@ -188,8 +188,10 @@ namespace PS5Cleanup
                 d.GetStream().CopyTo(ms);
             }
             finally { d.Close(); }
-            a = Antwort();                                     // 226 = vollständig übertragen
-            if (a.Code >= 400) return null;                    // abgebrochen - Inhalt unvollständig
+            // vollständig übertragen heißt 226 oder 250 - alles andere gilt als unvollständig.
+            // (Meldet der Server das schon als erste Antwort, kommt keine zweite mehr.)
+            if (a.Code != 226 && a.Code != 250) a = Antwort();
+            if (a.Code != 226 && a.Code != 250) return null;
             return ms.ToArray();
         }
 
@@ -203,8 +205,8 @@ namespace PS5Cleanup
             if (a.Code >= 400) { d.Close(); return false; }
             if (bytes == null) bytes = new byte[0];
             var s = d.GetStream(); s.Write(bytes, 0, bytes.Length); s.Flush(); d.Close();
-            a = Antwort();                                     // 226
-            return a.Code < 400;
+            if (a.Code != 226 && a.Code != 250) a = Antwort();
+            return a.Code == 226 || a.Code == 250;
         }
     }
 }

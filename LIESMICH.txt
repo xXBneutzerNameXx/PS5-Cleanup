@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.4 BETA by da_Chris86
+﻿PS5 CLEANUP 1.0.5 BETA by da_Chris86
 ====================================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
@@ -16,6 +16,30 @@ ZWEI WEGE
 BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
 Rückmeldungen bitte mit Modell, Firmware und der Datei PS5-Cleanup.log.
+
+
+NEU IN 1.0.5
+------------
+- ShadowMount noch vorsichtiger: Gelöscht wird nur, wenn ShadowMount
+  bestätigt angehalten ist oder nachweislich nicht läuft (keine Spiele
+  eingebunden). Sonst kommt eine Rückfrage - "Abbrechen" ist vorbelegt.
+- Verweigert die PS5 beim Lesen eines Ordners den Zugriff, bricht das
+  Programm ab, statt den Ordner als leer zu behandeln.
+- Ordnerlisten und Dateien gelten nur noch als vollständig, wenn die PS5
+  die Übertragung ausdrücklich bestätigt.
+- Testmodus: Der Text sagt jetzt dazu, dass die Modellabfrage kurz ihre
+  eigene Datei /data/ps5info.txt anlegt und wieder entfernt.
+- Laufwerks-Anzeige korrigiert: Liefert die PS5 keine gültige Antwort,
+  steht dort "nicht auslesbar" statt fälschlich "gekoppelt".
+- Erste PS5 (CFI-10xx/11xx/12xx): Es wird immer "fest eingebaut" bzw.
+  "kein Laufwerk (Digital Edition)" angezeigt, egal was der Treiber meldet.
+- Laufwerks-Status 6: neutraler Text, weil die genaue Bedeutung nicht
+  sicher geklärt ist.
+- Neuer Hinweis vor dem Löschen, wenn eine USB-Platte angeschlossen ist
+  oder die M.2 leer bzw. nicht erkannt wird - sonst könnten Lizenzen und
+  Kacheln dieser Spiele als Reste gelten.
+- ps5info.elf neu gebaut.
+- Neues Logo.
 
 
 NEU IN 1.0.4
@@ -40,7 +64,9 @@ SCHNELLSTART
 2. PS5-Cleanup.exe starten - eine Datei, Windows 10/11, nichts installieren.
 3. "PS5 im Netz suchen", dann "Verbinden und nachschauen".
    Das Programm startet im Testmodus: Es zeigt nur an, was weg könnte,
-   die Lösch-Knöpfe sind gesperrt.
+   die Lösch-Knöpfe sind gesperrt. Gelöscht wird dabei nichts - nur die
+   Modellabfrage legt kurz ihre eigene Datei /data/ps5info.txt an und
+   entfernt sie wieder.
 4. Zum Löschen den Haken "Testmodus" entfernen. Dann entweder
    "KOMPLETT - wie neu installiert"  (alles auf der internen SSD, die M.2
    wird extra gefragt, zum Bestätigen LÖSCHEN eintippen)
@@ -108,15 +134,21 @@ Laufwerks-Kopplung
   Das Programm liest den Kopplungs-Status aus und zeigt ihn an. Es fasst
   Systemsoftware und Systemeinstellungen nie an. Die erste PS5 hat ein
   fest eingebautes Laufwerk ohne Kopplung, Digital Editions gar keins.
+  Die Anzeige unterscheidet: "Kopplung bestätigt", "Keine Kopplung",
+  "nicht sicher bestimmbar" (Statuswert, dessen Bedeutung nicht belegt
+  ist) und "nicht auslesbar" (keine gültige Antwort).
 
 ShadowMount-Spiele
   Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2 oder der internen
   SSD. Wird das Spiel gelöscht, geht die Kachel immer mit. Wird nur die
   Kachel gelöscht, kommt sie wieder, sobald ShadowMount neu geladen wird.
-  Das Programm versucht, ShadowMount+ (ab 1.7) vor dem Löschen über dessen
-  Stopp-Datei anzuhalten, sonst würde es die Kacheln sofort neu anlegen.
-  Danach ShadowMount einfach neu laden. Läuft gerade der Game Compressor,
-  ist das betroffene Spiel gesperrt.
+  Das Programm hält ShadowMount+ (ab 1.7) vor dem Löschen über dessen
+  Stopp-Datei an, sonst würde es die Kacheln sofort neu anlegen.
+  Gelöscht wird nur, wenn ShadowMount das bestätigt oder nachweislich nicht
+  läuft (keine Spiele eingebunden). Ist der Zustand unklar, kommt eine
+  Rückfrage mit "Abbrechen" als Vorgabe - läuft ShadowMount noch, könnten
+  eingebundene Spieldaten beschädigt werden. Danach ShadowMount neu laden.
+  Läuft gerade der Game Compressor, ist das betroffene Spiel gesperrt.
 
 M.2-SSD
   Die Ordner auf der M.2 (z. B. homebrew, games, downloads) werden
@@ -147,8 +179,9 @@ Modell und Firmware
   startet das Programm (nur mit Haken bei "Modell automatisch erkennen")
   kurz ps5info.elf auf der PS5 - über den Payload-Lader (Port 9021) oder
   den Payload-Manager (Port 8084) - und räumt es danach wieder weg.
-  ps5info liest nur, es verändert nichts. Geht beides nicht, kannst du die
-  Modellnummer eintippen oder überspringen.
+  ps5info liest nur. Die Antwort legt es kurz in der eigenen Datei
+  /data/ps5info.txt ab, die das Programm danach wieder entfernt. Geht
+  beides nicht, kannst du die Modellnummer eintippen oder überspringen.
 
 Neue Version
   Beim Start fragt das Programm einmal bei GitHub nach, welche Version die

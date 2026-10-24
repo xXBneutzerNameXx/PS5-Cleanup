@@ -31,7 +31,7 @@ eigene Lizenzen:
 The MIT License above covers the PS5 Cleanup code (the C# program, the old
 PowerShell version and batch files). These components have their own licenses:
 
-ps5info (Quellcode/ps5info.c, Quellcode/ps5info.elf)
+ps5info (Quellcode/ps5info.c, Quellcode/ps5info_antwort.h, Quellcode/ps5info.elf)
   Kleines PS5-Programm, das Modellnummer und Laufwerks-Status ausliest.
   Small PS5 payload that reads the model number and disc drive status.
   Lizenz / License: GNU General Public License v3.0

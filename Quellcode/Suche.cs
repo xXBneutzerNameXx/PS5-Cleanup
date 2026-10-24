@@ -38,6 +38,9 @@ namespace PS5Cleanup
 
         public List<Eintrag> Funde = new List<Eintrag>();
         public bool m2Da;
+        // NEU 1.0.5: nur für einen Hinweis - an Suche und Löschen ändert sich nichts.
+        public bool M2_OHNE_USER;      // M.2-Ordner da, aber ohne user-Ordner (leer oder nicht richtig eingebunden)
+        public bool USB_SPEICHER;      // USB-Platte als erweiterter Speicher (/mnt/ext0) mit Inhalt
         public string FUNDE_IP = "";
         public List<string> KOMPRIMIERUNG = new List<string>();
         public List<string> AUFGEKLAPPT = new List<string>();
@@ -413,6 +416,21 @@ namespace PS5Cleanup
             MerkeOrdner(p, unter, 7, e.Name + "/");
         }
 
+        // NEU 1.0.5: Hinweis, wenn Spiele auf einem Speicher liegen könnten, den das
+        // Programm gerade nicht als "installiert" sieht. Nur Text - die Suche bleibt gleich.
+        public const string USB_ERW = "/mnt/ext0";
+        public string SpeicherHinweis()
+        {
+            string t = "";
+            if (!m2Da) t += T("\n\nHINWEIS: Keine M.2-SSD gefunden. Steckt eine M.2 mit Spielen drin, die gerade nicht erkannt wird: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.",
+                              "\n\nNOTE: No M.2 SSD found. If an M.2 with games is installed but not detected right now: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.");
+            else if (M2_OHNE_USER) t += T("\n\nHINWEIS: Die M.2-SSD ist leer oder wird gerade nicht richtig erkannt. Liegen darauf Spiele: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.",
+                                         "\n\nNOTE: The M.2 SSD is empty or not detected properly right now. If it holds games: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.");
+            if (USB_SPEICHER) t += T("\n\nHINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf sieht das Programm nicht als installiert - ihre Lizenzen und Kacheln können in der Liste als Reste stehen. Solche Einträge nicht auswählen; KOMPLETT würde sie mit löschen.",
+                                     "\n\nNOTE: A USB drive is connected as extended storage. The program does not see games on it as installed - their licenses and tiles may show up in the list as leftovers. Do not select those entries; COMPLETE would delete them too.");
+            return t;
+        }
+
         // ---------------------------------------------------------------
         // Die Suche
         // ---------------------------------------------------------------
@@ -433,6 +451,11 @@ namespace PS5Cleanup
             var dlcInfos = S.Namen("/user/appmeta/addcont", true);
             var m2Liste = S.Liste(M2, true);
             m2Da = m2Liste != null;
+            M2_OHNE_USER = m2Da && !m2Liste.Any(e => e.Name == "user");
+            USB_SPEICHER = false;
+            try { USB_SPEICHER = S.Liste(USB_ERW + "/user") != null; }
+            catch (AbbruchAusnahme) { throw; }
+            catch { }
             var m2Apps = new List<string>(); var m2Patches = new List<string>(); var m2Addconts = new List<string>();
             if (m2Da) { m2Apps = S.Namen(M2 + "/user/app", true); m2Patches = S.Namen(M2 + "/user/patch", true); m2Addconts = S.Namen(M2 + "/user/addcont", true); }
             var benutzt = H.Tab<int>();

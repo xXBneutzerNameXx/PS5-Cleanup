@@ -66,6 +66,7 @@ namespace PS5Cleanup
             btSprache = (Button)W.FindName("btSprache");
             TexteSetzen();
             try { W.Icon = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.cleanup.ico")); } catch { }
+            try { ((Image)W.FindName("imLogo")).Source = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.logo.png")); } catch { }
             tbFuss.Text = "PS5 Cleanup " + Kern.VERSION + "  ·  da_Chris86  ·  " + T("Inoffizielles Community-Projekt, keine Verbindung zu Sony", "Unofficial community project, not affiliated with Sony");
             Zaehlen = () => K.ErmittleGroessen();
 
@@ -110,7 +111,7 @@ namespace PS5Cleanup
             btSuchen.Content = "Find PS5 on network";
             btVerbinden.Content = "Connect and scan";
             cbModell.Content = "Detect model automatically";
-            cbModell.ToolTip = "Briefly runs the small program ps5info.elf on the PS5 (port 9021 or 8084) and removes it afterwards.";
+            cbModell.ToolTip = "Briefly runs the small program ps5info.elf on the PS5 (port 9021 or 8084). It briefly creates its own file /data/ps5info.txt - both are removed afterwards.";
             cbTest.Content = "Test mode: only look, delete nothing";
             cbTest.ToolTip = "While ticked, the delete buttons are locked. Untick to delete.";
             tbInfo.Text = "Not connected.";
@@ -478,6 +479,7 @@ namespace PS5Cleanup
             UI(() => { tbLeer.Visibility = Visibility.Collapsed; ZeigeBereiche(); });
             if (K.Funde.Count == 0) Log(T("Nichts zu tun - die PS5 ist bereits sauber.", "Nothing to do - the PS5 is already clean."));
             else Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
+            { string h = K.SpeicherHinweis(); if (h != "") Log(h.Trim()); }
             if (Testmodus()) Log(T("(Testmodus - zum Löschen den Haken \"Testmodus\" entfernen.)", "(Test mode - untick \"Test mode\" to delete.)"));
             HintergrundStarten();
         }
@@ -677,6 +679,7 @@ namespace PS5Cleanup
             if (!komplett && m2 > 0) t = T("!!! ACHTUNG: ", "!!! WARNING: ") + m2 + T(" EINTRÄGE DER M.2-SSD SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " M.2 SSD ENTRIES ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n") + t;
             int gesp = K.Funde.Count(f => f.Gesperrt);
             if (gesp > 0) t += T("   Bleibt (Game Compressor arbeitet daran): ", "   Kept (Game Compressor is working on it): ") + gesp + "\n";
+            if (!komplett) { string h = K.SpeicherHinweis(); if (h != "") t += h.TrimStart('\n') + "\n"; }
             t += T("\nDas sind ", "\nThat is ") + Kern.GroesseSatz(GROSS) + ".\n";
             t += "\n" + K.KopplungsText() + T("\nBenutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.", "\nUse at your own risk - deleted data is gone for good.");
             return t;
@@ -707,8 +710,7 @@ namespace PS5Cleanup
             foreach (var k in new[] { 1, 2, 3, 4, 5, 6 }) t += "   - " + Kern.KatName[k] + ": " + K.AnzahlKomplett(k) + "\n";
             t += T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n - Ein im Browser offline gespeicherter Jailbreak-Zugang kann auch weg sein.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
                    "\nThis means:\n - Saved data without a cloud backup (PS Plus) is gone for good.\n - Trophies never synced with PSN are gone.\n - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.\n - A jailbreak page saved offline in the browser may be gone too.\n\nKept: system software, disc drive pairing, user account, real licenses, Sony system apps.");
-            if (!K.m2Da) t += T("\n\nHINWEIS: Keine M.2-SSD gefunden. Steckt eine M.2 mit Spielen drin, die gerade nicht erkannt wird: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.",
-                                "\n\nNOTE: No M.2 SSD found. If an M.2 with games is installed but not detected right now: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.");
+            t += K.SpeicherHinweis();
             if (!FrageWahl(t, T("KOMPLETT", "COMPLETE"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { HintergrundStarten(); return; }
             bool m2Leeren = false;
             if (K.m2Da && K.Anzahl(7) > 0)
@@ -778,9 +780,10 @@ namespace PS5Cleanup
             {
                 try
                 {
-                erg = K.FuehreLoeschung(() => FrageWahl(T("ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich wieder angelegt und die Spiele könnten gerade eingebunden sein.\n\nEmpfehlung: abbrechen, die PS5 neu starten, nur den FTP-Server laden und dann nochmal löschen.",
-                    "ShadowMount may still be running. Deleted tiles would be recreated right away and the games could be mounted at the moment.\n\nRecommended: cancel, restart the PS5, load only the FTP server and delete again."),
-                    "ShadowMount", T("Abbrechen (empfohlen)", "Cancel (recommended)"), T("Trotzdem löschen", "Delete anyway")));
+                erg = K.FuehreLoeschung(() => FrageWahl(T("ShadowMount konnte nicht sicher angehalten werden:\n", "ShadowMount could not be stopped safely:\n") + K.SM_GRUND +
+                    T("\n\nLäuft es noch, können eingebundene Spieldaten beim Löschen BESCHÄDIGT werden, und gelöschte Kacheln kommen sofort wieder.\n\nEmpfehlung: abbrechen, die PS5 neu starten, nur den FTP-Server laden (ohne ShadowMount) und dann nochmal löschen.",
+                      "\n\nIf it is still running, mounted game data can be DAMAGED while deleting, and deleted tiles come back right away.\n\nRecommended: cancel, restart the PS5, load only the FTP server (without ShadowMount) and delete again."),
+                    "ShadowMount", T("Abbrechen (empfohlen)", "Cancel (recommended)"), T("Trotzdem löschen (auf eigene Gefahr)", "Delete anyway (at your own risk)")));
                 }
                 catch (AbbruchAusnahme)
                 {
@@ -792,7 +795,12 @@ namespace PS5Cleanup
             finally { LAEUFT = false; }
             UI(() => pbFortschritt.IsIndeterminate = false);
             Stand("");
-            if (erg.Abgebrochen) { Log(T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed.")); K.SmZuruecksetzen(); return; }
+            if (erg.Abgebrochen)
+            {
+                if (K.SM_STOP_GESENDET) Log(T("Abgebrochen - nichts gelöscht. ShadowMount hat das Stopp-Signal erhalten - zum Weiterspielen neu laden.", "Cancelled - nothing deleted. ShadowMount received the stop signal - load it again to keep playing."));
+                else Log(T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed."));
+                K.SmZuruecksetzen(); return;
+            }
             UI(() => pbFortschritt.Value = 100);
             Log("");
             Log(erg.Fehler == 0 ? T("Fertig - alles Ausgewählte ist gelöscht.", "Done - everything selected has been deleted.") : T("Fertig, aber mit ", "Done, but with ") + erg.Fehler + T(" Fehler(n) - siehe oben.", " error(s) - see above."));

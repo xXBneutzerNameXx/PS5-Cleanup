@@ -17,6 +17,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <ps5/kernel.h>
+#include "ps5info_antwort.h"
 
 int sceKernelGetHwModelName(char *out);
 
@@ -53,23 +54,21 @@ static void rechte_anheben(void) {
 }
 
 /* Liefert die Statuszahl (0..6) oder -1, wenn kein abnehmbares Laufwerk da ist
- * (erste PS5: fest verbaut) bzw. die Abfrage scheitert. Nur lesend. */
+ * (erste PS5: fest verbaut), die Abfrage scheitert oder die Antwort ungueltig
+ * bzw. unvollstaendig ist (siehe ps5info_antwort.h). Nur lesend. */
 static int laufwerk_status(void) {
   int fd = open("/dev/ddd", O_RDWR);
   if (fd < 0) {
     return -1;
   }
   ddd_abfrage_t a;
-  uint32_t aus = 0;
+  uint32_t aus = DDD_UNGUELTIG;   /* nicht 0 - 0 ist ein echter Statuswert */
   memset(&a, 0, sizeof a);
   a.aus_laenge = (int32_t)sizeof aus;
   a.aus_puffer = (uint8_t *)&aus;
   int r = ioctl(fd, DDD_STATUS_IOCTL, &a);
   close(fd);
-  if (r != 0) {
-    return -1;
-  }
-  return (int)aus;
+  return ddd_antwort_pruefen(r, a.status, aus);
 }
 
 int main(void) {

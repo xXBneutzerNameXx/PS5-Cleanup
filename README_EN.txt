@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.4 BETA by da_Chris86
+﻿PS5 CLEANUP 1.0.5 BETA by da_Chris86
 ====================================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
@@ -17,6 +17,30 @@ BETA: Tested on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
 Other models and firmwares should work but have not been tested yet.
 Feedback welcome - please include model, firmware and the file
 PS5-Cleanup.log.
+
+
+NEW IN 1.0.5
+------------
+- ShadowMount handled even more carefully: deleting only goes ahead if
+  ShadowMount confirms it stopped or is provably not running (no games
+  mounted). Otherwise you are asked - "Cancel" is preselected.
+- If the PS5 denies access while reading a folder, the program stops
+  instead of treating the folder as empty.
+- Folder listings and files only count as complete when the PS5
+  explicitly confirms the transfer.
+- Test mode: the text now mentions that the model query briefly creates
+  its own file /data/ps5info.txt and removes it again.
+- Disc drive display fixed: if the PS5 gives no valid answer, it now says
+  "not readable" instead of wrongly saying "paired".
+- Original PS5 (CFI-10xx/11xx/12xx): always shows "built-in drive" or
+  "no disc drive (Digital Edition)", whatever the driver reports.
+- Disc drive status 6: neutral text, because its exact meaning is not
+  clear yet.
+- New note before deleting when a USB drive is connected or the M.2 is
+  empty or not detected - otherwise licenses and tiles of those games
+  could count as leftovers.
+- ps5info.elf rebuilt.
+- New logo.
 
 
 NEW IN 1.0.4
@@ -41,7 +65,8 @@ QUICK START
 2. Start PS5-Cleanup.exe - one file, Windows 10/11, nothing to install.
 3. "Find PS5 on network", then "Connect and scan".
    The program starts in test mode: it only shows what could go, the
-   delete buttons are locked.
+   delete buttons are locked. Nothing is deleted - only the model query
+   briefly creates its own file /data/ps5info.txt and removes it again.
 4. To delete, untick "Test mode". Then either
    "COMPLETE - like freshly installed"  (everything on the internal SSD,
    the M.2 is asked separately, type DELETE to confirm)
@@ -108,15 +133,21 @@ Disc drive pairing
   The program reads and shows the pairing status. It never touches system
   software or system settings. The original PS5 has a built-in drive
   without pairing, Digital Editions have none.
+  The display tells apart: "Pairing confirmed", "No pairing", "not
+  reliably determinable" (a status value whose meaning is not confirmed)
+  and "not readable" (no valid answer).
 
 ShadowMount games
   The menu only has a tile; the game itself is on the M.2 or the internal
   SSD. If the game is deleted, the tile always goes with it. If only the
   tile is deleted, it comes back once ShadowMount is loaded again.
-  Before deleting, the program tries to stop ShadowMount+ (1.7 or newer)
-  via its stop file - otherwise it would recreate the tiles right away.
-  Afterwards just load ShadowMount again. While the Game Compressor is
-  working, the affected game is locked.
+  Before deleting, the program stops ShadowMount+ (1.7 or newer) via its
+  stop file - otherwise it would recreate the tiles right away. Deleting
+  only goes ahead if ShadowMount confirms this or is provably not running
+  (no games mounted). If the state is unclear, you are asked, with
+  "Cancel" preselected - if ShadowMount is still running, mounted game
+  data could be damaged. Afterwards load ShadowMount again. While the
+  Game Compressor is working, the affected game is locked.
 
 M.2 SSD
   The folders on the M.2 (e.g. homebrew, games, downloads) are expanded:
@@ -143,8 +174,10 @@ Model and firmware
   The firmware is read via FTP. For model and disc drive status the program
   (only with "Detect model automatically" ticked) briefly runs ps5info.elf
   on the PS5 - via the payload loader (port 9021) or the Payload Manager
-  (port 8084) - and removes it afterwards. ps5info only reads, it changes
-  nothing. If neither works, you can type in the model number or skip it.
+  (port 8084) - and removes it afterwards. ps5info only reads. It briefly
+  stores its answer in its own file /data/ps5info.txt, which the program
+  removes afterwards. If neither works, you can type in the model number
+  or skip it.
 
 New version
   At start the program asks GitHub once which version is the newest. If it

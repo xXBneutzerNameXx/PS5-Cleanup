@@ -74,8 +74,30 @@ namespace PS5Cleanup
             return erg;
         }
 
+        // 550 kann "gibt es nicht" heißen, aber auch "Zugriff verweigert". Darum im
+        // Ordner darüber nachsehen: Steht der Name dort als Ordner, ist er da und
+        // nur nicht lesbar. true = es gibt hier wirklich keinen Ordner.
+        bool KeinOrdner(string pfad)
+        {
+            if (pfad == "/" || pfad == "") return false;
+            string eltern = H.Eltern(pfad), name = H.Blatt(pfad);
+            var a = Ftp.Befehl("CWD " + eltern);
+            if (a.Code >= 400) return a.Code == 550 && KeinOrdner(eltern);
+            byte[] bytes = Ftp.Daten("LIST");
+            Cwd("/");
+            if (bytes == null) return false;                 // nicht lesbar: nicht "gibt es nicht" annehmen
+            var e = Zerlege(bytes, false).FirstOrDefault(x => x.Name == name);
+            return e == null || !e.IstOrdner;
+        }
+        Exception Verweigert(string pfad, FtpAntwort a)
+        {
+            return new Exception(Sp.T("PS5 verweigert den Zugriff auf ", "PS5 denies access to ") + pfad + " (" + a.Text + ")" +
+                Sp.T(" - zur Sicherheit wird abgebrochen.", " - stopping to be safe."));
+        }
+
         // Ordnerinhalt; null wenn es den Ordner nicht gibt.
-        // streng: nur "gibt es nicht" (550) liefert null, jeder andere Fehler bricht ab.
+        // streng: nur ein wirklich fehlender Ordner liefert null - ein vorhandener, aber
+        // nicht lesbarer Ordner (Zugriff verweigert) und jeder andere Fehler brechen ab.
         public List<Datei> Liste(string pfad, bool streng = false)
         {
             if (Abbruch()) throw new AbbruchAusnahme();
@@ -83,6 +105,7 @@ namespace PS5Cleanup
             if (a.Code >= 400)
             {
                 if (streng && a.Code != 550) throw new Exception(Sp.T("PS5 meldet beim Lesen von ", "PS5 reports when reading ") + pfad + " : " + a.Text);
+                if (streng && !KeinOrdner(pfad)) throw Verweigert(pfad, a);
                 return null;
             }
             byte[] bytes = Ftp.Daten("LIST");
@@ -109,7 +132,11 @@ namespace PS5Cleanup
             string eltern = H.Eltern(pfad);
             string name = H.Blatt(pfad);
             var a = Ftp.Befehl("CWD " + eltern);
-            if (a.Code == 550) return false;
+            if (a.Code == 550)
+            {
+                if (KeinOrdner(eltern)) return false;        // der Ordner darüber fehlt wirklich
+                throw Verweigert(eltern, a);
+            }
             if (a.Code >= 400) throw new Exception(Sp.T("PS5 meldet beim Prüfen von ", "PS5 reports when checking ") + pfad + " : " + a.Text);
             byte[] bytes = Ftp.Daten("LIST");
             Cwd("/");
