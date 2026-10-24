@@ -14,6 +14,10 @@ Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gel
 
 **PS5 Cleanup** ist ein kleines Windows-Programm, das per FTP auf die PS5 schaut, alles übersichtlich mit Namen auflistet und nur das löscht, was du auswählst.
 
+**Zwei Wege:**
+- **Gezielt** – einzelne Einträge anhaken, z. B. wenn ein Spiel oder Tool Probleme macht: nur dessen Daten, Spielstand oder Trophäen löschen, der Rest bleibt.
+- **KOMPLETT** – alles auf der internen SSD auf einmal, wie frisch eingerichtet (die M.2 wird extra gefragt).
+
 ## Was es kann
 
 - Findet die PS5 im Heimnetz selbst und erkennt Modell, Firmware und ob das Laufwerk gekoppelt ist
@@ -21,7 +25,7 @@ Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gel
 - Zeigt alles mit Klarnamen: Spiele (PS5 und PS4) mit **Update und DLCs einzeln wählbar**, Spielstände, Trophäen, Screenshots und Videos je Spiel, Downloads, Reste, Jailbreak-Tools
 - **M.2: jedes Spiel und jede Datei einzeln** – die Ordner selbst bleiben stehen, für die M.2 gibt es eine eigene Rückfrage
 - **Größe jedes Eintrags direkt in der Liste** (wird im Hintergrund gezählt) und ein **Abbrechen-Knopf** beim Suchen und Zählen
-- Zwei Wege: **KOMPLETT** (wie neu eingerichtet, die M.2 wird extra gefragt) oder gezielt per Häkchen
+- **Deutsch und Englisch** – richtet sich nach der Windows-Sprache, umschaltbar oben rechts
 - ShadowMount-Spiele: wahlweise nur die Kachel oder Spiel samt Kachel – ShadowMount+ wird vorher sauber angehalten
 - Räumt die Kachel-Infos mit weg – keine leeren Kacheln mit Schloss nach dem Datenbank-Neuaufbau
 - Zeigt vorher, wie viel Platz frei wird, und hinterher, wie viel freigeräumt wurde
@@ -46,7 +50,7 @@ Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen u
 4. Danach an der PS5: ausschalten, Einschaltknopf halten bis zum zweiten Piepton, Controller per USB anstecken, **Datenbank neu erstellen**.
    **Nie** „PS5 zurücksetzen“ oder „Systemsoftware neu installieren“ wählen!
 
-Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
+Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt) · English: [README_EN.txt](README_EN.txt)
 
 ## Hinweis zum Virenscanner
 
@@ -59,6 +63,7 @@ Seit 1.0.4 ist PS5 Cleanup ein echtes Windows-Programm (C#, .NET Framework 4.8 �
 | `Quellcode/Kern.cs`, `Suche.cs`, `Ausfuehren.cs` | Schutzliste, Suche, Löschen |
 | `Quellcode/Ftp.cs`, `Sitzung.cs` | FTP-Verbindung zur PS5 |
 | `Quellcode/Fenster.cs`, `Fenster.xaml`, `Programm.cs` | Oberfläche und Start |
+| `Quellcode/Sprache.cs` | Deutsch / Englisch |
 | `Quellcode/Selbsttest.cs`, `UiTest.cs` | Selbsttest (`PS5-Cleanup.exe -SelbstTest`) und Oberflächentest für die Entwicklung |
 | `Quellcode/bauen.cmd` | baut die `.exe` mit dem in Windows enthaltenen Compiler |
 | `Quellcode/ps5info.c` | kleines PS5-Programm: liest Modell und Laufwerks-Status (nur lesend) |
@@ -82,17 +87,17 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## English
 
-**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It connects over FTP, lists everything with readable names and deletes only what you select. The program itself is in German.
+**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
 
 > **Beta** – tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares should work but are untested. Please report results as an [issue](../../issues) with model, firmware and `PS5-Cleanup.log`.
 
-**Features:** finds the PS5 on your network and detects model, firmware and disc drive pairing status · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *KOMPLETT* (full clean, M.2 asked separately) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports.
+**Features:** finds the PS5 on your network and detects model, firmware and disc drive pairing status · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *COMPLETE* (full clean, M.2 asked separately) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports.
 
 **Not touched by the program:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset, and no system database is modified.
 
 **Requirements:** jailbroken PS5 with an FTP server (default port 2121; recommended: ftpsrv by drakmor, tested with 1.16) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
 
-**Usage:** start `PS5-Cleanup.exe` → *PS5 im Netz suchen* (find PS5) → *Verbinden und nachschauen* (connect and scan) → review in test mode, untick *Testmodus*, delete → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*.
+**Usage:** start `PS5-Cleanup.exe` → *Find PS5 on network* → *Connect and scan* → review in test mode, untick *Test mode*, then *Delete selection only* or *COMPLETE* → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*. Full guide: [README_EN.txt](README_EN.txt).
 
 **Antivirus:** since 1.0.4 the program is a native Windows application (C#, .NET Framework 4.8), no longer a packed script. The `.exe` is not code-signed, so a few scanners may still flag it as a false positive. The full source is in this repository – build it yourself with `Quellcode/bauen.cmd` (Windows only, nothing to install).
 
