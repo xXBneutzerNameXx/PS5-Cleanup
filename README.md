@@ -31,7 +31,7 @@ Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen u
 
 ## Voraussetzungen
 
-- PS5 mit Jailbreak und laufendem FTP-Server (Standard-Port 2121, anderer Port per `IP:Port`)
+- PS5 mit Jailbreak und laufendem FTP-Server (Standard-Port 2121, anderer Port per `IP:Port`) – empfohlen: [ftpsrv von drakmor](https://github.com/drakmor), getestet mit Version 1.16
 - Windows 10/11 – eine einzelne `.exe`, nichts zu installieren
 - Optional für Modell- und Laufwerkserkennung: Payload-Lader (Port 9021) oder Payload Manager (Port 8084)
 
@@ -87,7 +87,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **Always kept:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset, and no system database is modified.
 
-**Requirements:** jailbroken PS5 with an FTP server (default port 2121) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
+**Requirements:** jailbroken PS5 with an FTP server (default port 2121; recommended: ftpsrv by drakmor, tested with 1.16) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
 
 **Usage:** start `PS5-Cleanup.exe` → *PS5 im Netz suchen* (find PS5) → *Verbinden und nachschauen* (connect and scan) → review in test mode, untick *Testmodus*, delete → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*.
 
