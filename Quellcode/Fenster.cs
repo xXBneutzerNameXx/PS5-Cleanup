@@ -499,7 +499,7 @@ namespace PS5Cleanup
                 alle.Tag = k;
                 ex.Header = alle;
                 var inhalt = new StackPanel { Margin = new Thickness(24, 2, 0, 6) };
-                inhalt.Children.Add(new TextBlock { Text = Kern.KatInfo[k], Foreground = (Brush)W.FindResource("Grau"), Margin = new Thickness(0, 0, 0, 6) });
+                inhalt.Children.Add(new TextBlock { Text = Kern.KatInfo[k], Foreground = (Brush)W.FindResource("Grau"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) });
                 if (k == 1 && eintraege.Any(f => f.Quelle != ""))
                     inhalt.Children.Add(new TextBlock { Foreground = (Brush)W.FindResource("Gelb"), Margin = new Thickness(0, 0, 0, 6),
                         Text = "ShadowMount-Spiel: Im Menü ist nur eine Kachel, das Spiel selbst liegt auf der M.2 oder der internen SSD. Beim Löschen wirst du gefragt, ob die Spieldateien mit weg sollen." });

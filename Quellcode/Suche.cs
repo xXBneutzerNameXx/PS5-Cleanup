@@ -27,13 +27,13 @@ namespace PS5Cleanup
             "Inhalt der M.2-SSD" };
         public static readonly string[] KatInfo = {
             "",
-            "Installierte Spiele und Apps auf der internen SSD (PS5 und PS4). Spiel, Update und jeder Zusatzinhalt (DLC) sind einzeln wählbar - wer das Spiel wählt, nimmt Update und Zusatzinhalte automatisch mit.",
-            "Spielstände auf der Konsole. Mit PS Plus sind sie evtl. in der Cloud gesichert - ohne Sicherung sind sie endgültig weg.",
-            "Dein Trophäen-Fortschritt je Spiel und die Trophäen-Listen der Spiele. Mit dem PSN abgeglichener Fortschritt kommt beim nächsten Spielstart zurück. ACHTUNG: Nie abgeglichene Trophäen (Konsole immer offline) sind endgültig weg.",
-            "Deine Screenshots und Videoclips aus der Mediengalerie, je Spiel mit Anzahl. Dazu Vorschaubilder und Zwischenordner der Aufnahme-Funktion (die legt die PS5 bei Bedarf neu an).",
+            "Installierte Spiele und Apps. Wer ein Spiel wählt, nimmt Update und DLCs mit.",
+            "Spielstände auf der Konsole. Ohne Cloud-Sicherung (PS Plus) endgültig weg.",
+            "Trophäen-Fortschritt und Trophäen-Listen. Nie mit dem PSN abgeglichene Trophäen sind endgültig weg.",
+            "Screenshots und Videoclips, je Spiel mit Anzahl.",
             "Downloads, Zusatzinhalte und Updates ohne Spiel, Reste gelöschter Spiele.",
-            "Einstellungen und Daten der Jailbreak-Tools (z.B. Payload Manager, ShadowMount, kstuff, etaHEN), ihre Kacheln im Menü und Homebrew-Daten (z.B. Emulator-Spielstände). DANACH MUSST DU DEINEN JAILBREAK NEU EINRICHTEN. Wer per Browser-Seite jailbreakt: der Browserspeicher kann auch einen offline gespeicherten Zugang enthalten.",
-            "Alles auf der M.2-SSD - jedes Spiel und jede Datei einzeln. Die Ordner selbst und die Verwaltungsordner der PS5 bleiben. Echtes Formatieren geht nur an der PS5 selbst: Einstellungen > Speicher > M.2-SSD > Formatieren (ebenfalls ungefährlich für die Kopplung)." };
+            "Daten und Kacheln der Jailbreak-Tools, Homebrew-Daten. Danach Jailbreak neu einrichten.",
+            "Jedes Spiel und jede Datei auf der M.2 einzeln. Komplett leeren: an der PS5 unter Speicher > M.2-SSD > Formatieren." };
         public static readonly int[] ALLE_KAT = { 1, 2, 3, 4, 5, 6, 7 };
 
         public List<Eintrag> Funde = new List<Eintrag>();
@@ -732,7 +732,7 @@ namespace PS5Cleanup
             }
             foreach (var u in homes)
                 if (S.Namen("/user/home/" + u + "/webkit/shell/local").Count > 0)
-                    Merke(L("/user/home/" + u + "/webkit/shell/local"), 6, "Browserspeicher (Jailbreak-Seiten)");
+                    Merke(L("/user/home/" + u + "/webkit/shell/local"), 6, "Browserspeicher (Jailbreak-Seiten) - kann einen offline gespeicherten Jailbreak-Zugang enthalten");
 
             // fest nach Bereich ordnen (innerhalb eines Bereichs bleibt die Fundreihenfolge)
             var sortiert = new List<Eintrag>();
