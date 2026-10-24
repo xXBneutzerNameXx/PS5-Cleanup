@@ -10,7 +10,7 @@
 # Fenster sie in sein Protokoll umleiten kann.
 # =====================================================================
 $ErrorActionPreference = 'Stop'
-$VERSION       = '1.0.1 Beta'
+$VERSION       = '1.0.2 Beta'
 $STANDARD_PORT = 2121
 $BEHALTEN_APP  = 'PPSA01325'      # Astro's Playroom
 $M2            = '/mnt/ext1'
@@ -174,7 +174,10 @@ function Liste([string]$pfad, [bool]$streng = $false) {
         if ($name -eq '.' -or $name -eq '..') { continue }
         if ($name -match '[\x00-\x1f\x7f]') { continue }      # Steuerzeichen im Namen: nie anfassen
         $groesse = 0; if ($teile[4] -match '^\d+$') { $groesse = [int64]$teile[4] }
-        $erg += [pscustomobject]@{ Name = $name; IstOrdner = $z.StartsWith('d'); Groesse = $groesse }
+        # 'l' = Verknüpfung (Symlink): nie als Ordner behandeln, nie hineinschauen.
+        # Manche Server hängen das Ziel an ("name -> ziel") - das gehört nicht zum Namen.
+        if ($z.StartsWith('l') -and $name.Contains(' -> ')) { $name = $name.Substring(0, $name.IndexOf(' -> ')) }
+        $erg += [pscustomobject]@{ Name = $name; IstOrdner = $z.StartsWith('d'); IstLink = $z.StartsWith('l'); Groesse = $groesse }
     }
     return ,$erg
 }
@@ -248,6 +251,8 @@ $script:SM_ANGEHALTEN = $false      # nur $true, wenn ShadowMount wirklich lief 
 function ShadowMount-Anhalten {
     $script:SM_ANGEHALTEN = $false
     & $script:Melde 'Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...'
+    # nur eine Abmeldung NACH dem Anhalten zählt (alte Zeilen im Protokoll nicht)
+    $vorher = ([regex]::Matches((Datei-Text "$SM_ORDNER/debug.log"), '\[SHUTDOWN\] cleanup complete')).Count
     $laeuft = ShadowMount-Laeuft
     if (-not $laeuft) { & $script:Melde '  ShadowMount läuft nicht (oder ist älter als 1.7 - dann vorher'; & $script:Melde '  von Hand beenden: PS5 neu starten und nur den FTP-Server laden).'; return $true }
     # Es hat die STOP-Datei abgeholt - jetzt bis zum Ende des Aufräumens warten.
@@ -255,7 +260,7 @@ function ShadowMount-Anhalten {
     while ((Get-Date) -lt $ende) {
         & $script:Warte 2000
         $log = Datei-Text "$SM_ORDNER/debug.log"
-        if ($log -match '\[SHUTDOWN\] cleanup complete') { & $script:Melde '  ShadowMount ist beendet.'; $script:SM_ANGEHALTEN = $true; return $true }
+        if (([regex]::Matches($log, '\[SHUTDOWN\] cleanup complete')).Count -gt $vorher) { & $script:Melde '  ShadowMount ist beendet.'; $script:SM_ANGEHALTEN = $true; return $true }
     }
     & $script:Melde '  ShadowMount hat sich nach 90 s nicht sauber beendet.'
     return $false
@@ -344,13 +349,46 @@ function Erlaubt([string]$p) {
     return $false
 }
 
+# Steckt in einem Ordner auf dem Weg eine Verknüpfung (Symlink)? Dann könnte
+# der Pfad ganz woanders hinzeigen (z.B. auf die M.2) - die Schutzliste prüft
+# aber nur den Text. Solche Pfade werden nie gelöscht. (Der letzte Teil selbst
+# darf eine Verknüpfung sein - DELE entfernt dann nur die Verknüpfung.)
+$script:LINK_CACHE = @{}
+function Ohne-Verknuepfung([string]$p) {
+    $teile = $p.Split('/')
+    $weg = ''
+    for ($i = 1; $i -lt $teile.Count - 1; $i++) {
+        $eltern = if ($weg -eq '') { '/' } else { $weg }
+        $weg = "$weg/$($teile[$i])"
+        if (-not $script:LINK_CACHE.ContainsKey($eltern)) { $script:LINK_CACHE[$eltern] = Liste $eltern $true }
+        $l = $script:LINK_CACHE[$eltern]
+        if ($null -eq $l) { return $true }                  # gibt es nicht -> nichts zu löschen
+        $e = $l | Where-Object { $_.Name -ceq $teile[$i] } | Select-Object -First 1
+        # nicht gefunden, obwohl der Ordner darüber da ist: nur weitermachen, wenn
+        # es den ganzen Pfad wirklich nicht gibt (sonst lieber nicht löschen)
+        if ($null -eq $e) { return (-not (Existiert $p)) }
+        if ($e.IstLink -or -not $e.IstOrdner) { return $false }
+    }
+    return $true
+}
 $script:WAR_SCHON_WEG = 0            # Pfade, die beim Löschen gar nicht mehr da waren
 function Loeschen([string]$p) {
     if (-not (Erlaubt $p)) {
         & $script:Melde "  SICHERHEITSSTOPP: $p ist gesperrt - nichts gelöscht."
         return $false
     }
+    if (-not (Ohne-Verknuepfung $p)) {
+        & $script:Melde "  SICHERHEITSSTOPP: $p liegt hinter einer Verknüpfung - nichts gelöscht."
+        return $false
+    }
     if (-not (Existiert $p)) { $script:WAR_SCHON_WEG++; return $true }
+    # Ist der Eintrag selbst eine Verknüpfung: nur sie entfernen, nie ihr Ziel
+    $eltern = $p.Substring(0, $p.LastIndexOf('/')); if ($eltern -eq '') { $eltern = '/' }
+    $selbst = (Liste $eltern $true) | Where-Object { $_.Name -ceq $p.Substring($p.LastIndexOf('/') + 1) } | Select-Object -First 1
+    if ($null -ne $selbst -and $selbst.IstLink) {
+        $null = Ftp-Befehl "DELE $p"
+        return (-not (Existiert $p))
+    }
     $null = Ftp-Befehl "SITE CHMOD 777 $p"
     $null = Ftp-Befehl "DELE $p"                          # falls Datei
     if (-not (Existiert $p)) { return $true }
@@ -882,8 +920,11 @@ function Suche-Funde {
 
     # Listet einen Ordner auf. Unterordner mit ShadowMount-Spielen werden
     # aufgeklappt; ein Spiel steht dort mit Namen und nimmt seine Verknüpfung mit.
-    function Merke-Ordner([string]$basis, [string[]]$namen, [int]$kat, [string]$vorsatz) {
-        foreach ($x in $namen) {
+    # $eintraege aus Liste: in Verknüpfungen (Symlinks) wird nie hineingeschaut -
+    # sie könnten z.B. auf die M.2 zeigen.
+    function Merke-Ordner([string]$basis, $eintraege, [int]$kat, [string]$vorsatz) {
+        foreach ($e in $eintraege) {
+            $x = $e.Name; $link = [bool]$e.IstLink
             $p = "$basis/$x"
             if (Ist-Zwischendatei $x) { $script:KOMPRIMIERUNG += $p; continue }
             if ($SpielQuellen -contains $p) {
@@ -892,9 +933,12 @@ function Suche-Funde {
                 continue
             }
             $drin = @($SpielQuellen | Where-Object { $_.StartsWith("$p/") })
-            if ($drin.Count -gt 0) {
+            if ($drin.Count -gt 0 -and -not $link) {
                 $script:AUFGEKLAPPT += $p
-                Merke-Ordner $p (Namen $p $true) $kat "$vorsatz$x/"
+                $unter = Liste $p $true; if ($null -eq $unter) { $unter = @() }
+                Merke-Ordner $p $unter $kat "$vorsatz$x/"
+            } elseif ($link) {
+                Merke @($p) $kat "$vorsatz$x  (Verknüpfung - nur sie selbst wird gelöscht)"
             } else {
                 Merke @($p) $kat "$vorsatz$x"
             }
@@ -1087,7 +1131,7 @@ function Suche-Funde {
         foreach ($e in $m2Liste) {
             $x = $e.Name
             if ($x -eq 'lost+found' -or $x -eq 'system_data' -or $x -eq 'user' -or $x -like '_zu_loeschen_*') { continue }
-            Merke-Ordner $M2 @($x) 7 ''
+            Merke-Ordner $M2 @($e) 7 ''
         }
     }
     foreach ($x in $appmeta) {
@@ -1140,7 +1184,8 @@ function Suche-Funde {
     # DLC-Infos ohne Spiel (erst hier, damit auch M.2-Spiele ihre schon erhalten haben)
     foreach ($x in $dlcInfos) { if (-not $Benutzt.ContainsKey("/user/appmeta/addcont/$x")) { Merke @("/user/appmeta/addcont/$x") 5 "Zusatzinhalt-Infos: $(Mit-Name $x)" } }
     # ---- 6 Jailbreak-Tools & Homebrew-Daten -----------------------------
-    Merke-Ordner '/user/data' (Namen '/user/data' $true) 6 ''
+    $dl = Liste '/user/data' $true; if ($null -eq $dl) { $dl = @() }
+    Merke-Ordner '/user/data' $dl 6 ''
     # Fake-Lizenzen des Jailbreaks (fake*.rif + fake*.idx); echte Lizenzen bleiben
     $fakeLiz = @()
     foreach ($x in (Namen '/user/license' $true)) { if ($x -match '^fake.+\.(rif|idx)$') { $fakeLiz += $x } }
@@ -1329,6 +1374,7 @@ function Leeren-Ordner-Entfernen([string]$o) {
 $script:FUNDE_IP = ''               # von welcher PS5 (IP:Port) die aktuelle Liste stammt
 function Fuehre-Loeschung([scriptblock]$Weiter) {
     Abhaengige-Mitnehmen
+    $script:LINK_CACHE = @{}
     $gewaehlt = Gewaehlt
     $fehl = 0
     $frei = @{ Bytes = [int64]0; Dateien = 0; Ordner = 0; Gekappt = [bool]$script:GROESSE_GEKAPPT }

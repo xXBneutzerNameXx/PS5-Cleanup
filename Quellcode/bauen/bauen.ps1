@@ -26,6 +26,6 @@ $eingebaut = @{ '%TEMP%\PS5-Cleanup\ps5info.elf' = (Join-Path $quell 'ps5info.el
 Invoke-ps2exe -inputFile $tmp -outputFile $ziel -noConsole -STA -x64 -DPIAware -embedFiles $eingebaut `
     -iconFile (Join-Path $hier 'cleanup.ico') -title 'PS5 Cleanup' -product 'PS5 Cleanup' `
     -description 'PS5 Cleanup - Zustand wie nach einer Neuinstallation (Kopplung und Konto bleiben)' `
-    -company 'da_Chris86' -copyright 'Copyright (c) 2026 da_Chris86 - MIT-Lizenz' -version '1.0.1.0'
+    -company 'da_Chris86' -copyright 'Copyright (c) 2026 da_Chris86 - MIT-Lizenz' -version '1.0.2.0'
 Remove-Item $tmp -Force
 if (Test-Path $ziel) { Write-Output "FERTIG: $ziel ($([math]::Round((Get-Item $ziel).Length / 1KB)) KB)" } else { throw 'Bau fehlgeschlagen.' }
