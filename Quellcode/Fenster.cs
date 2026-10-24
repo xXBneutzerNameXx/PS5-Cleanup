@@ -34,7 +34,7 @@ namespace PS5Cleanup
         CheckBox cbModell, cbTest; TextBlock tbInfo, tbFuss, tbLeer, tbStand, tbUpdate; StackPanel spBereiche; ProgressBar pbFortschritt;
         Button btSprache;
         // NEU 1.0.5: neue Oberfläche (Konsole, Kopplung, Speicher, Hinweise, Feedback)
-        Button btFeedback; Expander exProtokoll; WrapPanel wpSeite; ScrollViewer svSeite; Grid gHaupt; ColumnDefinition cdSeite;
+        Button btFeedback; Expander exProtokoll; StackPanel wpSeite; ScrollViewer svSeite; Grid gHaupt; ColumnDefinition cdSeite;
         Border bdKopplung, bdKopplungSymbol, bdTest, bdHinweis, bdBereinigung;
         TextBlock tbReihe, tbModellNr, tbFirmware, tbErkannt, tbVerbindung, tbKopplungSymbol, tbKopplungTitel, tbKopplungText,
                   tbIntern, tbM2, tbUsb, tbSm, tbHinweis, tbFundInfo, tbVersion;
@@ -72,7 +72,7 @@ namespace PS5Cleanup
             spBereiche = (StackPanel)W.FindName("spBereiche"); pbFortschritt = (ProgressBar)W.FindName("pbFortschritt");
             btSprache = (Button)W.FindName("btSprache");
             btFeedback = (Button)W.FindName("btFeedback"); exProtokoll = (Expander)W.FindName("exProtokoll");
-            wpSeite = (WrapPanel)W.FindName("wpSeite"); svSeite = (ScrollViewer)W.FindName("svSeite"); gHaupt = (Grid)W.FindName("gHaupt"); cdSeite = (ColumnDefinition)W.FindName("cdSeite");
+            wpSeite = (StackPanel)W.FindName("wpSeite"); svSeite = (ScrollViewer)W.FindName("svSeite"); gHaupt = (Grid)W.FindName("gHaupt"); cdSeite = (ColumnDefinition)W.FindName("cdSeite");
             bdBereinigung = (Border)W.FindName("bdBereinigung");
             bdKopplung = (Border)W.FindName("bdKopplung"); bdKopplungSymbol = (Border)W.FindName("bdKopplungSymbol"); bdTest = (Border)W.FindName("bdTest"); bdHinweis = (Border)W.FindName("bdHinweis");
             Func<string, TextBlock> tb = n => (TextBlock)W.FindName(n);
@@ -108,6 +108,7 @@ namespace PS5Cleanup
                 if (LAEUFT)
                 {
                     e.Cancel = true;
+                    Log(T("Schließen während des Löschens - das Fenster bleibt offen, bis 'Fertig' erscheint.", "Close clicked while deleting - the window stays open until 'Done' appears."));
                     Meldung(T("Es wird gerade auf der PS5 gelöscht. Bitte warten, bis 'Fertig' erscheint - ein Abbruch mittendrin hinterlässt halb gelöschte Spiele.", "Deleting on the PS5 right now. Please wait until 'Done' appears - stopping halfway leaves half-deleted games."), "PS5 Cleanup", MessageBoxImage.Warning);
                     return;
                 }
@@ -154,6 +155,7 @@ namespace PS5Cleanup
             setze("tbLegendeKopf", "STATUS LEGEND"); setze("tbLeg1", "Pairing confirmed"); setze("tbLeg2", "No pairing"); setze("tbLeg3", "Not reliably determinable"); setze("tbLeg4", "Not readable / not queried");
             setze("tbSpeicherKopf", "STORAGE"); setze("tbLIntern", "Internal SSD"); setze("tbLM2", "M.2 SSD"); setze("tbLUsb", "USB storage"); setze("tbLSm", "ShadowMount");
             setze("tbBereinigungKopf", "Cleanup"); setze("tbProtokollKopf", "Log");
+            setze("tbLaeuft", "Deleting - please wait until \"Done\" appears. The window cannot be closed until then, so nothing is left half-deleted.");
             setze("tbTestHinweis", "Test mode active: nothing will be deleted - the delete buttons are locked. Untick \"Test mode\" to delete.");
         }
 
@@ -524,10 +526,17 @@ namespace PS5Cleanup
             HintergrundStarten();
         }
 
+        // NEU 1.0.5: nur wenn sich die Anzeige ändert (sonst bis zu 50 Aufträge pro Sekunde an die
+        // Oberfläche) und mit niedriger Priorität - Mausklicks und Tasten gehen immer vor.
+        volatile int warteSek = 0;
         void Warteanzeige(int ms)
         {
-            if (ms > 3000) { int s = ms / 1000; Action a = () => tbStand.Text = STAND_BASIS + T("   [PS5 arbeitet seit ", "   [PS5 has been working for ") + s + T(" s an einer großen Datei ...]", " s on a large file ...]"); W.Dispatcher.BeginInvoke(a); }
-            else if (ms == 0) { Action a = () => { if (tbStand.Text != STAND_BASIS) tbStand.Text = STAND_BASIS; }; W.Dispatcher.BeginInvoke(a); }
+            int s = ms > 3000 ? ms / 1000 : 0;
+            if (s == warteSek) return;
+            warteSek = s;
+            Action a = s > 0 ? (Action)(() => tbStand.Text = STAND_BASIS + T("   [PS5 arbeitet seit ", "   [PS5 has been working for ") + s + T(" s an einer großen Datei ...]", " s on a large file ...]"))
+                             : () => { if (tbStand.Text != STAND_BASIS) tbStand.Text = STAND_BASIS; };
+            W.Dispatcher.BeginInvoke(a, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         // ---------------------------------------------------------------
@@ -815,6 +824,7 @@ namespace PS5Cleanup
             Stand(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
             Log("");
             LAEUFT = true;
+            UI(() => { var b = (Border)W.FindName("bdLaeuft"); b.Visibility = Visibility.Visible; });
             Ergebnis erg;
             try
             {
@@ -832,7 +842,7 @@ namespace PS5Cleanup
                     Log(T("Löschen wurde unterbrochen - ein Teil kann schon gelöscht sein. Bitte das Protokoll prüfen.", "Deleting was interrupted - part may already be deleted. Please check the log."));
                 }
             }
-            finally { LAEUFT = false; }
+            finally { LAEUFT = false; UI(() => { var b = (Border)W.FindName("bdLaeuft"); b.Visibility = Visibility.Collapsed; }); }
             UI(() => pbFortschritt.IsIndeterminate = false);
             Stand("");
             if (erg.Abgebrochen)
@@ -945,7 +955,6 @@ namespace PS5Cleanup
             double b = W.ActualWidth > 0 ? W.ActualWidth : W.Width, h = W.ActualHeight > 0 ? W.ActualHeight : W.Height;
             double seite = b >= 1150 ? 320 : Math.Max(240, Math.Floor(b * 0.28));
             if (Math.Abs(cdSeite.Width.Value - seite) > 0.5) cdSeite.Width = new GridLength(seite);
-            wpSeite.ItemWidth = seite - 14;
             bool n = h < 960;
             if (niedrig != n) { niedrig = n; exProtokoll.IsExpanded = !n; }
             bool k = h < 760;

@@ -86,6 +86,65 @@ namespace PS5Cleanup
             FeedbackDaten fd = null; o.UI(() => fd = o.FeedbackSammeln());
             Pruefe(fd.GeloeschtInSitzung && fd.ScanGemacht && !fd.ScanImTestmodus, "Feedback nach dem Löschen: gelöscht=ja, Scan nicht im Testmodus");
 
+            // 3b NEU 1.0.5: Während des Löschens muss das Fenster bedienbar bleiben (Schließen-Klick
+            // zeigt die Bitte zu warten). Ein großer Ordner mit vielen Unterordnern erzeugt sehr viele
+            // FTP-Befehle - gemessen wird, wie lange Mausklicks (Eingabe) warten müssen.
+            string riesig = Lokal(ps5, "/mnt/ext1/homebrew/Riesenordner");
+            for (int i = 0; i < 300; i++) for (int j = 0; j < 5; j++) { string d = Path.Combine(riesig, "o" + i, "u" + j); Directory.CreateDirectory(d); File.WriteAllText(Path.Combine(d, "x.bin"), "x"); }
+            Verbinden(o);
+            var cbRiesig = Kaestchen(o, "homebrew/Riesenordner");
+            Pruefe(cbRiesig != null, "großer M.2-Ordner (1500 Unterordner) als Eintrag");
+            if (cbRiesig != null)
+            {
+                o.UI(() => { Hol<CheckBox>(o, "cbTest").IsChecked = false; foreach (var f in o.K.Funde) f.Wahl = false; o.ZeigeHaken(); cbRiesig.IsChecked = true; cbRiesig.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); });
+                o.TestAntworten = new Queue<object>(new object[] { true, true });
+                o.UI(() => o.Starte(o.AuswahlAblauf, false));
+                WarteBis(() => o.LAEUFT, 30);
+                double maxMs = 0; int proben = 0; bool zuVersucht = false; bool rotGesehen = false;
+                while (o.BESCHAEFTIGT)
+                {
+                    var t0 = DateTime.Now;
+                    o.W.Dispatcher.Invoke(new Action(() => { }), System.Windows.Threading.DispatcherPriority.Input);
+                    double ms = (DateTime.Now - t0).TotalMilliseconds; if (ms > maxMs) maxMs = ms; proben++;
+                    if (o.LAEUFT) o.UI(() => { if (Hol<Border>(o, "bdLaeuft").Visibility == Visibility.Visible) rotGesehen = true; });
+                    if (!zuVersucht && proben > 5) { zuVersucht = true; o.W.Dispatcher.Invoke(new Action(() => { if (o.LAEUFT) o.W.Close(); else zuVersucht = false; }), System.Windows.Threading.DispatcherPriority.Input); }
+                    Thread.Sleep(30);
+                }
+                Schreib("  Eingabe-Wartezeit beim Löschen: höchstens " + (int)maxMs + " ms (" + proben + " Proben)");
+                Pruefe(proben > 3 && maxMs < 500, "Fenster bleibt beim Löschen bedienbar (Klicks warten höchstens " + (int)maxMs + " ms)");
+                bool offen = false; o.UI(() => offen = o.W.IsVisible);
+                Pruefe(rotGesehen, "roter Hinweis 'Löschen läuft' war während des Löschens sichtbar");
+                Pruefe(LogText(o).Contains("Schließen während des Löschens"), "Schließen-Versuch steht im Protokoll");
+                Pruefe(zuVersucht && offen && LogText(o).Contains("[Test] Meldung: PS5 Cleanup"), "Schließen beim Löschen: Fenster bleibt offen, Bitte-warten-Meldung kommt");
+                Pruefe(!Directory.Exists(riesig), "großer Ordner gelöscht");
+            }
+
+            // 3c NEU 1.0.5: eine einzelne, lange PS5-Antwort (wie beim Löschen einer riesigen Spieldatei)
+            string lang = Lokal(ps5, "/mnt/ext1/homebrew/langsam-spiel");
+            Directory.CreateDirectory(Path.Combine(lang, "sce_sys")); File.WriteAllText(Path.Combine(lang, "sce_sys", "x.bin"), "x");
+            Verbinden(o);
+            var cbLang = Kaestchen(o, "homebrew/langsam-spiel");
+            if (cbLang != null)
+            {
+                o.UI(() => { Hol<CheckBox>(o, "cbTest").IsChecked = false; foreach (var f in o.K.Funde) f.Wahl = false; o.ZeigeHaken(); cbLang.IsChecked = true; cbLang.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); });
+                o.TestAntworten = new Queue<object>(new object[] { true, true });
+                o.UI(() => o.Starte(o.AuswahlAblauf, false));
+                WarteBis(() => o.LAEUFT, 30);
+                double maxL = 0; bool warteText = false;
+                while (o.BESCHAEFTIGT)
+                {
+                    var t0 = DateTime.Now;
+                    o.W.Dispatcher.Invoke(new Action(() => { }), System.Windows.Threading.DispatcherPriority.Input);
+                    double ms = (DateTime.Now - t0).TotalMilliseconds; if (ms > maxL) maxL = ms;
+                    o.UI(() => { if (Hol<TextBlock>(o, "tbStand").Text.Contains("[PS5")) warteText = true; });
+                    Thread.Sleep(30);
+                }
+                Schreib("  Eingabe-Wartezeit bei langer PS5-Antwort: höchstens " + (int)maxL + " ms");
+                Pruefe(maxL < 500 && warteText, "lange PS5-Antwort: Fenster bedienbar, Anzeige 'PS5 arbeitet seit ...' erscheint");
+                Pruefe(!Directory.Exists(lang), "langsames Spiel gelöscht");
+            }
+            else Pruefe(false, "langsam-spiel als Eintrag gefunden");
+
             // 4 Abbrechen-Knopf beim Nachschauen
             o.TestAntworten = new Queue<object>(new object[] { "" });
             o.UI(() => o.Starte(o.Verbinde, true));
