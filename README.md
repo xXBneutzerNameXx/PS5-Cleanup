@@ -49,7 +49,7 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 
 Die `.exe` ist ein mit [PS2EXE](https://github.com/MScholtes/PS2EXE) verpacktes PowerShell-Skript. Einzelne Virenscanner melden so etwas fälschlich als verdächtig. Der komplette Quellcode liegt in diesem Repository – du kannst die `.exe` mit `Quellcode/bauen/bauen.ps1` selbst bauen oder die Textversion `Quellcode/PS5_Cleanup.bat` nutzen.
 
-[VirusTotal-Prüfung der 1.0.2 Beta](https://www.virustotal.com/gui/file/bc7f68695b0b8dea50c40b65e1960cc86465b45b03fd8402d816bf5d6595cac0): 5 von 70 Scannern (AhnLab, Antiy, Bkav, McAfee, SecureAge) melden einen allgemeinen Verdacht – Microsoft Defender, Kaspersky, Avast, BitDefender, ESET, Malwarebytes und Norton finden nichts.
+[VirusTotal-Prüfung der 1.0.3 Beta](https://www.virustotal.com/gui/file/6f33cf6cdf0d62fb9750c3f064d651d5ae5348b62c341934c117199dcc1eecb2): 6 von 71 Scannern (AhnLab, Antiy, APEX, Bkav, McAfee, Microsoft) melden einen allgemeinen Verdacht. Bei Microsoft ist es eine automatische KI-Einschätzung („!ml“), wie sie bei mit PS2EXE verpackten Skripten oft vorkommt – ein Scan mit dem Windows Defender selbst findet nichts. Kaspersky, Avast, BitDefender, ESET, Malwarebytes und Symantec (Norton) finden ebenfalls nichts.
 
 ## Aufbau
 
@@ -91,7 +91,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **Usage:** start `PS5-Cleanup.exe` → *PS5 im Netz suchen* (find PS5) → *Verbinden und nachschauen* (connect and scan) → review in test mode, untick *Testmodus*, delete → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*.
 
-**Antivirus:** the `.exe` is a PowerShell script packed with PS2EXE; a few scanners flag such files as false positives. The full source is in this repository – build it yourself with `Quellcode/bauen/bauen.ps1`. [VirusTotal scan of 1.0.2 Beta](https://www.virustotal.com/gui/file/bc7f68695b0b8dea50c40b65e1960cc86465b45b03fd8402d816bf5d6595cac0): 5/70 generic detections (AhnLab, Antiy, Bkav, McAfee, SecureAge); Microsoft Defender, Kaspersky, Avast, BitDefender, ESET, Malwarebytes and Norton report nothing.
+**Antivirus:** the `.exe` is a PowerShell script packed with PS2EXE; a few scanners flag such files as false positives. The full source is in this repository – build it yourself with `Quellcode/bauen/bauen.ps1`. [VirusTotal scan of 1.0.3 Beta](https://www.virustotal.com/gui/file/6f33cf6cdf0d62fb9750c3f064d651d5ae5348b62c341934c117199dcc1eecb2): 6/71 generic detections (AhnLab, Antiy, APEX, Bkav, McAfee, Microsoft). The Microsoft hit is a machine-learning verdict ("!ml") typical for PS2EXE-packed scripts; a Windows Defender scan of the file finds nothing. Kaspersky, Avast, BitDefender, ESET, Malwarebytes and Symantec (Norton) report nothing.
 
 **License:** MIT (c) 2026 da_Chris86 – `ps5info` is GPL-3.0, PS2EXE is Ms-LPL, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
 
