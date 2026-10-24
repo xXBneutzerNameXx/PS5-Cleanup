@@ -15,6 +15,8 @@ NEU IN 1.0.4
 ------------
 - Ein echtes Windows-Programm (vorher ein verpacktes PowerShell-Skript) -
   gleiche Bedienung, gleiche Schutzregeln.
+- Deutsch und Englisch: Die Sprache richtet sich nach Windows, der Knopf
+  oben rechts schaltet um (das Programm startet dazu kurz neu).
 - M.2: Jedes Spiel und jede Datei in den Ordnern der M.2 steht einzeln
   in der Liste. Die Ordner selbst bleiben stehen.
 - Die Liste zeigt die Größe jedes Eintrags und jedes Bereichs. Gezählt
@@ -68,7 +70,7 @@ WICHTIG
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
 - Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst. Bei allen
-  Rückfragen ist "Abbrechen" vorausgewählt. Ist eine Größe noch nicht
+  Rückfragen ist die sichere Wahl vorausgewählt. Ist eine Größe noch nicht
   gezählt, zählt das Programm sie vor der Abschlussfrage nach - dabei wird
   noch NICHTS gelöscht. Fenster zu oder "Abbrechen" = nichts passiert.
 - Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
@@ -124,8 +126,9 @@ Größen
 Trophäen
   Bereich 3 löscht den Trophäen-Stand auf der Konsole; mit dem PSN
   abgeglichene Trophäen kommen beim nächsten Spielstart zurück, nie
-  abgeglichene sind weg. Die Trophäen-Pakete der Spiele (Beschreibungen)
-  werden bei KOMPLETT nur mitgelöscht, wenn auch die M.2 geleert wird.
+  abgeglichene sind weg. Die Trophäen-Listen noch installierter Spiele
+  (Beschreibungen) werden bei KOMPLETT nur mitgelöscht, wenn auch die M.2
+  geleert wird.
 
 Kachel-Infos
   Zu jedem gelöschten Spiel entfernt das Programm auch die Kachel-Infos der
@@ -145,11 +148,17 @@ Neue Version
   neueste ist. Ist sie neuer, steht oben ein Hinweis mit Link. Es wird
   nichts heruntergeladen und nichts über dich übertragen.
 
+Sprache
+  Die Sprache richtet sich nach Windows (deutsches Windows -> Deutsch,
+  sonst Englisch). Der Knopf oben rechts schaltet um; die Wahl wird in
+  %APPDATA%\PS5-Cleanup\sprache.txt gespeichert.
+
 Dateien
   PS5-Cleanup.exe           das Programm - eine einzige Datei, mehr braucht
                             es nicht (Modell-Abfrage und diese Anleitung
                             sind eingebaut).
   LIESMICH.txt              diese Anleitung
+  README_EN.txt             diese Anleitung auf Englisch
   LICENSE.txt               Lizenz (MIT) und Bestandteile anderer Urheber
   Quellcode\                für die, die nachlesen oder selbst bauen wollen:
     *.cs, Fenster.xaml      das Programm (C#, .NET Framework 4.8)

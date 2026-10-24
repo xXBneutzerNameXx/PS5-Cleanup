@@ -49,8 +49,8 @@ namespace PS5Cleanup
             }
             catch { }
             Zeile(new string('=', 60));
-            Zeile("PS5 Cleanup " + Kern.VERSION + " by da_Chris86 - Protokoll");
-            Zeile("Start: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  |  " + os + "  |  .NET " + Environment.Version + "  |  Programm: " + Programm.Ordner);
+            Zeile("PS5 Cleanup " + Kern.VERSION + " by da_Chris86 - " + Sp.T("Protokoll", "log"));
+            Zeile("Start: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  |  " + os + "  |  .NET " + Environment.Version + "  |  " + Sp.T("Programm: ", "Program: ") + Programm.Ordner + "  |  " + Sp.T("Sprache: Deutsch", "Language: English"));
         }
         public static void Zeile(string t)
         {
@@ -75,21 +75,22 @@ namespace PS5Cleanup
             }
         }
 
-        // LIESMICH neben dem Programm - sonst die eingebaute in %TEMP% ablegen
+        // Anleitung (LIESMICH.txt / README_EN.txt) neben dem Programm - sonst die eingebaute in %TEMP% ablegen
         public static string LiesmichPfad()
         {
+            string name = Sp.EN ? "README_EN.txt" : "LIESMICH.txt";
             foreach (var o in new[] { Ordner, Path.GetDirectoryName(Ordner) ?? Ordner })
             {
-                string p = Path.Combine(o, "LIESMICH.txt");
+                string p = Path.Combine(o, name);
                 if (File.Exists(p)) return p;
             }
             try
             {
-                var b = Ressource("LIESMICH.txt");
+                var b = Ressource(name);
                 if (b == null) return "";
                 string d = Path.Combine(Path.GetTempPath(), "PS5-Cleanup");
                 Directory.CreateDirectory(d);
-                string p = Path.Combine(d, "LIESMICH.txt");
+                string p = Path.Combine(d, name);
                 File.WriteAllBytes(p, b);
                 return p;
             }
@@ -99,13 +100,18 @@ namespace PS5Cleanup
         [STAThread]
         public static int Main(string[] args)
         {
-            bool selbstTest = false; string bild = ""; int uiPort = 0; string uiOrdner = "";
+            bool selbstTest = false; string bild = ""; int uiPort = 0; string uiOrdner = ""; string sprache = "";
             for (int i = 0; i < args.Length; i++)
             {
                 if (string.Equals(args[i], "-SelbstTest", StringComparison.OrdinalIgnoreCase)) selbstTest = true;
                 else if (string.Equals(args[i], "-Bild", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) bild = args[++i];
+                else if (string.Equals(args[i], "-Sprache", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) sprache = args[++i].ToLowerInvariant();
                 else if (string.Equals(args[i], "-UiTest", StringComparison.OrdinalIgnoreCase) && i + 2 < args.Length) { uiPort = int.Parse(args[++i]); uiOrdner = args[++i]; }
             }
+            // Sprache: Selbsttest/Oberflächentest auf Deutsch (außer -Sprache en), sonst gespeicherte Wahl bzw. Windows-Sprache
+            if (sprache == "en" || sprache == "de") Sp.EN = sprache == "en";
+            else if (selbstTest || uiPort > 0) Sp.EN = false;
+            else Sp.Laden();
             var app = new Application();
             app.ShutdownMode = ShutdownMode.OnMainWindowClose;
             var o = new Oberflaeche();
@@ -113,12 +119,36 @@ namespace PS5Cleanup
             app.DispatcherUnhandledException += (s, e) =>
             {
                 e.Handled = true;
-                try { Protokoll.Zeile("FEHLER (Oberfläche): " + e.Exception); o.Log("FEHLER: " + e.Exception.Message); } catch { }
+                try { Protokoll.Zeile(Sp.T("FEHLER (Oberfläche): ", "ERROR (window): ") + e.Exception); o.Log(Sp.T("FEHLER: ", "ERROR: ") + e.Exception.Message); } catch { }
             };
             app.MainWindow = o.W;
             if (selbstTest) { Selbsttest.Laufen(o, bild); app.Run(o.W); return 0; }
 #if UITEST
             if (uiPort > 0) { UiTest.Laufen(o, uiPort, uiOrdner); app.Run(o.W); return 0; }
+#endif
+#if UPDATETEST
+            // Testfassung: echte Versionsabfrage bei GitHub, nach 8 s Bild vom Fenster speichern und schließen
+            if (bild != "")
+            {
+                o.UpdatePruefen();
+                var uhr = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+                uhr.Tick += delegate
+                {
+                    uhr.Stop();
+                    try
+                    {
+                        o.W.UpdateLayout();
+                        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap((int)o.W.ActualWidth, (int)o.W.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                        rtb.Render(o.W);
+                        var enc = new System.Windows.Media.Imaging.PngBitmapEncoder(); enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+                        using (var fs = File.Create(bild)) enc.Save(fs);
+                    }
+                    catch { }
+                    o.W.Close();
+                };
+                uhr.Start();
+                app.Run(o.W); return 0;
+            }
 #endif
             Protokoll.Anlegen();
             o.UpdatePruefen();

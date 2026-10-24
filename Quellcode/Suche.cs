@@ -16,24 +16,24 @@ namespace PS5Cleanup
 {
     public partial class Kern
     {
-        public static readonly string[] KatName = {
+        public static string[] KatName { get { return new[] {
             "",
-            "Spiele & Apps (interne SSD)",
-            "Spielstände",
-            "Trophäen",
-            "Bilder & Videos (Aufnahmen)",
-            "Downloads, Zusatzinhalte & Reste",
-            "Jailbreak-Tools & Homebrew-Daten",
-            "Inhalt der M.2-SSD" };
-        public static readonly string[] KatInfo = {
+            T("Spiele & Apps (interne SSD)", "Games & apps (internal SSD)"),
+            T("Spielstände", "Saved data"),
+            T("Trophäen", "Trophies"),
+            T("Bilder & Videos (Aufnahmen)", "Screenshots & videos"),
+            T("Downloads, Zusatzinhalte & Reste", "Downloads, add-ons & leftovers"),
+            T("Jailbreak-Tools & Homebrew-Daten", "Jailbreak tools & homebrew data"),
+            T("Inhalt der M.2-SSD", "M.2 SSD contents") }; } }
+        public static string[] KatInfo { get { return new[] {
             "",
-            "Installierte Spiele und Apps. Wer ein Spiel wählt, nimmt Update und DLCs mit.",
-            "Spielstände auf der Konsole. Ohne Cloud-Sicherung (PS Plus) endgültig weg.",
-            "Trophäen-Fortschritt und Trophäen-Listen. Nie mit dem PSN abgeglichene Trophäen sind endgültig weg.",
-            "Screenshots und Videoclips, je Spiel mit Anzahl.",
-            "Downloads, Zusatzinhalte und Updates ohne Spiel, Reste gelöschter Spiele.",
-            "Daten und Kacheln der Jailbreak-Tools, Homebrew-Daten. Danach Jailbreak neu einrichten.",
-            "Jedes Spiel und jede Datei auf der M.2 einzeln. Komplett leeren: an der PS5 unter Speicher > M.2-SSD > Formatieren." };
+            T("Installierte Spiele und Apps. Wer ein Spiel wählt, nimmt Update und DLCs mit.", "Installed games and apps. Selecting a game takes its update and DLC with it."),
+            T("Spielstände auf der Konsole. Ohne Cloud-Sicherung (PS Plus) endgültig weg.", "Saved data on the console. Without a cloud backup (PS Plus) it is gone for good."),
+            T("Trophäen-Fortschritt und Trophäen-Listen. Nie mit dem PSN abgeglichene Trophäen sind endgültig weg.", "Trophy progress and trophy lists. Trophies never synced with PSN are gone for good."),
+            T("Screenshots und Videoclips, je Spiel mit Anzahl.", "Screenshots and video clips, per game with count."),
+            T("Downloads, Zusatzinhalte und Updates ohne Spiel, Reste gelöschter Spiele.", "Downloads, add-ons and updates without a game, leftovers of deleted games."),
+            T("Daten und Kacheln der Jailbreak-Tools, Homebrew-Daten. Danach Jailbreak neu einrichten.", "Data and tiles of jailbreak tools, homebrew data. Set up your jailbreak again afterwards."),
+            T("Jedes Spiel und jede Datei auf der M.2 einzeln. Komplett leeren: an der PS5 unter Speicher > M.2-SSD > Formatieren.", "Every game and file on the M.2 individually. To wipe it completely: on the PS5 under Storage > M.2 SSD > Format.") }; } }
         public static readonly int[] ALLE_KAT = { 1, 2, 3, 4, 5, 6, 7 };
 
         public List<Eintrag> Funde = new List<Eintrag>();
@@ -58,7 +58,7 @@ namespace PS5Cleanup
         }
         static string Str(object o) { return o == null ? "" : Convert.ToString(o, System.Globalization.CultureInfo.InvariantCulture); }
 
-        // Titel aus einer param.json (PS5): deutscher, sonst englischer, sonst Standard-Name.
+        // Titel aus einer param.json (PS5): in der gewählten Sprache, sonst die andere, sonst Standard-Name.
         public static string JsonTitel(string t)
         {
             t = (t ?? "").TrimStart('﻿');
@@ -69,7 +69,7 @@ namespace PS5Cleanup
                 var lp = HoleCI(o, "localizedParameters");
                 if (lp != null)
                 {
-                    foreach (var s in new[] { "de-DE", "en-US", "en-GB", Str(HoleCI(lp, "defaultLanguage")) })
+                    foreach (var s in (Sp.EN ? new[] { "en-US", "en-GB", "de-DE" } : new[] { "de-DE", "en-US", "en-GB" }).Concat(new[] { Str(HoleCI(lp, "defaultLanguage")) }))
                     {
                         if (s == "") continue;
                         var sp = HoleCI(lp, s);
@@ -164,7 +164,7 @@ namespace PS5Cleanup
             if (NPWR_GALERIE.ContainsKey(npwr)) return NPWR_GALERIE[npwr] + " (" + npwr + ")";
             return npwr;
         }
-        string TrophaenWeg(string npwr) { return NPWR_NAMEN.ContainsKey(npwr) ? "" : " - Spiel ist nicht mehr auf der Konsole"; }
+        string TrophaenWeg(string npwr) { return NPWR_NAMEN.ContainsKey(npwr) ? "" : T(" - Spiel nicht mehr auf der Konsole", " - game no longer on the console"); }
 
         const string MEDIEN = "\\.(jxr|jpe?g|png|mp4|webm|mov)$";
         int ZaehleMedien(string p)
@@ -188,7 +188,7 @@ namespace PS5Cleanup
         Dictionary<string, string> GALERIE_NAMEN = H.Tab<string>();
         string GalerieName(string id, List<string> ordner = null)
         {
-            if (H.Like(id, "NPXS*")) return "Systemmenü (" + id + ")";
+            if (H.Like(id, "NPXS*")) return T("Systemmenü (", "System menu (") + id + ")";
             string m = MitName(id);
             if (m != id) return H.R(m, "^[A-Z]{4}\\d{5} \\((.*)\\)$", "$1") + " (" + id + ")";
             if (!GALERIE_NAMEN.ContainsKey(id))
@@ -226,8 +226,8 @@ namespace PS5Cleanup
                     }
                 }
             }
-            if (GALERIE_NAMEN[id] != "") return GALERIE_NAMEN[id] + " (" + id + ", Spiel ist nicht mehr auf der Konsole)";
-            return id + " (Spiel ist nicht mehr auf der Konsole)";
+            if (GALERIE_NAMEN[id] != "") return GALERIE_NAMEN[id] + " (" + id + T(", Spiel nicht mehr auf der Konsole)", ", game no longer on the console)");
+            return id + T(" (Spiel nicht mehr auf der Konsole)", " (game no longer on the console)");
         }
         bool IstAstro(string t) { return H.M((t + " " + APP_ROH).ToUpperInvariant(), "ASTRO.*PLAYROOM"); }
         void AstroMerken(string id) { if (!H.Hat(ASTRO_IDS, id)) ASTRO_IDS.Add(id); }
@@ -235,14 +235,14 @@ namespace PS5Cleanup
         // ---------------------------------------------------------------
         // Einträge merken
         // ---------------------------------------------------------------
-        void Merke(IEnumerable<string> pfade, int kat, string text, string quelle = "", bool gesperrt = false)
+        void Merke(IEnumerable<string> pfade, int kat, string text, string quelle = "", bool gesperrt = false, bool kachel = false, bool smTipp = false)
         {
             // Astro bleibt immer - seine Pfade werden gar nicht erst angeboten
             var p = pfade.Where(x => !AstroPfad(x)).ToList();
             MERKE_OK = p.Count > 0;
             if (!MERKE_OK) return;
-            if (gesperrt) text += "  [GESPERRT: Game Compressor arbeitet gerade daran]";
-            bau.Add(new Eintrag { Pfade = p, PfadeBasis = new List<string>(p), Kat = kat, Text = text, TextBasis = text, Quelle = quelle ?? "", Gesperrt = gesperrt });
+            if (gesperrt) text += GESPERRT_TEXT;
+            bau.Add(new Eintrag { Pfade = p, PfadeBasis = new List<string>(p), Kat = kat, Text = text, TextBasis = text, Quelle = quelle ?? "", Gesperrt = gesperrt, Kachel = kachel, SmTipp = smTipp });
         }
         void MerkeTeil(IEnumerable<string> pfade, int kat, string text, string gruppe, string teil)
         {
@@ -251,6 +251,7 @@ namespace PS5Cleanup
             var f = bau[bau.Count - 1];
             f.Gruppe = gruppe; f.Teil = teil;
         }
+        public static string GESPERRT_TEXT { get { return T("  [GESPERRT: Game Compressor arbeitet gerade daran]", "  [LOCKED: Game Compressor is working on it]"); } }
         static List<string> L(params string[] p) { return new List<string>(p); }
 
         // Version eines Updates: PS5 aus param.json (contentVersion), PS4 aus param.sfo (APP_VER)
@@ -284,7 +285,7 @@ namespace PS5Cleanup
             spielPfade = new List<string>(spielPfade);
             if (H.Hat(SHARES, id) && !zwilling) spielPfade.Add("/user/system/share/" + id);
             string gruppe = basis + "|" + id;
-            MerkeTeil(spielPfade, kat, name + " (" + id + ") - Spiel", gruppe, "Spiel");
+            MerkeTeil(spielPfade, kat, name + " (" + id + ")" + T(" - Spiel", " - game"), gruppe, "Spiel");
             if (hatUpdate)
             {
                 benutzt[basis + "/patch/" + id] = 1;
@@ -305,7 +306,7 @@ namespace PS5Cleanup
                 {
                     var dp = L(basis + "/addcont/" + id + "/" + d);
                     if (H.Hat(meta, d)) dp.Add("/user/appmeta/addcont/" + id + "/" + d);
-                    MerkeTeil(dp, kat, name + " (" + id + ") - Zusatzinhalt: " + DlcName(id, d, basis), gruppe, "DLC");
+                    MerkeTeil(dp, kat, name + " (" + id + ")" + T(" - Zusatzinhalt: ", " - add-on: ") + DlcName(id, d, basis), gruppe, "DLC");
                 }
             }
         }
@@ -347,7 +348,7 @@ namespace PS5Cleanup
             string m = Regex.Escape(M2);
             if (H.M(q, "^" + m + "/(user|system_data|lost\\+found)(/|$)")) return "";
             if (H.M(q, "^" + m + "/[^/]+")) return "M.2";
-            if (H.M(q, "^/user/data/[^/]+")) return "internen SSD";
+            if (H.M(q, "^/user/data/[^/]+")) return "intern";
             return "";
         }
         static bool IstZwischendatei(string name) { return H.M(name, "\\.gc-compress\\.tmp"); }
@@ -378,7 +379,7 @@ namespace PS5Cleanup
                 {
                     var i = QuelleInfo[p];
                     var pf = L(p); pf.AddRange(i.Links);
-                    Merke(pf, kat, vorsatz + x + "  [Spiel: " + i.Name + " - Kachel geht mit]", p, i.Gesperrt);
+                    Merke(pf, kat, vorsatz + x + T("  [Spiel: ", "  [game: ") + i.Name + T(", Kachel geht mit]", ", tile goes with it]"), p, i.Gesperrt, kachel: true, smTipp: true);
                     continue;
                 }
                 bool drin = SpielQuellen.Any(q => q.StartsWith(p + "/"));
@@ -388,7 +389,7 @@ namespace PS5Cleanup
                     var unter = S.Liste(p, true) ?? new List<Datei>();
                     MerkeOrdner(p, unter, kat, vorsatz + x + "/");
                 }
-                else if (link) Merke(L(p), kat, vorsatz + x + "  (Verknüpfung - nur sie selbst wird gelöscht)");
+                else if (link) Merke(L(p), kat, vorsatz + x + T("  (Verknüpfung, nur sie wird gelöscht)", "  (symlink, only the link is deleted)"));
                 else Merke(L(p), kat, vorsatz + x);
             }
         }
@@ -405,7 +406,7 @@ namespace PS5Cleanup
             if (unter == null) { MerkeOrdner(M2, new[] { e }, 7, ""); return; }
             if (unter.Count == 0)
             {
-                Merke(L(p), 7, e.Name + "  (leerer Ordner)");
+                Merke(L(p), 7, e.Name + T("  (leerer Ordner)", "  (empty folder)"));
                 if (MERKE_OK) bau[bau.Count - 1].NurLeer = true;
                 return;
             }
@@ -484,7 +485,7 @@ namespace PS5Cleanup
                 string t = AppTitel(x);
                 if (IstAstro(t)) { AstroMerken(x); continue; }
                 string roh = APP_ROH;
-                if (t == "") t = "unbekannter Name";
+                if (t == "") t = T("unbekannter Name", "unknown name");
                 var p = L("/user/app/" + x);
                 bool zwilling = H.Hat(m2Apps, x);
                 if (H.Hat(appmeta, x)) { benutzt["/user/appmeta/" + x] = 1; if (!zwilling) p.Add("/user/appmeta/" + x); }
@@ -492,7 +493,7 @@ namespace PS5Cleanup
                 var inhalt = S.Namen("/user/app/" + x, true);
                 if (H.M(roh, "\"deeplinkUri\"\\s*:\\s*\"https?://(127\\.0\\.0\\.1|localhost)"))
                 {
-                    Merke(p, 6, "Kachel des Tools: " + t + " (" + x + ")");
+                    Merke(p, 6, T("Tool-Kachel: ", "Tool tile: ") + t + " (" + x + ")", kachel: true);
                 }
                 else if (H.Hat(inhalt, "mount.lnk") || H.Hat(inhalt, "mount_img.lnk"))
                 {
@@ -505,13 +506,13 @@ namespace PS5Cleanup
                         bool g = WirdKomprimiert(q, x);
                         SpielQuellen.Add(q);
                         QuelleInfo[q] = new QInfo { Links = p, Name = t + " (" + x + ")", Gesperrt = g };
-                        Merke(p, 1, t + " (" + x + ") - ShadowMount-Spiel auf der " + ort, q, g);
+                        Merke(p, 1, t + " (" + x + ")" + T(" - ShadowMount-Spiel auf der ", " - ShadowMount game on the ") + (ort == "M.2" ? "M.2" : T("internen SSD", "internal SSD")), q, g, kachel: true);
                     }
-                    else if (ort != "") Merke(p, 1, t + " (" + x + ") - ShadowMount: Spiel nicht mehr da, tote Kachel");
+                    else if (ort != "") Merke(p, 1, t + " (" + x + ")" + T(" - ShadowMount: Spiel nicht mehr da, tote Kachel", " - ShadowMount: game gone, dead tile"), kachel: true, smTipp: true);
                     else
                     {
-                        string wo = q == "" ? "Speicherort unbekannt" : "Spiel liegt auf " + q;
-                        Merke(p, 1, t + " (" + x + ") - ShadowMount: " + wo + ", nur die Kachel wird gelöscht");
+                        string wo = q == "" ? T("Speicherort unbekannt", "location unknown") : T("Spiel liegt auf ", "game is at ") + q;
+                        Merke(p, 1, t + " (" + x + ") - ShadowMount: " + wo + T(", nur die Kachel wird gelöscht", ", only the tile is deleted"), kachel: true);
                     }
                 }
                 else
@@ -526,7 +527,7 @@ namespace PS5Cleanup
                     foreach (var x in S.Namen("/user/home/" + u + "/" + sd))
                     {
                         if (H.Hat(ASTRO_IDS, x) || H.Like(x, "sce_*")) continue;
-                        Merke(L("/user/home/" + u + "/" + sd + "/" + x), 2, "Spielstand " + MitName(x));
+                        Merke(L("/user/home/" + u + "/" + sd + "/" + x), 2, T("Spielstand ", "Saved data ") + MitName(x));
                     }
 
             // ---- 4 Bilder & Videos -----------------------------------------
@@ -554,23 +555,23 @@ namespace PS5Cleanup
                 var teile = new List<string>();
                 if (gBilder[id] > 0) teile.Add(gBilder[id] + " Screenshot" + (gBilder[id] != 1 ? "s" : ""));
                 if (gVideos[id] > 0) teile.Add(gVideos[id] + " Video" + (gVideos[id] != 1 ? "s" : ""));
-                string was = teile.Count > 0 ? string.Join(", ", teile) : "leerer Ordner";
-                Merke(gPfade[id], 4, "Aufnahmen von " + GalerieName(id, gPfade[id]) + ": " + was);
+                string was = teile.Count > 0 ? string.Join(", ", teile) : T("leerer Ordner", "empty folder");
+                Merke(gPfade[id], 4, T("Aufnahmen von ", "Captures of ") + GalerieName(id, gPfade[id]) + ": " + was);
             }
-            if (vorschauReste.Count > 0) Merke(vorschauReste, 4, "Vorschaubilder ohne zugehörige Aufnahme (" + vorschauReste.Count + ") - Reste, legt die PS5 neu an");
+            if (vorschauReste.Count > 0) Merke(vorschauReste, 4, T("Vorschaubilder ohne Aufnahme (", "Thumbnails without capture (") + vorschauReste.Count + T(") - Reste", ") - leftovers"));
             var leere = new List<string>();
             foreach (var id in S.Namen("/user/av_contents/content_tmp"))
             {
                 string pf = "/user/av_contents/content_tmp/" + id;
                 int n = S.Namen(pf).Count;
                 if (n == 0) leere.Add(pf);
-                else Merke(L(pf), 4, "Zwischenspeicher der Aufnahme-Funktion von " + GalerieName(id) + " (" + n + " Datei" + (n != 1 ? "en" : "") + ", unfertige Aufnahme)");
+                else Merke(L(pf), 4, T("Unfertige Aufnahme von ", "Unfinished capture of ") + GalerieName(id) + " (" + n + (n != 1 ? T(" Dateien", " files") : T(" Datei", " file")) + ")");
             }
-            if (leere.Count > 0) Merke(leere, 4, "Leere Zwischenordner der Aufnahme-Funktion (" + leere.Count + ") - Reste, legt die PS5 neu an");
+            if (leere.Count > 0) Merke(leere, 4, T("Leere Aufnahme-Zwischenordner (", "Empty capture temp folders (") + leere.Count + T(") - Reste", ") - leftovers"));
             foreach (var s in S.Namen("/user/av_contents"))
             {
                 if (H.Hat(new[] { "photo", "video", "thumbnails", "content_tmp" }, s)) continue;
-                foreach (var x in S.Namen("/user/av_contents/" + s)) Merke(L("/user/av_contents/" + s + "/" + x), 4, "Weitere Galerie-Daten: " + s + "/" + MitName(x));
+                foreach (var x in S.Namen("/user/av_contents/" + s)) Merke(L("/user/av_contents/" + s + "/" + x), 4, T("Weitere Galerie-Daten: ", "Other gallery data: ") + s + "/" + MitName(x));
             }
 
             // ---- 3 Trophäen ------------------------------------------------
@@ -580,17 +581,17 @@ namespace PS5Cleanup
                 {
                     if (H.Hat(ASTRO_NPWRS, x)) continue;
                     string t;
-                    if (H.Gleich(x, "sce_trop")) t = "Trophäen-Gesamtzähler der Konsole (Level, Anzahl Bronze/Silber/Gold - baut die PS5 neu auf)";
-                    else if (H.M(x, "^NPWR")) t = "Dein Trophäen-Fortschritt in " + TrophaenName(x) + " (PS4-Spiel)" + TrophaenWeg(x);
-                    else t = "Trophäen-Daten trophy/data/" + x;
+                    if (H.Gleich(x, "sce_trop")) t = T("Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)", "Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)");
+                    else if (H.M(x, "^NPWR")) t = T("Trophäen-Fortschritt: ", "Trophy progress: ") + TrophaenName(x) + T(" (PS4-Spiel)", " (PS4 game)") + TrophaenWeg(x);
+                    else t = T("Trophäen-Daten ", "Trophy data ") + "trophy/data/" + x;
                     Merke(L("/user/home/" + u + "/trophy/data/" + x), 3, t);
                 }
                 foreach (var x in S.Namen("/user/home/" + u + "/trophy"))
-                    if (!H.Gleich(x, "data")) Merke(L("/user/home/" + u + "/trophy/" + x), 3, "Trophäen-Daten trophy/" + x);
+                    if (!H.Gleich(x, "data")) Merke(L("/user/home/" + u + "/trophy/" + x), 3, T("Trophäen-Daten ", "Trophy data ") + "trophy/" + x);
                 foreach (var x in S.Namen("/user/home/" + u + "/trophy2/nobackup/data"))
                 {
                     if (H.Hat(ASTRO_NPWRS, x)) continue;
-                    string t = H.M(x, "^NPWR") ? "Dein Trophäen-Fortschritt in " + TrophaenName(x) + TrophaenWeg(x) : "Trophäen-Daten trophy2/nobackup/data/" + x;
+                    string t = H.M(x, "^NPWR") ? T("Trophäen-Fortschritt: ", "Trophy progress: ") + TrophaenName(x) + TrophaenWeg(x) : T("Trophäen-Daten ", "Trophy data ") + "trophy2/nobackup/data/" + x;
                     Merke(L("/user/home/" + u + "/trophy2/nobackup/data/" + x), 3, t);
                 }
                 foreach (var x in S.Namen("/user/home/" + u + "/trophy2"))
@@ -598,9 +599,9 @@ namespace PS5Cleanup
                     if (H.Gleich(x, "nobackup"))
                     {
                         foreach (var y in S.Namen("/user/home/" + u + "/trophy2/nobackup"))
-                            if (!H.Gleich(y, "data")) Merke(L("/user/home/" + u + "/trophy2/nobackup/" + y), 3, "Trophäen-Daten trophy2/nobackup/" + y);
+                            if (!H.Gleich(y, "data")) Merke(L("/user/home/" + u + "/trophy2/nobackup/" + y), 3, T("Trophäen-Daten ", "Trophy data ") + "trophy2/nobackup/" + y);
                     }
-                    else Merke(L("/user/home/" + u + "/trophy2/" + x), 3, "Trophäen-Daten trophy2/" + x);
+                    else Merke(L("/user/home/" + u + "/trophy2/" + x), 3, T("Trophäen-Daten ", "Trophy data ") + "trophy2/" + x);
                 }
             }
             var pakete = H.Tab<List<string>>();
@@ -615,10 +616,10 @@ namespace PS5Cleanup
             {
                 if (NPWR_NAMEN.ContainsKey(k))
                 {
-                    Merke(pakete[k], 3, "Trophäen-Liste von " + TrophaenName(k) + " - Spiel ist noch da, Liste nur weg, wenn das Spiel auch weg soll (nur Namen und Bilder der Trophäen, nicht dein Fortschritt)", "", false);
+                    Merke(pakete[k], 3, T("Trophäen-Liste: ", "Trophy list: ") + TrophaenName(k) + T(" - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)", " - game still installed, delete only with the game (names/images, not your progress)"), "", false);
                     if (MERKE_OK) bau[bau.Count - 1].Paket = true;
                 }
-                else Merke(pakete[k], 3, "Trophäen-Liste von " + TrophaenName(k) + " - Spiel ist nicht mehr auf der Konsole, kann weg (nur Namen und Bilder der Trophäen, nicht dein Fortschritt)");
+                else Merke(pakete[k], 3, T("Trophäen-Liste: ", "Trophy list: ") + TrophaenName(k) + T(" - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)", " - game removed, can go (names/images, not your progress)"));
             }
 
             // ---- 5 Downloads, Zusatzinhalte & Reste -------------------------
@@ -627,14 +628,14 @@ namespace PS5Cleanup
                 if (H.Like(x, "NPXS*")) continue;
                 Merke(L("/user/download/" + x), 5, "Download: " + MitName(x));
             }
-            foreach (var x in patches) if (!benutzt.ContainsKey("/user/patch/" + x)) Merke(L("/user/patch/" + x), 5, "Update ohne Spiel: " + MitName(x));
-            foreach (var x in addconts) if (!benutzt.ContainsKey("/user/addcont/" + x)) Merke(L("/user/addcont/" + x), 5, "Zusatzinhalt: " + MitName(x));
-            foreach (var x in S.Namen("/user/appmeta/external/addcont")) Merke(L("/user/appmeta/external/addcont/" + x), 5, "Zusatzinhalt-Infos: " + MitName(x));
+            foreach (var x in patches) if (!benutzt.ContainsKey("/user/patch/" + x)) Merke(L("/user/patch/" + x), 5, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
+            foreach (var x in addconts) if (!benutzt.ContainsKey("/user/addcont/" + x)) Merke(L("/user/addcont/" + x), 5, T("Zusatzinhalt: ", "Add-on: ") + MitName(x));
+            foreach (var x in S.Namen("/user/appmeta/external/addcont")) Merke(L("/user/appmeta/external/addcont/" + x), 5, T("Zusatzinhalt-Infos: ", "Add-on info: ") + MitName(x));
             foreach (var x in S.Namen("/user"))
-                if (H.Like(x, "_zu_loeschen_*")) Merke(L("/user/" + x), 5, "Rest einer früheren Aufräumaktion: /user/" + x);
+                if (H.Like(x, "_zu_loeschen_*")) Merke(L("/user/" + x), 5, T("Rest einer früheren Aufräumaktion: ", "Leftover from an earlier cleanup: ") + "/user/" + x);
             if (m2Da)
                 foreach (var e in m2Liste)
-                    if (H.Like(e.Name, "_zu_loeschen_*")) Merke(L(M2 + "/" + e.Name), 7, "Rest einer früheren Aufräumaktion: " + M2 + "/" + e.Name);
+                    if (H.Like(e.Name, "_zu_loeschen_*")) Merke(L(M2 + "/" + e.Name), 7, T("Rest einer früheren Aufräumaktion: ", "Leftover from an earlier cleanup: ") + M2 + "/" + e.Name);
 
             // ---- 7 M.2 -------------------------------------------------------
             if (m2Da)
@@ -644,7 +645,7 @@ namespace PS5Cleanup
                     if (H.Like(x, "NPXS*") || H.Hat(ASTRO_IDS, x)) continue;
                     string t = AppTitel(x);
                     if (IstAstro(t)) { AstroMerken(x); continue; }
-                    if (t == "") t = "unbekannter Name";
+                    if (t == "") t = T("unbekannter Name", "unknown name");
                     var p = L(M2 + "/user/app/" + x);
                     bool zwilling = H.Hat(apps, x);
                     if (!zwilling)
@@ -655,9 +656,9 @@ namespace PS5Cleanup
                     MerkeSpielteile(p, 7, t, x, M2 + "/user", H.Hat(m2Patches, x), H.Hat(m2Addconts, x), dlcInfos, benutzt, zwilling);
                 }
                 foreach (var x in m2Patches)
-                    if (!benutzt.ContainsKey(M2 + "/user/patch/" + x)) Merke(L(M2 + "/user/patch/" + x), 7, "Update ohne Spiel: " + MitName(x));
+                    if (!benutzt.ContainsKey(M2 + "/user/patch/" + x)) Merke(L(M2 + "/user/patch/" + x), 7, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
                 foreach (var x in m2Addconts)
-                    if (!benutzt.ContainsKey(M2 + "/user/addcont/" + x)) Merke(L(M2 + "/user/addcont/" + x), 7, "Zusatzinhalte ohne Spiel: " + MitName(x));
+                    if (!benutzt.ContainsKey(M2 + "/user/addcont/" + x)) Merke(L(M2 + "/user/addcont/" + x), 7, T("Zusatzinhalte ohne Spiel: ", "Add-ons without game: ") + MitName(x));
                 foreach (var e in m2Liste)
                 {
                     string x = e.Name;
@@ -671,8 +672,8 @@ namespace PS5Cleanup
                 if (H.Hat(apps, x) || benutzt.ContainsKey("/user/appmeta/" + x)) continue;
                 string t = AppTitel(x);
                 if (IstAstro(t)) { AstroMerken(x); continue; }
-                if (t == "") t = "entferntes Spiel";
-                Merke(mitKachel(L("/user/appmeta/" + x), x), 5, "Reste: " + t + " (" + x + ")");
+                if (t == "") t = T("entferntes Spiel", "removed game");
+                Merke(mitKachel(L("/user/appmeta/" + x), x), 5, T("Reste: ", "Leftovers: ") + t + " (" + x + ")");
             }
             var shareIds = new List<string>();
             foreach (var x in S.Namen("/user/system/share"))
@@ -682,30 +683,30 @@ namespace PS5Cleanup
                 shareIds.Add(x);
             }
             if (shareIds.Count > 0)
-                Merke(shareIds.Select(x => "/user/system/share/" + x), 5, "Share-Einstellungen alter Spiele (" + shareIds.Count + " " + (shareIds.Count == 1 ? "Spiel" : "Spiele") + ", legt die PS5 bei Bedarf neu an)");
+                Merke(shareIds.Select(x => "/user/system/share/" + x), 5, T("Share-Einstellungen alter Spiele (", "Share settings of old games (") + shareIds.Count + ")");
             var cache = new List<string>();
             foreach (var u in new[] { "conceptmeta", "appmeta" }) foreach (var x in S.Namen("/user/catalog_downloader/" + u)) cache.Add("/user/catalog_downloader/" + u + "/" + x);
-            if (cache.Count > 0) Merke(cache, 5, "Store-Bildercache (" + cache.Count + " Einträge, holt die PS5 online neu)");
+            if (cache.Count > 0) Merke(cache, 5, T("Store-Bildercache (", "Store image cache (") + cache.Count + T(", lädt die PS5 neu)", ", re-downloaded by the PS5)"));
             var tmp = new List<string>();
             foreach (var o in new[] { "/user/bgft/trash", "/user/savedata/temp", "/user/temp/gls/screenshot", "/user/temp/video_recording", "/user/temp/common_temp/telemetry" })
                 foreach (var x in S.Namen(o)) tmp.Add(o + "/" + x);
-            if (tmp.Count > 0) Merke(tmp, 5, "Temporäre Dateien (" + tmp.Count + ")");
+            if (tmp.Count > 0) Merke(tmp, 5, T("Temporäre Dateien (", "Temporary files (") + tmp.Count + ")");
             var fehler = new List<string>();
             foreach (var x in S.Namen("/system_data/priv/error/history")) if (H.Like(x, "*.json")) fehler.Add("/system_data/priv/error/history/" + x);
-            if (fehler.Count > 0) Merke(fehler, 5, "Fehlerberichte der Konsole (" + fehler.Count + ")");
+            if (fehler.Count > 0) Merke(fehler, 5, T("Fehlerberichte (", "Error reports (") + fehler.Count + ")");
             var ext = new List<string>();
             foreach (var x in S.Namen(SYS_META + "/external")) if (H.M(x, "^[A-Z]{4}\\d{5}$") && !H.Like(x, "NPXS*")) ext.Add(SYS_META + "/external/" + x);
-            if (ext.Count > 0) Merke(ext, 5, "Merkzettel für Spiele auf externen USB-Platten (" + ext.Count + " " + (ext.Count == 1 ? "Spiel" : "Spiele") + ", legt die PS5 beim Anstecken neu an)");
+            if (ext.Count > 0) Merke(ext, 5, T("Infos zu Spielen auf USB-Platten (", "Info on games on USB drives (") + ext.Count + T(", legt die PS5 neu an)", ", recreated by the PS5)"));
             foreach (var x in sysmeta)
             {
                 if (!H.M(x, "^[A-Z]{4}\\d{5}$") || H.Like(x, "NPXS*") || H.Hat(ASTRO_IDS, x)) continue;
                 if (H.Hat(apps, x) || H.Hat(appmeta, x) || H.Hat(m2Apps, x)) continue;
                 string t = AppTitel(x);
                 if (IstAstro(t)) { AstroMerken(x); continue; }
-                if (t == "") t = "unbekannter Name";
-                Merke(L(SYS_META + "/" + x), 5, "Leere Kachel (Schloss): " + t + " (" + x + ")");
+                if (t == "") t = T("unbekannter Name", "unknown name");
+                Merke(L(SYS_META + "/" + x), 5, T("Leere Kachel (Schloss): ", "Empty tile (lock icon): ") + t + " (" + x + ")", kachel: true);
             }
-            foreach (var x in dlcInfos) if (!benutzt.ContainsKey("/user/appmeta/addcont/" + x)) Merke(L("/user/appmeta/addcont/" + x), 5, "Zusatzinhalt-Infos: " + MitName(x));
+            foreach (var x in dlcInfos) if (!benutzt.ContainsKey("/user/appmeta/addcont/" + x)) Merke(L("/user/appmeta/addcont/" + x), 5, T("Zusatzinhalt-Infos: ", "Add-on info: ") + MitName(x));
 
             // ---- 6 Jailbreak-Tools & Homebrew-Daten -------------------------
             var dl = S.Liste("/user/data", true) ?? new List<Datei>();
@@ -728,11 +729,11 @@ namespace PS5Cleanup
                 }
                 string n = H.R(g, "^fake", "");
                 if (tm.Success) { string mn = MitName(tm.Groups[1].Value); if (mn != tm.Groups[1].Value) n = n + " - " + H.R(mn, "^[A-Z]{4}\\d{5} ", ""); }
-                Merke(pf, 6, "Fake-Lizenz: " + n + " (Spiel ist nicht mehr installiert)");
+                Merke(pf, 6, T("Fake-Lizenz: ", "Fake license: ") + n + T(" (Spiel nicht mehr installiert)", " (game no longer installed)"));
             }
             foreach (var u in homes)
                 if (S.Namen("/user/home/" + u + "/webkit/shell/local").Count > 0)
-                    Merke(L("/user/home/" + u + "/webkit/shell/local"), 6, "Browserspeicher (Jailbreak-Seiten) - kann einen offline gespeicherten Jailbreak-Zugang enthalten");
+                    Merke(L("/user/home/" + u + "/webkit/shell/local"), 6, T("Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)", "Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)"));
 
             // fest nach Bereich ordnen (innerhalb eines Bereichs bleibt die Fundreihenfolge)
             var sortiert = new List<Eintrag>();

@@ -82,14 +82,14 @@ namespace PS5Cleanup
             var a = Ftp.Befehl("CWD " + pfad);
             if (a.Code >= 400)
             {
-                if (streng && a.Code != 550) throw new Exception("PS5 meldet beim Lesen von " + pfad + " : " + a.Text);
+                if (streng && a.Code != 550) throw new Exception(Sp.T("PS5 meldet beim Lesen von ", "PS5 reports when reading ") + pfad + " : " + a.Text);
                 return null;
             }
             byte[] bytes = Ftp.Daten("LIST");
             Cwd("/");
             if (bytes == null)
             {
-                if (streng) throw new System.IO.IOException("Ordner " + pfad + " konnte nicht vollständig gelesen werden - bitte nochmal verbinden.");
+                if (streng) throw new System.IO.IOException(Sp.T("Ordner ", "Folder ") + pfad + Sp.T(" konnte nicht vollständig gelesen werden - bitte nochmal verbinden.", " could not be read completely - please connect again."));
                 return null;
             }
             return Zerlege(bytes, false);
@@ -110,10 +110,10 @@ namespace PS5Cleanup
             string name = H.Blatt(pfad);
             var a = Ftp.Befehl("CWD " + eltern);
             if (a.Code == 550) return false;
-            if (a.Code >= 400) throw new Exception("PS5 meldet beim Prüfen von " + pfad + " : " + a.Text);
+            if (a.Code >= 400) throw new Exception(Sp.T("PS5 meldet beim Prüfen von ", "PS5 reports when checking ") + pfad + " : " + a.Text);
             byte[] bytes = Ftp.Daten("LIST");
             Cwd("/");
-            if (bytes == null) throw new Exception("Ordner " + eltern + " konnte nicht gelesen werden");
+            if (bytes == null) throw new Exception(Sp.T("Ordner ", "Folder ") + eltern + Sp.T(" konnte nicht gelesen werden", " could not be read"));
             foreach (string z in Regex.Split(Ftp.UTF8.GetString(bytes), "\r?\n"))
             {
                 string[] teile = H.Leer.Split(z, 9);

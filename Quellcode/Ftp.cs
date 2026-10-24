@@ -31,7 +31,7 @@ namespace PS5Cleanup
     // Stellen geprüft - nie mitten in einem FTP-Befehl).
     public class AbbruchAusnahme : Exception
     {
-        public AbbruchAusnahme() : base("Abgebrochen.") { }
+        public AbbruchAusnahme() : base(Sp.T("Abgebrochen.", "Cancelled.")) { }
     }
 
     public class Ftp
@@ -87,7 +87,7 @@ namespace PS5Cleanup
             var d = new TcpClient();
             daten = d;
             var ar = d.BeginConnect(Ip, dport, null, null);
-            if (!ar.AsyncWaitHandle.WaitOne(15000)) { d.Close(); throw new IOException("Datenverbindung zur PS5 kommt nicht zustande"); }
+            if (!ar.AsyncWaitHandle.WaitOne(15000)) { d.Close(); throw new IOException(Sp.T("Datenverbindung zur PS5 kommt nicht zustande", "Data connection to the PS5 could not be established")); }
             try { d.EndConnect(ar); } catch { d.Close(); throw; }
             return d;
         }
@@ -117,17 +117,17 @@ namespace PS5Cleanup
                 if (st.DataAvailable)
                 {
                     int n = st.Read(buf, 0, buf.Length);
-                    if (n <= 0) throw new IOException("FTP-Verbindung unterbrochen");
+                    if (n <= 0) throw new IOException(Sp.T("FTP-Verbindung unterbrochen", "FTP connection interrupted"));
                     for (int k = 0; k < n; k++) puffer.Add(buf[k]);
                     start = DateTime.Now;
                     continue;
                 }
-                if (!tcp.Connected) throw new IOException("FTP-Verbindung unterbrochen");
+                if (!tcp.Connected) throw new IOException(Sp.T("FTP-Verbindung unterbrochen", "FTP connection interrupted"));
                 double ms = (DateTime.Now - start).TotalMilliseconds;
-                if (ms > Timeout) throw new IOException("Die PS5 antwortet nicht (Zeitüberschreitung)");
+                if (ms > Timeout) throw new IOException(Sp.T("Die PS5 antwortet nicht (Zeitüberschreitung)", "The PS5 is not responding (timeout)"));
                 if (Wartet != null) Wartet((int)ms);
                 if (tcp.Client.Poll(20000, SelectMode.SelectRead) && tcp.Client.Available == 0 && !st.DataAvailable)
-                    throw new IOException("FTP-Verbindung unterbrochen");
+                    throw new IOException(Sp.T("FTP-Verbindung unterbrochen", "FTP connection interrupted"));
             }
         }
 
@@ -147,7 +147,7 @@ namespace PS5Cleanup
             }
             if (Wartet != null) Wartet(0);
             int c;
-            if (text.Length < 3 || !int.TryParse(text.Substring(0, 3), out c)) throw new IOException("Unverständliche Antwort der PS5: " + text);
+            if (text.Length < 3 || !int.TryParse(text.Substring(0, 3), out c)) throw new IOException(Sp.T("Unverständliche Antwort der PS5: ", "Unexpected answer from the PS5: ") + text);
             return new FtpAntwort { Code = c, Text = text };
         }
 
@@ -156,7 +156,7 @@ namespace PS5Cleanup
             // Steuerzeichen (z.B. ein Zeilenumbruch in einem Dateinamen) würden einen
             // zweiten, ungewollten Befehl erzeugen - nie senden.
             if (Regex.IsMatch(cmd, "[\\x00-\\x1f\\x7f]"))
-                throw new IOException("Ungültiges Zeichen im FTP-Befehl: " + Regex.Replace(cmd, "[\\x00-\\x1f\\x7f]", "?"));
+                throw new IOException(Sp.T("Ungültiges Zeichen im FTP-Befehl: ", "Invalid character in FTP command: ") + Regex.Replace(cmd, "[\\x00-\\x1f\\x7f]", "?"));
             byte[] b = UTF8.GetBytes(cmd + "\r\n");
             st.Write(b, 0, b.Length);
             st.Flush();

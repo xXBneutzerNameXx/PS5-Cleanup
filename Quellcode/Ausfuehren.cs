@@ -42,19 +42,21 @@ namespace PS5Cleanup
             foreach (var f in Funde)
             {
                 if (f.Kat != 1 || f.Quelle == "" || f.Gesperrt) continue;
-                if (H.Like(f.Quelle, "/user/data/*")) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + " - Spiel + Kachel"; }
-                else if (m2Leeren) f.Text = f.TextBasis + " - Spiel + Kachel (über Bereich 7)";
-                else f.Text = f.TextBasis + " - nur Kachel, Spiel bleibt";
+                if (H.Like(f.Quelle, "/user/data/*")) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + SM_MIT; }
+                else if (m2Leeren) f.Text = f.TextBasis + T(" - Spiel + Kachel (über Bereich 7)", " - game + tile (via section 7)");
+                else f.Text = f.TextBasis + SM_OHNE;
             }
         }
+        public static string SM_MIT { get { return T(" - Spiel + Kachel", " - game + tile"); } }
+        public static string SM_OHNE { get { return T(" - nur Kachel, Spiel bleibt", " - tile only, game stays"); } }
         public List<Eintrag> SmGewaehlt() { return Funde.Where(f => f.Wahl && f.Kat == 1 && f.Quelle != "").ToList(); }
         public void SetzeSmSpieldateien(bool mit)
         {
             SmZuruecksetzen();
             foreach (var f in SmGewaehlt())
             {
-                if (mit) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + " - Spiel + Kachel"; }
-                else f.Text = f.TextBasis + " - nur Kachel, Spiel bleibt";
+                if (mit) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + SM_MIT; }
+                else f.Text = f.TextBasis + SM_OHNE;
             }
         }
         public List<Eintrag> M2Gewaehlt() { return Funde.Where(f => f.Wahl && f.Kat == 7).ToList(); }
@@ -224,20 +226,21 @@ namespace PS5Cleanup
         public static string GroesseText(long bytes)
         {
             const double KB = 1024, MB = KB * 1024, GB = MB * 1024;
-            if (bytes >= GB) return string.Format("{0:N1} GB", bytes / GB);
-            if (bytes >= MB) return string.Format("{0:N1} MB", bytes / MB);
-            if (bytes >= KB) return string.Format("{0:N0} KB", bytes / KB);
-            return bytes + " Byte";
+            var k = Sp.Kultur;
+            if (bytes >= GB) return string.Format(k, "{0:N1} GB", bytes / GB);
+            if (bytes >= MB) return string.Format(k, "{0:N1} MB", bytes / MB);
+            if (bytes >= KB) return string.Format(k, "{0:N0} KB", bytes / KB);
+            return bytes + (Sp.EN ? " bytes" : " Byte");
         }
         public static string GroesseSatz(Groesse g)
         {
-            string t = string.Format("{0} {1} in {2:N0} Dateien und {3:N0} Ordnern", g.Gekappt ? "mindestens" : "etwa", GroesseText(g.Bytes), g.Dateien, g.Ordner);
-            if (g.Gekappt) t += " (große Ordner nicht ganz durchgezählt)";
+            string t = string.Format(Sp.Kultur, T("{0} {1} in {2:N0} Dateien und {3:N0} Ordnern", "{0} {1} in {2:N0} files and {3:N0} folders"), g.Gekappt ? T("mindestens", "at least") : T("etwa", "about"), GroesseText(g.Bytes), g.Dateien, g.Ordner);
+            if (g.Gekappt) t += T(" (große Ordner nicht ganz durchgezählt)", " (large folders not fully counted)");
             return t;
         }
         public static string FreigeraeumtText(Groesse g)
         {
-            return string.Format("Freigeräumt: {0}{1} in {2:N0} Dateien und {3:N0} Ordnern", g.Gekappt ? "mindestens " : "", GroesseText(g.Bytes), g.Dateien, g.Ordner);
+            return string.Format(Sp.Kultur, T("Freigeräumt: {0}{1} in {2:N0} Dateien und {3:N0} Ordnern", "Freed: {0}{1} in {2:N0} files and {3:N0} folders"), g.Gekappt ? T("mindestens ", "at least ") : "", GroesseText(g.Bytes), g.Dateien, g.Ordner);
         }
 
         // -------------------------------------------------------------
@@ -254,18 +257,18 @@ namespace PS5Cleanup
             // Die Liste muss von genau der PS5 stammen, mit der gerade verbunden ist.
             if (S == null || FUNDE_IP == "" || (S.Ftp.Ip + ":" + S.Ftp.Port) != FUNDE_IP)
             {
-                Melde("FEHLER: Die Liste stammt nicht von der gerade verbundenen PS5 - nichts gelöscht. Bitte neu verbinden und nachschauen.");
+                Melde(T("FEHLER: Die Liste stammt nicht von der gerade verbundenen PS5 - nichts gelöscht. Bitte neu verbinden.", "ERROR: The list is not from the PS5 currently connected - nothing deleted. Please connect again."));
                 erg.Abgebrochen = true; erg.Fehler = 1; return erg;
             }
             // Erst sicherstellen, dass die Verbindung sauber antwortet.
             if (!S.Gesund())
             {
-                Melde("Verbindung zur PS5 antwortet nicht sauber - verbinde neu ...");
+                Melde(T("Verbindung zur PS5 antwortet nicht sauber - verbinde neu ...", "Connection to the PS5 is not responding cleanly - reconnecting ..."));
                 bool ok = false;
                 try { VerbindungErneuern(); ok = S.Gesund(); } catch { ok = false; }
                 if (!ok)
                 {
-                    Melde("FEHLER: Keine saubere Verbindung zur PS5 - nichts gelöscht. Bitte neu verbinden und nochmal nachschauen.");
+                    Melde(T("FEHLER: Keine saubere Verbindung zur PS5 - nichts gelöscht. Bitte neu verbinden.", "ERROR: No clean connection to the PS5 - nothing deleted. Please connect again."));
                     erg.Abgebrochen = true; erg.Fehler = 1; return erg;
                 }
             }
@@ -273,7 +276,7 @@ namespace PS5Cleanup
             // Merker vom letzten Löschlauf zurücksetzen - sonst meldet die Schlussmeldung
             // "angehalten", obwohl ShadowMount diesmal gar nicht angehalten wurde.
             SM_ANGEHALTEN = false;
-            int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Kat == 7 || H.Like(f.Text, "*Kachel*") ||
+            int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Kat == 7 || f.Kachel ||
                 f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data")));
             if (smBetroffen > 0)
             {
@@ -281,13 +284,13 @@ namespace PS5Cleanup
                 if (!erg.SmGestoppt && S.Existiert(SM_ORDNER + "/debug.log"))
                 {
                     Melde("");
-                    Melde(" ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich");
-                    Melde(" wieder angelegt und die Spiele könnten gerade eingebunden sein.");
+                    Melde(T(" ShadowMount läuft womöglich noch. Dann werden gelöschte Kacheln gleich", " ShadowMount may still be running. Deleted tiles would then be recreated"));
+                    Melde(T(" wieder angelegt und die Spiele könnten gerade eingebunden sein.", " right away and the games could be mounted at the moment."));
                     if (!weiter()) { erg.Abgebrochen = true; return erg; }
                 }
                 Melde("");
             }
-            Melde("Lösche ... (große Spiele können etwas dauern)");
+            Melde(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
             int altTimeout = S.Ftp.Timeout;
             S.Ftp.Timeout = 7200000;                 // Löschen großer Dateien kann Minuten dauern
             var spielFehlt = H.Tab<int>();
@@ -301,7 +304,7 @@ namespace PS5Cleanup
                         if (verloren) { erg.Fehler++; continue; }
                         // Update/DLC eines Spiels, das selbst nicht gelöscht werden konnte: bleiben
                         if (f.Teil != null && f.Teil != "Spiel" && f.Gruppe != null && spielFehlt.ContainsKey(f.Gruppe))
-                        { Melde("  übersprungen   " + f.Text + " (das Spiel selbst konnte nicht gelöscht werden)"); erg.Fehler++; continue; }
+                        { Melde(T("  übersprungen   ", "  skipped   ") + f.Text + T(" (das Spiel selbst konnte nicht gelöscht werden)", " (the game itself could not be deleted)")); erg.Fehler++; continue; }
                         bool ok = true;
                         WAR_SCHON_WEG = 0;
                         foreach (var p in f.Pfade)
@@ -320,21 +323,21 @@ namespace PS5Cleanup
                             // Der Rest des Eintrags nur, wenn das Vorherige wirklich weg ist
                             if (!ok) break;
                         }
-                        if (ok && WAR_SCHON_WEG >= f.Pfade.Count) { Melde("  war schon weg   " + f.Text); continue; }
+                        if (ok && WAR_SCHON_WEG >= f.Pfade.Count) { Melde(T("  war schon weg   ", "  already gone   ") + f.Text); continue; }
                         if (ok)
                         {
-                            Melde("  gelöscht   " + f.Text);
+                            Melde(T("  gelöscht   ", "  deleted   ") + f.Text);
                             if (f.HatGroesse) { erg.Frei.Bytes += f.Bytes; erg.Frei.Dateien += f.Dateien; erg.Frei.Ordner += f.Ordner; }
                         }
                         else
                         {
-                            Melde("  FEHLER      " + f.Text + " (konnte nicht ganz gelöscht werden)"); erg.Fehler++;
+                            Melde(T("  FEHLER      ", "  ERROR      ") + f.Text + T(" (konnte nicht ganz gelöscht werden)", " (could not be deleted completely)")); erg.Fehler++;
                             if (f.IstTeil("Spiel")) spielFehlt[f.Gruppe] = 1;
                         }
                     }
                 }
                 if (verloren)
-                    Melde("FEHLER: Die Verbindung zur PS5 ist abgerissen - der Rest wurde nicht gelöscht. Bitte neu verbinden und nachschauen.");
+                    Melde(T("FEHLER: Die Verbindung zur PS5 ist abgerissen - der Rest wurde nicht gelöscht. Bitte neu verbinden.", "ERROR: The connection to the PS5 dropped - the rest was not deleted. Please connect again."));
                 else
                 {
                     // Ordner, die nur wegen ShadowMount-Spielen einzeln gelistet waren und
@@ -365,9 +368,9 @@ namespace PS5Cleanup
                 foreach (var p in f.Pfade) if (H.Gleich(p, SM_ORDNER) || H.Gleich(p, "/user/data")) smDatenWeg = true;
                 if (f.Kat == 1 && f.Quelle != "") kachelnWeg = true;
             }
-            if (smDatenWeg) return "ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.";
-            if (SM_ANGEHALTEN) return "ShadowMount wurde angehalten - zum Weiterspielen einfach neu laden.";
-            if (kachelnWeg) return "Die Spiele auf der Platte erscheinen wieder als Kacheln, sobald ShadowMount läuft.";
+            if (smDatenWeg) return T("ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.", "ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.");
+            if (SM_ANGEHALTEN) return T("ShadowMount wurde angehalten - zum Weiterspielen einfach neu laden.", "ShadowMount was stopped - just load it again to keep playing.");
+            if (kachelnWeg) return T("Die Spiele auf der Platte erscheinen wieder als Kacheln, sobald ShadowMount läuft.", "The games on the SSD/M.2 will show up as tiles again once ShadowMount is running.");
             return "";
         }
     }

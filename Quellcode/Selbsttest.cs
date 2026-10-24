@@ -31,30 +31,31 @@ namespace PS5Cleanup
 
         static Eintrag E(int kat, string text, string quelle = "", bool gesperrt = false)
         {
-            if (gesperrt) text += "  [GESPERRT: Game Compressor arbeitet gerade daran]";
+            if (gesperrt) text += Kern.GESPERRT_TEXT;
             return new Eintrag { Pfade = new List<string> { "/x" + text.GetHashCode() }, PfadeBasis = new List<string> { "/x" + text.GetHashCode() }, Kat = kat, Text = text, TextBasis = text, Quelle = quelle, Gesperrt = gesperrt };
         }
 
         public static void Laufen(Oberflaeche o, string bild)
         {
             datei = bild != "" ? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bild)), "_selbsttest.txt") : Path.Combine(Programm.Ordner, "_selbsttest.txt");
-            File.WriteAllText(datei, "Selbsttest " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " HIER=" + Programm.Ordner + " Version=" + Kern.VERSION + "\r\n", new UTF8Encoding(false));
+            File.WriteAllText(datei, "Selbsttest " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " HIER=" + Programm.Ordner + " Version=" + Kern.VERSION + " Sprache=" + (Sp.EN ? "en" : "de") + "\r\n", new UTF8Encoding(false));
             var K = o.K;
+            Func<string, string, string> T = Sp.T;
             K.Funde = new List<Eintrag> {
-                E(7, "homebrew/Red Dead Redemption - PPSA30528.exfat  [Spiel: Red Dead Redemption (PPSA30528) - Kachel geht mit]", "/mnt/ext1/homebrew/x.exfat"),
-                E(1, "Red Dead Redemption (PPSA30528) - ShadowMount-Spiel auf der M.2", "/mnt/ext1/homebrew/x.exfat"),
-                E(1, "Echtes Spiel (PPSA55555) + Update + Zusatzinhalte"),
-                E(1, "Spiel X (PPSA11111) - ShadowMount-Spiel auf der M.2", "/mnt/ext1/homebrew/y.exfat", true),
-                E(2, "Spielstand PPSA55555 (Echtes Spiel)"),
-                E(3, "Trophäen-Daten trophy/data"),
-                E(4, "Aufnahme content_tmp/PPSA55555 (Echtes Spiel)"),
-                E(5, "Share-Einstellungen alter Spiele (66 Spiele, legt die PS5 bei Bedarf neu an)"),
-                E(5, "Fehlerberichte der Konsole (100)"),
-                E(6, "Kachel des Tools: Payload Manager (PLDM00001)"),
+                E(7, "homebrew/Red Dead Redemption - PPSA30528.exfat" + T("  [Spiel: ", "  [game: ") + "Red Dead Redemption (PPSA30528)" + T(", Kachel geht mit]", ", tile goes with it]"), "/mnt/ext1/homebrew/x.exfat"),
+                E(1, "Red Dead Redemption (PPSA30528)" + T(" - ShadowMount-Spiel auf der M.2", " - ShadowMount game on the M.2"), "/mnt/ext1/homebrew/x.exfat"),
+                E(1, T("Echtes Spiel (PPSA55555) + Update + Zusatzinhalte", "Real game (PPSA55555) + update + add-ons")),
+                E(1, "Game X (PPSA11111)" + T(" - ShadowMount-Spiel auf der M.2", " - ShadowMount game on the M.2"), "/mnt/ext1/homebrew/y.exfat", true),
+                E(2, T("Spielstand ", "Saved data ") + "PPSA55555 (Real Game)"),
+                E(3, T("Trophäen-Daten ", "Trophy data ") + "trophy/data"),
+                E(4, T("Unfertige Aufnahme von ", "Unfinished capture of ") + "Real Game (PPSA55555) (3" + T(" Dateien)", " files)")),
+                E(5, T("Share-Einstellungen alter Spiele (66)", "Share settings of old games (66)")),
+                E(5, T("Fehlerberichte (100)", "Error reports (100)")),
+                E(6, T("Tool-Kachel: ", "Tool tile: ") + "Payload Manager (PLDM00001)"),
                 E(6, "shadowmount"),
                 E(7, "games/DuckTales Remastered [BLES01969].iso") };
             // ein normal installiertes PS4-Spiel mit Update und DLC
-            var teile = new[] { new[] { "Spiel", "Bloodborne (CUSA00900) - Spiel" }, new[] { "Update", "Bloodborne (CUSA00900) - Update (Version 01.09)" }, new[] { "DLC", "Bloodborne (CUSA00900) - Zusatzinhalt: The Old Hunters" } };
+            var teile = new[] { new[] { "Spiel", "Bloodborne (CUSA00900)" + T(" - Spiel", " - game") }, new[] { "Update", "Bloodborne (CUSA00900) - Update (Version 01.09)" }, new[] { "DLC", "Bloodborne (CUSA00900)" + T(" - Zusatzinhalt: ", " - add-on: ") + "The Old Hunters" } };
             int pos = 2;
             foreach (var t in teile) { var e = E(1, t[1]); e.Gruppe = "/user|CUSA00900"; e.Teil = t[0]; K.Funde.Insert(pos++, e); }
             K.Funde = Kern.ALLE_KAT.SelectMany(k => K.Funde.Where(f => f.Kat == k)).ToList();
@@ -66,10 +67,11 @@ namespace PS5Cleanup
                 {
                     var tbInfo = (TextBlock)o.W.FindName("tbInfo"); var tbIp = (TextBox)o.W.FindName("tbIp"); var tbLeer = (TextBlock)o.W.FindName("tbLeer");
                     tbLeer.Visibility = Visibility.Collapsed;
-                    tbInfo.Text = "Modell: CFI-7021 B01Y   |   Reihe: PS5 Pro   |   Firmware: 12.00   |   Laufwerk ist mit dieser Konsole gekoppelt (nachträglich gekoppelt) und einsatzbereit.";
+                    K.DDD_STATUS = 1;
+                    tbInfo.Text = T("Modell: ", "Model: ") + "CFI-7021 B01Y" + T("   |   Reihe: ", "   |   Series: ") + "PS5 Pro   |   Firmware: 12.00   |   " + K.LaufwerkText();
                     tbIp.Text = "192.168.50.78";
                     o.ZeigeBereiche();
-                    o.Log("Selbsttest: Fenster aufgebaut."); o.Log("Verbunden."); o.Log(K.Funde.Count + " Einträge gefunden. Nichts wurde verändert.");
+                    o.Log(T("Selbsttest: Fenster aufgebaut.", "Self-test: window built.")); o.Log(T("Verbunden.", "Connected.")); o.Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
                     var sp = (StackPanel)o.W.FindName("spBereiche");
                     Schreib("Fenster aufgebaut: " + sp.Children.Count + " Bereiche, " + o.Kaestchen.Count + " Einträge");
 
@@ -94,7 +96,7 @@ namespace PS5Cleanup
                     foreach (var c in ex1.Children.OfType<CheckBox>())
                     {
                         var f = (Eintrag)c.Tag;
-                        if (f.Text.StartsWith("Bloodborne") && f.Text.EndsWith("- Spiel")) basisCb = c; else if (f.Text.StartsWith("Bloodborne")) teilCbs.Add(c);
+                        if (f.Text.StartsWith("Bloodborne") && f.IstTeil("Spiel")) basisCb = c; else if (f.Text.StartsWith("Bloodborne")) teilCbs.Add(c);
                     }
                     Klick(basisCb, true);
                     int mit = teilCbs.Count(c => ((Eintrag)c.Tag).Wahl && c.IsChecked == true && !c.IsEnabled);
@@ -120,7 +122,7 @@ namespace PS5Cleanup
                     smf.Pfade = new List<string> { "/user/app/PPSA30528" }; smf.PfadeBasis = new List<string>(smf.Pfade); smf.Quelle = "/user/data/x.exfat";
                     K.WaehleKomplett(false); foreach (var f in K.Funde) f.Wahl = false;
                     smf.Wahl = true; K.SetzeSmSpieldateien(false);
-                    smOk = !smf.Pfade.Contains("/user/data/x.exfat") && smf.Text == smf.TextBasis + " - nur Kachel, Spiel bleibt";
+                    smOk = !smf.Pfade.Contains("/user/data/x.exfat") && smf.Text == smf.TextBasis + Kern.SM_OHNE;
                     K.SmZuruecksetzen(); foreach (var f in K.Funde) f.Wahl = false; o.ZeigeHaken();
                     Schreib("SM-Probe: nach abgebrochenem KOMPLETT 'nur Kacheln' ohne Spieldatei -> " + (smOk ? "OK" : "FEHLER"));
 
@@ -137,7 +139,7 @@ namespace PS5Cleanup
                     foreach (var f in K.Funde) f.Wahl = f.Kat == 7 || f.Kat == 5;
                     var m2 = K.M2Gewaehlt();
                     bool m2Zahl = m2.Count == K.Funde.Count(f => f.Kat == 7) && m2.All(f => f.Kat == 7);
-                    bool m2Warn = o.Zusammenfassung(false).StartsWith("!!! ACHTUNG") && o.Zusammenfassung(false).Contains("M.2");
+                    bool m2Warn = o.Zusammenfassung(false).StartsWith("!!! ") && o.Zusammenfassung(false).Contains("M.2");
                     foreach (var f in K.Funde) f.Wahl = false; o.ZeigeHaken();
                     schliessOk = !geloescht && fehler == "" && fragen && m2Zahl && m2Warn;
                     Schreib("Schließ-Probe: gelöscht=" + geloescht + ", Fehler='" + fehler + "', Fragen sicher=" + fragen + ", M.2-Warnung=" + m2Warn + ", M.2-Anzahl richtig=" + m2Zahl + " -> " + (schliessOk ? "OK" : "FEHLER"));
@@ -153,24 +155,25 @@ namespace PS5Cleanup
                     var g2 = K.Funde.First(f => f.Kat == 7 && f.Quelle != "");
                     K.GroesseSetzen(g2.PfadeBasis[0], new Groesse { Bytes = 10385096704L, Dateien = 1 });
                     o.ZeigeBereiche();
-                    bool kopfSumme = ((CheckBox)((Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, 7)]).Header).Content.ToString().Contains("27,1 GB");
-                    groesseOk = inhalt.Contains("17,5 GB") && kopfOhneSumme && kopfSumme;
+                    bool kopfSumme = ((CheckBox)((Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, 7)]).Header).Content.ToString().Contains(Kern.GroesseText(18738184192L + 10385096704L));
+                    groesseOk = inhalt.Contains(Kern.GroesseText(18738184192L)) && kopfOhneSumme && kopfSumme;
                     Schreib("Größen-Probe: Eintrag zeigt '" + inhalt.Substring(Math.Max(0, inhalt.Length - 12)).Trim() + "', Kopf erst ohne Summe=" + kopfOhneSumme + ", dann mit Summe=" + kopfSumme + " -> " + (groesseOk ? "OK" : "FEHLER"));
 
                     // Update-Probe (NEU): Versionsvergleich
                     updateOk = Oberflaeche.Neuer("v1.0.5-beta", "1.0.4 Beta") && !Oberflaeche.Neuer("v1.0.4-beta", "1.0.4 Beta") && !Oberflaeche.Neuer("v1.0.3-beta", "1.0.4 Beta") && Oberflaeche.Neuer("v1.1-beta", "1.0.4 Beta");
                     Schreib("Update-Probe: Versionsvergleich -> " + (updateOk ? "OK" : "FEHLER"));
-                    Schreib("ps5info.elf eingebaut: " + (Programm.Ressource("ps5info.elf") != null) + ", LIESMICH eingebaut: " + (Programm.Ressource("LIESMICH.txt") != null));
+                    Schreib("ps5info.elf eingebaut: " + (Programm.Ressource("ps5info.elf") != null) + ", LIESMICH eingebaut: " + (Programm.Ressource("LIESMICH.txt") != null) + ", README_EN eingebaut: " + (Programm.Ressource("README_EN.txt") != null));
 
                     // Fertig-Probe (NEU): Schlussfenster mit sauber eingerückten Schritten
-                    var fw = Oberflaeche.FertigFenster("Fertig - alles Ausgewählte ist gelöscht.", true, "Freigeräumt: 11,4 GB in 528 Dateien und 177 Ordnern",
-                        "ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.", "F:\\Beispiel\\PS5-Cleanup.log");
+                    var fw = Oberflaeche.FertigFenster(T("Fertig - alles Ausgewählte ist gelöscht.", "Done - everything selected has been deleted."), true,
+                        Kern.FreigeraeumtText(new Groesse { Bytes = 12240656794L, Dateien = 528, Ordner = 177 }),
+                        T("ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.", "ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again."), "F:\\PS5\\PS5-Cleanup.log");
                     fw.ShowActivated = false; fw.WindowStartupLocation = WindowStartupLocation.Manual; fw.Left = -20000; fw.Top = -20000;
                     fw.Show(); fw.UpdateLayout();
                     var gs = (System.Windows.Controls.Grid)fw.FindName("gSchritte");
                     var twi = (System.Windows.Controls.TextBlock)fw.FindName("tWichtig");
-                    fertigOk = gs.RowDefinitions.Count == 3 && gs.Children.Count == 6 && twi.Text.StartsWith("Wichtig");
-                    Schreib("Fertig-Probe: Schritte=" + gs.RowDefinitions.Count + ", Wichtig-Zeile=" + twi.Text.StartsWith("Wichtig") + " -> " + (fertigOk ? "OK" : "FEHLER"));
+                    fertigOk = gs.RowDefinitions.Count == 3 && gs.Children.Count == 6 && twi.Text == Kern.SCHLUSS_TEXT[Kern.SCHLUSS_TEXT.Length - 1];
+                    Schreib("Fertig-Probe: Schritte=" + gs.RowDefinitions.Count + ", Warnzeile=" + (twi.Text != "") + " -> " + (fertigOk ? "OK" : "FEHLER"));
                     if (bild != "")
                     {
                         var rf = new RenderTargetBitmap((int)fw.ActualWidth, (int)fw.ActualHeight, 96, 96, PixelFormats.Pbgra32);

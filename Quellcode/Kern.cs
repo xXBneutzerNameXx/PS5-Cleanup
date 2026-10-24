@@ -30,6 +30,8 @@ namespace PS5Cleanup
         public string Teil;        // Spiel / Update / DLC
         public bool Paket;         // Trophäen-Liste eines noch installierten Spiels
         public bool NurLeer;       // leerer M.2-Ordner: wird nur entfernt, wenn er wirklich leer ist (RMD)
+        public bool Kachel;        // betrifft eine Kachel im Menü -> ShadowMount vor dem Löschen anhalten
+        public bool SmTipp;        // ShadowMount-Spiel, dessen Kachel mitgeht (Hinweis am Kästchen)
         // Größe beim Löschen (für "Freigeräumt")
         public long Bytes; public int Dateien; public int Ordner; public bool HatGroesse;
         public bool IstTeil(string t) { return Teil != null && Teil == t; }
@@ -45,6 +47,7 @@ namespace PS5Cleanup
     public partial class Kern
     {
         public const string VERSION = "1.0.4 Beta";
+        static string T(string de, string en) { return Sp.T(de, en); }
         public const int STANDARD_PORT = 2121;
         public const string BEHALTEN_APP = "PPSA01325";   // Astro's Playroom
         public const string M2 = "/mnt/ext1";
@@ -195,8 +198,8 @@ namespace PS5Cleanup
         int WAR_SCHON_WEG;
         bool Loeschen(string p)
         {
-            if (!Erlaubt(p)) { Melde("  SICHERHEITSSTOPP: " + p + " ist gesperrt - nichts gelöscht."); return false; }
-            if (!OhneVerknuepfung(p)) { Melde("  SICHERHEITSSTOPP: " + p + " liegt hinter einer Verknüpfung - nichts gelöscht."); return false; }
+            if (!Erlaubt(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" ist gesperrt - nichts gelöscht.", " is protected - nothing deleted.")); return false; }
+            if (!OhneVerknuepfung(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" liegt hinter einer Verknüpfung - nichts gelöscht.", " is behind a symlink - nothing deleted.")); return false; }
             if (!S.Existiert(p)) { WAR_SCHON_WEG++; return true; }
             // Ist der Eintrag selbst eine Verknüpfung: nur sie entfernen, nie ihr Ziel
             var el = S.Liste(H.Eltern(p), true);
@@ -219,11 +222,11 @@ namespace PS5Cleanup
         // RMD löscht nie Inhalt mit. Ist inzwischen etwas drin, schlägt es fehl.
         bool LeerenOrdnerLoeschen(string p)
         {
-            if (!Erlaubt(p)) { Melde("  SICHERHEITSSTOPP: " + p + " ist gesperrt - nichts gelöscht."); return false; }
-            if (!OhneVerknuepfung(p)) { Melde("  SICHERHEITSSTOPP: " + p + " liegt hinter einer Verknüpfung - nichts gelöscht."); return false; }
+            if (!Erlaubt(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" ist gesperrt - nichts gelöscht.", " is protected - nothing deleted.")); return false; }
+            if (!OhneVerknuepfung(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" liegt hinter einer Verknüpfung - nichts gelöscht.", " is behind a symlink - nothing deleted.")); return false; }
             if (!S.Existiert(p)) { WAR_SCHON_WEG++; return true; }
             var l = S.Liste(p, true);
-            if (l == null || l.Count != 0) { Melde("  " + p + " ist nicht mehr leer - bleibt stehen."); return false; }
+            if (l == null || l.Count != 0) { Melde("  " + p + T(" ist nicht mehr leer - bleibt stehen.", " is no longer empty - kept.")); return false; }
             S.Befehl("RMD " + p);
             return !S.Existiert(p);
         }
@@ -237,7 +240,7 @@ namespace PS5Cleanup
                 var l = S.Liste(o);
                 if (l == null || l.Count != 0) return;
                 var a = S.Befehl("RMD " + o);
-                if (a.Code < 400) Melde("  gelöscht   leerer Ordner " + o);
+                if (a.Code < 400) Melde(T("  gelöscht   leerer Ordner ", "  deleted   empty folder ") + o);
             }
             catch { }
         }
@@ -264,22 +267,22 @@ namespace PS5Cleanup
         bool ShadowMountAnhalten()
         {
             SM_ANGEHALTEN = false;
-            Melde("Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...");
+            Melde(T("Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...", "Stopping ShadowMount (otherwise it recreates the tiles right away) ..."));
             // nur eine Abmeldung NACH dem Anhalten zählt (alte Zeilen im Protokoll nicht)
             int vorher = Abmeldungen(S.Text(SM_ORDNER + "/debug.log"));
             if (!ShadowMountLaeuft())
             {
-                Melde("  ShadowMount läuft nicht (oder ist älter als 1.7 - dann vorher");
-                Melde("  von Hand beenden: PS5 neu starten und nur den FTP-Server laden).");
+                Melde(T("  ShadowMount läuft nicht (oder ist älter als 1.7 - dann vorher", "  ShadowMount is not running (or older than 1.7 - then stop it"));
+                Melde(T("  von Hand beenden: PS5 neu starten und nur den FTP-Server laden).", "  by hand first: restart the PS5 and load only the FTP server)."));
                 return true;
             }
             DateTime ende = DateTime.Now.AddSeconds(90);
             while (DateTime.Now < ende)
             {
                 Warte(2000);
-                if (Abmeldungen(S.Text(SM_ORDNER + "/debug.log")) > vorher) { Melde("  ShadowMount ist beendet."); SM_ANGEHALTEN = true; return true; }
+                if (Abmeldungen(S.Text(SM_ORDNER + "/debug.log")) > vorher) { Melde(T("  ShadowMount ist beendet.", "  ShadowMount has stopped.")); SM_ANGEHALTEN = true; return true; }
             }
-            Melde("  ShadowMount hat sich nach 90 s nicht sauber beendet.");
+            Melde(T("  ShadowMount hat sich nach 90 s nicht sauber beendet.", "  ShadowMount did not stop cleanly within 90 s."));
             return false;
         }
 
@@ -289,7 +292,7 @@ namespace PS5Cleanup
         public string FirmwareLesen()
         {
             var m = H.Mt(S.Text("/system_ex/etc/index.dat"), "release:\\s*0x([0-9a-fA-F]{8})");
-            if (!m.Success) return "unbekannt";
+            if (!m.Success) return T("unbekannt", "unknown");
             string hex = m.Groups[1].Value;
             return hex.Substring(0, 2).TrimStart('0') + "." + hex.Substring(2, 2);
         }
@@ -417,11 +420,11 @@ namespace PS5Cleanup
         {
             switch (typ)
             {
-                case "fat": return digital ? "PS5 Digital Edition (erstes Modell)" : "PS5 (erstes Modell)";
+                case "fat": return digital ? T("PS5 Digital Edition (erstes Modell)", "PS5 Digital Edition (original model)") : T("PS5 (erstes Modell)", "PS5 (original model)");
                 case "slim": return digital ? "PS5 Slim Digital Edition" : "PS5 Slim";
                 case "pro": return "PS5 Pro";
             }
-            return "unbekannt";
+            return T("unbekannt", "unknown");
         }
 
         // Klartext zum ausgelesenen Laufwerks-Status (nur lesend ermittelt).
@@ -429,34 +432,34 @@ namespace PS5Cleanup
         {
             switch (DDD_STATUS ?? -99)
             {
-                case 0: return "Laufwerk ist mit dieser Konsole gekoppelt und einsatzbereit.";
-                case 1: return "Laufwerk ist mit dieser Konsole gekoppelt (nachträglich gekoppelt) und einsatzbereit.";
-                case 2: return "Kein gekoppeltes Laufwerk (keins angeschlossen oder noch nicht gekoppelt).";
-                case 3: return "Laufwerks-Kopplung ist noch nicht abgeschlossen.";
-                case 4: return "Laufwerks-Entkopplung ist noch nicht abgeschlossen.";
-                case 5: return "Laufwerk ist ab Werk mit dieser Konsole gekoppelt und einsatzbereit.";
-                case 6: return "Hinweis: Laufwerk ist ab Werk mit einer ANDEREN Konsole gekoppelt - es würde an dieser Konsole nicht als Disc-Laufwerk arbeiten.";
+                case 0: return T("Laufwerk ist mit dieser Konsole gekoppelt und einsatzbereit.", "Disc drive is paired with this console and ready.");
+                case 1: return T("Laufwerk ist mit dieser Konsole gekoppelt (nachträglich) und einsatzbereit.", "Disc drive is paired with this console (paired later) and ready.");
+                case 2: return T("Kein gekoppeltes Laufwerk (keins angeschlossen oder nicht gekoppelt).", "No paired disc drive (none attached or not paired).");
+                case 3: return T("Laufwerks-Kopplung ist noch nicht abgeschlossen.", "Disc drive pairing is not finished yet.");
+                case 4: return T("Laufwerks-Entkopplung ist noch nicht abgeschlossen.", "Disc drive unpairing is not finished yet.");
+                case 5: return T("Laufwerk ist ab Werk mit dieser Konsole gekoppelt und einsatzbereit.", "Disc drive is factory-paired with this console and ready.");
+                case 6: return T("Hinweis: Laufwerk ist ab Werk mit einer ANDEREN Konsole gekoppelt - an dieser arbeitet es nicht als Disc-Laufwerk.", "Note: the disc drive is factory-paired with ANOTHER console - it will not work as a disc drive on this one.");
             }
             if (MODELL_TYP == "fat")
             {
-                if (MODELL_DIGITAL) return "Kein Laufwerk (Digital Edition) - eine Kopplung gibt es nicht.";
-                return "Fest eingebautes Laufwerk (erste PS5) - keine Kopplung nötig.";
+                if (MODELL_DIGITAL) return T("Kein Laufwerk (Digital Edition) - eine Kopplung gibt es nicht.", "No disc drive (Digital Edition) - there is no pairing.");
+                return T("Fest eingebautes Laufwerk (erste PS5) - keine Kopplung nötig.", "Built-in disc drive (original PS5) - no pairing needed.");
             }
-            return "Laufwerks-Status nicht auslesbar (kein Laufwerk angeschlossen oder Abfrage nicht möglich).";
+            return T("Laufwerks-Status nicht auslesbar (kein Laufwerk oder Abfrage nicht möglich).", "Disc drive status not readable (no drive attached or query not possible).");
         }
         public bool KopplungOk() { return DDD_STATUS == null || new[] { -1, 0, 1, 2, 5 }.Contains(DDD_STATUS.Value); }
         public string KopplungsText()
         {
             string l = LaufwerkText();
-            if (KopplungOk()) return l + " Das Programm fasst die Kopplung ohnehin nie an.";
-            return l + " Das Programm fasst die Kopplung ohnehin nie an - es wird durch das Aufräumen nichts daran verändert.";
+            return l + T(" Das Programm fasst die Kopplung nie an.", " The program never touches the pairing.");
         }
 
-        public static readonly string[] SCHLUSS_TEXT = {
-            "Letzter Schritt an der PS5, damit sie alles sauber neu einliest:",
-            "1. PS5 ausschalten.",
-            "2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.",
-            "3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.",
-            "Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!" };
+        // Überschrift, nummerierte Schritte, zuletzt die Warnung (das Fertig-Fenster setzt sie so zusammen)
+        public static string[] SCHLUSS_TEXT { get { return new[] {
+            T("Letzter Schritt an der PS5, damit sie alles sauber neu einliest:", "Last step on the PS5 so it re-reads everything cleanly:"),
+            T("1. PS5 ausschalten.", "1. Turn off the PS5."),
+            T("2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.", "2. Hold the power button until it beeps a second time."),
+            T("3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.", "3. Connect the controller via USB and choose 'Rebuild Database'."),
+            T("Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!", "Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!") }; } }
     }
 }
