@@ -88,6 +88,7 @@ namespace PS5Cleanup
             {
                 z(T("Scan", "Scan"), (d.ScanImTestmodus ? T("ja, im Testmodus", "yes, in test mode") : T("ja", "yes")) + " – " + d.AnzahlJeBereich.Sum() + T(" Einträge gefunden", " entries found"));
                 foreach (var k in Kern.ALLE_KAT) b.Append("- " + Kern.KatName[k] + ": " + d.AnzahlJeBereich[k] + "\n");
+                b.Append("\n");   // Leerzeile: sonst rechnet GitHub die nächsten Zeilen noch zur Liste
             }
             else z(T("Scan", "Scan"), T("nicht durchgeführt", "not done"));
             z("M.2-SSD", U(d.M2));

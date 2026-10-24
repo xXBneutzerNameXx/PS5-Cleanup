@@ -859,7 +859,7 @@ namespace PS5Cleanup
                 K.Funde = new List<Eintrag>(); K.FUNDE_IP = "";
             }
             VERBUNDEN = K.FUNDE_IP != "";
-            F_GELOESCHT = true;
+            F_GELOESCHT = true; F_SCAN = VERBUNDEN; F_SCAN_TEST = Testmodus();
             UI(() => { ZeigeBereiche(); ZeigeSpeicher(); pbFortschritt.Value = 0; });
             HintergrundStarten();
         }
@@ -981,24 +981,9 @@ namespace PS5Cleanup
             }
             d.GeloeschtInSitzung = F_GELOESCHT;
             d.Fehler = Feedback.FehlerAus(tbLog.Text);
-            d.Windows = WindowsVersion();
+            d.Windows = Programm.WindowsVersion();
             d.PersoenlicheNamen = new[] { Environment.UserName, Environment.MachineName, Environment.UserDomainName };
             return d;
-        }
-        // echte Windows-Version (Environment.OSVersion meldet ohne Manifest nur 6.2) - nur lesen
-        static string WindowsVersion()
-        {
-            try
-            {
-                using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
-                {
-                    int build; int.TryParse(Convert.ToString(k.GetValue("CurrentBuildNumber")), out build);
-                    string anzeige = Convert.ToString(k.GetValue("DisplayVersion"));
-                    if (build > 0) return (build >= 22000 ? "Windows 11" : build >= 10240 ? "Windows 10" : "Windows") + (anzeige != "" ? " " + anzeige : "") + " (Build " + build + ")";
-                }
-            }
-            catch { }
-            return "";
         }
         public Window FeedbackFenster(FeedbackDaten d)
         {

@@ -211,6 +211,7 @@ namespace PS5Cleanup
                         ffw.Close();
                         o.VERBUNDEN = false;
                         Schreib("Feedback-Probe: Modell/Firmware/Rückgabewert drin, FTP-Server unbekannt, keine IP, kein Benutzername -> " + (feedbackOk ? "OK" : "FEHLER"));
+                        Schreib("Windows erkannt: " + Programm.WindowsVersion());
                     }
                     // Bild vom Hauptfenster im verbundenen Zustand (Testmodus)
                     o.VERBUNDEN = true; foreach (var f in K.Funde) f.Wahl = false; o.ZeigeBereiche(); o.ZeigeSpeicher(); o.Knoepfe(true);

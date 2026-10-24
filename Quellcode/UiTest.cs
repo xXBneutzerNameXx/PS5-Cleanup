@@ -82,6 +82,9 @@ namespace PS5Cleanup
             Pruefe(log.Contains("gelöscht   games/x.iso") && log.Contains("[Test] Meldung: Fertig"), "Protokoll: gelöscht + Fertig-Meldung");
             Pruefe(o.VERBUNDEN && !o.K.Funde.Any(f => f.Text.StartsWith("games/x.iso")) && o.K.Funde.Any(f => f.Text == "games  (leerer Ordner)"), "neu nachgeschaut: x.iso weg, leerer Ordner games wird angeboten");
             Pruefe(File.Exists(Lokal(ps5, "/mnt/ext1/homebrew/anderes.txt")), "andere M.2-Dateien unberührt");
+            // NEU 1.0.5: Feedback-Bericht nach dem Löschen - nicht mehr "im Testmodus", "gelöscht: ja"
+            FeedbackDaten fd = null; o.UI(() => fd = o.FeedbackSammeln());
+            Pruefe(fd.GeloeschtInSitzung && fd.ScanGemacht && !fd.ScanImTestmodus, "Feedback nach dem Löschen: gelöscht=ja, Scan nicht im Testmodus");
 
             // 4 Abbrechen-Knopf beim Nachschauen
             o.TestAntworten = new Queue<object>(new object[] { "" });

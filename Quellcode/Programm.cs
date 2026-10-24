@@ -41,13 +41,8 @@ namespace PS5Cleanup
                 }
                 catch { }
             }
-            string os = Environment.OSVersion.VersionString;
-            try
-            {
-                using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
-                    if (k != null && k.GetValue("ProductName") != null) os = k.GetValue("ProductName").ToString();
-            }
-            catch { }
+            string os = Programm.WindowsVersion();
+            if (os == "") os = Environment.OSVersion.VersionString;
             Zeile(new string('=', 60));
             Zeile("PS5 Cleanup " + Kern.VERSION + " by da_Chris86 - " + Sp.T("Protokoll", "log"));
             Zeile("Start: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  |  " + os + "  |  .NET " + Environment.Version + "  |  " + Sp.T("Programm: ", "Program: ") + Programm.Ordner + "  |  " + Sp.T("Sprache: Deutsch", "Language: English"));
@@ -95,6 +90,27 @@ namespace PS5Cleanup
                 return p;
             }
             catch { return ""; }
+        }
+
+        // NEU 1.0.5: echte Windows-Version, nur aus der Registrierung gelesen. Windows 11 trägt dort
+        // weiter "Windows 10 ..." als Namen - darum entscheidet die Build-Nummer (ab 22000 = Windows 11).
+        public static string WindowsVersion()
+        {
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
+                {
+                    if (k == null) return "";
+                    int build; int.TryParse(Convert.ToString(k.GetValue("CurrentBuildNumber")), out build);
+                    string name = Convert.ToString(k.GetValue("ProductName")).Trim();
+                    string anzeige = Convert.ToString(k.GetValue("DisplayVersion")).Trim();
+                    if (build >= 22000 && name.StartsWith("Windows 10", StringComparison.Ordinal)) name = "Windows 11" + name.Substring(10);
+                    if (name == "") name = build >= 22000 ? "Windows 11" : build >= 10240 ? "Windows 10" : "Windows";
+                    return name + (anzeige != "" ? " " + anzeige : "") + (build > 0 ? " (Build " + build + ")" : "");
+                }
+            }
+            catch { }
+            return "";
         }
 
         [STAThread]
