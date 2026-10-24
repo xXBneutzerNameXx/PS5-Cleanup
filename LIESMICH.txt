@@ -6,6 +6,13 @@ ohne Neuinstallation und ohne Zurücksetzen. Konto, Lizenzen, Systemsoftware
 und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 (PS5, Slim, Pro, jeweils mit Laufwerk oder als Digital Edition).
 
+ZWEI WEGE
+  - Gezielt: einzelne Einträge anhaken - z. B. wenn ein Spiel oder Tool
+    Probleme macht, nur dessen Daten, Spielstand oder Trophäen löschen.
+    Der Rest bleibt. Knopf "Nur Auswahl löschen".
+  - Komplett: alles auf der internen SSD auf einmal, wie frisch
+    eingerichtet (die M.2 wird extra gefragt). Knopf "KOMPLETT".
+
 BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
 Rückmeldungen bitte mit Modell, Firmware und der Datei PS5-Cleanup.log.

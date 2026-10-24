@@ -117,7 +117,11 @@ namespace PS5Cleanup
             foreach (string z in Regex.Split(Ftp.UTF8.GetString(bytes), "\r?\n"))
             {
                 string[] teile = H.Leer.Split(z, 9);
-                if (teile.Length >= 9 && teile[8] == name) return true;
+                if (teile.Length < 9) continue;
+                string n = teile[8];
+                // Verknüpfung: manche Server hängen das Ziel an ("name -> ziel")
+                if (z.StartsWith("l", StringComparison.Ordinal) && n.Contains(" -> ")) n = n.Substring(0, n.IndexOf(" -> ", StringComparison.Ordinal));
+                if (n == name) return true;
             }
             return false;
         }

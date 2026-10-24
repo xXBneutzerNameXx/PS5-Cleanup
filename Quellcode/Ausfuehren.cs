@@ -249,10 +249,12 @@ namespace PS5Cleanup
         // -------------------------------------------------------------
         public Ergebnis FuehreLoeschung(Func<bool> weiter)
         {
+            var erg = new Ergebnis();
+            // Fenster inzwischen zu oder Abbruch angefordert: gar nicht erst anfangen
+            if (Abbruch) { erg.Abgebrochen = true; return erg; }
             AbhaengigeMitnehmen();
             LINK_CACHE = new Dictionary<string, List<Datei>>(StringComparer.Ordinal);
             var gewaehlt = Gewaehlt();
-            var erg = new Ergebnis();
             erg.Frei.Gekappt = GROESSE_GEKAPPT;
             // Die Liste muss von genau der PS5 stammen, mit der gerade verbunden ist.
             if (S == null || FUNDE_IP == "" || (S.Ftp.Ip + ":" + S.Ftp.Port) != FUNDE_IP)
@@ -344,7 +346,7 @@ namespace PS5Cleanup
                     // jetzt leer sind, auch entfernen (innerste zuerst).
                     var aufgeklappt = new List<string>(AUFGEKLAPPT); aufgeklappt.Reverse();
                     foreach (var o in aufgeklappt)
-                        if (gewaehlt.Any(f => f.Pfade.Any(p => p.StartsWith(o + "/")))) LeerenOrdnerEntfernen(o);
+                        if (gewaehlt.Any(f => f.Pfade.Any(p => p.StartsWith(o + "/", StringComparison.Ordinal)))) LeerenOrdnerEntfernen(o);
                     // Ordner von Spielen, deren Teile gelöscht wurden und die jetzt leer sind
                     foreach (var g in LEER_DANACH.Keys.ToList())
                     {

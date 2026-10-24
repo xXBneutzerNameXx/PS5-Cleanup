@@ -178,12 +178,16 @@ namespace PS5Cleanup
             int dport = EpsvPort();
             if (dport < 0) return null;
             var d = DatenVerbinden(dport);
-            d.ReceiveTimeout = 30000;
-            var a = Befehl(cmd);
-            if (a.Code >= 400) { d.Close(); return null; }
             var ms = new MemoryStream();
-            d.GetStream().CopyTo(ms);
-            d.Close();
+            FtpAntwort a;
+            try
+            {
+                d.ReceiveTimeout = 30000;
+                a = Befehl(cmd);
+                if (a.Code >= 400) return null;
+                d.GetStream().CopyTo(ms);
+            }
+            finally { d.Close(); }
             a = Antwort();                                     // 226 = vollständig übertragen
             if (a.Code >= 400) return null;                    // abgebrochen - Inhalt unvollständig
             return ms.ToArray();

@@ -189,6 +189,7 @@ namespace PS5Cleanup
                 {
                     string p = d + "/" + e.Name;
                     if (e.IstOrdner) LoescheBaum(p);
+                    else if (e.IstLink) S.Befehl("DELE " + p);          // nur die Verknüpfung, kein CHMOD (würde dem Ziel gelten)
                     else { S.Befehl("SITE CHMOD 777 " + p); S.Befehl("DELE " + p); }
                 }
             }
@@ -209,6 +210,7 @@ namespace PS5Cleanup
                 S.Befehl("DELE " + p);
                 return !S.Existiert(p);
             }
+            if (selbst == null) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" steht nicht in der Ordnerliste - nichts gelöscht.", " is not in the folder listing - nothing deleted.")); return false; }
             S.Befehl("SITE CHMOD 777 " + p);
             S.Befehl("DELE " + p);                           // falls Datei
             if (!S.Existiert(p)) return true;

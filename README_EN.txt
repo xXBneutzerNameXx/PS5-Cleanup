@@ -6,6 +6,13 @@ reinstalling and without a reset. The program never touches your account,
 licenses, system software or the disc drive pairing. For all PS5 models
 (PS5, Slim, Pro, each with disc drive or as Digital Edition).
 
+TWO WAYS
+  - Targeted: tick single entries - e.g. when one game or tool causes
+    problems, delete only its data, saved data or trophies. Everything
+    else stays. Button "Delete selection only".
+  - Complete: everything on the internal SSD at once, like freshly set up
+    (the M.2 is asked separately). Button "COMPLETE".
+
 BETA: Tested on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
 Other models and firmwares should work but have not been tested yet.
 Feedback welcome - please include model, firmware and the file

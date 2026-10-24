@@ -56,7 +56,7 @@
         <StackPanel Grid.Column="0">
           <TextBlock FontSize="20" FontWeight="SemiBold" Text="PS5 Cleanup"/>
           <TextBlock x:Name="tbKopf" Foreground="{StaticResource Grau}" Margin="0,2,0,0"
-                     Text="Löscht nur, was du auswählst - kein Zurücksetzen, keine Neuinstallation. Systemsoftware, Laufwerks-Kopplung, Konto und Lizenzen bleiben. Benutzung auf eigene Gefahr: Gelöschtes ist endgültig weg."/>
+                     Text="Löscht nur, was du auswählst - einzelne Spiele, Spielstände, Trophäen oder alles auf einmal. Kein Zurücksetzen, keine Neuinstallation: Systemsoftware, Laufwerks-Kopplung, Konto und echte Lizenzen bleiben. Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg."/>
           <TextBlock x:Name="tbUpdate" Margin="0,6,0,0" Visibility="Collapsed" Foreground="{StaticResource Gelb}"/>
         </StackPanel>
         <Button Grid.Column="1" x:Name="btSprache" VerticalAlignment="Top" Margin="12,0,0,0" Padding="10,4" Content="English"/>

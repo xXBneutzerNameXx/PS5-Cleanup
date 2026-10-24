@@ -361,7 +361,7 @@ namespace PS5Cleanup
             foreach (var n in ORDNER_CACHE[eltern])
             {
                 if (!IstZwischendatei(n)) continue;
-                if (H.Like(n, "*" + id + "*") || n.TrimStart('.').StartsWith(basis)) return true;
+                if (H.Like(n, "*" + id + "*") || n.TrimStart('.').StartsWith(basis, StringComparison.Ordinal)) return true;
             }
             return false;
         }
@@ -382,7 +382,7 @@ namespace PS5Cleanup
                     Merke(pf, kat, vorsatz + x + T("  [Spiel: ", "  [game: ") + i.Name + T(", Kachel geht mit]", ", tile goes with it]"), p, i.Gesperrt, kachel: true, smTipp: true);
                     continue;
                 }
-                bool drin = SpielQuellen.Any(q => q.StartsWith(p + "/"));
+                bool drin = SpielQuellen.Any(q => q.StartsWith(p + "/", StringComparison.Ordinal));
                 if (drin && !link)
                 {
                     AUFGEKLAPPT.Add(p);
@@ -526,7 +526,7 @@ namespace PS5Cleanup
                 foreach (var sd in new[] { "savedata", "savedata_prospero" })
                     foreach (var x in S.Namen("/user/home/" + u + "/" + sd))
                     {
-                        if (H.Hat(ASTRO_IDS, x) || H.Like(x, "sce_*")) continue;
+                        if (H.Hat(ASTRO_IDS, x) || H.Like(x, "sce_*") || H.Like(x, "NPXS*")) continue;
                         Merke(L("/user/home/" + u + "/" + sd + "/" + x), 2, T("Spielstand ", "Saved data ") + MitName(x));
                     }
 
@@ -628,8 +628,8 @@ namespace PS5Cleanup
                 if (H.Like(x, "NPXS*")) continue;
                 Merke(L("/user/download/" + x), 5, "Download: " + MitName(x));
             }
-            foreach (var x in patches) if (!benutzt.ContainsKey("/user/patch/" + x)) Merke(L("/user/patch/" + x), 5, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
-            foreach (var x in addconts) if (!benutzt.ContainsKey("/user/addcont/" + x)) Merke(L("/user/addcont/" + x), 5, T("Zusatzinhalt: ", "Add-on: ") + MitName(x));
+            foreach (var x in patches) if (!benutzt.ContainsKey("/user/patch/" + x) && !H.Like(x, "NPXS*")) Merke(L("/user/patch/" + x), 5, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
+            foreach (var x in addconts) if (!benutzt.ContainsKey("/user/addcont/" + x) && !H.Like(x, "NPXS*")) Merke(L("/user/addcont/" + x), 5, T("Zusatzinhalt: ", "Add-on: ") + MitName(x));
             foreach (var x in S.Namen("/user/appmeta/external/addcont")) Merke(L("/user/appmeta/external/addcont/" + x), 5, T("Zusatzinhalt-Infos: ", "Add-on info: ") + MitName(x));
             foreach (var x in S.Namen("/user"))
                 if (H.Like(x, "_zu_loeschen_*")) Merke(L("/user/" + x), 5, T("Rest einer früheren Aufräumaktion: ", "Leftover from an earlier cleanup: ") + "/user/" + x);
@@ -656,9 +656,9 @@ namespace PS5Cleanup
                     MerkeSpielteile(p, 7, t, x, M2 + "/user", H.Hat(m2Patches, x), H.Hat(m2Addconts, x), dlcInfos, benutzt, zwilling);
                 }
                 foreach (var x in m2Patches)
-                    if (!benutzt.ContainsKey(M2 + "/user/patch/" + x)) Merke(L(M2 + "/user/patch/" + x), 7, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
+                    if (!benutzt.ContainsKey(M2 + "/user/patch/" + x) && !H.Like(x, "NPXS*")) Merke(L(M2 + "/user/patch/" + x), 7, T("Update ohne Spiel: ", "Update without game: ") + MitName(x));
                 foreach (var x in m2Addconts)
-                    if (!benutzt.ContainsKey(M2 + "/user/addcont/" + x)) Merke(L(M2 + "/user/addcont/" + x), 7, T("Zusatzinhalte ohne Spiel: ", "Add-ons without game: ") + MitName(x));
+                    if (!benutzt.ContainsKey(M2 + "/user/addcont/" + x) && !H.Like(x, "NPXS*")) Merke(L(M2 + "/user/addcont/" + x), 7, T("Zusatzinhalte ohne Spiel: ", "Add-ons without game: ") + MitName(x));
                 foreach (var e in m2Liste)
                 {
                     string x = e.Name;

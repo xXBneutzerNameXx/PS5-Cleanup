@@ -104,7 +104,7 @@ namespace PS5Cleanup
             btSprache.Content = Sp.EN ? "Deutsch" : "English";
             btSprache.ToolTip = T("Switch to English (das Programm startet dazu neu)", "Auf Deutsch umschalten (the program restarts)");
             if (!Sp.EN) return;
-            ((TextBlock)W.FindName("tbKopf")).Text = "Deletes only what you select - no reset, no reinstall. System software, disc drive pairing, account and licenses stay. Use at your own risk: deleted data is gone for good.";
+            ((TextBlock)W.FindName("tbKopf")).Text = "Deletes only what you select - single games, saved data, trophies or everything at once. No reset, no reinstall: system software, disc drive pairing, account and real licenses stay. Use at your own risk - deleted data is gone for good.";
             ((TextBlock)W.FindName("tbIpText")).Text = "PS5 IP:";
             tbIp.ToolTip = "PS5: Settings > Network > View Connection Status. Different FTP port? Then IP:port";
             btSuchen.Content = "Find PS5 on network";
@@ -574,7 +574,8 @@ namespace PS5Cleanup
                 alle.Click += (s, e) =>
                 {
                     var a = (CheckBox)s;
-                    foreach (var c in kinder) { var ff = (Eintrag)c.Tag; if (!ff.Gesperrt) { c.IsChecked = a.IsChecked; ff.Wahl = a.IsChecked == true; } }
+                    // Trophäen-Listen noch installierter Spiele (gelb) nur einzeln - beim Abwählen gehen sie mit
+                    foreach (var c in kinder) { var ff = (Eintrag)c.Tag; if (!ff.Gesperrt && !(ff.Paket && a.IsChecked == true)) { c.IsChecked = a.IsChecked; ff.Wahl = a.IsChecked == true; } }
                     GruppenAbgleich(); AktualisiereStand();
                 };
                 KopfKaestchen.Add(alle);
@@ -670,6 +671,8 @@ namespace PS5Cleanup
                 if (c > 0) t += "   - " + Kern.KatName[k] + ": " + c + "\n";
             }
             int m2 = g.Count(f => f.Kat == 7);
+            int smDatei = g.Count(f => f.Kat == 1 && f.Quelle != "" && f.Pfade.Contains(f.Quelle));
+            if (smDatei > 0) t += T("   davon ShadowMount-Spiele MIT Spieldatei: ", "   of these, ShadowMount games WITH game file: ") + smDatei + "\n";
             if (komplett && m2 == 0) t += T("   (M.2-SSD bleibt unverändert)\n", "   (M.2 SSD stays unchanged)\n");
             if (!komplett && m2 > 0) t = T("!!! ACHTUNG: ", "!!! WARNING: ") + m2 + T(" EINTRÄGE DER M.2-SSD SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " M.2 SSD ENTRIES ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n") + t;
             int gesp = K.Funde.Count(f => f.Gesperrt);
