@@ -565,6 +565,9 @@ function Komplett-Klick {
     if ($a -cne 'LOESCHEN' -and $a -cne 'LÖSCHEN') { Log 'Abgebrochen - nichts verändert.'; foreach ($f in $script:Funde) { $f.Wahl = $false }; SM-Zuruecksetzen; Zeige-Haken; Aktualisiere-Stand; return }
     Lösche-Jetzt $true
 }
+# nur die gewählten Einträge der M.2 (Gewaehlt liefert die Liste als EIN Objekt -
+# darum erst in eine Variable, sonst zählt der Filter die ganze Liste als 1 Eintrag)
+function M2-Gewaehlt { $gw = Gewaehlt; return ,@($gw | Where-Object { $_.Kat -eq 7 }) }
 function Auswahl-Klick {
     $sm = SM-Gewaehlt
     if ($sm.Count -gt 0) {
@@ -573,7 +576,7 @@ function Auswahl-Klick {
         Setze-SM-Spieldateien $mit
     }
     else { SM-Zuruecksetzen }
-    $m2 = @(Gewaehlt | Where-Object { $_.Kat -eq 7 })
+    $m2 = M2-Gewaehlt
     if ($m2.Count -gt 0) {
         $l = ($m2 | Select-Object -First 15 | ForEach-Object { '   ' + $_.Text }) -join "`n"
         if ($m2.Count -gt 15) { $l += "`n   ... und $($m2.Count - 15) weitere" }
@@ -748,11 +751,14 @@ if ($SelbstTest) {
             Set-Item function:script:Ermittle-Groessen $altZaehl; Set-Item function:script:Lösche-Jetzt $altLoesch
             $script:FENSTER_ZU = $false
             # M.2 in der Auswahl -> die Abschlussfrage warnt ganz oben
-            foreach ($f in $script:Funde) { $f.Wahl = ($f.Kat -eq 7) }
+            foreach ($f in $script:Funde) { $f.Wahl = ($f.Kat -eq 7 -or $f.Kat -eq 5) }
+            $m2Liste = M2-Gewaehlt
+            $m2Soll = @($script:Funde | Where-Object { $_.Kat -eq 7 } | ForEach-Object { $_.Text }) -join '|'
+            $m2Zahl = ($m2Liste.Count -eq @($script:Funde | Where-Object { $_.Kat -eq 7 }).Count -and (@($m2Liste | ForEach-Object { $_.Text }) -join '|') -eq $m2Soll)
             $m2Warn = ((Zusammenfassung $false) -like '!!! ACHTUNG*M.2*')
             foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken
-            $script:SCHLIESS_OK = (-not $script:PROBE_GELOESCHT -and $schliessFehler -eq '' -and $fragen -and $m2Warn)
-            & $schreib "Schließ-Probe: gelöscht=$($script:PROBE_GELOESCHT), Fehler='$schliessFehler', Fragen sicher=$fragen, M.2-Warnung=$m2Warn -> $(if ($script:SCHLIESS_OK) {'OK'} else {'FEHLER'})"
+            $script:SCHLIESS_OK = (-not $script:PROBE_GELOESCHT -and $schliessFehler -eq '' -and $fragen -and $m2Warn -and $m2Zahl)
+            & $schreib "Schließ-Probe: gelöscht=$($script:PROBE_GELOESCHT), Fehler='$schliessFehler', Fragen sicher=$fragen, M.2-Warnung=$m2Warn, M.2-Anzahl richtig=$m2Zahl -> $(if ($script:SCHLIESS_OK) {'OK'} else {'FEHLER'})"
             & $schreib "ps5info.elf: $(Join-Path $SkriptOrdner 'ps5info.elf') vorhanden=$(Test-Path (Join-Path $SkriptOrdner 'ps5info.elf'))"
             & $schreib "LIESMICH: $(Liesmich-Pfad)"
             if ($Bild -ne '') {
