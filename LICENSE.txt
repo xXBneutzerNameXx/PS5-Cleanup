@@ -25,10 +25,11 @@ SOFTWARE.
 Bestandteile anderer Urheber / Third-party components
 -------------------------------------------------------------------------------
 
-Die MIT-Lizenz oben gilt für den Code von PS5 Cleanup (die PowerShell-Skripte,
-die Batch-Dateien und das Fenster). Diese Bestandteile haben eigene Lizenzen:
-The MIT License above covers the PS5 Cleanup code (PowerShell scripts, batch
-files and the window). These components have their own licenses:
+Die MIT-Lizenz oben gilt für den Code von PS5 Cleanup (das C#-Programm, die
+alte PowerShell-Fassung und die Batch-Dateien). Diese Bestandteile haben
+eigene Lizenzen:
+The MIT License above covers the PS5 Cleanup code (the C# program, the old
+PowerShell version and batch files). These components have their own licenses:
 
 ps5info (Quellcode/ps5info.c, Quellcode/ps5info.elf)
   Kleines PS5-Programm, das Modellnummer und Laufwerks-Status ausliest.
@@ -40,10 +41,11 @@ ps5info (Quellcode/ps5info.c, Quellcode/ps5info.elf)
   Laufwerks-Status nach / drive status based on earthonion/ddd_status.
   Bauanleitung / build file: Quellcode/ps5info.mk
 
-PS2EXE (Quellcode/bauen/ps2exe.ps1, Programmrahmen der .exe / .exe host)
+PS2EXE (Quellcode/powershell-1.0.3/bauen/ps2exe.ps1 - nur die alte PowerShell-
+Fassung 1.0.3 / only the old PowerShell version 1.0.3)
   Ingo Karstein, Markus Scholtes
   Lizenz / License: Microsoft Limited Public License (Ms-LPL)
-  (Quellcode/bauen/LICENSE_ps2exe.txt)
+  (Quellcode/powershell-1.0.3/bauen/LICENSE_ps2exe.txt)
 
 PlayStation und PS5 sind Marken von Sony Interactive Entertainment Inc.
 PS5 Cleanup ist ein inoffizielles Community-Projekt ohne Verbindung zu Sony.

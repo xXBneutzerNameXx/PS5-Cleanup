@@ -1,14 +1,27 @@
-﻿PS5 CLEANUP 1.0.3 BETA by da_Chris86
+﻿PS5 CLEANUP 1.0.4 BETA by da_Chris86
 ====================================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
 ohne Neuinstallation und ohne Zurücksetzen. Konto, Lizenzen, Systemsoftware
-und die Laufwerks-Kopplung bleiben unangetastet. Für alle PS5-Modelle
+und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 (PS5, Slim, Pro, jeweils mit Laufwerk oder als Digital Edition).
 
 BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
 Rückmeldungen bitte mit Modell, Firmware und der Datei PS5-Cleanup.log.
+
+
+NEU IN 1.0.4
+------------
+- Ein echtes Windows-Programm (vorher ein verpacktes PowerShell-Skript) -
+  gleiche Bedienung, gleiche Schutzregeln.
+- M.2: Jedes Spiel und jede Datei in den Ordnern der M.2 steht einzeln
+  in der Liste. Die Ordner selbst bleiben stehen.
+- Die Liste zeigt die Größe jedes Eintrags und jedes Bereichs. Gezählt
+  wird gleich nach dem Nachschauen im Hintergrund - das lange Zählen vor
+  dem Löschen entfällt meistens.
+- Knopf "Abbrechen" beim Suchen und Zählen.
+- Hinweis, wenn es auf GitHub eine neuere Version gibt.
 
 
 SCHNELLSTART
@@ -25,8 +38,8 @@ SCHNELLSTART
 5. Danach an der PS5: Datenbank neu erstellen (siehe WICHTIG).
 
 
-BLEIBT IMMER
-------------
+FASST DAS PROGRAMM NICHT AN
+---------------------------
 - Systemsoftware und Laufwerks-Kopplung
 - Benutzerkonto, Aktivierung und echte Lizenzen
 - Sony-Systemanwendungen und Systemeinstellungen
@@ -41,7 +54,9 @@ KANN WEG (du wählst aus)
 [4] Bilder & Videos
 [5] Downloads, Zusatzinhalte & Reste (Caches, Fehlerberichte, leere Kacheln)
 [6] Jailbreak-Tools & Homebrew-Daten (danach Jailbreak neu einrichten)
-[7] Inhalt der M.2-SSD (nur wenn eine eingebaut ist)
+[7] Inhalt der M.2-SSD (nur wenn eine eingebaut ist) - jedes Spiel und
+    jede Datei einzeln; sind M.2-Einträge gewählt, kommt eine eigene
+    Rückfrage
 
 
 WICHTIG
@@ -51,25 +66,26 @@ WICHTIG
   Controller per USB anstecken, "Datenbank neu erstellen" wählen.
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
-- Vor der Abschlussfrage zählt das Programm, wie viel gewählt ist. Bei
-  der M.2 kann das bis zu einer Minute dauern - dabei wird noch NICHTS
-  gelöscht. Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst.
-  Fenster zu = abgebrochen.
+- Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst. Bei allen
+  Rückfragen ist "Abbrechen" vorausgewählt. Ist eine Größe noch nicht
+  gezählt, zählt das Programm sie vor der Abschlussfrage nach - dabei wird
+  noch NICHTS gelöscht. Fenster zu oder "Abbrechen" = nichts passiert.
 - Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
   verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
 - Steckt eine M.2 in der PS5, das Programm meldet aber "keine M.2
   gefunden": nicht löschen, sondern die PS5 neu starten.
-- Benutzung auf eigene Gefahr.
+- Benutzung auf eigene Gefahr. Es ist eine Beta - Fehler sind möglich.
+  Was dir wichtig ist, vorher sichern.
 - Bei Problemen: Das Programm schreibt alles in PS5-Cleanup.log (neben der
   .exe, sonst unter %TEMP%\PS5-Cleanup). Mit "Protokoll speichern" lässt
   sich die Datei auch direkt ablegen - bitte bei einer Fehlermeldung
   mitschicken.
-- Virenscanner: Die .exe ist ein verpacktes PowerShell-Skript (PS2EXE).
-  Einzelne Virenscanner melden so etwas fälschlich als verdächtig. Der
+- Virenscanner: Die .exe ist nicht digital signiert. Einzelne Virenscanner
+  melden neue, unsignierte Programme fälschlich als verdächtig. Der
   komplette Quellcode liegt bei - wer mag, baut die .exe selbst
-  (Quellcode\bauen\bauen.ps1) oder nutzt die Textversion.
+  (Quellcode\bauen.cmd, braucht nur Windows).
 
 
 DETAILS (nur wenn du es genau wissen willst)
@@ -78,18 +94,29 @@ DETAILS (nur wenn du es genau wissen willst)
 Laufwerks-Kopplung
   Bei Slim und Pro ist das abnehmbare Laufwerk mit der Konsole gekoppelt.
   Das Programm liest den Kopplungs-Status aus und zeigt ihn an. Es fasst
-  Systemsoftware und Systemeinstellungen nie an, darum ist die Kopplung
-  nicht gefährdet. Die erste PS5 hat ein fest eingebautes
-  Laufwerk ohne Kopplung, Digital Editions gar keins.
+  Systemsoftware und Systemeinstellungen nie an. Die erste PS5 hat ein
+  fest eingebautes Laufwerk ohne Kopplung, Digital Editions gar keins.
 
 ShadowMount-Spiele
   Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2 oder der internen
   SSD. Wird das Spiel gelöscht, geht die Kachel immer mit. Wird nur die
   Kachel gelöscht, kommt sie wieder, sobald ShadowMount neu geladen wird.
-  Das Programm hält ShadowMount+ (ab 1.7) vor dem Löschen über dessen
-  Stopp-Datei an, sonst würde es die Kacheln sofort neu anlegen. Danach
-  ShadowMount einfach neu laden. Läuft gerade der Game Compressor, ist das
-  betroffene Spiel gesperrt.
+  Das Programm versucht, ShadowMount+ (ab 1.7) vor dem Löschen über dessen
+  Stopp-Datei anzuhalten, sonst würde es die Kacheln sofort neu anlegen.
+  Danach ShadowMount einfach neu laden. Läuft gerade der Game Compressor,
+  ist das betroffene Spiel gesperrt.
+
+M.2-SSD
+  Die Ordner auf der M.2 (z. B. homebrew, games, downloads) werden
+  aufgeklappt: Jedes Spiel und jede Datei darin ist ein eigener Eintrag.
+  Die Ordner selbst bleiben stehen. Ein leerer Ordner wird nur entfernt,
+  wenn er beim Löschen wirklich noch leer ist.
+
+Größen
+  Gleich nach dem Nachschauen zählt das Programm über eine zweite
+  Verbindung im Hintergrund, wie groß jeder Eintrag ist, und schreibt es
+  dazu. "mind." heißt: nicht ganz durchgezählt (sehr groß oder nicht
+  lesbar).
 
 Trophäen
   Bereich 3 löscht den Trophäen-Stand auf der Konsole; mit dem PSN
@@ -104,32 +131,31 @@ Kachel-Infos
 
 Modell und Firmware
   Die Firmware wird per FTP gelesen. Für Modell und Laufwerks-Status
-  startet das Programm (nur mit deiner Zustimmung) kurz ps5info.elf auf der
-  PS5 - über den Payload-Lader (Port 9021) oder den Payload-Manager
-  (Port 8084) - und räumt es danach wieder weg. ps5info liest nur, es
-  verändert nichts. Geht beides nicht, kannst du die Modellnummer eintippen
-  oder überspringen.
+  startet das Programm (nur mit Haken bei "Modell automatisch erkennen")
+  kurz ps5info.elf auf der PS5 - über den Payload-Lader (Port 9021) oder
+  den Payload-Manager (Port 8084) - und räumt es danach wieder weg.
+  ps5info liest nur, es verändert nichts. Geht beides nicht, kannst du die
+  Modellnummer eintippen oder überspringen.
 
-Textversion
-  Quellcode\PS5_Cleanup.bat macht dasselbe im schwarzen Fenster, mit Fragen.
-  "PS5_Cleanup.bat -Test" zeigt nur an und ändert nichts.
+Neue Version
+  Beim Start fragt das Programm einmal bei GitHub nach, welche Version die
+  neueste ist. Ist sie neuer, steht oben ein Hinweis mit Link. Es wird
+  nichts heruntergeladen und nichts über dich übertragen.
 
 Dateien
   PS5-Cleanup.exe           das Programm - eine einzige Datei, mehr braucht
-                            es nicht. Modell-Abfrage und diese Anleitung
-                            sind eingebaut (landen beim Start unter
-                            %TEMP%\PS5-Cleanup).
+                            es nicht (Modell-Abfrage und diese Anleitung
+                            sind eingebaut).
   LIESMICH.txt              diese Anleitung
   LICENSE.txt               Lizenz (MIT) und Bestandteile anderer Urheber
-  Quellcode\                alles Weitere, für die, die nachlesen oder selbst
-                            bauen wollen:
-    ps5_kern.ps1            gemeinsamer Kern: Suche, Schutzliste, Löschen
-    ps5_cleanup_gui.ps1     Fenster (Quelltext der .exe)
-    ps5_cleanup.ps1         Textversion, Start über PS5_Cleanup.bat
-    PS5_Cleanup_Fenster.bat Fenster direkt aus dem Skript starten
+  Quellcode\                für die, die nachlesen oder selbst bauen wollen:
+    *.cs, Fenster.xaml      das Programm (C#, .NET Framework 4.8)
+    bauen.cmd               baut PS5-Cleanup.exe mit dem Compiler, der in
+                            Windows schon enthalten ist
     ps5info.elf / ps5info.c Modell- und Laufwerks-Abfrage für die PS5
                             (GPL-3.0, Bauanleitung in ps5info.mk)
-    bauen\                  Werkzeug, mit dem die .exe gebaut wird
+    powershell-1.0.3\       die bisherige PowerShell-Fassung (1.0.3) samt
+                            Textversion PS5_Cleanup.bat
 
 
 RECHTLICHES
@@ -142,7 +168,7 @@ Marken von Sony Interactive Entertainment Inc.
 Lizenz: MIT - Copyright (c) 2026 da_Chris86. Jeder darf das Programm nutzen,
 weitergeben und verändern, solange der Urheber und der Lizenztext erhalten
 bleiben (siehe LICENSE.txt). Die Modell-Abfrage ps5info steht unter der
-GPL-3.0, PS2EXE unter der Ms-LPL - Details in LICENSE.txt.
+GPL-3.0 - Details in LICENSE.txt.
 
 Entstanden mit Unterstützung der KI Claude (Anthropic). Idee, Vorgaben und
 die Tests an der echten Konsole kommen von da_Chris86.

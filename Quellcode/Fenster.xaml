@@ -1,0 +1,111 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PS5 Cleanup"
+        Width="1040" Height="760" MinWidth="860" MinHeight="600"
+        WindowStartupLocation="CenterScreen" Background="#1E1F24" FontFamily="Segoe UI" FontSize="13">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Fl" Color="#2A2C33"/>
+    <SolidColorBrush x:Key="Rand" Color="#3A3D47"/>
+    <SolidColorBrush x:Key="Text" Color="#E8E8EA"/>
+    <SolidColorBrush x:Key="Grau" Color="#9A9DA8"/>
+    <SolidColorBrush x:Key="Blau" Color="#2F7BFF"/>
+    <SolidColorBrush x:Key="Rot" Color="#C62828"/>
+    <SolidColorBrush x:Key="Gelb" Color="#E0A32B"/>
+    <SolidColorBrush x:Key="Gruen" Color="#34A853"/>
+    <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+    <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Margin" Value="0,2,0,2"/></Style>
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="{StaticResource Fl}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Rand}"/><Setter Property="Padding" Value="12,6"/>
+      <Setter Property="Margin" Value="4"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#16171B"/><Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Rand}"/><Setter Property="Padding" Value="6,4"/>
+      <Setter Property="CaretBrush" Value="White"/>
+    </Style>
+    <Style TargetType="Expander"><Setter Property="Foreground" Value="{StaticResource Text}"/></Style>
+    <Style TargetType="ProgressBar"><Setter Property="Background" Value="#16171B"/><Setter Property="Foreground" Value="{StaticResource Blau}"/><Setter Property="BorderBrush" Value="{StaticResource Rand}"/></Style>
+  </Window.Resources>
+  <Grid Margin="14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="170"/>
+    </Grid.RowDefinitions>
+
+    <!-- Kopf -->
+    <Border Grid.Row="0" Background="{StaticResource Fl}" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+      <StackPanel>
+        <TextBlock FontSize="20" FontWeight="SemiBold" Text="PS5 Cleanup"/>
+        <TextBlock Foreground="{StaticResource Grau}" Margin="0,2,0,0"
+                   Text="Keine Neuinstallation, kein Zurücksetzen: Es werden nur die Inhalte gelöscht, die du auswählst. Systemsoftware, Laufwerks-Kopplung, Benutzerkonto und Lizenzen fasst das Programm nicht an. Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg."/>
+        <TextBlock x:Name="tbUpdate" Margin="0,6,0,0" Visibility="Collapsed" Foreground="{StaticResource Gelb}"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Verbindung -->
+    <Border Grid.Row="1" Background="{StaticResource Fl}" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0" Text="IP der PS5:"/>
+        <TextBox   Grid.Row="0" Grid.Column="1" x:Name="tbIp" VerticalAlignment="Center" ToolTip="PS5: Einstellungen > Netzwerk > Verbindungsstatus anzeigen. Anderer FTP-Port? Dann IP:Port"/>
+        <Button    Grid.Row="0" Grid.Column="2" x:Name="btSuchen" Content="PS5 im Netz suchen"/>
+        <Button    Grid.Row="0" Grid.Column="3" x:Name="btVerbinden" Content="Verbinden und nachschauen" Background="{StaticResource Blau}" BorderBrush="{StaticResource Blau}"/>
+        <CheckBox  Grid.Row="0" Grid.Column="4" x:Name="cbModell" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Content="Modell automatisch erkennen"
+                   ToolTip="Startet kurz das kleine Programm ps5info.elf auf der PS5 (Port 9021 oder 8084) und entfernt es danach wieder."/>
+        <CheckBox  Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" x:Name="cbTest" IsChecked="True" Margin="0,10,0,0" FontWeight="SemiBold" Foreground="{StaticResource Gruen}"
+                   Content="Testmodus: nur anschauen, nichts löschen" ToolTip="Solange der Haken gesetzt ist, sind die Lösch-Knöpfe gesperrt. Zum Löschen den Haken entfernen."/>
+        <TextBlock Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3" x:Name="tbInfo" Margin="10,10,0,0" Foreground="{StaticResource Grau}" Text="Nicht verbunden."/>
+      </Grid>
+    </Border>
+
+    <!-- Bereiche -->
+    <Border Grid.Row="2" Background="{StaticResource Fl}" CornerRadius="8" Padding="6">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="spBereiche" Margin="8">
+          <TextBlock x:Name="tbLeer" Foreground="{StaticResource Grau}" Text="Erst verbinden - dann erscheint hier, was auf der PS5 gelöscht werden kann."/>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- Knoepfe -->
+    <Grid Grid.Row="3" Margin="0,10,0,10">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" x:Name="tbStand" VerticalAlignment="Center" Foreground="{StaticResource Grau}"/>
+      <Button Grid.Column="1" x:Name="btAbbrechen" Content="Abbrechen" Visibility="Collapsed" Background="#5A5E6B" BorderBrush="#5A5E6B"
+              ToolTip="Hält das Suchen oder Zählen an. Gelöscht wird dabei nichts."/>
+      <Button Grid.Column="2" x:Name="btProtokoll" Content="Protokoll speichern" ToolTip="Speichert das Protokoll als Textdatei - bei Problemen bitte mitschicken."/>
+      <Button Grid.Column="3" x:Name="btHilfe" Content="Hilfe (LIESMICH)"/>
+      <Button Grid.Column="4" x:Name="btAuswahl" Content="Nur Auswahl löschen" IsEnabled="False"/>
+      <Button Grid.Column="5" x:Name="btKomplett" Content="KOMPLETT - wie neu installiert" Background="{StaticResource Rot}" BorderBrush="{StaticResource Rot}" FontWeight="SemiBold" IsEnabled="False"/>
+    </Grid>
+
+    <!-- Protokoll -->
+    <Grid Grid.Row="4">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <ProgressBar Grid.Row="0" x:Name="pbFortschritt" Height="8" Margin="0,0,0,6" Minimum="0" Maximum="100"/>
+      <TextBox Grid.Row="1" x:Name="tbLog" IsReadOnly="True" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"/>
+      <TextBlock Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,22,6" FontSize="11" Foreground="#5A5E6B" IsHitTestVisible="False" x:Name="tbFuss" Text="PS5 Cleanup  ·  da_Chris86  ·  Inoffizielles Community-Projekt, keine Verbindung zu Sony"/>
+    </Grid>
+  </Grid>
+</Window>

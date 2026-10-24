@@ -18,14 +18,17 @@ Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gel
 
 - Findet die PS5 im Heimnetz selbst und erkennt Modell, Firmware und ob das Laufwerk gekoppelt ist
 - Startet im **Testmodus**: erst nur anschauen, es wird nichts gelöscht
-- Zeigt alles mit Klarnamen: Spiele (PS5 und PS4) mit **Update und DLCs einzeln wählbar**, Spielstände, Trophäen, Screenshots und Videos je Spiel, Downloads, Reste, Jailbreak-Tools, Inhalt der M.2
+- Zeigt alles mit Klarnamen: Spiele (PS5 und PS4) mit **Update und DLCs einzeln wählbar**, Spielstände, Trophäen, Screenshots und Videos je Spiel, Downloads, Reste, Jailbreak-Tools
+- **M.2: jedes Spiel und jede Datei einzeln** – die Ordner selbst bleiben stehen, für die M.2 gibt es eine eigene Rückfrage
+- **Größe jedes Eintrags direkt in der Liste** (wird im Hintergrund gezählt) und ein **Abbrechen-Knopf** beim Suchen und Zählen
 - Zwei Wege: **KOMPLETT** (wie neu eingerichtet, die M.2 wird extra gefragt) oder gezielt per Häkchen
 - ShadowMount-Spiele: wahlweise nur die Kachel oder Spiel samt Kachel – ShadowMount+ wird vorher sauber angehalten
 - Räumt die Kachel-Infos mit weg – keine leeren Kacheln mit Schloss nach dem Datenbank-Neuaufbau
 - Zeigt vorher, wie viel Platz frei wird, und hinterher, wie viel freigeräumt wurde
 - Schreibt ein Protokoll, das man bei Problemen mitschicken kann
+- Weist beim Start darauf hin, wenn es auf GitHub eine neuere Version gibt
 
-## Was immer bleibt
+## Was das Programm nicht anfasst
 
 Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen und die Sony-Systemanwendungen. Es wird nichts installiert, nichts zurückgesetzt und keine Systemdatenbank verändert.
 
@@ -47,24 +50,24 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 
 ## Hinweis zum Virenscanner
 
-Die `.exe` ist ein mit [PS2EXE](https://github.com/MScholtes/PS2EXE) verpacktes PowerShell-Skript. Einzelne Virenscanner melden so etwas fälschlich als verdächtig. Der komplette Quellcode liegt in diesem Repository – du kannst die `.exe` mit `Quellcode/bauen/bauen.ps1` selbst bauen oder die Textversion `Quellcode/PS5_Cleanup.bat` nutzen.
-
-[VirusTotal-Prüfung der 1.0.3 Beta](https://www.virustotal.com/gui/file/6f33cf6cdf0d62fb9750c3f064d651d5ae5348b62c341934c117199dcc1eecb2): 6 von 71 Scannern (AhnLab, Antiy, APEX, Bkav, McAfee, Microsoft) melden einen allgemeinen Verdacht. Bei Microsoft ist es eine automatische KI-Einschätzung („!ml“), wie sie bei mit PS2EXE verpackten Skripten oft vorkommt – ein Scan mit dem Windows Defender selbst findet nichts. Kaspersky, Avast, BitDefender, ESET, Malwarebytes und Symantec (Norton) finden ebenfalls nichts.
+Seit 1.0.4 ist PS5 Cleanup ein echtes Windows-Programm (C#, .NET Framework 4.8 – in Windows 10/11 schon enthalten), kein verpacktes Skript mehr. Die `.exe` ist nicht digital signiert; einzelne Virenscanner melden neue, unsignierte Programme trotzdem manchmal fälschlich. Der komplette Quellcode liegt in diesem Repository – du kannst die `.exe` mit `Quellcode/bauen.cmd` selbst bauen (braucht nur Windows, nichts zu installieren).
 
 ## Aufbau
 
 | Datei | Inhalt |
 |---|---|
-| `Quellcode/ps5_kern.ps1` | gemeinsamer Kern: FTP, Suche, Schutzliste, Löschen |
-| `Quellcode/ps5_cleanup_gui.ps1` | Fenster (Quelltext der `.exe`) |
-| `Quellcode/ps5_cleanup.ps1` | Textversion (`PS5_Cleanup.bat`) |
+| `Quellcode/Kern.cs`, `Suche.cs`, `Ausfuehren.cs` | Schutzliste, Suche, Löschen |
+| `Quellcode/Ftp.cs`, `Sitzung.cs` | FTP-Verbindung zur PS5 |
+| `Quellcode/Fenster.cs`, `Fenster.xaml`, `Programm.cs` | Oberfläche und Start |
+| `Quellcode/Selbsttest.cs`, `UiTest.cs` | Selbsttest (`PS5-Cleanup.exe -SelbstTest`) und Oberflächentest für die Entwicklung |
+| `Quellcode/bauen.cmd` | baut die `.exe` mit dem in Windows enthaltenen Compiler |
 | `Quellcode/ps5info.c` | kleines PS5-Programm: liest Modell und Laufwerks-Status (nur lesend) |
-| `Quellcode/bauen/` | baut die `.exe` (`bauen.ps1`, PS2EXE, Symbol) |
+| `Quellcode/powershell-1.0.3/` | die bisherige PowerShell-Fassung (1.0.3) samt Textversion |
 
 ## Lizenz
 
 MIT – Copyright (c) 2026 da_Chris86, siehe [LICENSE.txt](LICENSE.txt).
-`ps5info` steht unter der GPL-3.0, PS2EXE unter der Ms-LPL – Details ebenfalls in [LICENSE.txt](LICENSE.txt).
+`ps5info` steht unter der GPL-3.0 (und die alte PowerShell-Fassung nutzte PS2EXE, Ms-LPL) – Details ebenfalls in [LICENSE.txt](LICENSE.txt).
 
 ## Danke an
 
@@ -83,16 +86,16 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 > **Beta** – tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares should work but are untested. Please report results as an [issue](../../issues) with model, firmware and `PS5-Cleanup.log`.
 
-**Features:** finds the PS5 on your network and detects model, firmware and disc drive pairing status · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools, M.2 content · *KOMPLETT* (full clean, M.2 asked separately) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports.
+**Features:** finds the PS5 on your network and detects model, firmware and disc drive pairing status · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *KOMPLETT* (full clean, M.2 asked separately) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports.
 
-**Always kept:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset, and no system database is modified.
+**Not touched by the program:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset, and no system database is modified.
 
 **Requirements:** jailbroken PS5 with an FTP server (default port 2121) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
 
 **Usage:** start `PS5-Cleanup.exe` → *PS5 im Netz suchen* (find PS5) → *Verbinden und nachschauen* (connect and scan) → review in test mode, untick *Testmodus*, delete → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*.
 
-**Antivirus:** the `.exe` is a PowerShell script packed with PS2EXE; a few scanners flag such files as false positives. The full source is in this repository – build it yourself with `Quellcode/bauen/bauen.ps1`. [VirusTotal scan of 1.0.3 Beta](https://www.virustotal.com/gui/file/6f33cf6cdf0d62fb9750c3f064d651d5ae5348b62c341934c117199dcc1eecb2): 6/71 generic detections (AhnLab, Antiy, APEX, Bkav, McAfee, Microsoft). The Microsoft hit is a machine-learning verdict ("!ml") typical for PS2EXE-packed scripts; a Windows Defender scan of the file finds nothing. Kaspersky, Avast, BitDefender, ESET, Malwarebytes and Symantec (Norton) report nothing.
+**Antivirus:** since 1.0.4 the program is a native Windows application (C#, .NET Framework 4.8), no longer a packed script. The `.exe` is not code-signed, so a few scanners may still flag it as a false positive. The full source is in this repository – build it yourself with `Quellcode/bauen.cmd` (Windows only, nothing to install).
 
-**License:** MIT (c) 2026 da_Chris86 – `ps5info` is GPL-3.0, PS2EXE is Ms-LPL, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
+**License:** MIT (c) 2026 da_Chris86 – `ps5info` is GPL-3.0, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
 
 **Use at your own risk – deleted data is gone for good.** Unofficial community project, not affiliated with Sony. PlayStation and PS5 are trademarks of Sony Interactive Entertainment Inc.
