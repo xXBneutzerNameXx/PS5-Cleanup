@@ -10,13 +10,13 @@ TWO WAYS
   - Targeted: tick single entries - e.g. when one game or tool causes
     problems, delete only its data, saved data or trophies. Everything
     else stays. Button "Delete selection only".
-  - Complete: everything on the internal SSD at once, like freshly set up
-    (the M.2 is asked separately). Button "COMPLETE".
+  - Full: everything on the internal SSD at once, like freshly set up
+    (the M.2 is asked separately). Button "Full cleanup".
 
 BETA: Tested on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
 Other models and firmwares should work but have not been tested yet.
-Feedback welcome - please include model, firmware and the file
-PS5-Cleanup.log.
+Feedback is easiest with the button "Send Feedback / Compatibility
+Report" - even without deleting anything. Nothing is sent automatically.
 
 
 NEW IN 1.0.5
@@ -40,6 +40,23 @@ NEW IN 1.0.5
   empty or not detected - otherwise licenses and tiles of those games
   could count as leftovers.
 - ps5info.elf rebuilt.
+- New interface: console, disc drive pairing (with status legend) and
+  storage at a glance, colored notes (green = protected, blue = info,
+  yellow = note, red = permanent). Adapts to smaller screens; the log can
+  be collapsed and expanded.
+- The button "COMPLETE - like freshly installed" is now called "Full
+  cleanup". The process and the DELETE confirmation are unchanged.
+- New: "Send Feedback / Compatibility Report" - a voluntary report (model,
+  firmware, disc drive status with raw value, test mode result, error
+  messages). Anything not detected says "Unknown". IP addresses, Windows
+  user name and paths are removed first. You see and can edit the whole
+  text; only "Open on GitHub" opens your browser with a pre-filled issue,
+  and it is only submitted if you submit it there yourself. GitHub issues
+  are public, and you normally need a GitHub account to submit.
+- Separate from that and unchanged: at startup the program asks GitHub
+  once whether a newer version exists. Only the usual connection data is
+  sent, no information about you or your PS5.
+- "Save log": note to check the file for personal data before sharing.
 - New logo.
 
 
@@ -68,7 +85,7 @@ QUICK START
    delete buttons are locked. Nothing is deleted - only the model query
    briefly creates its own file /data/ps5info.txt and removes it again.
 4. To delete, untick "Test mode". Then either
-   "COMPLETE - like freshly installed"  (everything on the internal SSD,
+   "Full cleanup"  (everything on the internal SSD,
    the M.2 is asked separately, type DELETE to confirm)
    or  tick entries and  "Delete selection only".
 5. Afterwards on the PS5: rebuild the database (see IMPORTANT).
@@ -106,7 +123,7 @@ IMPORTANT
   choice is preselected in every question. If a size has not been counted yet, the
   program counts it before the final question - NOTHING is deleted while
   it does. Closing the window or "Cancel" = nothing happens.
-- After COMPLETE you have to set up your jailbreak again.
+- After a full cleanup you have to set up your jailbreak again.
 - If the program reports an error while scanning (e.g. "could not be read
   completely"), nothing is deleted - just connect again. Better to cancel
   than to delete with an incomplete list.
@@ -162,7 +179,7 @@ Sizes
 Trophies
   Section 3 deletes the trophy data on the console; trophies synced with
   PSN come back the next time you start the game, never-synced ones are
-  gone. With COMPLETE, the trophy lists (descriptions) of games that are
+  gone. With a full cleanup, the trophy lists (descriptions) of games that are
   still installed are only deleted if the M.2 is wiped too.
 
 Tile info

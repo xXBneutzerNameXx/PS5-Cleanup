@@ -505,6 +505,20 @@ namespace PS5Cleanup
             }
             return T("Kopplung nicht auslesbar: keine gültige Antwort vom Laufwerks-Treiber.", "Pairing not readable: no valid answer from the disc drive driver.");
         }
+        // NEU 1.0.5: nur für die Farbe der Anzeige - dieselbe Einteilung wie LaufwerkText()
+        public enum KopplungsArt { Bestaetigt, Keine, Unklar, NichtAuslesbar }
+        public KopplungsArt KopplungsStufe()
+        {
+            if (MODELL_TYP == "fat") return KopplungsArt.Keine;
+            if (DDD_STATUS == null) return KopplungsArt.NichtAuslesbar;
+            switch (DDD_STATUS.Value)
+            {
+                case 1: return KopplungsArt.Bestaetigt;
+                case 2: return KopplungsArt.Keine;
+                case 0: case 3: case 4: case 5: case 6: return KopplungsArt.Unklar;
+            }
+            return KopplungsArt.NichtAuslesbar;
+        }
         public string KopplungsText()
         {
             string l = LaufwerkText();

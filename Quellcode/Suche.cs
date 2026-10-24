@@ -426,8 +426,8 @@ namespace PS5Cleanup
                               "\n\nNOTE: No M.2 SSD found. If an M.2 with games is installed but not detected right now: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.");
             else if (M2_OHNE_USER) t += T("\n\nHINWEIS: Die M.2-SSD ist leer oder wird gerade nicht richtig erkannt. Liegen darauf Spiele: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.",
                                          "\n\nNOTE: The M.2 SSD is empty or not detected properly right now. If it holds games: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.");
-            if (USB_SPEICHER) t += T("\n\nHINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf sieht das Programm nicht als installiert - ihre Lizenzen und Kacheln können in der Liste als Reste stehen. Solche Einträge nicht auswählen; KOMPLETT würde sie mit löschen.",
-                                     "\n\nNOTE: A USB drive is connected as extended storage. The program does not see games on it as installed - their licenses and tiles may show up in the list as leftovers. Do not select those entries; COMPLETE would delete them too.");
+            if (USB_SPEICHER) t += T("\n\nHINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf sieht das Programm nicht als installiert - ihre Lizenzen und Kacheln können in der Liste als Reste stehen. Solche Einträge nicht auswählen; die vollständige Bereinigung würde sie mit löschen.",
+                                     "\n\nNOTE: A USB drive is connected as extended storage. The program does not see games on it as installed - their licenses and tiles may show up in the list as leftovers. Do not select those entries; a full cleanup would delete them too.");
             return t;
         }
 

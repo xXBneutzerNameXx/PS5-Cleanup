@@ -10,12 +10,14 @@ ZWEI WEGE
   - Gezielt: einzelne Einträge anhaken - z. B. wenn ein Spiel oder Tool
     Probleme macht, nur dessen Daten, Spielstand oder Trophäen löschen.
     Der Rest bleibt. Knopf "Nur Auswahl löschen".
-  - Komplett: alles auf der internen SSD auf einmal, wie frisch
-    eingerichtet (die M.2 wird extra gefragt). Knopf "KOMPLETT".
+  - Vollständig: alles auf der internen SSD auf einmal, wie frisch
+    eingerichtet (die M.2 wird extra gefragt). Knopf "Vollständige
+    Bereinigung".
 
 BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
-Rückmeldungen bitte mit Modell, Firmware und der Datei PS5-Cleanup.log.
+Rückmeldungen am einfachsten über den Knopf "Feedback / Kompatibilität
+melden" - auch ohne etwas zu löschen. Es wird nichts automatisch gesendet.
 
 
 NEU IN 1.0.5
@@ -39,6 +41,25 @@ NEU IN 1.0.5
   oder die M.2 leer bzw. nicht erkannt wird - sonst könnten Lizenzen und
   Kacheln dieser Spiele als Reste gelten.
 - ps5info.elf neu gebaut.
+- Neue Oberfläche: Konsole, Laufwerks-Kopplung (mit Statuslegende) und
+  Speicher auf einen Blick, farbige Hinweise (grün = geschützt, blau =
+  Info, gelb = Hinweis, rot = endgültig). Passt sich kleineren Bildschirmen
+  an; das Protokoll lässt sich ein- und ausklappen.
+- Der Knopf "KOMPLETT - wie neu installiert" heißt jetzt "Vollständige
+  Bereinigung". Ablauf und Bestätigung mit LÖSCHEN sind unverändert.
+- Neu: "Feedback / Kompatibilität melden" - ein freiwilliger Bericht
+  (Modell, Firmware, Laufwerksstatus mit Rückgabewert, Ergebnis des
+  Testmodus, Fehlermeldungen). Nicht Erkanntes heißt "Unbekannt". IP-
+  Adressen, Windows-Benutzername und Pfade werden vorher entfernt. Du
+  siehst und änderst den ganzen Text; erst "Auf GitHub öffnen" öffnet
+  deinen Browser mit einem vorausgefüllten Issue, abgeschickt wird nur,
+  wenn du es dort selbst absendest. GitHub-Issues sind öffentlich, zum
+  Absenden brauchst du normalerweise ein GitHub-Konto.
+- Davon getrennt und unverändert: Beim Start fragt das Programm einmal bei
+  GitHub nach, ob es eine neuere Version gibt. Dabei gehen nur die
+  üblichen Verbindungsdaten raus, keine Angaben zu dir oder deiner PS5.
+- "Protokoll speichern": Hinweis, die Datei vor dem Teilen auf
+  persönliche Daten zu prüfen.
 - Neues Logo.
 
 
@@ -68,7 +89,7 @@ SCHNELLSTART
    Modellabfrage legt kurz ihre eigene Datei /data/ps5info.txt an und
    entfernt sie wieder.
 4. Zum Löschen den Haken "Testmodus" entfernen. Dann entweder
-   "KOMPLETT - wie neu installiert"  (alles auf der internen SSD, die M.2
+   "Vollständige Bereinigung"  (alles auf der internen SSD, die M.2
    wird extra gefragt, zum Bestätigen LÖSCHEN eintippen)
    oder  Häkchen setzen und  "Nur Auswahl löschen".
 5. Danach an der PS5: Datenbank neu erstellen (siehe WICHTIG).
@@ -106,7 +127,8 @@ WICHTIG
   Rückfragen ist die sichere Wahl vorausgewählt. Ist eine Größe noch nicht
   gezählt, zählt das Programm sie vor der Abschlussfrage nach - dabei wird
   noch NICHTS gelöscht. Fenster zu oder "Abbrechen" = nichts passiert.
-- Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
+- Nach der vollständigen Bereinigung musst du deinen Jailbreak neu
+  einrichten.
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
   verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
@@ -166,7 +188,8 @@ Trophäen
   Bereich 3 löscht den Trophäen-Stand auf der Konsole; mit dem PSN
   abgeglichene Trophäen kommen beim nächsten Spielstart zurück, nie
   abgeglichene sind weg. Die Trophäen-Listen noch installierter Spiele
-  (Beschreibungen) werden bei KOMPLETT nur mitgelöscht, wenn auch die M.2
+  (Beschreibungen) werden bei der vollständigen Bereinigung nur
+  mitgelöscht, wenn auch die M.2
   geleert wird.
 
 Kachel-Infos

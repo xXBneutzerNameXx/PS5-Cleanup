@@ -100,12 +100,13 @@ namespace PS5Cleanup
         [STAThread]
         public static int Main(string[] args)
         {
-            bool selbstTest = false; string bild = ""; int uiPort = 0; string uiOrdner = ""; string sprache = "";
+            bool selbstTest = false; string bild = ""; int uiPort = 0; string uiOrdner = ""; string sprache = ""; string fenster = "";
             for (int i = 0; i < args.Length; i++)
             {
                 if (string.Equals(args[i], "-SelbstTest", StringComparison.OrdinalIgnoreCase)) selbstTest = true;
                 else if (string.Equals(args[i], "-Bild", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) bild = args[++i];
                 else if (string.Equals(args[i], "-Sprache", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) sprache = args[++i].ToLowerInvariant();
+                else if (string.Equals(args[i], "-Fenster", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) fenster = args[++i];   // nur Selbsttest: Fenstergröße BxH
                 else if (string.Equals(args[i], "-UiTest", StringComparison.OrdinalIgnoreCase) && i + 2 < args.Length) { uiPort = int.Parse(args[++i]); uiOrdner = args[++i]; }
             }
             // Sprache: Selbsttest/Oberflächentest auf Deutsch (außer -Sprache en), sonst gespeicherte Wahl bzw. Windows-Sprache
@@ -122,7 +123,12 @@ namespace PS5Cleanup
                 try { Protokoll.Zeile(Sp.T("FEHLER (Oberfläche): ", "ERROR (window): ") + e.Exception); o.Log(Sp.T("FEHLER: ", "ERROR: ") + e.Exception.Message); } catch { }
             };
             app.MainWindow = o.W;
-            if (selbstTest) { Selbsttest.Laufen(o, bild); app.Run(o.W); return 0; }
+            if (selbstTest)
+            {
+                var fm = System.Text.RegularExpressions.Regex.Match(fenster, "^(\\d+)x(\\d+)$");
+                if (fm.Success) { o.W.Width = int.Parse(fm.Groups[1].Value); o.W.Height = int.Parse(fm.Groups[2].Value); }
+                Selbsttest.Laufen(o, bild); app.Run(o.W); return 0;
+            }
 #if UITEST
             if (uiPort > 0) { UiTest.Laufen(o, uiPort, uiOrdner); app.Run(o.W); return 0; }
 #endif

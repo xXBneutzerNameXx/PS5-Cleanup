@@ -67,10 +67,12 @@ namespace PS5Cleanup
                 {
                     var tbInfo = (TextBlock)o.W.FindName("tbInfo"); var tbIp = (TextBox)o.W.FindName("tbIp"); var tbLeer = (TextBlock)o.W.FindName("tbLeer");
                     tbLeer.Visibility = Visibility.Collapsed;
-                    K.DDD_STATUS = 1;
-                    tbInfo.Text = T("Modell: ", "Model: ") + "CFI-7021 B01Y" + T("   |   Reihe: ", "   |   Series: ") + "PS5 Pro   |   Firmware: 12.00   |   " + K.LaufwerkText();
+                    K.DDD_STATUS = 1; K.MODELL_TYP = "pro"; K.MODELL_DIGITAL = true;
+                    tbInfo.Text = T("Verbunden mit ", "Connected to ") + "192.168.50.78" + T(" (Port ", " (port ") + "2121).";
                     tbIp.Text = "192.168.50.78";
-                    o.ZeigeBereiche();
+                    o.F_MODELL = "CFI-7021 B01Y"; o.F_REIHE = "PS5 Pro"; o.F_FIRMWARE = "12.00"; o.F_QUELLE = T("automatisch (ps5info)", "automatic (ps5info)"); o.F_PORT = 2121; o.F_SCAN = true; o.F_SCAN_TEST = true;
+                    o.ZeigeKonsole("CFI-7021 B01Y", "PS5 Pro", "12.00", o.F_QUELLE, 2121);
+                    o.VERBUNDEN = true; o.ZeigeBereiche(); o.ZeigeSpeicher();
                     o.Log(T("Selbsttest: Fenster aufgebaut.", "Self-test: window built.")); o.Log(T("Verbunden.", "Connected.")); o.Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
                     var sp = (StackPanel)o.W.FindName("spBereiche");
                     Schreib("Fenster aufgebaut: " + sp.Children.Count + " Bereiche, " + o.Kaestchen.Count + " Einträge");
@@ -185,6 +187,33 @@ namespace PS5Cleanup
                     }
                     fw.Close();
 
+                    // Feedback-Probe (NEU 1.0.5): Bericht mit echten Angaben, ohne IP, FTP-Server "Unbekannt"
+                    bool feedbackOk = false;
+                    {
+                        o.VERBUNDEN = true; o.F_SCAN = true;
+                        var fd = o.FeedbackSammeln();
+                        string fb = Feedback.Bericht(fd);
+                        string unb = T("Unbekannt", "Unknown");
+                        feedbackOk = fb.Contains("CFI-7021 B01Y") && fb.Contains("12.00") && fb.Contains(":** 1\n") && fb.Contains((Sp.EN ? "FTP server:** " : "FTP-Server:** ") + unb)
+                                     && !fb.Contains("192.168") && (Environment.UserName.Length < 3 || fb.IndexOf(Environment.UserName, StringComparison.OrdinalIgnoreCase) < 0);
+                        var ffw = o.FeedbackFenster(fd);
+                        ffw.ShowActivated = false; ffw.WindowStartupLocation = WindowStartupLocation.Manual; ffw.Left = -20000; ffw.Top = -20000;
+                        ffw.Show(); ffw.UpdateLayout();
+                        if (bild != "")
+                        {
+                            var rf = new RenderTargetBitmap((int)ffw.ActualWidth, (int)ffw.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                            rf.Render(ffw);
+                            var ef = new PngBitmapEncoder(); ef.Frames.Add(BitmapFrame.Create(rf));
+                            string fbb = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bild)), "_feedback" + (Sp.EN ? "_en" : "_de") + ".png");
+                            using (var fs = File.Create(fbb)) ef.Save(fs);
+                            Schreib("Bild gespeichert: " + fbb);
+                        }
+                        ffw.Close();
+                        o.VERBUNDEN = false;
+                        Schreib("Feedback-Probe: Modell/Firmware/Rückgabewert drin, FTP-Server unbekannt, keine IP, kein Benutzername -> " + (feedbackOk ? "OK" : "FEHLER"));
+                    }
+                    // Bild vom Hauptfenster im verbundenen Zustand (Testmodus)
+                    o.VERBUNDEN = true; foreach (var f in K.Funde) f.Wahl = false; o.ZeigeBereiche(); o.ZeigeSpeicher(); o.Knoepfe(true);
                     if (bild != "")
                     {
                         o.W.UpdateLayout();
@@ -194,7 +223,7 @@ namespace PS5Cleanup
                         using (var fs = File.Create(bild)) enc.Save(fs);
                         Schreib("Bild gespeichert: " + bild);
                     }
-                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
+                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk && feedbackOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
                 }
                 catch (Exception ex) { Schreib("FEHLER: " + ex.Message + " | " + ex.StackTrace); }
                 o.W.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => o.W.Close()));

@@ -33,6 +33,13 @@ namespace PS5Cleanup
         TextBox tbIp, tbLog; Button btSuchen, btVerbinden, btProtokoll, btHilfe, btAuswahl, btKomplett, btAbbrechen;
         CheckBox cbModell, cbTest; TextBlock tbInfo, tbFuss, tbLeer, tbStand, tbUpdate; StackPanel spBereiche; ProgressBar pbFortschritt;
         Button btSprache;
+        // NEU 1.0.5: neue Oberfläche (Konsole, Kopplung, Speicher, Hinweise, Feedback)
+        Button btFeedback; Expander exProtokoll; WrapPanel wpSeite; ScrollViewer svSeite; Grid gHaupt; ColumnDefinition cdSeite;
+        Border bdKopplung, bdKopplungSymbol, bdTest, bdHinweis, bdBereinigung;
+        TextBlock tbReihe, tbModellNr, tbFirmware, tbErkannt, tbVerbindung, tbKopplungSymbol, tbKopplungTitel, tbKopplungText,
+                  tbIntern, tbM2, tbUsb, tbSm, tbHinweis, tbFundInfo, tbVersion;
+        // für den freiwilligen Feedback-Bericht (wird nur angezeigt, nie automatisch gesendet)
+        public string F_MODELL = "", F_REIHE = "", F_QUELLE = "", F_FIRMWARE = ""; public int F_PORT; public bool F_SCAN, F_SCAN_TEST, F_GELOESCHT;
         static string T(string de, string en) { return Sp.T(de, en); }
 
         public volatile bool BESCHAEFTIGT;   // eine Arbeit läuft
@@ -64,6 +71,15 @@ namespace PS5Cleanup
             tbUpdate = (TextBlock)W.FindName("tbUpdate");
             spBereiche = (StackPanel)W.FindName("spBereiche"); pbFortschritt = (ProgressBar)W.FindName("pbFortschritt");
             btSprache = (Button)W.FindName("btSprache");
+            btFeedback = (Button)W.FindName("btFeedback"); exProtokoll = (Expander)W.FindName("exProtokoll");
+            wpSeite = (WrapPanel)W.FindName("wpSeite"); svSeite = (ScrollViewer)W.FindName("svSeite"); gHaupt = (Grid)W.FindName("gHaupt"); cdSeite = (ColumnDefinition)W.FindName("cdSeite");
+            bdBereinigung = (Border)W.FindName("bdBereinigung");
+            bdKopplung = (Border)W.FindName("bdKopplung"); bdKopplungSymbol = (Border)W.FindName("bdKopplungSymbol"); bdTest = (Border)W.FindName("bdTest"); bdHinweis = (Border)W.FindName("bdHinweis");
+            Func<string, TextBlock> tb = n => (TextBlock)W.FindName(n);
+            tbReihe = tb("tbReihe"); tbModellNr = tb("tbModellNr"); tbFirmware = tb("tbFirmware"); tbErkannt = tb("tbErkannt"); tbVerbindung = tb("tbVerbindung");
+            tbKopplungSymbol = tb("tbKopplungSymbol"); tbKopplungTitel = tb("tbKopplungTitel"); tbKopplungText = tb("tbKopplungText");
+            tbIntern = tb("tbIntern"); tbM2 = tb("tbM2"); tbUsb = tb("tbUsb"); tbSm = tb("tbSm"); tbHinweis = tb("tbHinweis"); tbFundInfo = tb("tbFundInfo"); tbVersion = tb("tbVersion");
+            tbVersion.Text = Kern.VERSION;
             TexteSetzen();
             try { W.Icon = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.cleanup.ico")); } catch { }
             try { ((Image)W.FindName("imLogo")).Source = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.logo.png")); } catch { }
@@ -81,7 +97,12 @@ namespace PS5Cleanup
             btSprache.Click += delegate { SpracheWechseln(); };
             btProtokoll.Click += delegate { ProtokollSpeichern(); };
             btHilfe.Click += delegate { HilfeOeffnen(); };
-            cbTest.Click += delegate { if (VERBUNDEN) { Knoepfe(true); AktualisiereStand(); } };
+            btFeedback.Click += delegate { FeedbackOeffnen(); };
+            cbTest.Click += delegate { TestHinweis(); if (VERBUNDEN) { Knoepfe(true); AktualisiereStand(); } };
+            KonsoleLeeren();
+            // kleinere Bildschirme: Fenster nie größer als der freie Bildschirm, Layout passt sich an
+            W.SourceInitialized += delegate { FensterGroesse(); };
+            W.SizeChanged += delegate { LayoutAnpassen(); };
             W.Closing += (s, e) =>
             {
                 if (LAEUFT)
@@ -120,9 +141,20 @@ namespace PS5Cleanup
             btAbbrechen.ToolTip = "Stops searching or counting. Nothing is deleted.";
             btProtokoll.Content = "Save log";
             btProtokoll.ToolTip = "Saves the log as a text file - please attach it when reporting problems.";
-            btHilfe.Content = "Help (README)";
+            btHilfe.Content = "Help";
             btAuswahl.Content = "Delete selection only";
-            btKomplett.Content = "COMPLETE - like freshly installed";
+            btKomplett.Content = "Full cleanup";
+            btKomplett.ToolTip = "Everything on the internal SSD (the M.2 is asked separately). A final question follows where you type DELETE.";
+            btFeedback.Content = "Send Feedback / Compatibility Report";
+            btFeedback.ToolTip = "Shows a ready-made report for you to check. Nothing is sent automatically.";
+            btProtokoll.ToolTip = "Saves the log as a text file - please attach it when reporting problems. Check it for personal data before sharing.";
+            Action<string, string> setze = (n, t) => ((TextBlock)W.FindName(n)).Text = t;
+            setze("tbKonsoleKopf", "CONSOLE"); setze("tbLFirmware", "Firmware"); setze("tbLErkannt", "Model detected"); setze("tbLVerbindung", "Connection");
+            setze("tbKopplungKopf", "DISC DRIVE PAIRING"); setze("tbKopplungNie", "Read only. The program never touches the pairing.");
+            setze("tbLegendeKopf", "STATUS LEGEND"); setze("tbLeg1", "Pairing confirmed"); setze("tbLeg2", "No pairing"); setze("tbLeg3", "Not reliably determinable"); setze("tbLeg4", "Not readable / not queried");
+            setze("tbSpeicherKopf", "STORAGE"); setze("tbLIntern", "Internal SSD"); setze("tbLM2", "M.2 SSD"); setze("tbLUsb", "USB storage"); setze("tbLSm", "ShadowMount");
+            setze("tbBereinigungKopf", "Cleanup"); setze("tbProtokollKopf", "Log");
+            setze("tbTestHinweis", "Test mode active: nothing will be deleted - the delete buttons are locked. Untick \"Test mode\" to delete.");
         }
 
         // Sprache umschalten: speichern und das Programm neu starten (nicht während einer Arbeit)
@@ -199,7 +231,7 @@ namespace PS5Cleanup
             UI(() => { MessageBox.Show(W, text, titel, MessageBoxButton.OK, art); });
         }
         const string DLG_KOPF = "<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" " +
-            "SizeToContent=\"Height\" WindowStartupLocation=\"CenterOwner\" Background=\"#1E1F24\" FontFamily=\"Segoe UI\" FontSize=\"13\" ResizeMode=\"NoResize\" ";
+            "SizeToContent=\"Height\" WindowStartupLocation=\"CenterOwner\" Background=\"#1F2127\" FontFamily=\"Segoe UI\" FontSize=\"13\" ResizeMode=\"NoResize\" ";
         static Window Dialog(string xaml) { return (Window)XamlReader.Load(XmlReader.Create(new StringReader(xaml))); }
 
         public string FrageText(string text, string titel)
@@ -213,7 +245,7 @@ namespace PS5Cleanup
                     "<TextBox x:Name=\"te\" Background=\"#16171B\" Foreground=\"#E8E8EA\" BorderBrush=\"#3A3D47\" Padding=\"6,4\" CaretBrush=\"White\" FontSize=\"14\"/>" +
                     "<StackPanel Orientation=\"Horizontal\" HorizontalAlignment=\"Right\" Margin=\"0,12,0,0\">" +
                     "<Button x:Name=\"bAbbr\" Content=\"" + T("Abbrechen", "Cancel") + "\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2A2C33\" BorderBrush=\"#3A3D47\"/>" +
-                    "<Button x:Name=\"bOk\" Content=\"OK\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2F7BFF\" BorderBrush=\"#2F7BFF\" IsDefault=\"True\"/>" +
+                    "<Button x:Name=\"bOk\" Content=\"OK\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" IsDefault=\"True\"/>" +
                     "</StackPanel></StackPanel></Window>");
                 d.Title = titel; if (W.IsVisible) d.Owner = W;
                 ((TextBlock)d.FindName("tx")).Text = text;
@@ -237,7 +269,7 @@ namespace PS5Cleanup
                     "<TextBlock x:Name=\"tx\" Foreground=\"#E8E8EA\" TextWrapping=\"Wrap\" Margin=\"0,0,0,10\"/>" +
                     "<StackPanel Orientation=\"Horizontal\" HorizontalAlignment=\"Right\" Margin=\"0,12,0,0\">" +
                     "<Button x:Name=\"bGef\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#8B2A2A\" BorderBrush=\"#AA3333\"/>" +
-                    "<Button x:Name=\"bSicher\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2F7BFF\" BorderBrush=\"#2F7BFF\" IsDefault=\"True\" IsCancel=\"True\"/>" +
+                    "<Button x:Name=\"bSicher\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" IsDefault=\"True\" IsCancel=\"True\"/>" +
                     "</StackPanel></StackPanel></Window>");
                 d.Title = titel; if (W.IsVisible) d.Owner = W;
                 ((TextBlock)d.FindName("tx")).Text = text;
@@ -278,7 +310,7 @@ namespace PS5Cleanup
                     "<Grid x:Name=\"gSchritte\"><Grid.ColumnDefinitions><ColumnDefinition Width=\"Auto\"/><ColumnDefinition Width=\"*\"/></Grid.ColumnDefinitions></Grid>" +
                     "<TextBlock x:Name=\"tWichtig\" Foreground=\"#FF9F66\" FontWeight=\"SemiBold\" TextWrapping=\"Wrap\" Margin=\"0,8,0,0\"/></StackPanel></Border>" +
                     "<TextBlock x:Name=\"tProt\" Foreground=\"#9A9CA5\" FontSize=\"11.5\" TextWrapping=\"Wrap\" Margin=\"0,14,0,0\"/>" +
-                    "<Button x:Name=\"bOk\" Content=\"OK\" HorizontalAlignment=\"Right\" MinWidth=\"90\" Padding=\"12,6\" Margin=\"0,14,0,0\" Foreground=\"White\" Background=\"#2F7BFF\" BorderBrush=\"#2F7BFF\" IsDefault=\"True\" IsCancel=\"True\"/>" +
+                    "<Button x:Name=\"bOk\" Content=\"OK\" HorizontalAlignment=\"Right\" MinWidth=\"90\" Padding=\"12,6\" Margin=\"0,14,0,0\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" IsDefault=\"True\" IsCancel=\"True\"/>" +
                     "</StackPanel></Window>");
                 d.Title = T("Fertig", "Done");
                 var tk = (TextBlock)d.FindName("tKopf");
@@ -427,10 +459,12 @@ namespace PS5Cleanup
             HintergrundAnhalten();
             // Alte Liste sofort verwerfen - sie gehört evtl. zu einer anderen PS5
             VERBUNDEN = false; K.FUNDE_IP = ""; K.DDD_STATUS = null;
+            F_MODELL = ""; F_REIHE = ""; F_QUELLE = ""; F_FIRMWARE = ""; F_PORT = 0; F_SCAN = false;
             K.Funde = new List<Eintrag>();
             UI(() =>
             {
                 tbInfo.Text = T("Verbinde ...", "Connecting ...");
+                KonsoleLeeren();
                 spBereiche.Children.Clear(); Kaestchen.Clear(); KopfKaestchen.Clear();
                 tbLeer.Visibility = Visibility.Visible; spBereiche.Children.Add(tbLeer);
                 tbLog.Clear();
@@ -448,7 +482,9 @@ namespace PS5Cleanup
             Log(T("Verbunden.", "Connected."));
             string firmware = K.FirmwareLesen();
             string modell = "";
-            if (UI(() => cbModell.IsChecked == true)) { Log(T("Frage das Modell ab ...", "Asking for the model ...")); modell = K.ModellLesen(ip, Programm.Ressource("ps5info.elf")); }
+            bool abfrage = UI(() => cbModell.IsChecked == true);
+            if (abfrage) { Log(T("Frage das Modell ab ...", "Asking for the model ...")); modell = K.ModellLesen(ip, Programm.Ressource("ps5info.elf")); }
+            bool automatisch = modell != "";
             if (modell == "")
             {
                 modell = FrageText(T("Modell konnte nicht automatisch erkannt werden.\nDie Modellnummer steht auf dem Aufkleber der Konsole oder unter Einstellungen > System > Systemsoftware > Konsoleninformationen.\n\nModellnummer (z.B. CFI-7016), leer = überspringen:", "The model could not be detected automatically.\nThe model number is on the console's label or under Settings > System > System Software > Console Information.\n\nModel number (e.g. CFI-7016), empty = skip:"), T("Modell", "Model")) ?? "";
@@ -457,8 +493,11 @@ namespace PS5Cleanup
             K.MODELL_TYP = Kern.ModellTyp(modell);
             K.MODELL_DIGITAL = Kern.ModellDigital(modell);
             string reihe = Kern.ModellReihe(K.MODELL_TYP, K.MODELL_DIGITAL);
+            F_MODELL = modell; F_REIHE = K.MODELL_TYP != "" ? reihe : ""; F_FIRMWARE = firmware; F_PORT = port;
+            F_QUELLE = automatisch ? T("automatisch (ps5info)", "automatic (ps5info)") : modell != "" ? T("von Hand eingegeben", "entered by hand") : abfrage ? T("nicht erkannt", "not detected") : T("Abfrage ausgeschaltet", "query switched off");
+            { string m0 = modell, r0 = F_REIHE, f0 = firmware, q0 = F_QUELLE; int p0 = port; UI(() => ZeigeKonsole(m0, r0, f0, q0, p0)); }
             if (modell == "") modell = T("unbekannt", "unknown");
-            string info = T("Modell: ", "Model: ") + modell + T("   |   Reihe: ", "   |   Series: ") + reihe + "   |   Firmware: " + firmware + "   |   " + K.LaufwerkText();
+            string info = T("Verbunden mit ", "Connected to ") + ip + T(" (Port ", " (port ") + port + ").";
             UI(() => tbInfo.Text = info);
             Log(T("Modell: ", "Model: ") + modell + T("  Reihe: ", "  Series: ") + reihe + "  Firmware: " + firmware);
             Log(T("Laufwerk: ", "Disc drive: ") + K.LaufwerkText());
@@ -476,7 +515,8 @@ namespace PS5Cleanup
                 Log(T("Das betroffene Spiel ist GESPERRT. Lass den Game Compressor erst fertig werden.", "The affected game is LOCKED. Let the Game Compressor finish first."));
             }
             VERBUNDEN = K.FUNDE_IP != "";
-            UI(() => { tbLeer.Visibility = Visibility.Collapsed; ZeigeBereiche(); });
+            F_SCAN = VERBUNDEN; F_SCAN_TEST = Testmodus();
+            UI(() => { tbLeer.Visibility = Visibility.Collapsed; ZeigeBereiche(); ZeigeSpeicher(); });
             if (K.Funde.Count == 0) Log(T("Nichts zu tun - die PS5 ist bereits sauber.", "Nothing to do - the PS5 is already clean."));
             else Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
             { string h = K.SpeicherHinweis(); if (h != "") Log(h.Trim()); }
@@ -706,12 +746,12 @@ namespace PS5Cleanup
         public void KomplettAblauf()
         {
             HintergrundAnhalten();
-            string t = T("KOMPLETT: Auf der internen SSD wird ALLES gelöscht:\n", "COMPLETE: EVERYTHING on the internal SSD will be deleted:\n");
+            string t = T("VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:\n", "FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:\n");
             foreach (var k in new[] { 1, 2, 3, 4, 5, 6 }) t += "   - " + Kern.KatName[k] + ": " + K.AnzahlKomplett(k) + "\n";
             t += T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n - Ein im Browser offline gespeicherter Jailbreak-Zugang kann auch weg sein.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
                    "\nThis means:\n - Saved data without a cloud backup (PS Plus) is gone for good.\n - Trophies never synced with PSN are gone.\n - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.\n - A jailbreak page saved offline in the browser may be gone too.\n\nKept: system software, disc drive pairing, user account, real licenses, Sony system apps.");
             t += K.SpeicherHinweis();
-            if (!FrageWahl(t, T("KOMPLETT", "COMPLETE"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { HintergrundStarten(); return; }
+            if (!FrageWahl(t, T("Vollständige Bereinigung", "Full cleanup"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { HintergrundStarten(); return; }
             bool m2Leeren = false;
             if (K.m2Da && K.Anzahl(7) > 0)
                 m2Leeren = FrageWahl(T("Auf der M.2-SSD liegen ", "The M.2 SSD holds ") + K.Anzahl(7) + T(" Einträge (Spiele, Ordner, Dateien).\n\nM.2 BEHALTEN: Die Spiele bleiben. Nur ihre Kacheln gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nM.2 AUCH LEEREN: Alle Spiele und Dateien auf der M.2 werden endgültig gelöscht.",
@@ -771,7 +811,7 @@ namespace PS5Cleanup
         void LoescheJetzt()
         {
             if (LoescheJetztErsatz != null) { LoescheJetztErsatz(); return; }
-            UI(() => { pbFortschritt.IsIndeterminate = true; btAbbrechen.Visibility = Visibility.Collapsed; });
+            UI(() => { pbFortschritt.IsIndeterminate = true; btAbbrechen.Visibility = Visibility.Collapsed; exProtokoll.IsExpanded = true; });
             Stand(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
             Log("");
             LAEUFT = true;
@@ -819,8 +859,195 @@ namespace PS5Cleanup
                 K.Funde = new List<Eintrag>(); K.FUNDE_IP = "";
             }
             VERBUNDEN = K.FUNDE_IP != "";
-            UI(() => { ZeigeBereiche(); pbFortschritt.Value = 0; });
+            F_GELOESCHT = true;
+            UI(() => { ZeigeBereiche(); ZeigeSpeicher(); pbFortschritt.Value = 0; });
             HintergrundStarten();
+        }
+
+        // ---------------------------------------------------------------
+        // NEU 1.0.5: Anzeige Konsole / Kopplung / Speicher / Hinweise
+        // (nur Anzeige - an Suche, Löschen und Abfragen ändert sich nichts)
+        // ---------------------------------------------------------------
+        static SolidColorBrush Farbe(string hex) { return (SolidColorBrush)new BrushConverter().ConvertFromString(hex); }
+        public void KonsoleLeeren()
+        {
+            tbReihe.Text = "–"; tbModellNr.Text = T("Noch nicht verbunden", "Not connected yet");
+            foreach (var t in new[] { tbFirmware, tbErkannt, tbVerbindung, tbIntern, tbM2, tbUsb, tbSm }) { t.Text = "–"; t.Foreground = (Brush)W.FindResource("Text"); }
+            tbFundInfo.Text = "";
+            bdHinweis.Visibility = Visibility.Collapsed;
+            ZeigeKopplung();
+            TestHinweis();
+        }
+        public void ZeigeKonsole(string modell, string reihe, string firmware, string quelle, int port)
+        {
+            tbReihe.Text = reihe != "" ? reihe : T("Unbekanntes Modell", "Unknown model");
+            tbModellNr.Text = modell != "" ? modell : T("Modellnummer unbekannt", "Model number unknown");
+            tbFirmware.Text = firmware != "" ? firmware : T("unbekannt", "unknown");
+            tbErkannt.Text = quelle;
+            tbVerbindung.Text = "FTP, Port " + port;
+            ZeigeKopplung();
+        }
+        public void ZeigeKopplung()
+        {
+            string t = K.LaufwerkText();
+            int i = t.IndexOf(": ", StringComparison.Ordinal);
+            tbKopplungTitel.Text = i > 0 ? t.Substring(0, i) : t;
+            tbKopplungText.Text = i > 0 ? t.Substring(i + 2) : "";
+            if (K.DDD_STATUS == null && K.MODELL_TYP == "" && !VERBUNDEN && F_PORT == 0) { tbKopplungTitel.Text = T("Nicht abgefragt", "Not queried"); tbKopplungText.Text = T("Erst verbinden.", "Connect first."); }
+            string vg, hg, rand, sym; bool gestrichelt = false;
+            switch (K.KopplungsStufe())
+            {
+                case Kern.KopplungsArt.Bestaetigt: vg = "#8FE0B5"; hg = "#173525"; rand = "#2E7A54"; sym = "\uE73E"; break;   // Haken
+                case Kern.KopplungsArt.Keine: vg = "#C9CCD4"; hg = "#2A2D35"; rand = "#4A4F5C"; sym = "\uE738"; break;        // Strich
+                case Kern.KopplungsArt.Unklar: vg = "#F2C46B"; hg = "#3A2E14"; rand = "#8A6A26"; sym = "\uE9CE"; break;       // Fragezeichen
+                default: vg = "#C9CCD4"; hg = "#22242A"; rand = "#4A4F5C"; sym = "\uE711"; gestrichelt = true; break;        // nicht auslesbar
+            }
+            tbKopplungTitel.Foreground = Farbe(vg); tbKopplungSymbol.Foreground = Farbe(vg); tbKopplungSymbol.Text = sym;
+            bdKopplungSymbol.Background = Farbe(hg); bdKopplungSymbol.BorderBrush = Farbe(rand);
+            bdKopplung.BorderBrush = K.KopplungsStufe() == Kern.KopplungsArt.Bestaetigt ? Farbe("#2B5C45") : K.KopplungsStufe() == Kern.KopplungsArt.Unklar ? Farbe("#5C4A22") : (Brush)W.FindResource("Rand");
+            bdKopplungSymbol.Opacity = gestrichelt ? 0.8 : 1;
+        }
+        public void ZeigeSpeicher()
+        {
+            if (!VERBUNDEN) return;
+            int intern = K.Funde.Count(f => f.Kat >= 1 && f.Kat <= 6);
+            tbIntern.Text = T("durchsucht · ", "scanned · ") + intern + T(" Einträge", " entries");
+            if (!K.m2Da) { tbM2.Text = T("nicht gefunden", "not found"); tbM2.Foreground = (Brush)W.FindResource("Text"); }
+            else if (K.M2_OHNE_USER) { tbM2.Text = T("leer oder nicht richtig erkannt", "empty or not detected properly"); tbM2.Foreground = (Brush)W.FindResource("Gelb"); }
+            else { tbM2.Text = T("erkannt · ", "detected · ") + K.Anzahl(7) + T(" Einträge", " entries"); tbM2.Foreground = Farbe("#8FE0B5"); }
+            tbUsb.Text = K.USB_SPEICHER ? T("angeschlossen (erweiterter Speicher)", "connected (extended storage)") : T("nicht gefunden", "not found");
+            tbUsb.Foreground = K.USB_SPEICHER ? (Brush)W.FindResource("Gelb") : (Brush)W.FindResource("Text");
+            int sm = K.Funde.Count(f => f.Kat == 1 && f.Quelle != "");
+            tbSm.Text = sm > 0 ? sm + T(" Spiel(e) gefunden", " game(s) found") : T("keine Spiele gefunden", "no games found");
+            tbFundInfo.Text = K.Funde.Count + T(" Einträge gefunden · nichts verändert", " entries found · nothing changed");
+            string h = K.SpeicherHinweis().Trim();
+            tbHinweis.Text = h;
+            bdHinweis.Visibility = h != "" ? Visibility.Visible : Visibility.Collapsed;
+        }
+        // grüner Testmodus-Hinweis; in sehr niedrigen Fenstern zeigen ihn der grüne Haken und die Statuszeile
+        public void TestHinweis() { bdTest.Visibility = cbTest.IsChecked == true && kompakt != true ? Visibility.Visible : Visibility.Collapsed; }
+
+        // Fenster nie größer als der freie Bildschirm (z.B. 1366 x 768 mit 125 % Skalierung)
+        void FensterGroesse()
+        {
+            var wa = SystemParameters.WorkArea;
+            if (W.Width > wa.Width - 20) W.Width = Math.Max(W.MinWidth, wa.Width - 20);
+            if (W.Height > wa.Height - 20) W.Height = Math.Max(W.MinHeight, wa.Height - 20);
+            if (W.WindowStartupLocation == WindowStartupLocation.CenterScreen) { W.Left = wa.Left + (wa.Width - W.Width) / 2; W.Top = wa.Top + (wa.Height - W.Height) / 2; }
+            LayoutAnpassen();
+        }
+        // Kleinere Fenster: die linke Spalte wird schmaler (Texte brechen um), niedrige
+        // Fenster klappen das Protokoll ein (lässt sich jederzeit aufklappen), sehr
+        // niedrige zeigen einen kompakten Kopf. Nur Anzeige - keine Funktion fällt weg.
+        bool? niedrig; bool? kompakt;
+        public void LayoutAnpassen()
+        {
+            double b = W.ActualWidth > 0 ? W.ActualWidth : W.Width, h = W.ActualHeight > 0 ? W.ActualHeight : W.Height;
+            double seite = b >= 1150 ? 320 : Math.Max(240, Math.Floor(b * 0.28));
+            if (Math.Abs(cdSeite.Width.Value - seite) > 0.5) cdSeite.Width = new GridLength(seite);
+            wpSeite.ItemWidth = seite - 14;
+            bool n = h < 960;
+            if (niedrig != n) { niedrig = n; exProtokoll.IsExpanded = !n; }
+            bool k = h < 760;
+            if (kompakt != k)
+            {
+                kompakt = k;
+                ((TextBlock)W.FindName("tbKopf")).Visibility = k ? Visibility.Collapsed : Visibility.Visible;
+                tbFuss.Visibility = k ? Visibility.Collapsed : Visibility.Visible;
+                TestHinweis();
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // NEU 1.0.5: freiwilliges Feedback. Hier wird nichts gesendet - der
+        // Bericht wird angezeigt; nur der Knopf "Auf GitHub öffnen" startet den
+        // Browser mit einem vorausgefüllten Issue, abgeschickt wird erst dort.
+        // ---------------------------------------------------------------
+        public FeedbackDaten FeedbackSammeln()
+        {
+            var d = new FeedbackDaten();
+            d.Modell = F_MODELL; d.Reihe = F_REIHE; d.ModellQuelle = F_PORT > 0 ? F_QUELLE : ""; d.Firmware = F_FIRMWARE;
+            d.DddRoh = K.DDD_STATUS;
+            d.LaufwerkText = F_PORT > 0 ? K.LaufwerkText() : "";
+            d.FtpServer = "";            // wird nicht ausgelesen (Entscheidung: Variante B)
+            d.Port = F_PORT;
+            d.ScanGemacht = F_SCAN && VERBUNDEN; d.ScanImTestmodus = F_SCAN_TEST;
+            foreach (var k in Kern.ALLE_KAT) d.AnzahlJeBereich[k] = K.Funde.Count(f => f.Kat == k);
+            if (d.ScanGemacht)
+            {
+                d.M2 = !K.m2Da ? T("nicht gefunden", "not found") : K.M2_OHNE_USER ? T("leer oder nicht richtig erkannt", "empty or not detected properly") : T("erkannt", "detected");
+                d.Usb = K.USB_SPEICHER ? T("angeschlossen (erweiterter Speicher)", "connected (extended storage)") : T("nicht gefunden", "not found");
+                d.ShadowMountSpiele = K.Funde.Count(f => f.Kat == 1 && f.Quelle != "");
+            }
+            d.GeloeschtInSitzung = F_GELOESCHT;
+            d.Fehler = Feedback.FehlerAus(tbLog.Text);
+            d.Windows = WindowsVersion();
+            d.PersoenlicheNamen = new[] { Environment.UserName, Environment.MachineName, Environment.UserDomainName };
+            return d;
+        }
+        // echte Windows-Version (Environment.OSVersion meldet ohne Manifest nur 6.2) - nur lesen
+        static string WindowsVersion()
+        {
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"))
+                {
+                    int build; int.TryParse(Convert.ToString(k.GetValue("CurrentBuildNumber")), out build);
+                    string anzeige = Convert.ToString(k.GetValue("DisplayVersion"));
+                    if (build > 0) return (build >= 22000 ? "Windows 11" : build >= 10240 ? "Windows 10" : "Windows") + (anzeige != "" ? " " + anzeige : "") + " (Build " + build + ")";
+                }
+            }
+            catch { }
+            return "";
+        }
+        public Window FeedbackFenster(FeedbackDaten d)
+        {
+            var w = Dialog(DLG_KOPF.Replace("SizeToContent=\"Height\" ", "").Replace("ResizeMode=\"NoResize\" ", "") + "Width=\"720\" Height=\"640\" MinWidth=\"520\" MinHeight=\"420\"><Grid Margin=\"18\">" +
+                "<Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>" +
+                "<TextBlock x:Name=\"tKopf\" FontSize=\"16\" FontWeight=\"SemiBold\" Foreground=\"#E9EAEE\" TextWrapping=\"Wrap\"/>" +
+                "<Border Grid.Row=\"1\" Background=\"#16233A\" BorderBrush=\"#2C4A7A\" BorderThickness=\"1\" CornerRadius=\"10\" Padding=\"12,8\" Margin=\"0,10,0,10\">" +
+                "<TextBlock x:Name=\"tInfo\" Foreground=\"#C6DAFB\" TextWrapping=\"Wrap\"/></Border>" +
+                "<TextBox x:Name=\"tBericht\" Grid.Row=\"2\" AcceptsReturn=\"True\" TextWrapping=\"Wrap\" VerticalScrollBarVisibility=\"Auto\" FontFamily=\"Consolas\" FontSize=\"12\" Background=\"#15161A\" Foreground=\"#E9EAEE\" BorderBrush=\"#3A3E49\" Padding=\"8,6\" CaretBrush=\"White\"/>" +
+                "<WrapPanel Grid.Row=\"3\" HorizontalAlignment=\"Right\" Margin=\"0,12,0,0\">" +
+                "<Button x:Name=\"bZu\" Padding=\"14,7\" Margin=\"4\" Foreground=\"#E9EAEE\" Background=\"#2A2D35\" BorderBrush=\"#3A3E49\" IsCancel=\"True\"/>" +
+                "<Button x:Name=\"bKopie\" Padding=\"14,7\" Margin=\"4\" Foreground=\"#E9EAEE\" Background=\"#2A2D35\" BorderBrush=\"#3A3E49\"/>" +
+                "<Button x:Name=\"bGithub\" Padding=\"14,7\" Margin=\"4\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" FontWeight=\"SemiBold\"/>" +
+                "</WrapPanel></Grid></Window>");
+            w.Title = T("Feedback / Kompatibilität melden", "Send Feedback / Compatibility Report");
+            ((TextBlock)w.FindName("tKopf")).Text = T("Dein Bericht – bitte prüfen", "Your report – please check it");
+            ((TextBlock)w.FindName("tInfo")).Text = T("Freiwillig: Es wird nichts automatisch gesendet. Erst mit „Auf GitHub öffnen“ öffnet sich dein Browser mit einem vorausgefüllten Issue – dort kannst du alles ändern und entscheidest selbst, ob du es absendest. GitHub-Issues sind öffentlich sichtbar, zum Absenden brauchst du normalerweise ein GitHub-Konto. IP-Adressen, Windows-Benutzername und Pfade sind bereits entfernt. Du kannst den Text hier auch selbst ändern.",
+                "Voluntary: nothing is sent automatically. Only \"Open on GitHub\" opens your browser with a pre-filled issue – there you can change everything and decide yourself whether to submit it. GitHub issues are publicly visible, and you normally need a GitHub account to submit. IP addresses, Windows user name and paths have already been removed. You can also edit the text here.");
+            var tx = (TextBox)w.FindName("tBericht");
+            tx.Text = Feedback.Bericht(d).Replace("\n", "\r\n");
+            string titel = Feedback.Titel(d);
+            var bz = (Button)w.FindName("bZu"); var bk = (Button)w.FindName("bKopie"); var bg = (Button)w.FindName("bGithub");
+            bz.Content = T("Schließen", "Close"); bk.Content = T("Nur kopieren", "Copy only"); bg.Content = T("Auf GitHub öffnen", "Open on GitHub");
+            bz.Click += delegate { w.Close(); };
+            bk.Click += delegate
+            {
+                try { Clipboard.SetText(tx.Text); Log(T("Feedback-Bericht in die Zwischenablage kopiert (nichts gesendet).", "Feedback report copied to the clipboard (nothing sent).")); }
+                catch (Exception ex) { Meldung(T("Kopieren ging nicht: ", "Could not copy: ") + ex.Message, "PS5 Cleanup", MessageBoxImage.Warning); }
+            };
+            bg.Click += delegate
+            {
+                bool gekuerzt;
+                string link = Feedback.IssueLink(titel, tx.Text.Replace("\r\n", "\n"), out gekuerzt);
+                if (gekuerzt) { try { Clipboard.SetText(tx.Text); } catch { } }
+                try
+                {
+                    Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
+                    Log(T("Browser mit dem Feedback-Bericht geöffnet - abgeschickt wird erst, wenn du es auf GitHub selbst absendest.", "Browser opened with the feedback report - it is only submitted when you submit it on GitHub yourself."));
+                    if (gekuerzt) Meldung(T("Der Bericht ist zu lang für den Link. Er liegt in der Zwischenablage - bitte auf GitHub einfügen (Strg+V).", "The report is too long for the link. It is on the clipboard - please paste it on GitHub (Ctrl+V)."), "PS5 Cleanup");
+                }
+                catch (Exception ex) { Meldung(T("Browser konnte nicht geöffnet werden: ", "Could not open the browser: ") + ex.Message + T("\n\nDu kannst den Bericht mit „Nur kopieren“ übernehmen.", "\n\nYou can take the report with \"Copy only\"."), "PS5 Cleanup", MessageBoxImage.Warning); }
+            };
+            return w;
+        }
+        void FeedbackOeffnen()
+        {
+            var w = FeedbackFenster(FeedbackSammeln());
+            if (W.IsVisible) w.Owner = W;
+            w.ShowDialog();
         }
 
         // ---------------------------------------------------------------
@@ -837,6 +1064,7 @@ namespace PS5Cleanup
                 string inhalt = (Protokoll.Datei != "" && File.Exists(Protokoll.Datei)) ? File.ReadAllText(Protokoll.Datei) : tbLog.Text;
                 File.WriteAllText(d.FileName, inhalt, new UTF8Encoding(true));
                 Log(T("Protokoll gespeichert: ", "Log saved: ") + d.FileName);
+                Log(T("Hinweis: Vor dem Teilen bitte auf persönliche Daten prüfen (z. B. IP-Adresse, Benutzername in Pfaden).", "Note: before sharing, please check it for personal data (e.g. IP address, user name in paths)."));
             }
             catch (Exception ex) { Meldung(T("Konnte nicht speichern: ", "Could not save: ") + ex.Message, "PS5 Cleanup", MessageBoxImage.Error); }
         }
