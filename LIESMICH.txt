@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.2 BETA by da_Chris86
+﻿PS5 CLEANUP 1.0.3 BETA by da_Chris86
 ====================================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
@@ -51,6 +51,10 @@ WICHTIG
   Controller per USB anstecken, "Datenbank neu erstellen" wählen.
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
+- Vor der Abschlussfrage zählt das Programm, wie viel gewählt ist. Bei
+  der M.2 kann das bis zu einer Minute dauern - dabei wird noch NICHTS
+  gelöscht. Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst.
+  Fenster zu = abgebrochen.
 - Nach KOMPLETT musst du deinen Jailbreak neu einrichten.
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal

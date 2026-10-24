@@ -214,16 +214,23 @@ $script:Pumpe = { param([int]$ms)
 }
 function Stand([string]$t) { $script:STAND_BASIS = $t; $script:tbStand.Text = $t; Pumpe }
 $script:GroesseStand = { param([int64]$bytes, [int]$dateien)
-    Stand ('Ermittle die Größe ... bisher {0} in {1:N0} Dateien' -f (Groesse-Text $bytes), $dateien) }
+    Stand ('Zähle nur die Größe - es wird noch NICHTS gelöscht ... bisher {0} in {1:N0} Dateien' -f (Groesse-Text $bytes), $dateien) }
+# Wurde das Hauptfenster geschlossen, während noch gezählt wurde, darf danach
+# keine Frage mehr kommen - jede Frage gilt dann als "Abbrechen".
+$script:FENSTER_ZU = $false
+function Fenster-Zu { return ($script:FENSTER_ZU -or -not $W.IsVisible) }
 function Frage-JaNein([string]$text, [string]$titel = 'PS5 Cleanup') {
+    if (Fenster-Zu) { return $false }
     $r = [System.Windows.MessageBox]::Show($W, $text, $titel, 'YesNo', 'Question', 'No')   # Enter = Nein
     return ($r -eq 'Yes')
 }
 function Meldung([string]$text, [string]$titel = 'PS5 Cleanup', [string]$art = 'Information') {
+    if (Fenster-Zu) { return }
     $null = [System.Windows.MessageBox]::Show($W, $text, $titel, 'OK', $art)
 }
 # Eingabefenster (für die LÖSCHEN-Bestätigung und die Modellnummer)
 function Frage-Text([string]$text, [string]$titel) {
+    if (Fenster-Zu) { return $null }
     [xml]$x = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Width="520" SizeToContent="Height" WindowStartupLocation="CenterOwner" Background="#1E1F24" FontFamily="Segoe UI" FontSize="13" ResizeMode="NoResize">
@@ -250,6 +257,7 @@ function Frage-Text([string]$text, [string]$titel) {
 # Entscheidung mit zwei klar beschrifteten Knöpfen. Der sichere Knopf ist
 # vorbelegt (Enter/Esc = sicher), der gefährliche rot und muss angeklickt werden.
 function Frage-Wahl([string]$text, [string]$titel, [string]$sicher, [string]$gefaehrlich) {
+    if (Fenster-Zu) { return $false }
     [xml]$x = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Width="560" SizeToContent="Height" WindowStartupLocation="CenterOwner" Background="#1E1F24" FontFamily="Segoe UI" FontSize="13" ResizeMode="NoResize">
@@ -482,7 +490,9 @@ function Zusammenfassung([bool]$komplett) {
         $c = @($g | Where-Object { $_.Kat -eq $k }).Count
         if ($c -gt 0) { $t += ('   - {0}: {1}' -f $script:KatName[$k], $c) + "`n" }
     }
-    if ($komplett -and @($g | Where-Object { $_.Kat -eq 7 }).Count -eq 0) { $t += "   (M.2-SSD bleibt unverändert)`n" }
+    $m2 = @($g | Where-Object { $_.Kat -eq 7 }).Count
+    if ($komplett -and $m2 -eq 0) { $t += "   (M.2-SSD bleibt unverändert)`n" }
+    if (-not $komplett -and $m2 -gt 0) { $t = "!!! ACHTUNG: $m2 EINTRÄGE DER M.2-SSD SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!`n`n" + $t }
     $gesp = @($script:Funde | Where-Object { $_.Gesperrt }).Count
     if ($gesp -gt 0) { $t += "   Bleibt (Game Compressor arbeitet daran): $gesp`n" }
     $t += "`nDas sind $(Groesse-Satz $script:GROSS).`n"
@@ -491,13 +501,16 @@ function Zusammenfassung([bool]$komplett) {
 }
 $script:GROSS = @{ Bytes = [int64]0; Dateien = 0; Ordner = 0 }
 function Groesse-Ermitteln {
-    Stand 'Ermittle die Größe ...'; Knoepfe $false
+    Log 'Zähle, wie viel gewählt ist (noch wird NICHTS gelöscht - danach kommt die Abschlussfrage) ...'
+    Stand 'Zähle nur die Größe - es wird noch NICHTS gelöscht ...'; Knoepfe $false
     $script:pbFortschritt.IsIndeterminate = $true
     $script:GROSS = Ermittle-Groessen
     $script:pbFortschritt.IsIndeterminate = $false
+    if (Fenster-Zu) { return $false }
     Stand "Ausgewählt: $(Groesse-Satz $script:GROSS)."
     Knoepfe $true
     Log "Ausgewählt: $(Groesse-Satz $script:GROSS)."
+    return $true
 }
 $script:LAEUFT = $false            # solange gelöscht wird, lässt sich das Fenster nicht schließen
 function Lösche-Jetzt([bool]$komplett) {
@@ -546,7 +559,7 @@ function Komplett-Klick {
     Waehle-Komplett $m2Leeren
     Zeige-Haken; Aktualisiere-Stand
     if (-not $m2Leeren -and (Hat-Pakete)) { Log '(Trophäen-Pakete der Spiele bleiben, weil die Spiele auf der M.2 bleiben.)' }
-    Groesse-Ermitteln
+    if (-not (Groesse-Ermitteln)) { Log-Zeile 'Fenster geschlossen - abgebrochen, nichts gelöscht.'; return }
     $warn = if ($m2Leeren) { "!!! ACHTUNG: DIE M.2-SSD WIRD MIT GELEERT - $(Anzahl 7) Einträge, alle Spiele darauf sind danach weg !!!`n`n" } else { "Die M.2-SSD bleibt unangetastet.`n`n" }
     $a = Frage-Text ($warn + (Zusammenfassung $true) + "`n`nZum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):") 'Endgültig löschen?'
     if ($a -cne 'LOESCHEN' -and $a -cne 'LÖSCHEN') { Log 'Abgebrochen - nichts verändert.'; foreach ($f in $script:Funde) { $f.Wahl = $false }; SM-Zuruecksetzen; Zeige-Haken; Aktualisiere-Stand; return }
@@ -560,7 +573,15 @@ function Auswahl-Klick {
         Setze-SM-Spieldateien $mit
     }
     else { SM-Zuruecksetzen }
-    Groesse-Ermitteln
+    $m2 = @(Gewaehlt | Where-Object { $_.Kat -eq 7 })
+    if ($m2.Count -gt 0) {
+        $l = ($m2 | Select-Object -First 15 | ForEach-Object { '   ' + $_.Text }) -join "`n"
+        if ($m2.Count -gt 15) { $l += "`n   ... und $($m2.Count - 15) weitere" }
+        if (-not (Frage-Wahl "ACHTUNG - du hast $($m2.Count) Einträge der M.2-SSD gewählt:`n$l`n`nAlles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.`n`nAls Nächstes wird nur gezählt, wie viel das ist. Danach kommt noch die Abschlussfrage - erst dort wird gelöscht." 'M.2-SSD' 'Abbrechen' 'Weiter (M.2-Einträge löschen)')) {
+            Log 'Abgebrochen - nichts verändert.'; SM-Zuruecksetzen; return
+        }
+    }
+    if (-not (Groesse-Ermitteln)) { Log-Zeile 'Fenster geschlossen - abgebrochen, nichts gelöscht.'; return }
     if (-not (Frage-Wahl (Zusammenfassung $false) 'Endgültig löschen?' 'Abbrechen' 'Jetzt endgültig löschen')) {
         Log 'Abgebrochen - nichts verändert.'; SM-Zuruecksetzen; return
     }
@@ -591,7 +612,11 @@ $W.Add_Closing({ param($s, $e)
     if ($script:LAEUFT) {
         $e.Cancel = $true
         Meldung "Es wird gerade auf der PS5 gelöscht. Bitte warten, bis 'Fertig' erscheint - ein Abbruch mittendrin hinterlässt halb gelöschte Spiele." 'PS5 Cleanup' 'Warning'
+        return
     }
+    # Fenster geht zu (z.B. mitten im Zählen): Zählen sofort beenden, danach keine Fragen mehr
+    $script:FENSTER_ZU = $true
+    $script:GROESSE_DEADLINE = [datetime]::MinValue
 })
 $btProtokoll.Add_Click({ Protokoll-Speichern })
 $cbTest.Add_Click({ if ($script:VERBUNDEN) { Knoepfe $true; Aktualisiere-Stand } })
@@ -711,6 +736,23 @@ if ($SelbstTest) {
             $script:SM_OK = (@($smf.Pfade | Where-Object { $_ -eq '/user/data/x.exfat' }).Count -eq 0 -and $smf.Text -eq "$($smf.TextBasis) - nur Kachel, Spiel bleibt")
             SM-Zuruecksetzen; foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken
             & $schreib "SM-Probe: nach abgebrochenem KOMPLETT 'nur Kacheln' ohne Spieldatei -> $(if ($script:SM_OK) {'OK'} else {'FEHLER'})"
+            # Schließ-Probe: Fenster wird mitten im Zählen geschlossen -> keine Frage,
+            # kein Fehler, kein Löschen. (Zählen und Löschen hier nur nachgestellt.)
+            $altZaehl = ${function:Ermittle-Groessen}; $altLoesch = ${function:Lösche-Jetzt}
+            $script:PROBE_GELOESCHT = $false; $schliessFehler = ''
+            Set-Item function:script:Ermittle-Groessen { $script:FENSTER_ZU = $true; return @{ Bytes = [int64]0; Dateien = 0; Ordner = 0; Gekappt = $false } }
+            Set-Item function:script:Lösche-Jetzt { param($k) $script:PROBE_GELOESCHT = $true }
+            foreach ($f in $script:Funde) { $f.Wahl = ($f.Kat -eq 5) }
+            try { Auswahl-Klick } catch { $schliessFehler = $_.Exception.Message }
+            $fragen = ((Frage-Wahl 'x' 'x' 'a' 'b') -eq $false -and $null -eq (Frage-Text 'x' 'x') -and (Frage-JaNein 'x') -eq $false)
+            Set-Item function:script:Ermittle-Groessen $altZaehl; Set-Item function:script:Lösche-Jetzt $altLoesch
+            $script:FENSTER_ZU = $false
+            # M.2 in der Auswahl -> die Abschlussfrage warnt ganz oben
+            foreach ($f in $script:Funde) { $f.Wahl = ($f.Kat -eq 7) }
+            $m2Warn = ((Zusammenfassung $false) -like '!!! ACHTUNG*M.2*')
+            foreach ($f in $script:Funde) { $f.Wahl = $false }; Zeige-Haken
+            $script:SCHLIESS_OK = (-not $script:PROBE_GELOESCHT -and $schliessFehler -eq '' -and $fragen -and $m2Warn)
+            & $schreib "Schließ-Probe: gelöscht=$($script:PROBE_GELOESCHT), Fehler='$schliessFehler', Fragen sicher=$fragen, M.2-Warnung=$m2Warn -> $(if ($script:SCHLIESS_OK) {'OK'} else {'FEHLER'})"
             & $schreib "ps5info.elf: $(Join-Path $SkriptOrdner 'ps5info.elf') vorhanden=$(Test-Path (Join-Path $SkriptOrdner 'ps5info.elf'))"
             & $schreib "LIESMICH: $(Liesmich-Pfad)"
             if ($Bild -ne '') {
@@ -722,7 +764,7 @@ if ($SelbstTest) {
                 $fs = [System.IO.File]::Create($Bild); $enc.Save($fs); $fs.Close()
                 & $schreib "Bild gespeichert: $Bild"
             }
-            & $schreib $(if ($script:HAKEN_OK -and $script:TEIL_OK -and $script:KNOPF_OK -and $script:SM_OK) { 'SELBSTTEST OK' } else { 'SELBSTTEST FEHLER (siehe Probe oben)' })
+            & $schreib $(if ($script:HAKEN_OK -and $script:TEIL_OK -and $script:KNOPF_OK -and $script:SM_OK -and $script:SCHLIESS_OK) { 'SELBSTTEST OK' } else { 'SELBSTTEST FEHLER (siehe Probe oben)' })
         } catch { & $schreib "FEHLER: $($_.Exception.Message)" }
         $W.Dispatcher.BeginInvoke([Windows.Threading.DispatcherPriority]::Background, [Action]{ $W.Close() }) | Out-Null })
     try { $null = $W.ShowDialog() } catch { & $schreib "FEHLER beim Anzeigen: $($_.Exception.Message)" }
