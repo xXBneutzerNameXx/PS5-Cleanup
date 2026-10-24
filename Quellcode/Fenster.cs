@@ -331,7 +331,7 @@ namespace PS5Cleanup
             if (!ok)
             {
                 Log("FEHLER: PS5 nicht erreichbar.");
-                UI(() => tbInfo.Text = "Nicht erreichbar. Ist die PS5 an, der Jailbreak geladen und läuft der FTP-Server (Port " + port + ")?");
+                UI(() => tbInfo.Text = "Nicht erreichbar. Ist die PS5 an, der Jailbreak geladen und läuft der FTP-Server (Port " + port + ")? " + FTP_TIPP);
                 return;
             }
             K.S.Ftp.Wartet = ms => Warteanzeige(ms);
@@ -355,7 +355,9 @@ namespace PS5Cleanup
             Log("Schaue nach, was drauf ist ...");
             Stand("Schaue nach, was auf der PS5 liegt ...");
             UI(() => pbFortschritt.IsIndeterminate = true);
-            K.SucheFunde();
+            try { K.SucheFunde(); }
+            catch (AbbruchAusnahme) { throw; }
+            catch (Exception ex) { throw new Exception(ex.Message + "\n\n" + FTP_TIPP, ex); }
             UI(() => pbFortschritt.IsIndeterminate = false);
             if (K.KOMPRIMIERUNG.Count > 0)
             {
@@ -719,6 +721,8 @@ namespace PS5Cleanup
         // Hinweis auf neue Versionen (NEU 1.0.4): fragt einmal beim Start bei
         // GitHub nach der neuesten Version - nur anzeigen, nichts herunterladen.
         // ---------------------------------------------------------------
+        // Rückmeldung aus dem Forum: mit anderen FTP-Servern klappt das Lesen nicht zuverlässig
+        public const string FTP_TIPP = "Empfohlen: der FTP-Server ftpsrv von drakmor (getestet mit Version 1.16).";
         public const string RELEASES = "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest";
         public void UpdatePruefen()
         {

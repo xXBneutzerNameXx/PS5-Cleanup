@@ -26,7 +26,8 @@ NEU IN 1.0.4
 
 SCHNELLSTART
 ------------
-1. PS5 einschalten, Jailbreak laden (FTP-Server muss laufen, Port 2121).
+1. PS5 einschalten, Jailbreak laden. Der FTP-Server muss laufen (Port 2121)
+   - empfohlen: ftpsrv von drakmor, getestet mit Version 1.16.
 2. PS5-Cleanup.exe starten - eine Datei, Windows 10/11, nichts installieren.
 3. "PS5 im Netz suchen", dann "Verbinden und nachschauen".
    Das Programm startet im Testmodus: Es zeigt nur an, was weg könnte,
@@ -74,6 +75,8 @@ WICHTIG
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
   verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
+- Klappt Verbinden oder Nachschauen gar nicht: den FTP-Server ftpsrv von
+  drakmor verwenden (getestet mit 1.16).
 - Steckt eine M.2 in der PS5, das Programm meldet aber "keine M.2
   gefunden": nicht löschen, sondern die PS5 neu starten.
 - Benutzung auf eigene Gefahr. Es ist eine Beta - Fehler sind möglich.
