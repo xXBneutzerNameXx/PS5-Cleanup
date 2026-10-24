@@ -270,6 +270,9 @@ namespace PS5Cleanup
                 }
             }
             // Sobald ShadowMount-Kacheln, -Spiele, -Daten oder die M.2 dran sind: erst anhalten.
+            // Merker vom letzten Löschlauf zurücksetzen - sonst meldet die Schlussmeldung
+            // "angehalten", obwohl ShadowMount diesmal gar nicht angehalten wurde.
+            SM_ANGEHALTEN = false;
             int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Kat == 7 || H.Like(f.Text, "*Kachel*") ||
                 f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data")));
             if (smBetroffen > 0)

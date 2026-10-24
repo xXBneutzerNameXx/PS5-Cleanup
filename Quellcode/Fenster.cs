@@ -205,6 +205,67 @@ namespace PS5Cleanup
             });
         }
 
+        // Schlussmeldung nach dem Löschen - eigenes Fenster statt der Windows-Meldung,
+        // damit die Schritte sauber eingerückt sind (umbrechende Zeilen bleiben
+        // unter ihrem Text statt unter der Nummer).
+        public void FertigMeldung(string kopf, bool ok, string frei, string smText, string protokoll)
+        {
+            if (FensterZu()) return;
+            if (TestAntworten != null) { Log("[Test] Meldung: Fertig"); return; }
+            UI(() =>
+            {
+                var d = FertigFenster(kopf, ok, frei, smText, protokoll);
+                if (W.IsVisible) d.Owner = W;
+                d.ShowDialog();
+            });
+        }
+        // baut das Fenster (auch für den Selbsttest, der ein Bild davon speichert)
+        public static Window FertigFenster(string kopf, bool ok, string frei, string smText, string protokoll)
+        {
+                var d = Dialog(DLG_KOPF + "Width=\"580\"><StackPanel Margin=\"20,18,20,16\">" +
+                    "<TextBlock x:Name=\"tKopf\" FontSize=\"16\" FontWeight=\"SemiBold\" TextWrapping=\"Wrap\"/>" +
+                    "<TextBlock x:Name=\"tFrei\" Foreground=\"#E8E8EA\" TextWrapping=\"Wrap\" Margin=\"0,6,0,0\"/>" +
+                    "<TextBlock x:Name=\"tSm\" Foreground=\"#E8E8EA\" TextWrapping=\"Wrap\" Margin=\"0,12,0,0\"/>" +
+                    "<Border Background=\"#26282F\" BorderBrush=\"#3A3D47\" BorderThickness=\"1\" CornerRadius=\"4\" Padding=\"12,10\" Margin=\"0,16,0,0\">" +
+                    "<StackPanel><TextBlock x:Name=\"tSchritt\" Foreground=\"#E8E8EA\" FontWeight=\"SemiBold\" TextWrapping=\"Wrap\" Margin=\"0,0,0,6\"/>" +
+                    "<Grid x:Name=\"gSchritte\"><Grid.ColumnDefinitions><ColumnDefinition Width=\"Auto\"/><ColumnDefinition Width=\"*\"/></Grid.ColumnDefinitions></Grid>" +
+                    "<TextBlock x:Name=\"tWichtig\" Foreground=\"#FF9F66\" FontWeight=\"SemiBold\" TextWrapping=\"Wrap\" Margin=\"0,8,0,0\"/></StackPanel></Border>" +
+                    "<TextBlock x:Name=\"tProt\" Foreground=\"#9A9CA5\" FontSize=\"11.5\" TextWrapping=\"Wrap\" Margin=\"0,14,0,0\"/>" +
+                    "<Button x:Name=\"bOk\" Content=\"OK\" HorizontalAlignment=\"Right\" MinWidth=\"90\" Padding=\"12,6\" Margin=\"0,14,0,0\" Foreground=\"White\" Background=\"#2F7BFF\" BorderBrush=\"#2F7BFF\" IsDefault=\"True\" IsCancel=\"True\"/>" +
+                    "</StackPanel></Window>");
+                d.Title = "Fertig";
+                var tk = (TextBlock)d.FindName("tKopf");
+                tk.Text = kopf;
+                tk.Foreground = new SolidColorBrush(ok ? Color.FromRgb(0x5C, 0xD0, 0x8A) : Color.FromRgb(0xFF, 0x9F, 0x66));
+                ((TextBlock)d.FindName("tFrei")).Text = frei;
+                var ts = (TextBlock)d.FindName("tSm");
+                if (string.IsNullOrEmpty(smText)) ts.Visibility = Visibility.Collapsed; else ts.Text = smText;
+                // Kern.SCHLUSS_TEXT: Überschrift, nummerierte Schritte, "Wichtig: ..."
+                var g = (Grid)d.FindName("gSchritte");
+                var tw = (TextBlock)d.FindName("tWichtig");
+                var tsch = (TextBlock)d.FindName("tSchritt");
+                foreach (string z in Kern.SCHLUSS_TEXT)
+                {
+                    var m = Regex.Match(z, "^(\\d+\\.)\\s*(.*)$");
+                    if (m.Success)
+                    {
+                        g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                        int r = g.RowDefinitions.Count - 1;
+                        var nr = new TextBlock { Text = m.Groups[1].Value, Foreground = new SolidColorBrush(Color.FromRgb(0xE8, 0xE8, 0xEA)), Margin = new Thickness(0, 2, 8, 2) };
+                        var tx = new TextBlock { Text = m.Groups[2].Value, Foreground = new SolidColorBrush(Color.FromRgb(0xE8, 0xE8, 0xEA)), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 2) };
+                        Grid.SetRow(nr, r); Grid.SetColumn(nr, 0); Grid.SetRow(tx, r); Grid.SetColumn(tx, 1);
+                        g.Children.Add(nr); g.Children.Add(tx);
+                    }
+                    else if (z.StartsWith("Wichtig", StringComparison.Ordinal)) tw.Text = z;
+                    else tsch.Text = z;
+                }
+                ((TextBlock)d.FindName("tProt")).Text = "Protokoll: " + protokoll;
+                var b = (Button)d.FindName("bOk");
+                b.Click += delegate { d.Close(); };
+                d.Loaded += delegate { b.Focus(); };
+                return d;
+        }
+
         // ---------------------------------------------------------------
         // Sperren, Knöpfe, Arbeiten starten
         // ---------------------------------------------------------------
@@ -677,9 +738,8 @@ namespace PS5Cleanup
             Log(K.KopplungsText());
             if (erg.SmText != "") Log(erg.SmText);
             foreach (var z in Kern.SCHLUSS_TEXT) Log(z);
-            string smt = erg.SmText != "" ? erg.SmText + "\n\n" : "";
-            Meldung((erg.Fehler == 0 ? "Fertig - alles Ausgewählte ist gelöscht." : "Fertig, aber mit " + erg.Fehler + " Fehler(n) - siehe Protokoll.") + "\n\n" +
-                    Kern.FreigeraeumtText(erg.Frei) + "\n\n" + smt + string.Join("\n", Kern.SCHLUSS_TEXT) + "\n\nProtokoll: " + Protokoll.Datei, "Fertig");
+            FertigMeldung(erg.Fehler == 0 ? "Fertig - alles Ausgewählte ist gelöscht." : "Fertig, aber mit " + erg.Fehler + " Fehler(n) - siehe Protokoll.",
+                          erg.Fehler == 0, Kern.FreigeraeumtText(erg.Frei), erg.SmText, Protokoll.Datei);
             // neu nachschauen, damit die Liste stimmt. Klappt das nicht, keine alte
             // Liste stehen lassen - lieber neu verbinden lassen.
             try { K.Abbruch = false; K.SucheFunde(); }

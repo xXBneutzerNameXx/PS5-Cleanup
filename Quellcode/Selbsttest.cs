@@ -61,7 +61,7 @@ namespace PS5Cleanup
             K.m2Da = true;
             o.W.Loaded += delegate
             {
-                bool hakenOk = false, teilOk = false, knopfOk = false, smOk = false, schliessOk = false, groesseOk = false, updateOk = false;
+                bool hakenOk = false, teilOk = false, knopfOk = false, smOk = false, schliessOk = false, groesseOk = false, updateOk = false, fertigOk = false;
                 try
                 {
                     var tbInfo = (TextBlock)o.W.FindName("tbInfo"); var tbIp = (TextBox)o.W.FindName("tbIp"); var tbLeer = (TextBlock)o.W.FindName("tbLeer");
@@ -162,6 +162,26 @@ namespace PS5Cleanup
                     Schreib("Update-Probe: Versionsvergleich -> " + (updateOk ? "OK" : "FEHLER"));
                     Schreib("ps5info.elf eingebaut: " + (Programm.Ressource("ps5info.elf") != null) + ", LIESMICH eingebaut: " + (Programm.Ressource("LIESMICH.txt") != null));
 
+                    // Fertig-Probe (NEU): Schlussfenster mit sauber eingerückten Schritten
+                    var fw = Oberflaeche.FertigFenster("Fertig - alles Ausgewählte ist gelöscht.", true, "Freigeräumt: 11,4 GB in 528 Dateien und 177 Ordnern",
+                        "ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.", "F:\\Beispiel\\PS5-Cleanup.log");
+                    fw.ShowActivated = false; fw.WindowStartupLocation = WindowStartupLocation.Manual; fw.Left = -20000; fw.Top = -20000;
+                    fw.Show(); fw.UpdateLayout();
+                    var gs = (System.Windows.Controls.Grid)fw.FindName("gSchritte");
+                    var twi = (System.Windows.Controls.TextBlock)fw.FindName("tWichtig");
+                    fertigOk = gs.RowDefinitions.Count == 3 && gs.Children.Count == 6 && twi.Text.StartsWith("Wichtig");
+                    Schreib("Fertig-Probe: Schritte=" + gs.RowDefinitions.Count + ", Wichtig-Zeile=" + twi.Text.StartsWith("Wichtig") + " -> " + (fertigOk ? "OK" : "FEHLER"));
+                    if (bild != "")
+                    {
+                        var rf = new RenderTargetBitmap((int)fw.ActualWidth, (int)fw.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                        rf.Render(fw);
+                        var ef = new PngBitmapEncoder(); ef.Frames.Add(BitmapFrame.Create(rf));
+                        string fb = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bild)), "_fertig.png");
+                        using (var fs = File.Create(fb)) ef.Save(fs);
+                        Schreib("Bild gespeichert: " + fb);
+                    }
+                    fw.Close();
+
                     if (bild != "")
                     {
                         o.W.UpdateLayout();
@@ -171,7 +191,7 @@ namespace PS5Cleanup
                         using (var fs = File.Create(bild)) enc.Save(fs);
                         Schreib("Bild gespeichert: " + bild);
                     }
-                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
+                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
                 }
                 catch (Exception ex) { Schreib("FEHLER: " + ex.Message + " | " + ex.StackTrace); }
                 o.W.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => o.W.Close()));
