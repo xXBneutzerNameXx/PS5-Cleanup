@@ -95,7 +95,7 @@ namespace PS5Cleanup
                 var h = hintergrund; if (h != null) { h.Stopp = true; var f = h.F; if (f != null) f.Schliessen(); }
             };
             // kein QUIT mehr senden - ein Arbeitsfaden könnte die Verbindung gerade benutzen
-            W.Closed += delegate { try { if (K.S != null) K.S.Ftp.Schliessen(); } catch { } Protokoll.Zeile("Ende."); };
+            W.Closed += delegate { try { if (K.S != null) K.S.Ftp.Schliessen(); } catch { } Protokoll.Zeile(T("Ende.", "End.")); };
         }
 
         // Texte des Hauptfensters in der gewählten Sprache (in Fenster.xaml steht Deutsch)
