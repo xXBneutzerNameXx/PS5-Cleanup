@@ -472,12 +472,24 @@ namespace PS5Cleanup
                 tbLog.Clear();
             });
             Log(T("Verbinde mit PS5 (", "Connecting to PS5 (") + ip + ", Port " + port + ") ...");
-            bool ok = false;
-            try { ok = K.Verbinden(ip, port) && K.S.Liste("/user") != null; } catch (AbbruchAusnahme) { throw; } catch { ok = false; }
+            // NEU 1.0.5: zwei getrennte Fälle mit verständlicher Meldung und dem Grund im Protokoll
+            bool ok = false; string grund = "";
+            try { ok = K.Verbinden(ip, port); } catch (AbbruchAusnahme) { throw; } catch (Exception ex) { ok = false; grund = ex.Message; }
             if (!ok)
             {
-                Log(T("FEHLER: PS5 nicht erreichbar.", "ERROR: PS5 not reachable."));
+                if (grund == "") grund = Ftp.VerbindenFehler;
+                Log(T("FEHLER: PS5 nicht erreichbar.", "ERROR: PS5 not reachable.") + (grund != "" ? T("  Grund: ", "  Reason: ") + grund : ""));
                 UI(() => tbInfo.Text = T("Nicht erreichbar. Ist die PS5 an, der Jailbreak geladen und läuft der FTP-Server (Port ", "Not reachable. Is the PS5 on, the jailbreak loaded and the FTP server running (port ") + port + ")? " + FTP_TIPP);
+                return;
+            }
+            List<Datei> user = null;
+            try { user = K.S.Liste("/user"); } catch (AbbruchAusnahme) { throw; } catch (Exception ex) { K.S.Ftp.LetzterFehler = ex.Message; }
+            if (user == null)
+            {
+                string g = K.S.Ftp.LetzterFehler;
+                Log(T("FEHLER: Die PS5 antwortet, aber ihre Ordner lassen sich nicht lesen.", "ERROR: The PS5 answers, but its folders cannot be read.") + (g != "" ? T("  Grund: ", "  Reason: ") + g : ""));
+                UI(() => tbInfo.Text = T("Die PS5 ist erreichbar, aber das FTP-Programm auf der PS5 wird nicht unterstützt oder darf die Ordner nicht lesen. ", "The PS5 is reachable, but the FTP program on the PS5 is not supported or may not read the folders. ") + FTP_TIPP);
+                try { K.Trennen(); } catch { }
                 return;
             }
             K.S.Ftp.Wartet = ms => Warteanzeige(ms);

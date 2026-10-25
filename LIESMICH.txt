@@ -60,6 +60,10 @@ NEU IN 1.0.5
   üblichen Verbindungsdaten raus, keine Angaben zu dir oder deiner PS5.
 - "Protokoll speichern": Hinweis, die Datei vor dem Teilen auf
   persönliche Daten zu prüfen.
+- Verbinden klappt jetzt auch mit FTP-Servern, die eine andere Art der
+  Datenverbindung nutzen (PASV statt EPSV). Klappt es trotzdem nicht, sagt
+  das Programm genauer, woran es liegt - der Grund steht im Protokoll.
+- Während des Löschens zeigt ein roter Hinweis, dass gerade gelöscht wird.
 - Neues Logo.
 
 

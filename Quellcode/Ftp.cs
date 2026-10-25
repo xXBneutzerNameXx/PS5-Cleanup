@@ -47,19 +47,25 @@ namespace PS5Cleanup
         public Action<int> Wartet;
 
         public bool Verbunden { get { return tcp != null; } }
+        // NEU 1.0.5: Grund des letzten Fehlers - nur für eine verständliche Meldung und das Protokoll
+        public static string VerbindenFehler = "";
+        public string LetzterFehler = "";
+        bool epsvGeht = true;            // antwortet der Server nicht auf EPSV, wird PASV benutzt
+        public bool NurPasv { get { return !epsvGeht; } }
 
         public static Ftp Verbinden(string ip, int port)
         {
             var f = new Ftp();
             f.Ip = ip; f.Port = port;
+            VerbindenFehler = "";
             var t = new TcpClient();
             try
             {
                 var ar = t.BeginConnect(ip, port, null, null);
-                if (!ar.AsyncWaitHandle.WaitOne(5000)) { t.Close(); return null; }
+                if (!ar.AsyncWaitHandle.WaitOne(5000)) { t.Close(); VerbindenFehler = Sp.T("keine Antwort auf Port ", "no answer on port ") + port; return null; }
                 t.EndConnect(ar);
             }
-            catch { try { t.Close(); } catch { } return null; }
+            catch (Exception ex) { try { t.Close(); } catch { } VerbindenFehler = ex.Message; return null; }
             t.ReceiveTimeout = 30000;
             f.tcp = t; f.st = t.GetStream();
             try
@@ -67,10 +73,10 @@ namespace PS5Cleanup
                 f.Antwort();                                   // 220 Begrüßung
                 var a = f.Befehl("USER anonymous");
                 if (a.Code == 331) a = f.Befehl("PASS anonymous");
-                if (a.Code >= 400) { f.Schliessen(); return null; }
+                if (a.Code >= 400) { f.Schliessen(); VerbindenFehler = Sp.T("Anmeldung abgelehnt: ", "login rejected: ") + a.Text; return null; }
                 f.Befehl("TYPE I");
             }
-            catch { f.Schliessen(); return null; }
+            catch (Exception ex) { f.Schliessen(); VerbindenFehler = ex.Message; return null; }
             return f;
         }
 
@@ -163,13 +169,28 @@ namespace PS5Cleanup
             return Antwort();
         }
 
+        // Port für die Datenverbindung: zuerst EPSV, sonst PASV (NEU 1.0.5 - manche FTP-Server
+        // kennen nur PASV, so wie es auch der Windows-Explorer benutzt). Verbunden wird immer mit
+        // der IP der PS5, nie mit einer Adresse aus der Antwort.
         int EpsvPort()
         {
-            var a = Befehl("EPSV");
-            if (a.Code != 229) return -1;
-            var m = Regex.Match(a.Text, "\\|\\|\\|(\\d+)\\|");
-            if (!m.Success) return -1;
-            return int.Parse(m.Groups[1].Value);
+            if (epsvGeht)
+            {
+                var a = Befehl("EPSV");
+                var m = Regex.Match(a.Text, "\\|\\|\\|(\\d+)\\|");
+                if (a.Code == 229 && m.Success) return int.Parse(m.Groups[1].Value);
+                epsvGeht = false;
+                LetzterFehler = "EPSV: " + a.Text;
+            }
+            var p = Befehl("PASV");
+            var mp = Regex.Match(p.Text, "\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\)");
+            if (p.Code == 227 && mp.Success)
+            {
+                int port = int.Parse(mp.Groups[1].Value) * 256 + int.Parse(mp.Groups[2].Value);
+                if (port > 0 && port < 65536) return port;
+            }
+            LetzterFehler = (LetzterFehler != "" ? LetzterFehler + " / " : "") + "PASV: " + p.Text;
+            return -1;
         }
 
         // Datenverbindung (EPSV): liefert die Bytes oder null bei Fehler
@@ -184,14 +205,14 @@ namespace PS5Cleanup
             {
                 d.ReceiveTimeout = 30000;
                 a = Befehl(cmd);
-                if (a.Code >= 400) return null;
+                if (a.Code >= 400) { LetzterFehler = cmd + ": " + a.Text; return null; }
                 d.GetStream().CopyTo(ms);
             }
             finally { d.Close(); }
             // vollständig übertragen heißt 226 oder 250 - alles andere gilt als unvollständig.
             // (Meldet der Server das schon als erste Antwort, kommt keine zweite mehr.)
             if (a.Code != 226 && a.Code != 250) a = Antwort();
-            if (a.Code != 226 && a.Code != 250) return null;
+            if (a.Code != 226 && a.Code != 250) { LetzterFehler = cmd + Sp.T(" unvollständig: ", " incomplete: ") + a.Text; return null; }
             return ms.ToArray();
         }
 

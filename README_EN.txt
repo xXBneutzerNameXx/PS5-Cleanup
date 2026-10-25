@@ -57,6 +57,10 @@ NEW IN 1.0.5
   once whether a newer version exists. Only the usual connection data is
   sent, no information about you or your PS5.
 - "Save log": note to check the file for personal data before sharing.
+- Connecting now also works with FTP servers that use a different kind of
+  data connection (PASV instead of EPSV). If it still fails, the program
+  says more precisely why - the reason is written to the log.
+- While deleting, a red note shows that deleting is in progress.
 - New logo.
 
 

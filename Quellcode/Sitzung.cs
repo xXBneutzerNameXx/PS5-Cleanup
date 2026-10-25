@@ -104,6 +104,7 @@ namespace PS5Cleanup
             var a = Ftp.Befehl("CWD " + pfad);
             if (a.Code >= 400)
             {
+                Ftp.LetzterFehler = "CWD " + pfad + ": " + a.Text;
                 if (streng && a.Code != 550) throw new Exception(Sp.T("PS5 meldet beim Lesen von ", "PS5 reports when reading ") + pfad + " : " + a.Text);
                 if (streng && !KeinOrdner(pfad)) throw Verweigert(pfad, a);
                 return null;
