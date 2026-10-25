@@ -213,6 +213,40 @@ namespace PS5Cleanup
                         Schreib("Feedback-Probe: Modell/Firmware/Rückgabewert drin, FTP-Server unbekannt, keine IP, kein Benutzername -> " + (feedbackOk ? "OK" : "FEHLER"));
                         Schreib("Windows erkannt: " + Programm.WindowsVersion());
                     }
+                    // Protokoll-Probe (NEU 1.0.5): "Alles kopieren" nimmt den ganzen Inhalt, eigenes Fenster läuft mit
+                    bool protokollOk = false;
+                    try
+                    {
+                        for (int i = 1; i <= 300; i++) o.Log("Probe-Zeile " + i);
+                        var tbLogP = (TextBox)o.W.FindName("tbLog");
+                        string voll = tbLogP.Text;
+                        string kopie = "";
+                        try { ((Button)o.W.FindName("btLogKopie")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); kopie = Clipboard.GetText(); } catch (Exception ex) { Schreib("  (Zwischenablage: " + ex.Message + ")"); }
+                        bool kopieOk = kopie == voll && kopie.Contains("Probe-Zeile 1\r\n") && kopie.Contains("Probe-Zeile 300");
+                        ((Button)o.W.FindName("btLogFenster")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                        var lf = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x != o.W && x.FindName("tLog") != null);
+                        bool fensterOk = false;
+                        if (lf != null)
+                        {
+                            o.Log("Live-Zeile");
+                            var tl = (TextBox)lf.FindName("tLog");
+                            fensterOk = tl.Text.Contains("Probe-Zeile 1\r\n") && tl.Text.Contains("Live-Zeile");
+                            if (bild != "")
+                            {
+                                lf.UpdateLayout();
+                                var rl = new RenderTargetBitmap((int)lf.ActualWidth, (int)lf.ActualHeight, 96, 96, PixelFormats.Pbgra32); rl.Render(lf);
+                                var el = new PngBitmapEncoder(); el.Frames.Add(BitmapFrame.Create(rl));
+                                using (var fs = File.Create(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bild)), "_protokollfenster" + (Sp.EN ? "_en" : "_de") + ".png"))) el.Save(fs);
+                            }
+                            lf.Close();
+                        }
+                        protokollOk = kopieOk && fensterOk;
+                        Schreib("Protokoll-Probe: Alles kopieren = ganzer Inhalt " + kopieOk + ", eigenes Fenster läuft mit " + fensterOk + " -> " + (protokollOk ? "OK" : "FEHLER"));
+                        tbLogP.Clear();
+                        o.Log(T("Selbsttest: Fenster aufgebaut.", "Self-test: window built.")); o.Log(T("Verbunden.", "Connected.")); o.Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
+                    }
+                    catch (Exception ex) { Schreib("Protokoll-Probe FEHLER: " + ex.Message); }
+                    Schreib("Fenster " + (int)o.W.ActualWidth + "x" + (int)o.W.ActualHeight + ", Vergrößerung " + o.Zoom.ToString("0.00"));
                     // Bild vom Hauptfenster im verbundenen Zustand (Testmodus)
                     o.VERBUNDEN = true; foreach (var f in K.Funde) f.Wahl = false; o.ZeigeBereiche(); o.ZeigeSpeicher(); o.Knoepfe(true);
                     if (bild != "")
@@ -224,7 +258,7 @@ namespace PS5Cleanup
                         using (var fs = File.Create(bild)) enc.Save(fs);
                         Schreib("Bild gespeichert: " + bild);
                     }
-                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk && feedbackOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
+                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk && feedbackOk && protokollOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
                 }
                 catch (Exception ex) { Schreib("FEHLER: " + ex.Message + " | " + ex.StackTrace); }
                 o.W.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => o.W.Close()));

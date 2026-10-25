@@ -42,8 +42,11 @@ NEW IN 1.0.5
 - ps5info.elf rebuilt.
 - New interface: console, disc drive pairing (with status legend) and
   storage at a glance, colored notes (green = protected, blue = info,
-  yellow = note, red = permanent). Adapts to smaller screens; the log can
-  be collapsed and expanded.
+  yellow = note, red = permanent). Adapts to smaller screens and scales
+  up in large or maximized windows. The program remembers window size and
+  position.
+- Log: can be collapsed, its height dragged with the divider, "Copy all"
+  (always the whole content) and "Open in window".
 - The button "COMPLETE - like freshly installed" is now called "Full
   cleanup". The process and the DELETE confirmation are unchanged.
 - New: "Send Feedback / Compatibility Report" - a voluntary report (model,
@@ -60,7 +63,9 @@ NEW IN 1.0.5
 - Connecting now also works with FTP servers that use a different kind of
   data connection (PASV instead of EPSV). If it still fails, the program
   says more precisely why - the reason is written to the log.
-- While deleting, a red note shows that deleting is in progress.
+- While deleting, a red note shows that deleting is in progress, and the
+  progress shows as "entry X of Y". What is already deleted stays deleted -
+  cancelling or an error does not bring anything back.
 - New logo.
 
 

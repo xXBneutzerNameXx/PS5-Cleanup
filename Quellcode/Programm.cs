@@ -142,11 +142,12 @@ namespace PS5Cleanup
             if (selbstTest)
             {
                 var fm = System.Text.RegularExpressions.Regex.Match(fenster, "^(\\d+)x(\\d+)$");
+                o.FensterMerken = false;      // Tests: weder gemerkte Größe laden noch speichern
                 if (fm.Success) { o.W.Width = int.Parse(fm.Groups[1].Value); o.W.Height = int.Parse(fm.Groups[2].Value); }
                 Selbsttest.Laufen(o, bild); app.Run(o.W); return 0;
             }
 #if UITEST
-            if (uiPort > 0) { UiTest.Laufen(o, uiPort, uiOrdner); app.Run(o.W); return 0; }
+            if (uiPort > 0) { o.FensterMerken = false; UiTest.Laufen(o, uiPort, uiOrdner); app.Run(o.W); return 0; }
 #endif
 #if UPDATETEST
             // Testfassung: echte Versionsabfrage bei GitHub, nach 8 s Bild vom Fenster speichern und schließen

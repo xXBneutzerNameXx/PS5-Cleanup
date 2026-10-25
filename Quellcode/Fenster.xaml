@@ -55,8 +55,8 @@
     <Style TargetType="ProgressBar"><Setter Property="Background" Value="#15161A"/><Setter Property="Foreground" Value="{StaticResource BlauKnopf}"/><Setter Property="BorderThickness" Value="0"/></Style>
     <Style x:Key="Karte" TargetType="Border"><Setter Property="Background" Value="{StaticResource Fl}"/><Setter Property="BorderBrush" Value="{StaticResource Rand}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="12"/></Style>
     <Style x:Key="Etikett" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Foreground" Value="{StaticResource Grau}"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
-    <Style x:Key="Feld" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Grau}"/><Setter Property="Margin" Value="0,5,12,5"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
-    <Style x:Key="Wert" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Margin" Value="0,5,0,5"/><Setter Property="TextAlignment" Value="Right"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+    <Style x:Key="Feld" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Grau}"/><Setter Property="Margin" Value="0,3,10,3"/><Setter Property="FontSize" Value="12.5"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+    <Style x:Key="Wert" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Margin" Value="0,3,0,3"/><Setter Property="FontSize" Value="12.5"/><Setter Property="TextAlignment" Value="Right"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
     <!-- dunkle, schmale Scrollleisten (passend zur Oberfläche) -->
     <Style x:Key="Daumen" TargetType="Thumb">
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Border x:Name="b" CornerRadius="4" Background="#4A4F5C" Margin="2"/>
@@ -101,7 +101,7 @@
         </Trigger>
       </Style.Triggers>
     </Style>
-    <Style x:Key="Chip" TargetType="Border"><Setter Property="CornerRadius" Value="6"/><Setter Property="Padding" Value="8,3"/><Setter Property="Margin" Value="0,0,6,6"/></Style>
+    <Style x:Key="Chip" TargetType="Border"><Setter Property="CornerRadius" Value="5"/><Setter Property="Padding" Value="6,2"/><Setter Property="Margin" Value="0,0,4,4"/></Style>
   </Window.Resources>
 
   <Grid x:Name="gAussen" Margin="14">
@@ -109,8 +109,6 @@
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
     <!-- Kopf -->
@@ -166,11 +164,11 @@
         <StackPanel x:Name="wpSeite">
 
           <!-- Konsole -->
-          <Border Style="{StaticResource Karte}" Padding="16,12" Margin="0,0,6,12">
+          <Border Style="{StaticResource Karte}" Padding="14,9" Margin="0,0,6,10">
             <StackPanel>
               <TextBlock x:Name="tbKonsoleKopf" Style="{StaticResource Etikett}" Text="KONSOLE"/>
-              <TextBlock x:Name="tbReihe" FontSize="21" FontWeight="SemiBold" Margin="0,6,0,0" Text="–"/>
-              <TextBlock x:Name="tbModellNr" Foreground="{StaticResource Grau}" Margin="0,0,0,6" Text="Noch nicht verbunden"/>
+              <TextBlock x:Name="tbReihe" FontSize="18" FontWeight="SemiBold" Margin="0,3,0,0" Text="–"/>
+              <TextBlock x:Name="tbModellNr" Foreground="{StaticResource Grau}" FontSize="12.5" Margin="0,0,0,3" Text="Noch nicht verbunden"/>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
@@ -185,35 +183,35 @@
           </Border>
 
           <!-- Laufwerks-Kopplung -->
-          <Border x:Name="bdKopplung" Style="{StaticResource Karte}" Padding="16,12" Margin="0,0,6,12">
+          <Border x:Name="bdKopplung" Style="{StaticResource Karte}" Padding="14,9" Margin="0,0,6,10">
             <StackPanel>
               <TextBlock x:Name="tbKopplungKopf" Style="{StaticResource Etikett}" Text="LAUFWERKS-KOPPLUNG"/>
-              <Grid Margin="0,10,0,6">
+              <Grid Margin="0,7,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Border x:Name="bdKopplungSymbol" Width="40" Height="40" CornerRadius="20" BorderThickness="1" Background="#2A2D35" BorderBrush="#4A4F5C" VerticalAlignment="Top" Margin="0,0,12,0">
-                  <TextBlock x:Name="tbKopplungSymbol" FontFamily="Segoe MDL2 Assets" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#C9CCD4" Text="&#xE9CE;"/>
+                <Border x:Name="bdKopplungSymbol" Width="34" Height="34" CornerRadius="17" BorderThickness="1" Background="#2A2D35" BorderBrush="#4A4F5C" VerticalAlignment="Top" Margin="0,0,12,0">
+                  <TextBlock x:Name="tbKopplungSymbol" FontFamily="Segoe MDL2 Assets" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#C9CCD4" Text="&#xE9CE;"/>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                  <TextBlock x:Name="tbKopplungTitel" FontSize="15" FontWeight="SemiBold" Foreground="#C9CCD4" Text="Nicht abgefragt"/>
+                  <TextBlock x:Name="tbKopplungTitel" FontSize="14" FontWeight="SemiBold" Foreground="#C9CCD4" Text="Nicht abgefragt"/>
                   <TextBlock x:Name="tbKopplungText" FontSize="12" Foreground="{StaticResource Grau}" Text="Erst verbinden."/>
                 </StackPanel>
               </Grid>
-              <TextBlock x:Name="tbKopplungNie" FontSize="12" Foreground="{StaticResource Grau}" Text="Nur gelesen. Das Programm fasst die Kopplung nie an."/>
-              <TextBlock x:Name="tbLegendeKopf" Style="{StaticResource Etikett}" Margin="0,12,0,6" Text="STATUSLEGENDE"/>
+              <TextBlock x:Name="tbKopplungNie" FontSize="11.5" Foreground="{StaticResource Grau}" Text="Nur gelesen. Das Programm fasst die Kopplung nie an."/>
+              <TextBlock x:Name="tbLegendeKopf" Style="{StaticResource Etikett}" Margin="0,8,0,4" Text="STATUSLEGENDE"/>
               <WrapPanel>
-                <Border Style="{StaticResource Chip}" Background="#173525"><TextBlock x:Name="tbLeg1" FontSize="11" Foreground="#8FE0B5" Text="Kopplung bestätigt"/></Border>
-                <Border Style="{StaticResource Chip}" Background="#2A2D35"><TextBlock x:Name="tbLeg2" FontSize="11" Foreground="#C9CCD4" Text="Keine Kopplung"/></Border>
-                <Border Style="{StaticResource Chip}" Background="#3A2E14"><TextBlock x:Name="tbLeg3" FontSize="11" Foreground="{StaticResource Gelb}" Text="Nicht sicher bestimmbar"/></Border>
-                <Border Style="{StaticResource Chip}" Background="#22242A" BorderBrush="#4A4F5C" BorderThickness="1"><TextBlock x:Name="tbLeg4" FontSize="11" Foreground="#C9CCD4" Text="Nicht auslesbar / nicht abgefragt"/></Border>
+                <Border Style="{StaticResource Chip}" Background="#173525"><TextBlock x:Name="tbLeg1" FontSize="10.5" Foreground="#8FE0B5" Text="Kopplung bestätigt"/></Border>
+                <Border Style="{StaticResource Chip}" Background="#2A2D35"><TextBlock x:Name="tbLeg2" FontSize="10.5" Foreground="#C9CCD4" Text="Keine Kopplung"/></Border>
+                <Border Style="{StaticResource Chip}" Background="#3A2E14"><TextBlock x:Name="tbLeg3" FontSize="10.5" Foreground="{StaticResource Gelb}" Text="Nicht sicher bestimmbar"/></Border>
+                <Border Style="{StaticResource Chip}" Background="#22242A" BorderBrush="#4A4F5C" BorderThickness="1"><TextBlock x:Name="tbLeg4" FontSize="10.5" Foreground="#C9CCD4" Text="Nicht auslesbar / nicht abgefragt"/></Border>
               </WrapPanel>
             </StackPanel>
           </Border>
 
           <!-- Speicher -->
-          <Border Style="{StaticResource Karte}" Padding="16,12" Margin="0,0,6,12">
+          <Border Style="{StaticResource Karte}" Padding="14,9" Margin="0,0,6,10">
             <StackPanel>
               <TextBlock x:Name="tbSpeicherKopf" Style="{StaticResource Etikett}" Text="SPEICHER"/>
-              <Grid Margin="0,4,0,0">
+              <Grid Margin="0,2,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                 <TextBlock x:Name="tbLIntern" Style="{StaticResource Feld}" Text="Interne SSD"/>
@@ -230,8 +228,15 @@
         </StackPanel>
       </ScrollViewer>
 
+      <!-- rechts: Bereinigung, Trennlinie, Protokoll (die linke Spalte nutzt die ganze Höhe) -->
+      <Grid x:Name="gRechts" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" MinHeight="180"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition x:Name="rdProtokoll" Height="Auto"/>
+      </Grid.RowDefinitions>
       <!-- Bereinigung -->
-      <Border x:Name="bdBereinigung" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Style="{StaticResource Karte}">
+      <Border x:Name="bdBereinigung" Grid.Row="0" Style="{StaticResource Karte}">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <WrapPanel Margin="18,12,18,8">
@@ -248,7 +253,7 @@
           <Border x:Name="bdLaeuft" Grid.Row="1" Margin="18,0,18,8" Padding="12,8" CornerRadius="10" BorderThickness="1" Background="{StaticResource RotHg}" BorderBrush="{StaticResource RotRand2}" Visibility="Collapsed">
             <DockPanel>
               <TextBlock DockPanel.Dock="Left" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FF8A8A" Margin="0,1,10,0" Text="&#xE7BA;"/>
-              <TextBlock x:Name="tbLaeuft" Foreground="{StaticResource RotText}" Text="Löschen läuft - bitte warten, bis „Fertig“ erscheint. Das Fenster lässt sich bis dahin nicht schließen, damit nichts halb gelöscht zurückbleibt."/>
+              <TextBlock x:Name="tbLaeuft" Foreground="{StaticResource RotText}" Text="Löschen läuft - bitte warten, bis „Fertig“ erscheint. Was schon gelöscht ist, bleibt gelöscht - auch ein Fehler oder Abbruch bringt nichts zurück. Damit kein Spiel nur halb gelöscht zurückbleibt, lässt sich das Fenster bis dahin nicht schließen."/>
             </DockPanel>
           </Border>
           <Border x:Name="bdHinweis" Grid.Row="2" Margin="18,0,18,8" Padding="12,8" CornerRadius="10" BorderThickness="1" Background="{StaticResource GelbHg}" BorderBrush="{StaticResource GelbRand}" Visibility="Collapsed">
@@ -266,31 +271,46 @@
           </Border>
           <Grid Grid.Row="4" Margin="14,8,14,10">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" x:Name="tbStand" VerticalAlignment="Center" Margin="4,0,8,0" Foreground="{StaticResource Grau}"/>
-            <Button Grid.Column="1" x:Name="btAbbrechen" Content="Abbrechen" Visibility="Collapsed" Background="#4A4F5C" BorderBrush="#5A5E6B"
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <ProgressBar Grid.Row="0" Grid.ColumnSpan="4" x:Name="pbFortschritt" Height="6" Margin="4,0,4,8" Minimum="0" Maximum="100"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" x:Name="tbStand" VerticalAlignment="Center" Margin="4,0,8,0" Foreground="{StaticResource Grau}"/>
+            <Button Grid.Row="1" Grid.Column="1" x:Name="btAbbrechen" Content="Abbrechen" Visibility="Collapsed" Background="#4A4F5C" BorderBrush="#5A5E6B"
                     ToolTip="Hält das Suchen oder Zählen an. Gelöscht wird dabei nichts."/>
-            <Button Grid.Column="2" x:Name="btAuswahl" Content="Nur Auswahl löschen" IsEnabled="False"/>
-            <Button Grid.Column="3" x:Name="btKomplett" Content="Vollständige Bereinigung" Background="{StaticResource Rot}" BorderBrush="{StaticResource RotRand}" FontWeight="SemiBold" IsEnabled="False"
+            <Button Grid.Row="1" Grid.Column="2" x:Name="btAuswahl" Content="Nur Auswahl löschen" IsEnabled="False"/>
+            <Button Grid.Row="1" Grid.Column="3" x:Name="btKomplett" Content="Vollständige Bereinigung" Background="{StaticResource Rot}" BorderBrush="{StaticResource RotRand}" FontWeight="SemiBold" IsEnabled="False"
                     ToolTip="Alles auf der internen SSD (die M.2 wird extra gefragt). Danach kommt noch eine Abschlussfrage mit Eingabe von LÖSCHEN."/>
           </Grid>
         </Grid>
       </Border>
+      <!-- NEU 1.0.5: Trennlinie - mit der Maus ziehen, um das Protokoll größer oder kleiner zu machen -->
+      <GridSplitter x:Name="gsProtokoll" Grid.Row="1" Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Center" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                    Background="Transparent" Cursor="SizeNS" ToolTip="Ziehen, um das Protokoll größer oder kleiner zu machen">
+        <GridSplitter.Template>
+          <ControlTemplate TargetType="GridSplitter">
+            <Border Background="Transparent"><Border Height="4" Width="60" CornerRadius="2" Background="#3A3E49" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+          </ControlTemplate>
+        </GridSplitter.Template>
+      </GridSplitter>
+
+      <!-- Protokoll (einklappbar) -->
+      <Border Grid.Row="2" Style="{StaticResource Karte}" Padding="10,4,10,8">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Expander x:Name="exProtokoll" IsExpanded="True" Margin="0,2,0,0">
+            <Expander.Header><TextBlock x:Name="tbProtokollKopf" FontWeight="SemiBold" Text="Protokoll"/></Expander.Header>
+            <TextBox x:Name="tbLog" MinHeight="60" Margin="0,6,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" BorderThickness="0"/>
+          </Expander>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <Button x:Name="btLogKopie" Margin="0,0,6,0" MinHeight="30" Padding="12,4" Content="Alles kopieren" ToolTip="Kopiert das ganze Protokoll dieser Sitzung in die Zwischenablage - nicht nur den sichtbaren Teil."/>
+            <Button x:Name="btLogFenster" Margin="0,0,6,0" MinHeight="30" Padding="12,4" Content="In eigenem Fenster" ToolTip="Öffnet das Protokoll in einem eigenen, großen Fenster (läuft mit)."/>
+            <Button x:Name="btProtokoll" Margin="0" MinHeight="30" Padding="12,4" Content="Protokoll speichern"
+                    ToolTip="Speichert das Protokoll als Textdatei - bei Problemen bitte mitschicken. Vor dem Teilen auf persönliche Daten prüfen."/>
+          </StackPanel>
+          <TextBlock Grid.Row="1" x:Name="tbFuss" HorizontalAlignment="Right" Margin="0,6,4,0" FontSize="11" Foreground="#8C919D" Text="PS5 Cleanup  ·  da_Chris86  ·  Inoffizielles Community-Projekt, keine Verbindung zu Sony"/>
+        </Grid>
+      </Border>
+      </Grid>
     </Grid>
 
-    <ProgressBar Grid.Row="3" x:Name="pbFortschritt" Height="4" Margin="2,10,2,8" Minimum="0" Maximum="100"/>
-
-    <!-- Protokoll (einklappbar) -->
-    <Border Grid.Row="4" Style="{StaticResource Karte}" Padding="10,4,10,8">
-      <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Expander x:Name="exProtokoll" IsExpanded="True" Margin="0,2,0,0">
-          <Expander.Header><TextBlock x:Name="tbProtokollKopf" FontWeight="SemiBold" Text="Protokoll"/></Expander.Header>
-          <TextBox x:Name="tbLog" Height="115" Margin="0,6,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap" BorderThickness="0"/>
-        </Expander>
-        <Button x:Name="btProtokoll" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0" MinHeight="30" Padding="12,4" Content="Protokoll speichern"
-                ToolTip="Speichert das Protokoll als Textdatei - bei Problemen bitte mitschicken. Vor dem Teilen auf persönliche Daten prüfen."/>
-        <TextBlock Grid.Row="1" x:Name="tbFuss" HorizontalAlignment="Right" Margin="0,6,4,0" FontSize="11" Foreground="#8C919D" Text="PS5 Cleanup  ·  da_Chris86  ·  Inoffizielles Community-Projekt, keine Verbindung zu Sony"/>
-      </Grid>
-    </Border>
   </Grid>
 </Window>

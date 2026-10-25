@@ -247,6 +247,8 @@ namespace PS5Cleanup
         // Ausführen (Jailbreak-Tools zuletzt). weiter() wird gefragt, wenn
         // ShadowMount nicht sauber angehalten werden konnte; true = trotzdem löschen.
         // -------------------------------------------------------------
+        // NEU 1.0.5: nur zur Anzeige - meldet vor jedem Eintrag "i von n". Ändert nichts am Ablauf.
+        public Action<int, int, Eintrag> Fortschritt = delegate { };
         public Ergebnis FuehreLoeschung(Func<bool> weiter)
         {
             var erg = new Ergebnis();
@@ -300,12 +302,15 @@ namespace PS5Cleanup
             S.Ftp.Timeout = 7200000;                 // Löschen großer Dateien kann Minuten dauern
             var spielFehlt = H.Tab<int>();
             bool verloren = false;
+            int nr = 0, anzahl = gewaehlt.Count(x => new[] { 1, 2, 3, 4, 5, 7, 6 }.Contains(x.Kat));
             try
             {
                 foreach (var k in new[] { 1, 2, 3, 4, 5, 7, 6 })
                 {
                     foreach (var f in gewaehlt.Where(x => x.Kat == k))
                     {
+                        nr++;
+                        try { Fortschritt(nr, anzahl, f); } catch { }
                         if (verloren) { erg.Fehler++; continue; }
                         // Update/DLC eines Spiels, das selbst nicht gelöscht werden konnte: bleiben
                         if (f.Teil != null && f.Teil != "Spiel" && f.Gruppe != null && spielFehlt.ContainsKey(f.Gruppe))

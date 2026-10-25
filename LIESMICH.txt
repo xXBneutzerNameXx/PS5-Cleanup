@@ -44,7 +44,10 @@ NEU IN 1.0.5
 - Neue Oberfläche: Konsole, Laufwerks-Kopplung (mit Statuslegende) und
   Speicher auf einen Blick, farbige Hinweise (grün = geschützt, blau =
   Info, gelb = Hinweis, rot = endgültig). Passt sich kleineren Bildschirmen
-  an; das Protokoll lässt sich ein- und ausklappen.
+  an und wird bei großen oder maximierten Fenstern mitvergrößert. Das
+  Programm merkt sich Fenstergröße und -position.
+- Protokoll: ein- und ausklappbar, Höhe per Trennlinie verschiebbar,
+  "Alles kopieren" (immer der ganze Inhalt) und "In eigenem Fenster".
 - Der Knopf "KOMPLETT - wie neu installiert" heißt jetzt "Vollständige
   Bereinigung". Ablauf und Bestätigung mit LÖSCHEN sind unverändert.
 - Neu: "Feedback / Kompatibilität melden" - ein freiwilliger Bericht
@@ -63,7 +66,9 @@ NEU IN 1.0.5
 - Verbinden klappt jetzt auch mit FTP-Servern, die eine andere Art der
   Datenverbindung nutzen (PASV statt EPSV). Klappt es trotzdem nicht, sagt
   das Programm genauer, woran es liegt - der Grund steht im Protokoll.
-- Während des Löschens zeigt ein roter Hinweis, dass gerade gelöscht wird.
+- Während des Löschens zeigt ein roter Hinweis, dass gerade gelöscht wird,
+  und der Fortschritt steht als "Eintrag X von Y" da. Was schon gelöscht
+  ist, bleibt gelöscht - auch ein Abbruch oder Fehler bringt nichts zurück.
 - Neues Logo.
 
 

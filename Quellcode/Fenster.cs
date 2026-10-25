@@ -34,6 +34,8 @@ namespace PS5Cleanup
         CheckBox cbModell, cbTest; TextBlock tbInfo, tbFuss, tbLeer, tbStand, tbUpdate; StackPanel spBereiche; ProgressBar pbFortschritt;
         Button btSprache;
         // NEU 1.0.5: neue Oberfläche (Konsole, Kopplung, Speicher, Hinweise, Feedback)
+        Button btLogKopie, btLogFenster; GridSplitter gsProtokoll; RowDefinition rdProtokoll; double protokollHoehe = 220;
+        Window logFenster; TextBox logFensterTb;
         Button btFeedback; Expander exProtokoll; StackPanel wpSeite; ScrollViewer svSeite; Grid gHaupt; ColumnDefinition cdSeite;
         Border bdKopplung, bdKopplungSymbol, bdTest, bdHinweis, bdBereinigung;
         TextBlock tbReihe, tbModellNr, tbFirmware, tbErkannt, tbVerbindung, tbKopplungSymbol, tbKopplungTitel, tbKopplungText,
@@ -72,6 +74,8 @@ namespace PS5Cleanup
             spBereiche = (StackPanel)W.FindName("spBereiche"); pbFortschritt = (ProgressBar)W.FindName("pbFortschritt");
             btSprache = (Button)W.FindName("btSprache");
             btFeedback = (Button)W.FindName("btFeedback"); exProtokoll = (Expander)W.FindName("exProtokoll");
+            btLogKopie = (Button)W.FindName("btLogKopie"); btLogFenster = (Button)W.FindName("btLogFenster");
+            gsProtokoll = (GridSplitter)W.FindName("gsProtokoll"); rdProtokoll = (RowDefinition)W.FindName("rdProtokoll");
             wpSeite = (StackPanel)W.FindName("wpSeite"); svSeite = (ScrollViewer)W.FindName("svSeite"); gHaupt = (Grid)W.FindName("gHaupt"); cdSeite = (ColumnDefinition)W.FindName("cdSeite");
             bdBereinigung = (Border)W.FindName("bdBereinigung");
             bdKopplung = (Border)W.FindName("bdKopplung"); bdKopplungSymbol = (Border)W.FindName("bdKopplungSymbol"); bdTest = (Border)W.FindName("bdTest"); bdHinweis = (Border)W.FindName("bdHinweis");
@@ -98,6 +102,11 @@ namespace PS5Cleanup
             btProtokoll.Click += delegate { ProtokollSpeichern(); };
             btHilfe.Click += delegate { HilfeOeffnen(); };
             btFeedback.Click += delegate { FeedbackOeffnen(); };
+            btLogKopie.Click += delegate { LogKopieren(); };
+            btLogFenster.Click += delegate { LogFensterOeffnen(); };
+            exProtokoll.Expanded += delegate { ProtokollZeile(); };
+            exProtokoll.Collapsed += delegate { ProtokollZeile(); };
+            ProtokollZeile();
             cbTest.Click += delegate { TestHinweis(); if (VERBUNDEN) { Knoepfe(true); AktualisiereStand(); } };
             KonsoleLeeren();
             // kleinere Bildschirme: Fenster nie größer als der freie Bildschirm, Layout passt sich an
@@ -109,9 +118,11 @@ namespace PS5Cleanup
                 {
                     e.Cancel = true;
                     Log(T("Schließen während des Löschens - das Fenster bleibt offen, bis 'Fertig' erscheint.", "Close clicked while deleting - the window stays open until 'Done' appears."));
-                    Meldung(T("Es wird gerade auf der PS5 gelöscht. Bitte warten, bis 'Fertig' erscheint - ein Abbruch mittendrin hinterlässt halb gelöschte Spiele.", "Deleting on the PS5 right now. Please wait until 'Done' appears - stopping halfway leaves half-deleted games."), "PS5 Cleanup", MessageBoxImage.Warning);
+                    Meldung(T("Es wird gerade auf der PS5 gelöscht. Bitte warten, bis 'Fertig' erscheint.\n\nWas schon gelöscht ist, bleibt gelöscht - auch ein Abbruch bringt nichts zurück. Ein Abbruch mittendrin kann aber ein Spiel nur halb gelöscht zurücklassen.", "Deleting on the PS5 right now. Please wait until 'Done' appears.\n\nWhat is already deleted stays deleted - cancelling does not bring anything back. But stopping halfway can leave a game only half deleted."), "PS5 Cleanup", MessageBoxImage.Warning);
                     return;
                 }
+                FensterSpeichern();
+                if (logFenster != null) { try { logFenster.Close(); } catch { } }
                 // Fenster geht zu (z.B. mitten im Zählen): alles anhalten, danach keine Fragen mehr
                 FENSTER_ZU = true;
                 K.Abbruch = true;
@@ -155,7 +166,10 @@ namespace PS5Cleanup
             setze("tbLegendeKopf", "STATUS LEGEND"); setze("tbLeg1", "Pairing confirmed"); setze("tbLeg2", "No pairing"); setze("tbLeg3", "Not reliably determinable"); setze("tbLeg4", "Not readable / not queried");
             setze("tbSpeicherKopf", "STORAGE"); setze("tbLIntern", "Internal SSD"); setze("tbLM2", "M.2 SSD"); setze("tbLUsb", "USB storage"); setze("tbLSm", "ShadowMount");
             setze("tbBereinigungKopf", "Cleanup"); setze("tbProtokollKopf", "Log");
-            setze("tbLaeuft", "Deleting - please wait until \"Done\" appears. The window cannot be closed until then, so nothing is left half-deleted.");
+            btLogKopie.Content = "Copy all"; btLogKopie.ToolTip = "Copies the whole log of this session to the clipboard - not just the visible part.";
+            btLogFenster.Content = "Open in window"; btLogFenster.ToolTip = "Opens the log in a separate, large window (updates live).";
+            gsProtokoll.ToolTip = "Drag to make the log bigger or smaller";
+            setze("tbLaeuft", "Deleting - please wait until \"Done\" appears. What is already deleted stays deleted - an error or cancelling does not bring anything back. So that no game is left only half deleted, the window cannot be closed until then.");
             setze("tbTestHinweis", "Test mode active: nothing will be deleted - the delete buttons are locked. Untick \"Test mode\" to delete.");
         }
 
@@ -191,7 +205,7 @@ namespace PS5Cleanup
         public void Log(string t)
         {
             Protokoll.Zeile(t);
-            Action a = () => { tbLog.AppendText(t + "\r\n"); tbLog.ScrollToEnd(); };
+            Action a = () => { tbLog.AppendText(t + "\r\n"); tbLog.ScrollToEnd(); if (logFensterTb != null) { logFensterTb.AppendText(t + "\r\n"); logFensterTb.ScrollToEnd(); } };
             if (W.Dispatcher.CheckAccess()) a(); else W.Dispatcher.BeginInvoke(a);
         }
         public void Stand(string t)
@@ -832,8 +846,24 @@ namespace PS5Cleanup
         void LoescheJetzt()
         {
             if (LoescheJetztErsatz != null) { LoescheJetztErsatz(); return; }
-            UI(() => { pbFortschritt.IsIndeterminate = true; btAbbrechen.Visibility = Visibility.Collapsed; exProtokoll.IsExpanded = true; });
+            UI(() => { pbFortschritt.IsIndeterminate = false; pbFortschritt.Value = 0; btAbbrechen.Visibility = Visibility.Collapsed; exProtokoll.IsExpanded = true; });
             Stand(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
+            // NEU 1.0.5: "Eintrag i von n" (und GB, wenn die Größen bekannt sind) - nur Anzeige
+            {
+                var gew = K.Gewaehlt();
+                bool groessenDa = gew.All(f => f.HatGroesse);
+                long gesamt = gew.Where(f => f.HatGroesse).Sum(f => f.Bytes), erledigt = 0; Eintrag vorher = null;
+                K.Fortschritt = (i, n, f) =>
+                {
+                    if (vorher != null && vorher.HatGroesse) erledigt += vorher.Bytes;
+                    vorher = f;
+                    string name = f.Text.Length > 70 ? f.Text.Substring(0, 67) + "..." : f.Text;
+                    string t = T("Lösche Eintrag ", "Deleting entry ") + i + T(" von ", " of ") + n + (groessenDa && gesamt > 0 ? "  ·  " + Kern.GroesseText(erledigt) + T(" von ", " of ") + Kern.GroesseText(gesamt) : "") + "  ·  " + name;
+                    double wert = n > 0 ? (groessenDa && gesamt > 0 ? erledigt * 100.0 / gesamt : (i - 1) * 100.0 / n) : 0;
+                    Stand(t);
+                    W.Dispatcher.BeginInvoke(new Action(() => pbFortschritt.Value = wert), System.Windows.Threading.DispatcherPriority.Background);
+                };
+            }
             Log("");
             LAEUFT = true;
             UI(() => { var b = (Border)W.FindName("bdLaeuft"); b.Visibility = Visibility.Visible; });
@@ -854,7 +884,7 @@ namespace PS5Cleanup
                     Log(T("Löschen wurde unterbrochen - ein Teil kann schon gelöscht sein. Bitte das Protokoll prüfen.", "Deleting was interrupted - part may already be deleted. Please check the log."));
                 }
             }
-            finally { LAEUFT = false; UI(() => { var b = (Border)W.FindName("bdLaeuft"); b.Visibility = Visibility.Collapsed; }); }
+            finally { LAEUFT = false; K.Fortschritt = delegate { }; UI(() => { var b = (Border)W.FindName("bdLaeuft"); b.Visibility = Visibility.Collapsed; }); }
             UI(() => pbFortschritt.IsIndeterminate = false);
             Stand("");
             if (erg.Abgebrochen)
@@ -950,26 +980,91 @@ namespace PS5Cleanup
         public void TestHinweis() { bdTest.Visibility = cbTest.IsChecked == true && kompakt != true ? Visibility.Visible : Visibility.Collapsed; }
 
         // Fenster nie größer als der freie Bildschirm (z.B. 1366 x 768 mit 125 % Skalierung)
+        // NEU 1.0.5: Startgröße. Gemerkte Größe/Position (wenn sie noch auf einen Bildschirm passt),
+        // sonst passend zum freien Bildschirm. Werte sind geräteunabhängig - die Windows-Skalierung
+        // rechnet WPF selbst ein.
+        public bool FensterMerken = true;
+        static string FensterDatei { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PS5-Cleanup", "fenster.txt"); } }
         void FensterGroesse()
         {
             var wa = SystemParameters.WorkArea;
-            if (W.Width > wa.Width - 20) W.Width = Math.Max(W.MinWidth, wa.Width - 20);
-            if (W.Height > wa.Height - 20) W.Height = Math.Max(W.MinHeight, wa.Height - 20);
-            if (W.WindowStartupLocation == WindowStartupLocation.CenterScreen) { W.Left = wa.Left + (wa.Width - W.Width) / 2; W.Top = wa.Top + (wa.Height - W.Height) / 2; }
+            bool gemerkt = false, maximiert = false;
+            if (FensterMerken)
+            {
+                try
+                {
+                    var t = File.Exists(FensterDatei) ? File.ReadAllText(FensterDatei).Trim().Split(';') : new string[0];
+                    double l, o, br, ho;
+                    if (t.Length >= 5 && double.TryParse(t[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out l)
+                        && double.TryParse(t[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out o)
+                        && double.TryParse(t[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out br)
+                        && double.TryParse(t[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ho))
+                    {
+                        // nur übernehmen, wenn das Fenster noch sichtbar auf den Bildschirmen liegt
+                        var vs = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+                        var r = new Rect(l, o, Math.Max(br, W.MinWidth), Math.Max(ho, W.MinHeight));
+                        var schnitt = Rect.Intersect(vs, r);
+                        if (!schnitt.IsEmpty && schnitt.Width >= 200 && schnitt.Height >= 150)
+                        {
+                            W.WindowStartupLocation = WindowStartupLocation.Manual;
+                            W.Left = r.Left; W.Top = r.Top; W.Width = r.Width; W.Height = r.Height;
+                            maximiert = t[4] == "1"; gemerkt = true;
+                        }
+                    }
+                }
+                catch { }
+            }
+            if (!gemerkt && FensterMerken)
+            {
+                // erster Start: etwa 80 % des freien Bildschirms, nicht riesig, nie kleiner als nötig
+                W.Width = Math.Max(W.MinWidth, Math.Min(1500, Math.Floor(wa.Width * 0.82)));
+                W.Height = Math.Max(W.MinHeight, Math.Min(1000, Math.Floor(wa.Height * 0.9)));
+            }
+            if (FensterMerken && W.Width > wa.Width) W.Width = Math.Max(W.MinWidth, wa.Width);
+            if (FensterMerken && W.Height > wa.Height) W.Height = Math.Max(W.MinHeight, wa.Height);
+            if (!gemerkt && W.WindowStartupLocation == WindowStartupLocation.CenterScreen) { W.Left = wa.Left + (wa.Width - W.Width) / 2; W.Top = wa.Top + (wa.Height - W.Height) / 2; }
+            if (maximiert) W.WindowState = WindowState.Maximized;
             LayoutAnpassen();
         }
-        // Kleinere Fenster: die linke Spalte wird schmaler (Texte brechen um), niedrige
-        // Fenster klappen das Protokoll ein (lässt sich jederzeit aufklappen), sehr
-        // niedrige zeigen einen kompakten Kopf. Nur Anzeige - keine Funktion fällt weg.
-        bool? niedrig; bool? kompakt;
+        void FensterSpeichern()
+        {
+            if (!FensterMerken) return;
+            try
+            {
+                var r = W.WindowState == WindowState.Normal ? new Rect(W.Left, W.Top, W.ActualWidth, W.ActualHeight) : W.RestoreBounds;
+                if (r.IsEmpty || r.Width < 100) return;
+                Directory.CreateDirectory(Path.GetDirectoryName(FensterDatei));
+                var ic = System.Globalization.CultureInfo.InvariantCulture;
+                File.WriteAllText(FensterDatei, string.Format(ic, "{0:0};{1:0};{2:0};{3:0};{4}", r.Left, r.Top, r.Width, r.Height, W.WindowState == WindowState.Maximized ? "1" : "0"), new UTF8Encoding(false));
+            }
+            catch { }
+        }
+
+        // NEU 1.0.5: Anpassung an die Fenstergröße.
+        // - Große Fenster (z.B. maximiert auf großen Monitoren): alles wird gleichmäßig größer
+        //   (Schrift, Knöpfe, Karten) statt nur leere Flächen - höchstens 1,6-fach.
+        // - Kleinere Fenster: die linke Spalte wird schmaler, niedrige Fenster klappen das
+        //   Protokoll ein, sehr niedrige zeigen einen kompakten Kopf. Keine Funktion fällt weg.
+        bool? niedrig; bool? kompakt; double zoom = 1;
+        public double Zoom { get { return zoom; } }
         public void LayoutAnpassen()
         {
             double b = W.ActualWidth > 0 ? W.ActualWidth : W.Width, h = W.ActualHeight > 0 ? W.ActualHeight : W.Height;
-            double seite = b >= 1150 ? 320 : Math.Max(240, Math.Floor(b * 0.28));
+            double z = Math.Min(b / 1300.0, h / 900.0);
+            z = Math.Max(1.0, Math.Min(1.6, Math.Floor(z * 20) / 20));      // in 5-%-Schritten
+            if (Math.Abs(z - zoom) > 0.001)
+            {
+                zoom = z;
+                ((Grid)W.FindName("gAussen")).LayoutTransform = z > 1.001 ? new ScaleTransform(z, z) : null;
+                // vergrößerte Schrift scharf darstellen
+                TextOptions.SetTextFormattingMode(W, z > 1.001 ? TextFormattingMode.Ideal : TextFormattingMode.Display);
+            }
+            double bl = b / zoom, hl = h / zoom;                              // Platz in "normaler" Größe
+            double seite = bl >= 1150 ? 320 : Math.Max(240, Math.Floor(bl * 0.28));
             if (Math.Abs(cdSeite.Width.Value - seite) > 0.5) cdSeite.Width = new GridLength(seite);
-            bool n = h < 960;
+            bool n = hl < 820;
             if (niedrig != n) { niedrig = n; exProtokoll.IsExpanded = !n; }
-            bool k = h < 760;
+            bool k = hl < 700;
             if (kompakt != k)
             {
                 kompakt = k;
@@ -1054,6 +1149,63 @@ namespace PS5Cleanup
             var w = FeedbackFenster(FeedbackSammeln());
             if (W.IsVisible) w.Owner = W;
             w.ShowDialog();
+        }
+
+        // ---------------------------------------------------------------
+        // NEU 1.0.5: Protokoll - Größe per Trennlinie, alles kopieren, eigenes Fenster
+        // ---------------------------------------------------------------
+        void ProtokollZeile()
+        {
+            if (exProtokoll.IsExpanded)
+            {
+                rdProtokoll.Height = new GridLength(protokollHoehe);
+                rdProtokoll.MinHeight = 110;
+                gsProtokoll.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                if (rdProtokoll.Height.IsAbsolute && rdProtokoll.Height.Value >= 110) protokollHoehe = rdProtokoll.Height.Value;
+                rdProtokoll.MinHeight = 0;
+                rdProtokoll.Height = GridLength.Auto;
+                gsProtokoll.Visibility = Visibility.Collapsed;
+            }
+        }
+        // kopiert immer den ganzen Inhalt (nicht nur den sichtbaren Ausschnitt)
+        public string LogText() { return tbLog.Text; }
+        void LogKopieren()
+        {
+            string t = tbLog.Text;
+            if (t.Trim() == "") { Meldung(T("Das Protokoll ist noch leer.", "The log is still empty."), "PS5 Cleanup"); return; }
+            try
+            {
+                Clipboard.SetText(t);
+                int zeilen = t.Split(new[] { "\r\n" }, StringSplitOptions.None).Length - 1;
+                Stand(T("Protokoll kopiert: ", "Log copied: ") + zeilen + T(" Zeilen in der Zwischenablage. Vor dem Teilen bitte auf persönliche Daten prüfen.", " lines on the clipboard. Please check for personal data before sharing."));
+            }
+            catch (Exception ex) { Meldung(T("Kopieren ging nicht: ", "Could not copy: ") + ex.Message, "PS5 Cleanup", MessageBoxImage.Warning); }
+        }
+        void LogFensterOeffnen()
+        {
+            if (logFenster != null) { logFenster.Activate(); return; }
+            var w = Dialog(DLG_KOPF.Replace("SizeToContent=\"Height\" ", "").Replace("ResizeMode=\"NoResize\" ", "").Replace("WindowStartupLocation=\"CenterOwner\"", "WindowStartupLocation=\"CenterScreen\"") + "Width=\"980\" Height=\"640\" MinWidth=\"480\" MinHeight=\"300\"><Grid Margin=\"14\">" +
+                "<Grid.RowDefinitions><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>" +
+                "<TextBox x:Name=\"tLog\" IsReadOnly=\"True\" FontFamily=\"Consolas\" FontSize=\"12.5\" VerticalScrollBarVisibility=\"Auto\" HorizontalScrollBarVisibility=\"Auto\" TextWrapping=\"NoWrap\" Background=\"#15161A\" Foreground=\"#E9EAEE\" BorderBrush=\"#3A3E49\" Padding=\"8,6\"/>" +
+                "<WrapPanel Grid.Row=\"1\" HorizontalAlignment=\"Right\" Margin=\"0,10,0,0\">" +
+                "<Button x:Name=\"bKopie\" Padding=\"14,7\" Margin=\"4\" Foreground=\"#E9EAEE\" Background=\"#2A2D35\" BorderBrush=\"#3A3E49\"/>" +
+                "<Button x:Name=\"bZu\" Padding=\"14,7\" Margin=\"4\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" IsCancel=\"True\"/>" +
+                "</WrapPanel></Grid></Window>");
+            w.Title = T("PS5 Cleanup - Protokoll", "PS5 Cleanup - log");
+            try { w.Icon = W.Icon; } catch { }
+            var tx = (TextBox)w.FindName("tLog");
+            tx.Text = tbLog.Text; tx.ScrollToEnd();
+            var bk = (Button)w.FindName("bKopie"); var bz = (Button)w.FindName("bZu");
+            bk.Content = T("Alles kopieren", "Copy all"); bz.Content = T("Schließen", "Close");
+            bk.Click += delegate { LogKopieren(); };
+            bz.Click += delegate { w.Close(); };
+            w.Closed += delegate { logFenster = null; logFensterTb = null; };
+            logFenster = w; logFensterTb = tx;
+            if (W.IsVisible) w.Owner = W;
+            w.Show();
         }
 
         // ---------------------------------------------------------------

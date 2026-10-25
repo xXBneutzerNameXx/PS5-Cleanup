@@ -100,13 +100,13 @@ namespace PS5Cleanup
                 o.TestAntworten = new Queue<object>(new object[] { true, true });
                 o.UI(() => o.Starte(o.AuswahlAblauf, false));
                 WarteBis(() => o.LAEUFT, 30);
-                double maxMs = 0; int proben = 0; bool zuVersucht = false; bool rotGesehen = false;
+                double maxMs = 0; int proben = 0; bool zuVersucht = false; bool rotGesehen = false; bool fortschritt = false;
                 while (o.BESCHAEFTIGT)
                 {
                     var t0 = DateTime.Now;
                     o.W.Dispatcher.Invoke(new Action(() => { }), System.Windows.Threading.DispatcherPriority.Input);
                     double ms = (DateTime.Now - t0).TotalMilliseconds; if (ms > maxMs) maxMs = ms; proben++;
-                    if (o.LAEUFT) o.UI(() => { if (Hol<Border>(o, "bdLaeuft").Visibility == Visibility.Visible) rotGesehen = true; });
+                    if (o.LAEUFT) o.UI(() => { if (Hol<Border>(o, "bdLaeuft").Visibility == Visibility.Visible) rotGesehen = true; if (Hol<TextBlock>(o, "tbStand").Text.Contains("Lösche Eintrag 1 von 1")) fortschritt = true; });
                     if (!zuVersucht && proben > 5) { zuVersucht = true; o.W.Dispatcher.Invoke(new Action(() => { if (o.LAEUFT) o.W.Close(); else zuVersucht = false; }), System.Windows.Threading.DispatcherPriority.Input); }
                     Thread.Sleep(30);
                 }
@@ -114,6 +114,7 @@ namespace PS5Cleanup
                 Pruefe(proben > 3 && maxMs < 500, "Fenster bleibt beim Löschen bedienbar (Klicks warten höchstens " + (int)maxMs + " ms)");
                 bool offen = false; o.UI(() => offen = o.W.IsVisible);
                 Pruefe(rotGesehen, "roter Hinweis 'Löschen läuft' war während des Löschens sichtbar");
+                Pruefe(fortschritt, "Fortschritt 'Lösche Eintrag 1 von 1' angezeigt");
                 Pruefe(LogText(o).Contains("Schließen während des Löschens"), "Schließen-Versuch steht im Protokoll");
                 Pruefe(zuVersucht && offen && LogText(o).Contains("[Test] Meldung: PS5 Cleanup"), "Schließen beim Löschen: Fenster bleibt offen, Bitte-warten-Meldung kommt");
                 Pruefe(!Directory.Exists(riesig), "großer Ordner gelöscht");
