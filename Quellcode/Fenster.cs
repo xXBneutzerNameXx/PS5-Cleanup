@@ -751,8 +751,12 @@ namespace PS5Cleanup
                     var cb = new CheckBox();
                     cb.Tag = f;
                     cb.Content = KaestchenInhalt(f);
-                    if (f.Gesperrt) { cb.IsEnabled = false; cb.ToolTip = T("Gesperrt - der Game Compressor arbeitet gerade daran.", "Locked - the Game Compressor is working on it."); }
-                    if (f.SmTipp && !f.Gesperrt) cb.ToolTip = T("ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.", "ShadowMount: if the game is deleted, its tile disappears from the menu too.");
+                    // NEU 1.0.5: der vollständige Name als Infofeld beim Darüberfahren (lange Titel ohne seitliches Scrollen lesbar)
+                    string zusatz = null;
+                    if (f.Gesperrt) { cb.IsEnabled = false; zusatz = T("Gesperrt - der Game Compressor arbeitet gerade daran.", "Locked - the Game Compressor is working on it."); }
+                    if (f.SmTipp && !f.Gesperrt) zusatz = T("ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.", "ShadowMount: if the game is deleted, its tile disappears from the menu too.");
+                    cb.ToolTip = InfoFeld(f, zusatz);
+                    ToolTipService.SetShowOnDisabled(cb, true);
                     cb.Click += (s, e) =>
                     {
                         var c = (CheckBox)s; var ff = (Eintrag)c.Tag;
@@ -847,9 +851,15 @@ namespace PS5Cleanup
                 var f = (Eintrag)cb.Tag;
                 if (f.Teil == null || f.Teil == "Spiel" || f.Gesperrt) continue;
                 cb.IsChecked = f.Wahl;
-                if (basis.ContainsKey(f.Gruppe)) { cb.IsEnabled = false; cb.ToolTip = T("Geht mit dem Spiel weg.", "Goes with the game."); }
-                else { cb.IsEnabled = true; cb.ToolTip = null; }
+                if (basis.ContainsKey(f.Gruppe)) { cb.IsEnabled = false; cb.ToolTip = InfoFeld(f, T("Geht mit dem Spiel weg.", "Goes with the game.")); }
+                else { cb.IsEnabled = true; cb.ToolTip = InfoFeld(f, null); }
             }
+        }
+        // NEU 1.0.5: Infofeld eines Eintrags = vollständiger Name (+ ggf. ein Hinweis)
+        static ToolTip InfoFeld(Eintrag f, string zusatz)
+        {
+            string text = f.Text + (string.IsNullOrEmpty(zusatz) ? "" : "\n\n" + zusatz);
+            return new ToolTip { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 700 } };
         }
 
         // ---------------------------------------------------------------
@@ -1159,16 +1169,18 @@ namespace PS5Cleanup
 
         // NEU 1.0.5: Anpassung an die Fenstergröße.
         // - Große Fenster (z.B. maximiert auf großen Monitoren): alles wird gleichmäßig größer
-        //   (Schrift, Knöpfe, Karten) statt nur leere Flächen - höchstens 1,6-fach.
+        //   (Schrift, Knöpfe, Karten) statt nur leere Flächen - höchstens 1,3-fach
+        //   (Rückmeldung: 1,6 war im Vollbild zu groß, so passen mehr Spiele in die Liste).
         // - Kleinere Fenster: die linke Spalte wird schmaler, niedrige Fenster klappen das
         //   Protokoll ein, sehr niedrige zeigen einen kompakten Kopf. Keine Funktion fällt weg.
+        public const double MAX_ZOOM = 1.3;
         bool? niedrig; bool? kompakt; double zoom = 1;
         public double Zoom { get { return zoom; } }
         public void LayoutAnpassen()
         {
             double b = W.ActualWidth > 0 ? W.ActualWidth : W.Width, h = W.ActualHeight > 0 ? W.ActualHeight : W.Height;
             double z = Math.Min(b / 1300.0, h / 900.0);
-            z = Math.Max(1.0, Math.Min(1.6, Math.Floor(z * 20) / 20));      // in 5-%-Schritten
+            z = Math.Max(1.0, Math.Min(MAX_ZOOM, Math.Floor(z * 20) / 20));      // in 5-%-Schritten
             if (Math.Abs(z - zoom) > 0.001)
             {
                 zoom = z;

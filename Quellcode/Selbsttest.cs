@@ -247,6 +247,14 @@ namespace PS5Cleanup
                     }
                     catch (Exception ex) { Schreib("Protokoll-Probe FEHLER: " + ex.Message); }
                     Schreib("Fenster " + (int)o.W.ActualWidth + "x" + (int)o.W.ActualHeight + ", Vergrößerung " + o.Zoom.ToString("0.00"));
+                    // NEU 1.0.5: jeder Eintrag zeigt seinen vollständigen Namen als Infofeld; Vergrößerung höchstens 1,3
+                    bool tippOk;
+                    {
+                        int mitTipp = o.Kaestchen.Count(c => { var tt = c.ToolTip as System.Windows.Controls.ToolTip; var tb = tt != null ? tt.Content as TextBlock : null; return tb != null && tb.Text.StartsWith(((Eintrag)c.Tag).Text); });
+                        bool zoomOk = o.Zoom <= Oberflaeche.MAX_ZOOM + 0.001;
+                        Schreib("Infofeld-Probe: " + mitTipp + "/" + o.Kaestchen.Count + " Einträge mit vollem Namen, Vergrößerung " + o.Zoom.ToString("0.00") + " <= " + Oberflaeche.MAX_ZOOM.ToString("0.0") + " -> " + (mitTipp == o.Kaestchen.Count && o.Kaestchen.Count > 0 && zoomOk ? "OK" : "FEHLER"));
+                        tippOk = mitTipp == o.Kaestchen.Count && o.Kaestchen.Count > 0 && zoomOk;
+                    }
                     // Bild vom Hauptfenster im verbundenen Zustand (Testmodus)
                     o.VERBUNDEN = true; foreach (var f in K.Funde) f.Wahl = false; o.ZeigeBereiche(); o.ZeigeSpeicher(); o.Knoepfe(true);
                     if (bild != "")
@@ -258,7 +266,7 @@ namespace PS5Cleanup
                         using (var fs = File.Create(bild)) enc.Save(fs);
                         Schreib("Bild gespeichert: " + bild);
                     }
-                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk && feedbackOk && protokollOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
+                    Schreib(hakenOk && teilOk && knopfOk && smOk && schliessOk && groesseOk && updateOk && fertigOk && feedbackOk && protokollOk && tippOk ? "SELBSTTEST OK" : "SELBSTTEST FEHLER (siehe Probe oben)");
                 }
                 catch (Exception ex) { Schreib("FEHLER: " + ex.Message + " | " + ex.StackTrace); }
                 o.W.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => o.W.Close()));

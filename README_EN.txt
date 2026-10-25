@@ -44,7 +44,8 @@ NEW IN 1.0.5
   storage at a glance, colored notes (green = protected, blue = info,
   yellow = note, red = permanent). Adapts to smaller screens and scales
   up in large or maximized windows. The program remembers window size and
-  position.
+  position. Long names in the list are shown in full when you hover over
+  them with the mouse.
 - Log: can be collapsed, its height dragged with the divider, "Copy all"
   (always the whole content) and "Open in window".
 - The button "COMPLETE - like freshly installed" is now called "Full

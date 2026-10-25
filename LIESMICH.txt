@@ -45,7 +45,8 @@ NEU IN 1.0.5
   Speicher auf einen Blick, farbige Hinweise (grün = geschützt, blau =
   Info, gelb = Hinweis, rot = endgültig). Passt sich kleineren Bildschirmen
   an und wird bei großen oder maximierten Fenstern mitvergrößert. Das
-  Programm merkt sich Fenstergröße und -position.
+  Programm merkt sich Fenstergröße und -position. Lange Namen in der Liste
+  erscheinen vollständig, wenn du mit der Maus darüberfährst.
 - Protokoll: ein- und ausklappbar, Höhe per Trennlinie verschiebbar,
   "Alles kopieren" (immer der ganze Inhalt) und "In eigenem Fenster".
 - Der Knopf "KOMPLETT - wie neu installiert" heißt jetzt "Vollständige
