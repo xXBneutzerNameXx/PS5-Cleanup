@@ -530,6 +530,7 @@ namespace PS5Cleanup
             FtpTreffer w = treffer[0];
             if (treffer.Count > 1)
             {
+                Stand(T("Mehrere FTP-Server gefunden - bitte einen auswählen ...", "Several FTP servers found - please choose one ..."));
                 var texte = treffer.Select(x => x.Ip + "   ·   Port " + x.Port + "   ·   " + (x.Server != "" ? x.Server : T("FTP-Server: Unbekannt", "FTP server: Unknown"))).ToList();
                 int i = FrageAuswahl(T("Es wurden mehrere FTP-Server gefunden. Womit soll sich PS5 Cleanup verbinden?", "Several FTP servers were found. Which one should PS5 Cleanup connect to?"), T("FTP-Server auswählen", "Choose FTP server"), texte);
                 if (i < 0) { Stand(T("Suche beendet - nichts ausgewählt.", "Search finished - nothing chosen.")); return; }
