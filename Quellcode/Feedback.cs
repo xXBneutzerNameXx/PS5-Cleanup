@@ -24,7 +24,8 @@ namespace PS5Cleanup
         public string Firmware = "";
         public int? DddRoh;                   // Rückgabewert der Laufwerksabfrage, null = keiner
         public string LaufwerkText = "";
-        public string FtpServer = "";         // Variante B: wird nicht ausgelesen -> "Unbekannt"
+        public string FtpServer = "";         // NEU 1.0.5 (Variante 2): wie sich der Server selbst nennt, "" = "Unbekannt"
+        public string FtpDaten = "";          // EPSV / PASV, "" = unbekannt
         public int Port;                      // 0 = nicht verbunden
         public bool ScanGemacht;
         public bool ScanImTestmodus;
@@ -84,6 +85,7 @@ namespace PS5Cleanup
             z(T("Rückgabewert der Laufwerksabfrage", "Raw value of the disc drive query"), d.DddRoh.HasValue ? d.DddRoh.Value.ToString() : T("keiner (nicht abgefragt oder keine Antwort)", "none (not queried or no answer)"));
             z(T("FTP-Server", "FTP server"), U(d.FtpServer));
             z(T("FTP-Port", "FTP port"), d.Port > 0 ? d.Port.ToString() : Unbekannt);
+            z(T("FTP-Datenverbindung", "FTP data connection"), U(d.FtpDaten));
             if (d.ScanGemacht)
             {
                 z(T("Scan", "Scan"), (d.ScanImTestmodus ? T("ja, im Testmodus", "yes, in test mode") : T("ja", "yes")) + " – " + d.AnzahlJeBereich.Sum() + T(" Einträge gefunden", " entries found"));

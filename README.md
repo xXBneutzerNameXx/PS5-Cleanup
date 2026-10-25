@@ -38,7 +38,7 @@ Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen u
 
 ## Voraussetzungen
 
-- PS5 mit Jailbreak und laufendem FTP-Server (Standard-Port 2121, anderer Port per `IP:Port`) – empfohlen: [ftpsrv von drakmor](https://github.com/drakmor), getestet mit Version 1.16.
+- PS5 mit Jailbreak und laufendem FTP-Server – getestet: [ftpsrv von drakmor](https://github.com/drakmor) 1.16 (Port 2121), [ftpsrv](https://github.com/ps5-payload-dev/ftpsrv) 0.21.1 (Port 2121), [zftpd](https://github.com/seregonwar/zftpd) 1.6.0 (Port 2120). „PS5 im Netz suchen“ findet beide Ports, ein anderer Port geht per `IP:Port`.
 - Windows 10/11 – eine einzelne `.exe`, nichts zu installieren
 - Optional für Modell- und Laufwerkserkennung: Payload-Lader (Port 9021) oder Payload Manager (Port 8084)
 
@@ -76,7 +76,7 @@ MIT – Copyright (c) 2026 da_Chris86, siehe [LICENSE.txt](LICENSE.txt).
 
 ## Danke an
 
-[drakmor](https://github.com/drakmor) (ftpsrv, ps5-hwinfo), [earthonion](https://github.com/earthonion) (ddd_status), John Törnblom (ps5-payload-sdk), die Macher von ShadowMountPlus und PS5Upload sowie Markus Scholtes (PS2EXE).
+[drakmor](https://github.com/drakmor) (ftpsrv, ps5-hwinfo), [earthonion](https://github.com/earthonion) (ddd_status), John Törnblom (ps5-payload-sdk, ftpsrv), [seregonwar](https://github.com/seregonwar) (zftpd), die Macher von ShadowMountPlus und PS5Upload sowie Markus Scholtes (PS2EXE).
 
 Entstanden mit Unterstützung der KI Claude (Anthropic). Idee, Vorgaben und die Tests an der echten Konsole kommen von mir.
 
@@ -95,7 +95,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **Not touched by the program:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset, and no system database is modified.
 
-**Requirements:** jailbroken PS5 with an FTP server (default port 2121; recommended: ftpsrv by drakmor, tested with 1.16) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
+**Requirements:** jailbroken PS5 with an FTP server (tested: ftpsrv by drakmor 1.16 and ftpsrv 0.21.1 on port 2121, zftpd 1.6.0 on port 2120 – "Find PS5 on network" finds both ports) · Windows 10/11, single `.exe`, no installation · optional for model/drive detection: payload loader (port 9021) or Payload Manager (port 8084).
 
 **Usage:** start `PS5-Cleanup.exe` → *Find PS5 on network* → *Connect and scan* → review in test mode, untick *Test mode*, then *Delete selection only* or *COMPLETE* → on the PS5: Safe Mode → *Rebuild Database*. **Never** choose *Reset PS5* or *Reinstall System Software*. Full guide: [README_EN.txt](README_EN.txt).
 

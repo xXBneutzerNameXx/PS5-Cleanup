@@ -49,6 +49,7 @@ namespace PS5Cleanup
         public const string VERSION = "1.0.5 Beta";
         static string T(string de, string en) { return Sp.T(de, en); }
         public const int STANDARD_PORT = 2121;
+        public const int ZWEIT_PORT = 2120;      // NEU 1.0.5: z.B. zftpd lauscht auf der Konsole auf 2120
         public const string BEHALTEN_APP = "PPSA01325";   // Astro's Playroom
         public const string M2 = "/mnt/ext1";
         public const string SYS_META = "/system_data/priv/appmeta";

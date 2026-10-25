@@ -41,7 +41,7 @@ namespace PS5Cleanup
         TextBlock tbReihe, tbModellNr, tbFirmware, tbErkannt, tbVerbindung, tbKopplungSymbol, tbKopplungTitel, tbKopplungText,
                   tbIntern, tbM2, tbUsb, tbSm, tbHinweis, tbFundInfo, tbVersion;
         // für den freiwilligen Feedback-Bericht (wird nur angezeigt, nie automatisch gesendet)
-        public string F_MODELL = "", F_REIHE = "", F_QUELLE = "", F_FIRMWARE = ""; public int F_PORT; public bool F_SCAN, F_SCAN_TEST, F_GELOESCHT;
+        public string F_MODELL = "", F_REIHE = "", F_QUELLE = "", F_FIRMWARE = "", F_FTPSERVER = "", F_BEGRUESSUNG = "", F_DATEN = ""; public int F_PORT; public bool F_SCAN, F_SCAN_TEST, F_GELOESCHT;
         static string T(string de, string en) { return Sp.T(de, en); }
 
         public volatile bool BESCHAEFTIGT;   // eine Arbeit läuft
@@ -273,6 +273,37 @@ namespace PS5Cleanup
                 return (string)null;
             });
         }
+        // NEU 1.0.5: Auswahl aus einer kurzen Liste (z.B. mehrere gefundene FTP-Server). -1 = abgebrochen
+        public int FrageAuswahl(string text, string titel, List<string> optionen)
+        {
+            if (FensterZu()) return -1;
+            if (TestAntworten != null) { Log("[Test] Auswahl: " + string.Join(" | ", optionen)); return (int)TestAntwort(titel, -1); }
+            return UI(() =>
+            {
+                var d = Dialog(DLG_KOPF + "Width=\"600\"><StackPanel Margin=\"16\">" +
+                    "<TextBlock x:Name=\"tx\" Foreground=\"#E8E8EA\" TextWrapping=\"Wrap\" Margin=\"0,0,0,10\"/>" +
+                    "<StackPanel x:Name=\"sp\"/>" +
+                    "<StackPanel Orientation=\"Horizontal\" HorizontalAlignment=\"Right\" Margin=\"0,12,0,0\">" +
+                    "<Button x:Name=\"bAbbr\" Content=\"" + T("Abbrechen", "Cancel") + "\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2A2C33\" BorderBrush=\"#3A3D47\" IsCancel=\"True\"/>" +
+                    "<Button x:Name=\"bOk\" Content=\"" + T("Übernehmen", "Use this one") + "\" Padding=\"12,6\" Margin=\"4\" Foreground=\"White\" Background=\"#2F6FDB\" BorderBrush=\"#3B8BFF\" IsDefault=\"True\"/>" +
+                    "</StackPanel></StackPanel></Window>");
+                d.Title = titel; if (W.IsVisible) d.Owner = W;
+                ((TextBlock)d.FindName("tx")).Text = text;
+                var sp = (StackPanel)d.FindName("sp");
+                var knoepfe = new List<RadioButton>();
+                for (int i = 0; i < optionen.Count; i++)
+                {
+                    var r = new RadioButton { Content = optionen[i], IsChecked = i == 0, GroupName = "wahl", Margin = new Thickness(0, 4, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(0xE8, 0xE8, 0xEA)) };
+                    r.MouseDoubleClick += delegate { r.IsChecked = true; d.DialogResult = true; };
+                    knoepfe.Add(r); sp.Children.Add(r);
+                }
+                ((Button)d.FindName("bOk")).Click += delegate { d.DialogResult = true; };
+                ((Button)d.FindName("bAbbr")).Click += delegate { d.DialogResult = false; };
+                if (knoepfe.Count > 0) knoepfe[0].Focus();
+                if (d.ShowDialog() == true) return knoepfe.FindIndex(x => x.IsChecked == true);
+                return -1;
+            });
+        }
         // Entscheidung mit zwei klar beschrifteten Knöpfen. Der sichere Knopf ist
         // vorbelegt (Enter/Esc = sicher), der gefährliche rot und muss angeklickt werden.
         public bool FrageWahl(string text, string titel, string sicher, string gefaehrlich)
@@ -417,49 +448,97 @@ namespace PS5Cleanup
         }
 
         // ---------------------------------------------------------------
-        // PS5 im Heimnetz suchen (FTP-Port 2121 auf allen eigenen /24-Netzen)
+        // PS5 im Heimnetz suchen. NEU 1.0.5: die üblichen FTP-Ports 2121 und 2120 auf allen
+        // eigenen /24-Netzen; gezählt wird nur, was sich wirklich als FTP-Server meldet.
+        // Mehrere Treffer -> der Nutzer wählt aus einer kurzen Liste.
         // ---------------------------------------------------------------
+        public int[] FTP_PORTE = { Kern.STANDARD_PORT, Kern.ZWEIT_PORT };
+        public List<string> TestSuchHosts;      // nur Oberflächentest: diese Adressen statt der Heimnetze
+        public class FtpTreffer { public string Ip; public int Port; public string Server; }
         void SuchenAblauf()
         {
-            var netze = new List<string>();
-            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            var gruppen = new List<KeyValuePair<string, List<string>>>();
+            if (TestSuchHosts != null) gruppen.Add(new KeyValuePair<string, List<string>>("Test", TestSuchHosts));
+            else
             {
-                if (ni.OperationalStatus != OperationalStatus.Up) continue;
-                foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                var netze = new List<string>();
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
                 {
-                    if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
-                    string t = ua.Address.ToString();
-                    if (t.StartsWith("127.") || t.StartsWith("169.254.")) continue;
-                    string n = t.Substring(0, t.LastIndexOf('.'));
-                    if (!netze.Contains(n)) netze.Add(n);
+                    if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                    foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                        string t = ua.Address.ToString();
+                        if (t.StartsWith("127.") || t.StartsWith("169.254.")) continue;
+                        string n = t.Substring(0, t.LastIndexOf('.'));
+                        if (!netze.Contains(n)) netze.Add(n);
+                    }
+                }
+                netze.Sort(StringComparer.Ordinal);
+                foreach (var n in netze)
+                {
+                    var h = new List<string>();
+                    for (int i = 1; i <= 254; i++) h.Add(n + "." + i);
+                    gruppen.Add(new KeyValuePair<string, List<string>>(n + ".0", h));
                 }
             }
-            netze.Sort(StringComparer.Ordinal);
-            var treffer = new List<string>();
-            foreach (var n in netze)
+            // 1. Wo ist einer der Ports offen?
+            var offen = new List<KeyValuePair<string, int>>();
+            foreach (var gr in gruppen)
             {
                 if (K.Abbruch) throw new AbbruchAusnahme();
-                Stand(T("Suche im Netz ", "Searching network ") + n + ".0 ...");
-                var clients = new List<KeyValuePair<string, TcpClient>>();
-                for (int h = 1; h <= 254; h++)
-                {
-                    var c = new TcpClient();
-                    try { c.BeginConnect(n + "." + h, Kern.STANDARD_PORT, null, null); } catch { }
-                    clients.Add(new KeyValuePair<string, TcpClient>(n + "." + h, c));
-                }
+                Stand(T("Suche im Netz ", "Searching network ") + gr.Key + " ...");
+                var clients = new List<Tuple<string, int, TcpClient>>();
+                foreach (var h in gr.Value)
+                    foreach (int p in FTP_PORTE)
+                    {
+                        var c = new TcpClient();
+                        try { c.BeginConnect(h, p, null, null); } catch { }
+                        clients.Add(Tuple.Create(h, p, c));
+                    }
                 Thread.Sleep(1500);
                 foreach (var e in clients)
                 {
-                    try { if (e.Value.Connected) treffer.Add(e.Key); } catch { }
-                    try { e.Value.Close(); } catch { }
+                    try { if (e.Item3.Connected) offen.Add(new KeyValuePair<string, int>(e.Item1, e.Item2)); } catch { }
+                    try { e.Item3.Close(); } catch { }
                 }
             }
-            UI(() =>
+            // 2. Meldet sich dort wirklich ein FTP-Server? (anmelden, Namen erfragen, wieder abmelden - nichts wird verändert)
+            var treffer = new List<FtpTreffer>();
+            foreach (var o in offen)
             {
-                if (treffer.Count == 0) { Stand(T("Keine PS5 mit FTP-Server gefunden (ist der Jailbreak geladen?).", "No PS5 with an FTP server found (is the jailbreak loaded?).")); return; }
-                tbIp.Text = treffer[0];
-                Stand(treffer.Count == 1 ? T("Gefunden: ", "Found: ") + treffer[0] : T("Gefunden: ", "Found: ") + string.Join(", ", treffer) + T(" - die erste ist eingetragen.", " - the first one was entered."));
-            });
+                if (K.Abbruch) throw new AbbruchAusnahme();
+                Stand(T("Prüfe ", "Checking ") + o.Key + T(", Port ", ", port ") + o.Value + " ...");
+                Ftp f = null;
+                try { f = Ftp.Verbinden(o.Key, o.Value, 5000); } catch { f = null; }
+                if (f == null)
+                {
+                    Log(T("Suche: ", "Search: ") + o.Key + T(", Port ", ", port ") + o.Value + T(" ist offen, meldet sich aber nicht als nutzbarer FTP-Server (", " is open but does not answer as a usable FTP server (") + Ftp.VerbindenFehler + ").");
+                    continue;
+                }
+                string s = "";
+                try { s = f.ServerErkennen(); } catch { }
+                try { f.Trennen(); } catch { }
+                treffer.Add(new FtpTreffer { Ip = o.Key, Port = o.Value, Server = s });
+                Log(T("Suche: gefunden ", "Search: found ") + o.Key + T(", Port ", ", port ") + o.Value + T(" - FTP-Server: ", " - FTP server: ") + (s != "" ? s : Feedback.Unbekannt));
+            }
+            if (treffer.Count == 0)
+            {
+                Stand(T("Keine PS5 mit laufendem FTP-Server gefunden. Bitte prüfen: PS5 eingeschaltet und im selben Netz, Jailbreak geladen, FTP-Server gestartet.", "No PS5 with a running FTP server found. Please check: PS5 switched on and on the same network, jailbreak loaded, FTP server started."));
+                return;
+            }
+            FtpTreffer w = treffer[0];
+            if (treffer.Count > 1)
+            {
+                var texte = treffer.Select(x => x.Ip + "   ·   Port " + x.Port + "   ·   " + (x.Server != "" ? x.Server : T("FTP-Server: Unbekannt", "FTP server: Unknown"))).ToList();
+                int i = FrageAuswahl(T("Es wurden mehrere FTP-Server gefunden. Womit soll sich PS5 Cleanup verbinden?", "Several FTP servers were found. Which one should PS5 Cleanup connect to?"), T("FTP-Server auswählen", "Choose FTP server"), texte);
+                if (i < 0) { Stand(T("Suche beendet - nichts ausgewählt.", "Search finished - nothing chosen.")); return; }
+                w = treffer[i];
+            }
+            string eintrag = w.Port == FTP_PORTE[0] ? w.Ip : w.Ip + ":" + w.Port;
+            UI(() => tbIp.Text = eintrag);
+            Log(T("Eingetragen: ", "Entered: ") + eintrag);
+            Stand(T("Gefunden: ", "Found: ") + w.Ip + T(" (Port ", " (port ") + w.Port + (w.Server != "" ? ", " + w.Server : "") + T("). Jetzt auf „Verbinden und nachschauen“ klicken.", "). Now click \"Connect and scan\"."));
         }
 
         // ---------------------------------------------------------------
@@ -468,14 +547,15 @@ namespace PS5Cleanup
         public void Verbinde()
         {
             string eingabe = UI(() => Regex.Replace(tbIp.Text, "\\s", ""));
-            string ip = eingabe; int port = Kern.STANDARD_PORT;
+            string ip = eingabe; int port = FTP_PORTE[0];
             var m = Regex.Match(eingabe, "^(.+):(\\d+)$");
+            bool portAngegeben = m.Success;
             if (m.Success) { ip = m.Groups[1].Value; int.TryParse(m.Groups[2].Value, out port); }
             if (!Regex.IsMatch(ip, "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$") || port < 1 || port > 65535) { Meldung(T("Bitte eine gültige IP-Adresse eingeben (Beispiel: 192.168.1.50).", "Please enter a valid IP address (example: 192.168.1.50)."), "PS5 Cleanup", MessageBoxImage.Warning); return; }
             HintergrundAnhalten();
             // Alte Liste sofort verwerfen - sie gehört evtl. zu einer anderen PS5
             VERBUNDEN = false; K.FUNDE_IP = ""; K.DDD_STATUS = null;
-            F_MODELL = ""; F_REIHE = ""; F_QUELLE = ""; F_FIRMWARE = ""; F_PORT = 0; F_SCAN = false;
+            F_MODELL = ""; F_REIHE = ""; F_QUELLE = ""; F_FIRMWARE = ""; F_PORT = 0; F_SCAN = false; F_FTPSERVER = ""; F_BEGRUESSUNG = ""; F_DATEN = "";
             K.Funde = new List<Eintrag>();
             UI(() =>
             {
@@ -489,11 +569,34 @@ namespace PS5Cleanup
             // NEU 1.0.5: zwei getrennte Fälle mit verständlicher Meldung und dem Grund im Protokoll
             bool ok = false; string grund = "";
             try { ok = K.Verbinden(ip, port); } catch (AbbruchAusnahme) { throw; } catch (Exception ex) { ok = false; grund = ex.Message; }
+            if (!ok && grund == "") grund = Ftp.VerbindenFehler;
+            // NEU 1.0.5: nur die IP eingegeben und über den üblichen Port klappt es nicht ->
+            // die anderen üblichen Ports probieren (z.B. zftpd auf 2120). Der Nutzer muss keine Ports kennen.
+            if (!ok && !portAngegeben)
+            {
+                grund = "Port " + port + ": " + grund;
+                foreach (int p2 in FTP_PORTE.Skip(1))
+                {
+                    if (K.Abbruch) throw new AbbruchAusnahme();
+                    Log(T("Über Port ", "No connection via port ") + port + T(" keine Verbindung - versuche Port ", " - trying port ") + p2 + " ...");
+                    string g2 = "";
+                    try { ok = K.Verbinden(ip, p2); } catch (AbbruchAusnahme) { throw; } catch (Exception ex) { ok = false; g2 = ex.Message; }
+                    if (ok)
+                    {
+                        port = p2;
+                        string neuIp = ip + ":" + p2;
+                        UI(() => tbIp.Text = neuIp);
+                        break;
+                    }
+                    grund += " / Port " + p2 + ": " + (g2 != "" ? g2 : Ftp.VerbindenFehler);
+                }
+            }
             if (!ok)
             {
-                if (grund == "") grund = Ftp.VerbindenFehler;
+                // Für den Nutzer einfach; der technische Grund steht im Protokoll
                 Log(T("FEHLER: PS5 nicht erreichbar.", "ERROR: PS5 not reachable.") + (grund != "" ? T("  Grund: ", "  Reason: ") + grund : ""));
-                UI(() => tbInfo.Text = T("Nicht erreichbar. Ist die PS5 an, der Jailbreak geladen und läuft der FTP-Server (Port ", "Not reachable. Is the PS5 on, the jailbreak loaded and the FTP server running (port ") + port + ")? " + FTP_TIPP);
+                UI(() => tbInfo.Text = T("PS5 nicht erreichbar. Bitte prüfen: PS5 eingeschaltet, Jailbreak geladen und FTP-Server gestartet. Tipp: „PS5 im Netz suchen“ findet die PS5 und den passenden Port von selbst. Den genauen Grund zeigt das Protokoll.",
+                    "PS5 not reachable. Please check: PS5 switched on, jailbreak loaded and FTP server started. Tip: \"Find PS5 on network\" finds the PS5 and the right port by itself. The log shows the exact reason."));
                 return;
             }
             List<Datei> user = null;
@@ -502,12 +605,18 @@ namespace PS5Cleanup
             {
                 string g = K.S.Ftp.LetzterFehler;
                 Log(T("FEHLER: Die PS5 antwortet, aber ihre Ordner lassen sich nicht lesen.", "ERROR: The PS5 answers, but its folders cannot be read.") + (g != "" ? T("  Grund: ", "  Reason: ") + g : ""));
-                UI(() => tbInfo.Text = T("Die PS5 ist erreichbar, aber das FTP-Programm auf der PS5 wird nicht unterstützt oder darf die Ordner nicht lesen. ", "The PS5 is reachable, but the FTP program on the PS5 is not supported or may not read the folders. ") + FTP_TIPP);
+                UI(() => tbInfo.Text = T("Die PS5 antwortet, aber ihre Ordner lassen sich nicht lesen. Bitte den FTP-Server auf der PS5 neu starten und es nochmal versuchen. ", "The PS5 answers, but its folders cannot be read. Please restart the FTP server on the PS5 and try again. ") + FTP_TIPP + T(" Den genauen Grund zeigt das Protokoll.", " The log shows the exact reason."));
                 try { K.Trennen(); } catch { }
                 return;
             }
             K.S.Ftp.Wartet = ms => Warteanzeige(ms);
             Log(T("Verbunden.", "Connected."));
+            // NEU 1.0.5: welcher FTP-Server und welche Art der Datenverbindung (nur Auskunft, fürs Protokoll und den Feedback-Bericht)
+            try { F_FTPSERVER = K.S.Ftp.ServerErkennen(); } catch { F_FTPSERVER = ""; }
+            F_BEGRUESSUNG = Ftp.BegruessungKurz(K.S.Ftp.Begruessung);
+            F_DATEN = K.S.Ftp.EpsvBenutzt ? "EPSV" : K.S.Ftp.PasvBenutzt ? "PASV" : "";
+            Log(T("FTP-Server: ", "FTP server: ") + (F_FTPSERVER != "" ? F_FTPSERVER : Feedback.Unbekannt + (F_BEGRUESSUNG != "" ? T(" (Begrüßung: „", " (greeting: \"") + F_BEGRUESSUNG + T("“)", "\")") : "")) + T(", Port ", ", port ") + port);
+            Log(T("Datenverbindung: ", "Data connection: ") + K.S.Ftp.DatenArt());
             string firmware = K.FirmwareLesen();
             string modell = "";
             bool abfrage = UI(() => cbModell.IsChecked == true);
@@ -1085,7 +1194,9 @@ namespace PS5Cleanup
             d.Modell = F_MODELL; d.Reihe = F_REIHE; d.ModellQuelle = F_PORT > 0 ? F_QUELLE : ""; d.Firmware = F_FIRMWARE;
             d.DddRoh = K.DDD_STATUS;
             d.LaufwerkText = F_PORT > 0 ? K.LaufwerkText() : "";
-            d.FtpServer = "";            // wird nicht ausgelesen (Entscheidung: Variante B)
+            // NEU 1.0.5 (Variante 2): was der Server selbst über sich sagt; sonst "Unbekannt" (+ Begrüßung zum Nachvollziehen)
+            d.FtpServer = F_FTPSERVER != "" ? F_FTPSERVER : F_BEGRUESSUNG != "" ? Feedback.Unbekannt + T(" (Begrüßung: „", " (greeting: \"") + F_BEGRUESSUNG + T("“)", "\")") : "";
+            d.FtpDaten = F_DATEN;
             d.Port = F_PORT;
             d.ScanGemacht = F_SCAN && VERBUNDEN; d.ScanImTestmodus = F_SCAN_TEST;
             foreach (var k in Kern.ALLE_KAT) d.AnzahlJeBereich[k] = K.Funde.Count(f => f.Kat == k);
@@ -1238,7 +1349,7 @@ namespace PS5Cleanup
         // GitHub nach der neuesten Version - nur anzeigen, nichts herunterladen.
         // ---------------------------------------------------------------
         // Rückmeldung aus dem Forum: mit anderen FTP-Servern klappt das Lesen nicht zuverlässig
-        public static string FTP_TIPP { get { return T("Empfohlen: der FTP-Server ftpsrv von drakmor (getestet mit Version 1.16).", "Recommended: the FTP server ftpsrv by drakmor (tested with version 1.16)."); } }
+        public static string FTP_TIPP { get { return T("Getestet sind die FTP-Server ftpsrv und zftpd (Einzelheiten in der Hilfe).", "Tested FTP servers: ftpsrv and zftpd (details in Help)."); } }
         public const string RELEASES = "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest";
         public void UpdatePruefen()
         {

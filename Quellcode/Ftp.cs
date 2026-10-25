@@ -52,11 +52,68 @@ namespace PS5Cleanup
         public string LetzterFehler = "";
         bool epsvGeht = true;            // antwortet der Server nicht auf EPSV, wird PASV benutzt
         public bool NurPasv { get { return !epsvGeht; } }
+        // NEU 1.0.5: welche Art der Datenverbindung wirklich geklappt hat (nur fürs Protokoll)
+        public bool EpsvBenutzt, PasvBenutzt;
+        public string Begruessung = "";
 
-        public static Ftp Verbinden(string ip, int port)
+        // NEU 1.0.5: Name und Version des FTP-Servers - nur, was der Server selbst eindeutig
+        // über sich sagt. Kein Treffer = leer (die Oberfläche zeigt dann "Unbekannt").
+        //  - Name/Version aus der Begrüßung (z.B. ftpsrv: "Welcome to ftpsrv.elf ..." + "Version: v0.21.1")
+        //  - zftpd nennt sich nicht in der Begrüßung, kennzeichnet sich aber in der FEAT-Liste mit "XZFTPD"
+        //    (eine Version nennt zftpd dort nicht)
+        public static readonly string[] BEKANNTE_SERVER = { "ftpsrv", "zftpd" };
+        public static string ServerAusText(string begruessung, string feat, out string version)
+        {
+            version = "";
+            string g = Regex.Replace(begruessung ?? "", "(?m)^\\d{3}[- ]?", " ");
+            string name = "";
+            foreach (var s in BEKANNTE_SERVER)
+                if (Regex.IsMatch(g, "\\b" + s + "\\b", RegexOptions.IgnoreCase)) { name = s; break; }
+            if (name == "" && Regex.IsMatch(feat ?? "", "(?m)^\\s*(\\d{3}-)?\\s*XZFTPD\\b", RegexOptions.IgnoreCase)) name = "zftpd";
+            if (name == "") return "";
+            var m = Regex.Match(g, "\\bVersion\\s*[:=]?\\s*v?(\\d+(?:\\.\\d+)+[\\w.\\-]*)", RegexOptions.IgnoreCase);
+            if (!m.Success) m = Regex.Match(g, "\\b" + name + "(?:\\.elf)?[\\s\\-_/]+v?(\\d+(?:\\.\\d+)+[\\w.\\-]*)", RegexOptions.IgnoreCase);
+            if (m.Success) version = m.Groups[1].Value.TrimEnd('.', '-');
+            return name;
+        }
+        // Begrüßung in einer Zeile, ohne Antwort-Codes (fürs Protokoll, wenn der Server unbekannt ist)
+        public static string BegruessungKurz(string begruessung)
+        {
+            string g = Regex.Replace(begruessung ?? "", "(?m)^\\d{3}[- ]?", "");
+            g = Regex.Replace(g, "\\s+", " ").Trim();
+            if (g.Length > 120) g = g.Substring(0, 117) + "...";
+            return g;
+        }
+        // Fragt bei Bedarf die Fähigkeiten-Liste ab (FEAT, ein reiner Auskunfts-Befehl).
+        // Liefert z.B. "ftpsrv, Version 0.21.1", "zftpd, Version: Unbekannt" oder "" (unbekannt).
+        public string ServerErkennen()
+        {
+            string v, feat = "";
+            string name = ServerAusText(Begruessung, "", out v);
+            if (name == "")
+            {
+                int alt = Timeout;
+                try { Timeout = 8000; var a = Befehl("FEAT"); if (a.Code == 211) feat = a.Text; }
+                catch { }
+                finally { Timeout = alt; }
+                name = ServerAusText(Begruessung, feat, out v);
+            }
+            if (name == "") return "";
+            return name + (v != "" ? ", Version " + v : Sp.T(", Version: Unbekannt", ", version: Unknown"));
+        }
+        // Fürs Protokoll: welche Art der Datenverbindung lief (EPSV oder PASV)
+        public string DatenArt()
+        {
+            if (EpsvBenutzt) return "EPSV";
+            if (PasvBenutzt) return Sp.T("PASV (der FTP-Server kennt kein EPSV - das Programm hat automatisch umgeschaltet)", "PASV (the FTP server does not know EPSV - the program switched automatically)");
+            return Sp.T("Unbekannt", "Unknown");
+        }
+
+        // warteMs: wie lange auf die Begrüßung gewartet wird (die Netzsuche wartet kürzer)
+        public static Ftp Verbinden(string ip, int port, int warteMs = 30000)
         {
             var f = new Ftp();
-            f.Ip = ip; f.Port = port;
+            f.Ip = ip; f.Port = port; f.Timeout = warteMs;
             VerbindenFehler = "";
             var t = new TcpClient();
             try
@@ -70,11 +127,12 @@ namespace PS5Cleanup
             f.tcp = t; f.st = t.GetStream();
             try
             {
-                f.Antwort();                                   // 220 Begrüßung
+                f.Begruessung = f.Antwort().Text;              // 220 Begrüßung (NEU 1.0.5: gemerkt, nur zum Erkennen des Servers)
                 var a = f.Befehl("USER anonymous");
                 if (a.Code == 331) a = f.Befehl("PASS anonymous");
                 if (a.Code >= 400) { f.Schliessen(); VerbindenFehler = Sp.T("Anmeldung abgelehnt: ", "login rejected: ") + a.Text; return null; }
                 f.Befehl("TYPE I");
+                f.Timeout = 30000;
             }
             catch (Exception ex) { f.Schliessen(); VerbindenFehler = ex.Message; return null; }
             return f;
@@ -178,7 +236,7 @@ namespace PS5Cleanup
             {
                 var a = Befehl("EPSV");
                 var m = Regex.Match(a.Text, "\\|\\|\\|(\\d+)\\|");
-                if (a.Code == 229 && m.Success) return int.Parse(m.Groups[1].Value);
+                if (a.Code == 229 && m.Success) { EpsvBenutzt = true; return int.Parse(m.Groups[1].Value); }
                 epsvGeht = false;
                 LetzterFehler = "EPSV: " + a.Text;
             }
@@ -187,7 +245,7 @@ namespace PS5Cleanup
             if (p.Code == 227 && mp.Success)
             {
                 int port = int.Parse(mp.Groups[1].Value) * 256 + int.Parse(mp.Groups[2].Value);
-                if (port > 0 && port < 65536) return port;
+                if (port > 0 && port < 65536) { PasvBenutzt = true; return port; }
             }
             LetzterFehler = (LetzterFehler != "" ? LetzterFehler + " / " : "") + "PASV: " + p.Text;
             return -1;

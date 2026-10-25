@@ -158,6 +158,45 @@ namespace PS5Cleanup
             bool knoepfe = false; o.UI(() => knoepfe = !Hol<Button>(o, "btKomplett").IsEnabled == abgebrochen && Hol<Button>(o, "btVerbinden").IsEnabled);
             Pruefe(knoepfe, "Knöpfe danach richtig (Verbinden frei, Löschen nur mit Liste)");
 
+            // 4b NEU 1.0.5: Netzsuche auf zwei Ports. Der zweite Test-Server meldet sich wie ftpsrv 0.21.1
+            // und kennt kein EPSV. Zwei Treffer -> Auswahl (Antwort: der zweite).
+            int port2 = port - 1;
+            o.FTP_PORTE = new[] { port, port2 };
+            o.TestSuchHosts = new List<string> { "127.0.0.1" };
+            o.TestAntworten = new Queue<object>(new object[] { 1 });
+            o.UI(() => Hol<Button>(o, "btSuchen").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)));
+            WarteBis(() => o.BESCHAEFTIGT, 2);
+            WarteBis(() => !o.BESCHAEFTIGT, 60);
+            string ipText = ""; o.UI(() => ipText = Hol<TextBox>(o, "tbIp").Text);
+            log = LogText(o);
+            Pruefe(log.Contains("[Test] Auswahl:") && log.Contains("Port " + port) && log.Contains("Port " + port2), "Suche: beide Ports gefunden, Auswahl angeboten");
+            Pruefe(log.Contains("ftpsrv, Version 0.21.1") && log.Contains("FTP-Server: Unbekannt"), "Suche: Servernamen erkannt bzw. Unbekannt");
+            Pruefe(ipText == "127.0.0.1:" + port2, "Auswahl übernommen: " + ipText);
+            Verbinden(o);
+            log = LogText(o);
+            Pruefe(o.VERBUNDEN && log.Contains("FTP-Server: ftpsrv, Version 0.21.1") && log.Contains("Datenverbindung: PASV"), "verbunden mit dem 2. Server, Protokoll nennt ftpsrv 0.21.1 und PASV");
+            string bericht = ""; o.UI(() => bericht = Feedback.Bericht(o.FeedbackSammeln()));
+            Pruefe(bericht.Contains("ftpsrv, Version 0.21.1") && bericht.Contains("PASV") && !bericht.Contains("127.0.0.1"), "Feedback-Bericht: FTP-Server und Datenverbindung drin, keine IP");
+
+            // 4c nur die IP eingegeben, der erste Port ist zu -> automatisch der nächste übliche Port
+            int frei1 = port - 2, frei2 = port - 3;
+            o.FTP_PORTE = new[] { frei1, port };
+            o.UI(() => Hol<TextBox>(o, "tbIp").Text = "127.0.0.1");
+            Verbinden(o);
+            log = LogText(o); o.UI(() => ipText = Hol<TextBox>(o, "tbIp").Text);
+            Pruefe(o.VERBUNDEN && log.Contains("versuche Port " + port) && ipText == "127.0.0.1:" + port, "nur IP: Port " + frei1 + " zu -> automatisch über Port " + port + " verbunden (" + ipText + ")");
+            Pruefe(log.Contains("FTP-Server: Unbekannt (Begrüßung: „mini“)") && log.Contains("Datenverbindung: EPSV"), "Protokoll: unbekannter Server mit Begrüßung, EPSV");
+
+            // 4d gar nichts erreichbar -> einfache Meldung, Technik nur im Protokoll
+            o.FTP_PORTE = new[] { frei1, frei2 };
+            o.UI(() => Hol<TextBox>(o, "tbIp").Text = "127.0.0.1");
+            Verbinden(o);
+            log = LogText(o); string info = ""; o.UI(() => info = Hol<TextBlock>(o, "tbInfo").Text);
+            Pruefe(!o.VERBUNDEN && info.StartsWith("PS5 nicht erreichbar.") && !info.Contains("EPSV") && !info.Contains("Port " + frei1), "nicht erreichbar: einfache Meldung ohne Technik");
+            Pruefe(log.Contains("Grund: Port " + frei1 + ":") && log.Contains("/ Port " + frei2 + ":"), "Protokoll nennt den Grund für beide Ports");
+            o.FTP_PORTE = new[] { Kern.STANDARD_PORT, Kern.ZWEIT_PORT }; o.TestSuchHosts = null;
+            o.UI(() => Hol<TextBox>(o, "tbIp").Text = "127.0.0.1:" + port);
+
             // 5 Neu verbinden, Fenster während der Hintergrund-Zählung schließen
             Verbinden(o);
             Pruefe(o.VERBUNDEN, "wieder verbunden");

@@ -51,8 +51,8 @@ NEU IN 1.0.5
 - Der Knopf "KOMPLETT - wie neu installiert" heißt jetzt "Vollständige
   Bereinigung". Ablauf und Bestätigung mit LÖSCHEN sind unverändert.
 - Neu: "Feedback / Kompatibilität melden" - ein freiwilliger Bericht
-  (Modell, Firmware, Laufwerksstatus mit Rückgabewert, Ergebnis des
-  Testmodus, Fehlermeldungen). Nicht Erkanntes heißt "Unbekannt". IP-
+  (Modell, Firmware, Laufwerksstatus mit Rückgabewert, FTP-Server,
+  Ergebnis des Testmodus, Fehlermeldungen). Nicht Erkanntes heißt "Unbekannt". IP-
   Adressen, Windows-Benutzername und Pfade werden vorher entfernt. Du
   siehst und änderst den ganzen Text; erst "Auf GitHub öffnen" öffnet
   deinen Browser mit einem vorausgefüllten Issue, abgeschickt wird nur,
@@ -66,6 +66,13 @@ NEU IN 1.0.5
 - Verbinden klappt jetzt auch mit FTP-Servern, die eine andere Art der
   Datenverbindung nutzen (PASV statt EPSV). Klappt es trotzdem nicht, sagt
   das Programm genauer, woran es liegt - der Grund steht im Protokoll.
+- "PS5 im Netz suchen" findet FTP-Server jetzt auf Port 2121 und 2120
+  (zftpd nutzt 2120). Gibt es mehrere, wählst du aus einer Liste. Gibst du
+  nur die IP ein, probiert das Programm beide Ports von selbst.
+- Das Protokoll nennt den FTP-Server mit Version - nur, was der Server
+  selbst über sich sagt, sonst "Unbekannt" - und ob die Datenverbindung
+  über EPSV oder PASV lief. Beides steht auch im Feedback-Bericht.
+- Einfachere Fehlermeldungen; technische Einzelheiten stehen im Protokoll.
 - Während des Löschens zeigt ein roter Hinweis, dass gerade gelöscht wird,
   und der Fortschritt steht als "Eintrag X von Y" da. Was schon gelöscht
   ist, bleibt gelöscht - auch ein Abbruch oder Fehler bringt nichts zurück.
@@ -89,8 +96,13 @@ NEU IN 1.0.4
 
 SCHNELLSTART
 ------------
-1. PS5 einschalten, Jailbreak laden. Der FTP-Server muss laufen (Port 2121)
-   - empfohlen: ftpsrv von drakmor, getestet mit Version 1.16.
+1. PS5 einschalten, Jailbreak laden und einen FTP-Server starten.
+   Auf einer PS5 Pro (Firmware 12.00) getestet:
+     - ftpsrv von drakmor, Version 1.16 (Port 2121)
+     - ftpsrv, Version 0.21.1 (Port 2121)
+     - zftpd, Version 1.6.0 (Port 2120)
+   Den Port musst du nicht kennen: "PS5 im Netz suchen" findet beide.
+   Ein anderer Port geht mit IP:Port, z.B. 192.168.1.50:2120.
 2. PS5-Cleanup.exe starten - eine Datei, Windows 10/11, nichts installieren.
 3. "PS5 im Netz suchen", dann "Verbinden und nachschauen".
    Das Programm startet im Testmodus: Es zeigt nur an, was weg könnte,
@@ -141,8 +153,9 @@ WICHTIG
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
   verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
-- Klappt Verbinden oder Nachschauen gar nicht: den FTP-Server ftpsrv von
-  drakmor verwenden (getestet mit 1.16).
+- Klappt Verbinden oder Nachschauen gar nicht: den FTP-Server auf der PS5
+  neu starten oder einen der getesteten FTP-Server nehmen (siehe
+  Schnellstart). Den genauen Grund zeigt das Protokoll.
 - Steckt eine M.2 in der PS5, das Programm meldet aber "keine M.2
   gefunden": nicht löschen, sondern die PS5 neu starten.
 - Benutzung auf eigene Gefahr. Es ist eine Beta - Fehler sind möglich.
