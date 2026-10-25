@@ -208,8 +208,10 @@ namespace PS5Cleanup
             Action a = () => { tbLog.AppendText(t + "\r\n"); tbLog.ScrollToEnd(); if (logFensterTb != null) { logFensterTb.AppendText(t + "\r\n"); logFensterTb.ScrollToEnd(); } };
             if (W.Dispatcher.CheckAccess()) a(); else W.Dispatcher.BeginInvoke(a);
         }
+        public volatile string StandSoll = "";      // zuletzt gesetzte Statuszeile (auch vor der Anzeige bekannt)
         public void Stand(string t)
         {
+            StandSoll = t;
             Action a = () => { STAND_BASIS = t; tbStand.Text = t; };
             if (W.Dispatcher.CheckAccess()) a(); else W.Dispatcher.BeginInvoke(a);
         }
@@ -277,7 +279,7 @@ namespace PS5Cleanup
         public int FrageAuswahl(string text, string titel, List<string> optionen)
         {
             if (FensterZu()) return -1;
-            if (TestAntworten != null) { Log("[Test] Auswahl: " + string.Join(" | ", optionen)); return (int)TestAntwort(titel, -1); }
+            if (TestAntworten != null) { Log("[Test] Auswahl: " + string.Join(" | ", optionen) + " || Statuszeile: " + StandSoll); return (int)TestAntwort(titel, -1); }
             return UI(() =>
             {
                 var d = Dialog(DLG_KOPF + "Width=\"600\"><StackPanel Margin=\"16\">" +
@@ -524,13 +526,18 @@ namespace PS5Cleanup
             }
             if (treffer.Count == 0)
             {
-                Stand(T("Keine PS5 mit laufendem FTP-Server gefunden. Bitte prüfen: PS5 eingeschaltet und im selben Netz, Jailbreak geladen, FTP-Server gestartet.", "No PS5 with a running FTP server found. Please check: PS5 switched on and on the same network, jailbreak loaded, FTP server started."));
+                // gut sichtbar: in der Statuszeile und direkt unter dem IP-Feld
+                string keiner = T("Keine PS5 mit laufendem FTP-Server gefunden. Bitte prüfen: PS5 eingeschaltet und im selben Netzwerk wie dieser PC, Jailbreak geladen, FTP-Server auf der PS5 gestartet. Danach nochmal suchen.",
+                    "No PS5 with a running FTP server found. Please check: PS5 switched on and on the same network as this PC, jailbreak loaded, FTP server started on the PS5. Then search again.");
+                Stand(keiner);
+                UI(() => tbInfo.Text = keiner);
+                Log(T("Suche: kein FTP-Server gefunden (geprüfte Ports: ", "Search: no FTP server found (ports checked: ") + string.Join(", ", FTP_PORTE) + ").");
                 return;
             }
             FtpTreffer w = treffer[0];
             if (treffer.Count > 1)
             {
-                Stand(T("Mehrere FTP-Server gefunden - bitte einen auswählen ...", "Several FTP servers found - please choose one ..."));
+                Stand(treffer.Count + T(" FTP-Server gefunden – bitte einen auswählen.", " FTP servers found – please select one."));
                 var texte = treffer.Select(x => x.Ip + "   ·   Port " + x.Port + "   ·   " + (x.Server != "" ? x.Server : T("FTP-Server: Unbekannt", "FTP server: Unknown"))).ToList();
                 int i = FrageAuswahl(T("Es wurden mehrere FTP-Server gefunden. Womit soll sich PS5 Cleanup verbinden?", "Several FTP servers were found. Which one should PS5 Cleanup connect to?"), T("FTP-Server auswählen", "Choose FTP server"), texte);
                 if (i < 0) { Stand(T("Suche beendet - nichts ausgewählt.", "Search finished - nothing chosen.")); return; }

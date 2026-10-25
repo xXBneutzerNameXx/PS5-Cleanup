@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -48,6 +49,14 @@ namespace PS5Cleanup
             o.UI(() => o.Starte(o.Verbinde, true));
             WarteBis(() => o.BESCHAEFTIGT, 2);
             WarteBis(() => !o.BESCHAEFTIGT, 90);
+        }
+
+        static void Suchen(Oberflaeche o)
+        {
+            o.UI(() => Hol<Button>(o, "btSuchen").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)));
+            WarteBis(() => o.BESCHAEFTIGT, 2);
+            WarteBis(() => !o.BESCHAEFTIGT, 60);
+            Thread.Sleep(300);      // Statuszeile wird über den Dispatcher gesetzt
         }
 
         static void Treiber(Oberflaeche o, int port, string ps5)
@@ -194,6 +203,33 @@ namespace PS5Cleanup
             log = LogText(o); string info = ""; o.UI(() => info = Hol<TextBlock>(o, "tbInfo").Text);
             Pruefe(!o.VERBUNDEN && info.StartsWith("PS5 nicht erreichbar.") && !info.Contains("EPSV") && !info.Contains("Port " + frei1), "nicht erreichbar: einfache Meldung ohne Technik");
             Pruefe(log.Contains("Grund: Port " + frei1 + ":") && log.Contains("/ Port " + frei2 + ":"), "Protokoll nennt den Grund für beide Ports");
+            // 4e Netzsuche: zwei / einer / keiner - auf Deutsch und Englisch
+            foreach (bool en in new[] { false, true })
+            {
+                Sp.EN = en; string sp = en ? "EN" : "DE";
+                o.TestSuchHosts = new List<string> { "127.0.0.1" };
+                // zwei Server -> Auswahl, Statuszeile nennt die Anzahl
+                int vorher = Regex.Matches(LogText(o), "\\[Test\\] Auswahl").Count;
+                o.FTP_PORTE = new[] { port, port2 };
+                o.TestAntworten = new Queue<object>(new object[] { 0 });
+                Suchen(o);
+                log = LogText(o); o.UI(() => ipText = Hol<TextBox>(o, "tbIp").Text);
+                Pruefe(Regex.Matches(log, "\\[Test\\] Auswahl").Count == vorher + 1 && log.Contains("Statuszeile: " + (en ? "2 FTP servers found – please select one." : "2 FTP-Server gefunden – bitte einen auswählen.")), sp + ": zwei Server -> Auswahl, Statuszeile '2 ... gefunden – bitte einen auswählen'");
+                Pruefe(ipText == "127.0.0.1", sp + ": Auswahl Port " + port + " (Standard) -> nur IP eingetragen (" + ipText + ")");
+                // ein Server -> ohne Auswahlfenster übernommen
+                o.FTP_PORTE = new[] { frei1, port2 };
+                o.TestAntworten = new Queue<object>();
+                Suchen(o);
+                log = LogText(o); string stand = ""; o.UI(() => { ipText = Hol<TextBox>(o, "tbIp").Text; stand = Hol<TextBlock>(o, "tbStand").Text; });
+                Pruefe(Regex.Matches(log, "\\[Test\\] Auswahl").Count == vorher + 1 && ipText == "127.0.0.1:" + port2 && stand.StartsWith(en ? "Found:" : "Gefunden:"), sp + ": ein Server -> ohne Auswahl übernommen (" + ipText + ", '" + stand + "')");
+                // kein Server -> verständliche Meldung unter dem IP-Feld und in der Statuszeile
+                o.FTP_PORTE = new[] { frei1, frei2 };
+                Suchen(o);
+                string info2 = ""; o.UI(() => { info2 = Hol<TextBlock>(o, "tbInfo").Text; stand = Hol<TextBlock>(o, "tbStand").Text; });
+                string erwartet = en ? "No PS5 with a running FTP server found. Please check:" : "Keine PS5 mit laufendem FTP-Server gefunden. Bitte prüfen:";
+                Pruefe(info2.StartsWith(erwartet) && stand.StartsWith(erwartet) && !info2.Contains("EPSV") && !info2.Contains("Port"), sp + ": kein Server -> verständliche Meldung (" + info2 + ")");
+            }
+            Sp.EN = false;
             o.FTP_PORTE = new[] { Kern.STANDARD_PORT, Kern.ZWEIT_PORT }; o.TestSuchHosts = null;
             o.UI(() => Hol<TextBox>(o, "tbIp").Text = "127.0.0.1:" + port);
 
