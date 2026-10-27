@@ -12,6 +12,7 @@ body:
     attributes:
       label: "PS5-Modell / PS5 model"
       options:
+        - "– bitte wählen / please choose –"
         - "PS5 (Original) – Disc"
         - "PS5 (Original) – Digital"
         - "PS5 Slim – mit Laufwerk / with drive"
@@ -50,6 +51,7 @@ body:
     attributes:
       label: "M.2-SSD eingebaut? / M.2 SSD installed?"
       options:
+        - "– bitte wählen / please choose –"
         - "Ja / Yes"
         - "Nein / No"
   - type: dropdown
@@ -57,6 +59,7 @@ body:
     attributes:
       label: "Ergebnis / Result"
       options:
+        - "– bitte wählen / please choose –"
         - "Alles hat funktioniert / Everything worked"
         - "Teilweise / Partly"
         - "Hat nicht funktioniert / Did not work"
