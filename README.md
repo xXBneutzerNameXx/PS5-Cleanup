@@ -3,8 +3,26 @@
 <img width="600" height="600" alt="image" src="https://github.com/user-attachments/assets/5bc025d3-b6b1-47f6-9f27-4ea7dd483b52" />
 
 
+
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
-*Clean up your PS5 as if freshly set up – no reinstall, no reset. [English below](#english)*
+
+*Clean up your PS5 as if freshly set up – no reinstall, no reset.*
+
+🌍 [**English version below**](#english)
+
+
+---
+
+### 🗳️ PS5 Cleanup Community – Deine Meinung zählt!
+
+**Welche PS5 nutzt du?**
+
+Hilf uns, PS5 Cleanup für verschiedene Konsolen und Firmware-Versionen zu verbessern!
+
+[**🗳️ Jetzt abstimmen**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Diskussionen & Vorschläge**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Kompatibilität melden**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
+
+---
+
 
 > **Beta** – getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 > Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
@@ -92,6 +110,19 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 ---
 
 ## English
+
+---
+
+### 🗳️ PS5 Cleanup Community – Your Feedback Matters!
+
+**Which PS5 do you own?**
+
+Help us improve PS5 Cleanup across different console models and firmware versions!
+
+[**🗳️ Vote in our poll**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Join discussions**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Report compatibility**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
+
+---
+
 
 **PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
 
