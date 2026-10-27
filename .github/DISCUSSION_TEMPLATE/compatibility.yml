@@ -1,0 +1,71 @@
+title: "[Kompatibilität / Compatibility] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Danke für deinen Bericht! / Thanks for your report!**
+        Bitte keine IP-Adressen, Benutzernamen, Konsolen-IDs oder Kontodaten posten – Diskussionen sind öffentlich.
+        Please do not post IP addresses, user names, console IDs or account data – discussions are public.
+  - type: dropdown
+    id: modell
+    attributes:
+      label: "PS5-Modell / PS5 model"
+      options:
+        - "PS5 (Original) – Disc"
+        - "PS5 (Original) – Digital"
+        - "PS5 Slim – mit Laufwerk / with drive"
+        - "PS5 Slim – Digital"
+        - "PS5 Pro – mit Laufwerk / with drive"
+        - "PS5 Pro – Digital"
+        - "Weiß nicht / Not sure"
+    validations:
+      required: true
+  - type: input
+    id: cfi
+    attributes:
+      label: "Modellnummer (optional) / Model number (optional)"
+      placeholder: "z. B. / e.g. CFI-7021"
+  - type: input
+    id: firmware
+    attributes:
+      label: "Firmware"
+      placeholder: "z. B. / e.g. 12.00"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "PS5-Cleanup-Version / PS5 Cleanup version"
+      placeholder: "z. B. / e.g. 1.0.5 Beta"
+    validations:
+      required: true
+  - type: input
+    id: jailbreak
+    attributes:
+      label: "Jailbreak-Methode und FTP-Server / Jailbreak method and FTP server"
+      placeholder: "z. B. / e.g. BD-JB + etaHEN, ftpsrv 2121"
+  - type: dropdown
+    id: m2
+    attributes:
+      label: "M.2-SSD eingebaut? / M.2 SSD installed?"
+      options:
+        - "Ja / Yes"
+        - "Nein / No"
+  - type: dropdown
+    id: ergebnis
+    attributes:
+      label: "Ergebnis / Result"
+      options:
+        - "Alles hat funktioniert / Everything worked"
+        - "Teilweise / Partly"
+        - "Hat nicht funktioniert / Did not work"
+    validations:
+      required: true
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: "Was hast du gemacht, was ist passiert? / What did you do, what happened?"
+      description: "Bei Problemen gern den Log aus dem Programm („Alles kopieren“) – vorher auf private Daten prüfen. / For problems, feel free to add the log (\"Copy all\") – check it for private data first."
+    validations:
+      required: true

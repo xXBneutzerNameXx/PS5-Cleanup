@@ -9,6 +9,8 @@
 > **Beta** – getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 > Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
 > Rückmeldungen am einfachsten über den Knopf **„Feedback / Kompatibilität melden“** im Programm – er bereitet ein [Issue](../../issues) vor, das du vor dem Absenden siehst und änderst. Es wird nichts automatisch gesendet.
+>
+> Erfahrungen, Fragen und Ideen gern auch in den [Discussions](../../discussions) – Modell, Firmware und Ergebnis unter [Compatibility](../../discussions/categories/compatibility).
 
 Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gelöschter Spiele, alte Downloads, Fehlerberichte, Daten von Tools, die man längst nicht mehr nutzt. Die Systemsoftware neu aufspielen will man deswegen aber nicht – erst recht nicht bei Slim und Pro, wo dabei die Laufwerks-Kopplung verloren gehen kann.
 
@@ -93,7 +95,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
 
-> **Beta** – tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares should work but are untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically.
+> **Beta** – tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares should work but are untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically. Experiences, questions and ideas are also welcome in [Discussions](../../discussions) – model, firmware and result under [Compatibility](../../discussions/categories/compatibility).
 
 **Features:** finds the PS5 on your network including the right FTP port (2121 or 2120) and detects model, firmware and disc drive pairing status · detects the FTP server and its version (if the server reports it) and adapts to its kind of data connection · dashboard for console, disc drive pairing (with status legend) and storage · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *Full cleanup* (M.2 asked separately, confirmed by typing `DELETE`) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports ("Copy all", separate window) · voluntary feedback report to check and edit, without IP addresses, user names or paths – only submitted if you submit it on GitHub yourself.
 
