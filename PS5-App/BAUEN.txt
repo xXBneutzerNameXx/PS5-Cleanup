@@ -1,0 +1,29 @@
+PS5 Cleanup 1.0.6 - PS5-App selbst bauen / building the PS5 app yourself
+=======================================================================
+
+Lizenz / License: GPL-3.0-or-later (LICENSE_GPL-3.0.txt), Copyright (C) 2026 da_Chris86.
+
+Voraussetzungen / Requirements (Linux oder WSL):
+  - ps5-payload-sdk (John Törnblom, GPL-3.0) unter /opt/ps5-payload-sdk
+    https://github.com/ps5-payload-dev/sdk
+  - SDL2-Portierung für PS5-Payloads / SDL2 port for PS5 payloads:
+    https://github.com/ps5-payload-dev/SDL  (Zweig / branch release-2.30.x-ps5, zlib-Lizenz)
+    gebaut nach / built into  bau/sdl2  (include/, lib/libSDL2.a)
+  - PCRE2 10.44 (BSD) und cJSON 1.7.18 (MIT): siehe fremd/LIESMICH.txt und fremd/bauen_fremd.sh
+    -> bau/pcre2-ps5, bau/pcre2-pc, bau/cjson
+  - Quellcode/ps5info_antwort.h aus diesem Repository (wird von app/plattform_ps5.c eingebunden)
+
+Bauen / Build:
+  bash app/bauen.sh                        Oberfläche (alle Fassungen) -> app/ausgabe/<fassung>/eboot.elf
+  bash start/bauen_release.sh release      -> start/ausgabe/ps5cleanup.elf            (löscht nach Bestätigung)
+  bash start/bauen_release.sh simulation   -> start/ausgabe/ps5cleanup_simulation.elf (kann nichts löschen)
+
+Beide Bauskripte prüfen die fertigen Dateien auf verbotene Systemaufrufe: Fassungen ohne Löschen dürfen
+keinen Lösch-, Deinstallations- oder Neustart-Aufruf enthalten, sonst bricht der Bau ab.
+Both build scripts check the results for forbidden system calls: builds without deletion must not contain
+any delete, uninstall or reboot call, otherwise the build fails.
+
+Fremde Bestandteile / Third-party parts:
+  start/fremd/websrv/   ELF-Lader aus ps5-payload-dev/websrv (John Törnblom, GPL-3.0), siehe HERKUNFT.txt
+  probelauf/fremd/      stb_image.h, stb_truetype.h (Sean Barrett, public domain / MIT),
+                        DejaVu-Schriften (siehe LICENSE_DejaVu.txt)

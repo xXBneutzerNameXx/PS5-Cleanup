@@ -1,5 +1,5 @@
-﻿PS5 CLEANUP 1.0.5 BETA by da_Chris86
-====================================
+﻿PS5 CLEANUP 1.0.6 by da_Chris86
+===============================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
 ohne Neuinstallation und ohne Zurücksetzen. Konto, Lizenzen, Systemsoftware
@@ -14,10 +14,78 @@ ZWEI WEGE
     eingerichtet (die M.2 wird extra gefragt). Knopf "Vollständige
     Bereinigung".
 
-BETA: Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
-Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
+ZWEI FASSUNGEN
+  - PS5-App (ps5cleanup.elf): läuft direkt auf der PS5, Bedienung mit dem
+    Controller am Fernseher, ohne PC. Siehe "PS5-APP" unten.
+  - Windows (PS5-Cleanup.exe): arbeitet vom PC aus über FTP.
+
+GETESTET auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
+Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet.
 Rückmeldungen am einfachsten über den Knopf "Feedback / Kompatibilität
 melden" - auch ohne etwas zu löschen. Es wird nichts automatisch gesendet.
+
+
+NEU IN 1.0.6
+------------
+- PS5 Cleanup läuft jetzt direkt auf der PS5 (ps5cleanup.elf): Bedienung
+  mit dem Controller am Fernseher. Beim ersten Start legt die ELF ihre
+  eigene Kachel "PS5 Cleanup" auf dem Startbildschirm an. Kein Homebrew
+  Launcher und kein websrv nötig.
+- Nachschauen und Anhaken löscht nichts. Gelöscht wird erst, wenn du am
+  Ende ausdrücklich bestätigst - davor kannst du jederzeit abbrechen.
+- PS5-App: Kacheln (Spiele, Apps, Tool-Kacheln) werden über Sonys eigenen
+  Deinstallations-Dienst entfernt - es bleiben keine leeren Kacheln. Wer
+  nur Spiele und Apps löscht, braucht keinen Datenbank-Neuaufbau mehr.
+  Wurden Spielstände, Bilder oder Videos gelöscht, kommt am Ende
+  "Datenbank neu aufbauen" (sonst bleiben dort leere Einträge). Lehnt Sony ab, wird wie
+  bisher gelöscht und der Eintrag als TEILWEISE gemeldet (mit Liste, was
+  weg ist und was übrig bleibt).
+- PS5-App: am Ende wird die PS5 immer ganz ausgeschaltet (kein
+  Ruhemodus) - Knopf "PS5 ausschalten", ohne Zeitdruck, mit X oder O.
+  So ist sie bereit, falls die Datenbank neu aufgebaut werden muss.
+  PS5 Cleanup entfernt sich vorher selbst (vollständige Bereinigung
+  immer, Auswahl auf Wunsch).
+- Jailbreak-Schutz: Die Einstiege, mit denen dein Jailbreak startet,
+  werden erkannt und nie automatisch angehakt - weder über den ganzen
+  Bereich noch bei der vollständigen Bereinigung (dort wird gefragt,
+  "Behalten" ist empfohlen). Beim Anhaken und vor dem Löschen kommt eine
+  Warnung. Erkannt werden: YouTube (Y2JB), Netflix ('N Hack), Lua-
+  Jailbreak (die bekannten Lua-Spiele samt Spielstand), PS2-Spielstand-
+  Jailbreak (Okage, Star Wars Racer Revenge, Jak X), Ren'Py-Jailbreak
+  (yarpe), WebKit-Autoloader (Kachel und Offline-Speicher des Browsers,
+  auch PSH5/Goldengames) und der Browserspeicher. Geschützt wird nur, was
+  der Jailbreak zum Starten braucht. Jailbreak-Tools (etaHEN, Payload
+  Manager, Autoloader-Einstellungen, Update-Pakete, ELF-Dateien) bleiben
+  normal wählbar.
+- Die Konsolen-Übersicht zeigt, welche Jailbreak-Einstiege eingerichtet
+  sind (und eine Blu-ray-Jailbreak-Disc im Laufwerk) und welche Einträge
+  du dafür nicht löschen darfst.
+- Kacheln ohne App-Ordner (z. B. Spectrum Library) kann Sony nicht
+  austragen: Sie werden als TEILWEISE gemeldet und am Ende mit Namen bei
+  "Datenbank neu aufbauen" aufgeführt.
+- 6 Bereiche (siehe "KANN WEG"), der Speicherort steht vorne am Eintrag.
+- USB-Speicher wie M.2: Spiele auf USB lassen sich auch löschen. Die
+  vollständige Bereinigung fragt für M.2 und USB-Speicher jeweils einzeln
+  ("behalten" ist vorgewählt). Normale USB-Sticks nur einzeln.
+- Spiel-Abbilder (exFAT u. a.) zählen überall als Spiele.
+- Kürzere Zusätze, lange Namen laufen in der PS5-App als Laufschrift.
+- App-Daten (z. B. die Y2JB-Datei) gehen nur noch mit ihrer App.
+- Die Windows-Fassung heißt 1.0.6 (ohne "Beta"). Sie entfernt Kacheln
+  weiterhin über Dateien - danach wie bisher die Datenbank neu erstellen.
+
+
+PS5-APP (direkt auf der PS5)
+----------------------------
+1. Jailbreak laden. ps5cleanup.elf über deinen Payload-Lader oder den
+   Payload Manager starten.
+2. Beim ersten Start erscheint die Kachel "PS5 Cleanup". Die Oberfläche
+   startet sofort: mit dem Controller bedienen (Kreuz = wählen, Kreis
+   halten = beenden, Options = Protokoll).
+3. "Nachschauen", dann einzelne Einträge anhaken (Quadrat = nur Auswahl
+   löschen) oder Dreieck = vollständige Bereinigung.
+4. Am Ende "PS5 ausschalten". Danach einschalten und den Jailbreak wie
+   gewohnt neu starten. Steht am Ende "Datenbank neu aufbauen", stattdessen
+   zuerst die Schritte am Bildschirm machen.
 
 
 NEU IN 1.0.5
@@ -95,8 +163,8 @@ NEU IN 1.0.4
 - Hinweis, wenn es auf GitHub eine neuere Version gibt.
 
 
-SCHNELLSTART
-------------
+SCHNELLSTART WINDOWS
+--------------------
 1. PS5 einschalten, Jailbreak laden und einen FTP-Server starten.
    Auf einer PS5 Pro (Firmware 12.00) getestet:
      - ftpsrv von drakmor, Version 1.16 (Port 2121)
@@ -126,21 +194,27 @@ FASST DAS PROGRAMM NICHT AN
 
 KANN WEG (du wählst aus)
 ------------------------
-[1] Spiele & Apps auf der internen SSD - Spiel, Update und jedes DLC
-    einzeln wählbar (das Spiel nimmt Update und DLCs mit)
+[1] Spiele & Apps - auf interner SSD, M.2 und USB, der Ort steht vorne.
+    Spiel, Update und jedes DLC einzeln wählbar (das Spiel nimmt Update
+    und DLCs mit). Spiel-Abbilder (exFAT u. a.) zählen als Spiele.
 [2] Spielstände
 [3] Trophäen
 [4] Bilder & Videos
-[5] Downloads, Zusatzinhalte & Reste (Caches, Fehlerberichte, leere Kacheln)
-[6] Jailbreak-Tools & Homebrew-Daten (danach Jailbreak neu einrichten)
-[7] Inhalt der M.2-SSD (nur wenn eine eingebaut ist) - jedes Spiel und
-    jede Datei einzeln; sind M.2-Einträge gewählt, kommt eine eigene
-    Rückfrage
+[5] Reste - Downloads, Zusatzinhalte und Updates ohne Spiel, Caches,
+    Fehlerberichte, leere Kacheln und übrige Dateien auf M.2 und USB
+[6] Jailbreak & Homebrew - Tool-Kacheln, Homebrew-Daten und ELF-Dateien
+    aller Speicher (danach Jailbreak neu einrichten)
+Leere Bereiche werden nicht angezeigt. Einträge auf M.2 oder USB: Sind
+welche gewählt, kommt eine eigene Rückfrage. Dateien auf einem normalen
+USB-Stick sind nur einzeln wählbar. Die vollständige Bereinigung fragt
+für M.2 und USB-Speicher jeweils, ob sie mit geleert werden.
 
 
 WICHTIG
 -------
-- Datenbank neu erstellen, sonst bleiben leere Kacheln im Menü:
+- Windows-Fassung: Datenbank neu erstellen, sonst bleiben leere Kacheln
+  im Menü. PS5-App: nur, wenn sie es am Ende anzeigt (nach dem Löschen
+  von Spielständen, Bildern oder Videos):
   PS5 ausschalten, Einschaltknopf halten bis zum zweiten Piepton,
   Controller per USB anstecken, "Datenbank neu erstellen" wählen.
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
@@ -149,8 +223,9 @@ WICHTIG
   Rückfragen ist die sichere Wahl vorausgewählt. Ist eine Größe noch nicht
   gezählt, zählt das Programm sie vor der Abschlussfrage nach - dabei wird
   noch NICHTS gelöscht. Fenster zu oder "Abbrechen" = nichts passiert.
-- Nach der vollständigen Bereinigung musst du deinen Jailbreak neu
-  einrichten.
+- Nach der vollständigen Bereinigung musst du deine Jailbreak-Tools neu
+  einrichten. Die Jailbreak-Einstiege (z. B. YouTube/Y2JB) bleiben, wenn
+  du bei der Frage "Behalten" wählst.
 - Meldet das Programm beim Nachschauen einen Fehler (z. B. "konnte nicht
   vollständig gelesen werden"), wird nichts gelöscht - einfach nochmal
   verbinden. Lieber abbrechen als mit einer unvollständigen Liste löschen.
@@ -159,7 +234,7 @@ WICHTIG
   Schnellstart). Den genauen Grund zeigt das Protokoll.
 - Steckt eine M.2 in der PS5, das Programm meldet aber "keine M.2
   gefunden": nicht löschen, sondern die PS5 neu starten.
-- Benutzung auf eigene Gefahr. Es ist eine Beta - Fehler sind möglich.
+- Benutzung auf eigene Gefahr. Fehler sind möglich.
   Was dir wichtig ist, vorher sichern.
 - Bei Problemen: Das Programm schreibt alles in PS5-Cleanup.log (neben der
   .exe, sonst unter %TEMP%\PS5-Cleanup). Mit "Protokoll speichern" lässt

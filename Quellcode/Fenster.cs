@@ -39,7 +39,7 @@ namespace PS5Cleanup
         Button btFeedback; Expander exProtokoll; StackPanel wpSeite; ScrollViewer svSeite; Grid gHaupt; ColumnDefinition cdSeite;
         Border bdKopplung, bdKopplungSymbol, bdTest, bdHinweis, bdBereinigung;
         TextBlock tbReihe, tbModellNr, tbFirmware, tbErkannt, tbVerbindung, tbKopplungSymbol, tbKopplungTitel, tbKopplungText,
-                  tbIntern, tbM2, tbUsb, tbSm, tbHinweis, tbFundInfo, tbVersion;
+                  tbIntern, tbM2, tbUsb, tbSm, tbHinweis, tbFundInfo, tbVersion, tbJailbreak, tbJailbreakWarnung;
         // für den freiwilligen Feedback-Bericht (wird nur angezeigt, nie automatisch gesendet)
         public string F_MODELL = "", F_REIHE = "", F_QUELLE = "", F_FIRMWARE = "", F_FTPSERVER = "", F_BEGRUESSUNG = "", F_DATEN = ""; public int F_PORT; public bool F_SCAN, F_SCAN_TEST, F_GELOESCHT;
         static string T(string de, string en) { return Sp.T(de, en); }
@@ -82,7 +82,7 @@ namespace PS5Cleanup
             Func<string, TextBlock> tb = n => (TextBlock)W.FindName(n);
             tbReihe = tb("tbReihe"); tbModellNr = tb("tbModellNr"); tbFirmware = tb("tbFirmware"); tbErkannt = tb("tbErkannt"); tbVerbindung = tb("tbVerbindung");
             tbKopplungSymbol = tb("tbKopplungSymbol"); tbKopplungTitel = tb("tbKopplungTitel"); tbKopplungText = tb("tbKopplungText");
-            tbIntern = tb("tbIntern"); tbM2 = tb("tbM2"); tbUsb = tb("tbUsb"); tbSm = tb("tbSm"); tbHinweis = tb("tbHinweis"); tbFundInfo = tb("tbFundInfo"); tbVersion = tb("tbVersion");
+            tbIntern = tb("tbIntern"); tbM2 = tb("tbM2"); tbUsb = tb("tbUsb"); tbSm = tb("tbSm"); tbHinweis = tb("tbHinweis"); tbFundInfo = tb("tbFundInfo"); tbVersion = tb("tbVersion"); tbJailbreak = tb("tbJailbreak"); tbJailbreakWarnung = tb("tbJailbreakWarnung");
             tbVersion.Text = Kern.VERSION;
             TexteSetzen();
             try { W.Icon = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.cleanup.ico")); } catch { }
@@ -162,9 +162,9 @@ namespace PS5Cleanup
             btProtokoll.ToolTip = "Saves the log as a text file - please attach it when reporting problems. Check it for personal data before sharing.";
             Action<string, string> setze = (n, t) => ((TextBlock)W.FindName(n)).Text = t;
             setze("tbKonsoleKopf", "CONSOLE"); setze("tbLFirmware", "Firmware"); setze("tbLErkannt", "Model detected"); setze("tbLVerbindung", "Connection");
-            setze("tbKopplungKopf", "DISC DRIVE PAIRING"); setze("tbKopplungNie", "Read only. The program never touches the pairing.");
+            setze("tbKopplungKopf", "DISC DRIVE PAIRING"); setze("tbKopplungNie", "Only read, never changed.");
             setze("tbLegendeKopf", "STATUS LEGEND"); setze("tbLeg1", "Pairing confirmed"); setze("tbLeg2", "No pairing"); setze("tbLeg3", "Not reliably determinable"); setze("tbLeg4", "Not readable / not queried");
-            setze("tbSpeicherKopf", "STORAGE"); setze("tbLIntern", "Internal SSD"); setze("tbLM2", "M.2 SSD"); setze("tbLUsb", "USB storage"); setze("tbLSm", "ShadowMount");
+            setze("tbSpeicherKopf", "STORAGE"); setze("tbLIntern", "Internal"); setze("tbLM2", "M.2 SSD"); setze("tbLUsb", "USB"); setze("tbLSm", "ShadowMount");
             setze("tbBereinigungKopf", "Cleanup"); setze("tbProtokollKopf", "Log");
             btLogKopie.Content = "Copy all"; btLogKopie.ToolTip = "Copies the whole log of this session to the clipboard - not just the visible part.";
             btLogFenster.Content = "Open in window"; btLogFenster.ToolTip = "Opens the log in a separate, large window (updates live).";
@@ -732,6 +732,8 @@ namespace PS5Cleanup
             foreach (var k in Kern.ALLE_KAT)
             {
                 var eintraege = K.Funde.Where(f => f.Kat == k).ToList();
+                // NEU 1.0.6 (da_Chris86 28.10.2026): leere Bereiche nicht anzeigen (solange überhaupt etwas gefunden wurde)
+                if (eintraege.Count == 0 && K.Funde.Count > 0) continue;
                 var ex = new Expander();
                 ex.IsExpanded = eintraege.Count > 0 && eintraege.Count <= 15;
                 ex.Margin = new Thickness(0, 4, 0, 4);
@@ -753,14 +755,18 @@ namespace PS5Cleanup
                     cb.Content = KaestchenInhalt(f);
                     // NEU 1.0.5: der vollständige Name als Infofeld beim Darüberfahren (lange Titel ohne seitliches Scrollen lesbar)
                     string zusatz = null;
-                    if (f.Gesperrt) { cb.IsEnabled = false; zusatz = T("Gesperrt - der Game Compressor arbeitet gerade daran.", "Locked - the Game Compressor is working on it."); }
+                    if (f.Gesperrt) { cb.IsEnabled = false; zusatz = f.SperrGrund ?? T("Gesperrt - der Game Compressor arbeitet gerade daran.", "Locked - the Game Compressor is working on it."); }
+                    if (f.NurEinzeln && !f.Gesperrt) zusatz = f.Jailbreak ? Kern.JbHinweis(f) : f.Ort == Kern.ORT_STICK ? T("USB-Stick: nur einzeln wählbar - nie über den ganzen Bereich und nie in der vollständigen Bereinigung.", "USB stick: individually only - never via the whole area and never in the full cleanup.") : T("Nur einzeln wählbar.", "Can only be selected individually.");
                     if (f.SmTipp && !f.Gesperrt) zusatz = T("ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.", "ShadowMount: if the game is deleted, its tile disappears from the menu too.");
                     cb.ToolTip = InfoFeld(f, zusatz);
                     ToolTipService.SetShowOnDisabled(cb, true);
                     cb.Click += (s, e) =>
                     {
                         var c = (CheckBox)s; var ff = (Eintrag)c.Tag;
+                        bool vorher = ff.Wahl;
                         ff.Wahl = c.IsChecked == true;
+                        // NEU 1.0.6 (da_Chris86 29.10.2026 07:28): beim Anwählen eines Jailbreak-Einstiegs deutlich warnen
+                        if (!vorher && ff.Wahl && ff.Jailbreak) Meldung(Kern.JbWarnung(ff), "Jailbreak", MessageBoxImage.Warning);
                         // Spiel abgewählt -> seine Updates/DLCs auch wieder abwählen
                         if (ff.IstTeil("Spiel") && !ff.Wahl)
                             foreach (var x in K.Funde) if (x.Gruppe != null && x.Gruppe == ff.Gruppe && !x.IstTeil("Spiel")) x.Wahl = false;
@@ -773,7 +779,7 @@ namespace PS5Cleanup
                 {
                     var a = (CheckBox)s;
                     // Trophäen-Listen noch installierter Spiele (gelb) nur einzeln - beim Abwählen gehen sie mit
-                    foreach (var c in kinder) { var ff = (Eintrag)c.Tag; if (!ff.Gesperrt && !(ff.Paket && a.IsChecked == true)) { c.IsChecked = a.IsChecked; ff.Wahl = a.IsChecked == true; } }
+                    foreach (var c in kinder) { var ff = (Eintrag)c.Tag; if (!ff.Gesperrt && !((ff.Paket || ff.NurEinzeln) && a.IsChecked == true)) { c.IsChecked = a.IsChecked; ff.Wahl = a.IsChecked == true; } }
                     GruppenAbgleich(); AktualisiereStand();
                 };
                 KopfKaestchen.Add(alle);
@@ -803,7 +809,6 @@ namespace PS5Cleanup
         {
             int k = (int)alle.Tag;
             var eintraege = K.Funde.Where(f => f.Kat == k).ToList();
-            if (k == 7 && !K.m2Da) { alle.Content = "[7] " + Kern.KatName[7] + T("   (keine M.2 gefunden)", "   (no M.2 found)"); return; }
             string t = "[" + k + "] " + Kern.KatName[k] + "   (" + eintraege.Count + T(" Einträge", " entries");
             if (eintraege.Count > 0)
             {
@@ -859,7 +864,11 @@ namespace PS5Cleanup
         static ToolTip InfoFeld(Eintrag f, string zusatz)
         {
             string text = f.Text + (string.IsNullOrEmpty(zusatz) ? "" : "\n\n" + zusatz);
-            return new ToolTip { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 700 } };
+            // NEU 1.0.6 (PS5-Test da_Chris86 30.10.2026 08:10): Farben ausdrücklich setzen - sonst helle Schrift auf weißem Grund
+            var hell = new SolidColorBrush(Color.FromRgb(0xE9, 0xEA, 0xEE));
+            return new ToolTip { Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2D, 0x35)), Foreground = hell,
+                                 BorderBrush = new SolidColorBrush(Color.FromRgb(0x4A, 0x4F, 0x5C)), BorderThickness = new Thickness(1), Padding = new Thickness(10, 7, 10, 7),
+                                 Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 700, Foreground = hell } };
         }
 
         // ---------------------------------------------------------------
@@ -874,13 +883,19 @@ namespace PS5Cleanup
                 int c = g.Count(f => f.Kat == k);
                 if (c > 0) t += "   - " + Kern.KatName[k] + ": " + c + "\n";
             }
-            int m2 = g.Count(f => f.Kat == 7);
             int smDatei = g.Count(f => f.Kat == 1 && f.Quelle != "" && f.Pfade.Contains(f.Quelle));
             if (smDatei > 0) t += T("   davon ShadowMount-Spiele MIT Spieldatei: ", "   of these, ShadowMount games WITH game file: ") + smDatei + "\n";
-            if (komplett && m2 == 0) t += T("   (M.2-SSD bleibt unverändert)\n", "   (M.2 SSD stays unchanged)\n");
-            if (!komplett && m2 > 0) t = T("!!! ACHTUNG: ", "!!! WARNING: ") + m2 + T(" EINTRÄGE DER M.2-SSD SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " M.2 SSD ENTRIES ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n") + t;
-            int gesp = K.Funde.Count(f => f.Gesperrt);
+            // NEU 1.0.6: je Speicher außerhalb der internen SSD
+            for (int o = Kern.ORT_M2; o <= Kern.ORT_STICK; o++)
+            {
+                int n = g.Count(f => (f.Quelle == "" ? f.Ort : (f.Pfade.Contains(f.Quelle) ? Kern.PfadOrt(f.Quelle) : Kern.ORT_INTERN)) == o);   // Codex-Prüfung 28: ShadowMount-Dateien zählen mit
+                if (komplett && n == 0 && (o == Kern.ORT_M2 ? K.m2Da : o == Kern.ORT_USB && K.USB_SPEICHER)) t += "   (" + Kern.OrtName(o) + T(" bleibt unverändert)\n", " stays unchanged)\n");
+                if (!komplett && n > 0) t = T("!!! ACHTUNG: ", "!!! WARNING: ") + n + T(" EINTRÄGE AUF ", " ENTRIES ON ") + Kern.OrtName(o) + T(" SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n") + t;
+            }
+            int gesp = K.Funde.Count(f => f.Gesperrt && f.SperrGrund == null);
             if (gesp > 0) t += T("   Bleibt (Game Compressor arbeitet daran): ", "   Kept (Game Compressor is working on it): ") + gesp + "\n";
+            int gesp2 = K.Funde.Count(f => f.Gesperrt && f.SperrGrund != null);   // NEU 1.0.6
+            if (gesp2 > 0) t += T("   Bleibt (geschützt): ", "   Kept (protected): ") + gesp2 + "\n";
             if (!komplett) { string h = K.SpeicherHinweis(); if (h != "") t += h.TrimStart('\n') + "\n"; }
             t += T("\nDas sind ", "\nThat is ") + Kern.GroesseSatz(GROSS) + ".\n";
             t += "\n" + K.KopplungsText() + T("\nBenutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.", "\nUse at your own risk - deleted data is gone for good.");
@@ -909,24 +924,57 @@ namespace PS5Cleanup
         {
             HintergrundAnhalten();
             string t = T("VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:\n", "FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:\n");
-            foreach (var k in new[] { 1, 2, 3, 4, 5, 6 }) t += "   - " + Kern.KatName[k] + ": " + K.AnzahlKomplett(k) + "\n";
-            t += T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n - Ein im Browser offline gespeicherter Jailbreak-Zugang kann auch weg sein.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
-                   "\nThis means:\n - Saved data without a cloud backup (PS Plus) is gone for good.\n - Trophies never synced with PSN are gone.\n - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.\n - A jailbreak page saved offline in the browser may be gone too.\n\nKept: system software, disc drive pairing, user account, real licenses, Sony system apps.");
+            foreach (var k in Kern.ALLE_KAT) t += "   - " + Kern.KatName[k] + ": " + K.Funde.Count(f => f.Kat == k && f.Ort == Kern.ORT_INTERN && !f.Gesperrt && !f.Paket && !f.NurEinzeln) + "\n";
+            t += T("(M.2 und USB-Speicher: gleich wird jeweils gefragt. USB-Sticks bleiben unangetastet.)\n", "(M.2 and USB storage: you will be asked for each. USB sticks stay untouched.)\n");
+            t += T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
+                   "\nThis means:\n - Saved data without a cloud backup (PS Plus) is gone for good.\n - Trophies never synced with PSN are gone.\n - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.\n\nKept: system software, disc drive pairing, user account, real licenses, Sony system apps.");
+            if (K.AnzahlJailbreak(true, true) > 0)   // NEU 1.0.6
+                t += T("\nMögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser): ", "\nPossible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser): ") + K.AnzahlJailbreak(true, true) + T(" - gleich wird gefragt, ob sie bleiben.", " - you will be asked next whether they stay.");
             t += K.SpeicherHinweis();
             if (!FrageWahl(t, T("Vollständige Bereinigung", "Full cleanup"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { HintergrundStarten(); return; }
-            bool m2Leeren = false;
-            if (K.m2Da && K.Anzahl(7) > 0)
-                m2Leeren = FrageWahl(T("Auf der M.2-SSD liegen ", "The M.2 SSD holds ") + K.Anzahl(7) + T(" Einträge (Spiele, Ordner, Dateien).\n\nM.2 BEHALTEN: Die Spiele bleiben. Nur ihre Kacheln gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nM.2 AUCH LEEREN: Alle Spiele und Dateien auf der M.2 werden endgültig gelöscht.",
-                    " entries (games, folders, files).\n\nKEEP M.2: the games stay. Only their tiles go - they come back once ShadowMount is set up again.\n\nALSO WIPE M.2: all games and files on the M.2 are deleted permanently."),
-                    T("M.2-SSD", "M.2 SSD"), T("M.2 behalten (empfohlen)", "Keep M.2 (recommended)"), T("M.2 auch leeren", "Also wipe M.2"));
-            K.WaehleKomplett(m2Leeren);
+            // da_Chris86 28.10.2026: M.2 und USB-Speicher gehören zur vollständigen Bereinigung - je auf Nachfrage (wie 1.0.5 bei der M.2).
+            // Zählt die Spieldateien von ShadowMount-Spielen mit, die auf diesem Speicher liegen. USB-Sticks nie (nur einzeln).
+            var extAnz = new int[3];
+            // Codex-Prüfung 37: Jailbreak-Einstiege auf M.2/USB zählen mit (sonst fehlt die Frage, wenn dort nur Einstiege liegen)
+            foreach (var f in K.Funde) if (!f.Gesperrt && (!f.NurEinzeln || f.Jailbreak)) { int o = f.Quelle != "" ? Kern.PfadOrt(f.Quelle) : f.Ort; if (o == Kern.ORT_M2 || o == Kern.ORT_USB) extAnz[o]++; }
+            var leeren = new bool[3];
+            for (int o = Kern.ORT_M2; o <= Kern.ORT_USB; o++)
+            {
+                if (extAnz[o] == 0) continue;
+                string n = Kern.OrtName(o);
+                leeren[o] = FrageWahl(T("Auf ", "On ") + (o == Kern.ORT_M2 ? T("der M.2-SSD", "the M.2 SSD") : T("dem USB-Speicher", "the USB storage")) + T(" liegen ", " there are ") + extAnz[o] + (extAnz[o] == 1 ? T(" Eintrag", " entry") : T(" Einträge", " entries")) +
+                    T(" (Spiele, Ordner, Dateien).\n\nBEHALTEN: Die Spiele bleiben. Nur Kacheln von ShadowMount-Spielen darauf gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nAUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.",
+                      " (games, folders, files).\n\nKEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.\n\nALSO WIPE: all games and files on it are deleted permanently."),
+                    n, n + T(" behalten (empfohlen)", ": keep (recommended)"), n + T(" auch leeren", ": also wipe"));
+            }
+            bool m2Leeren = leeren[Kern.ORT_M2], usbLeeren = leeren[Kern.ORT_USB];
+            // NEU 1.0.6: Jailbreak-Einstiege nur auf ausdrücklichen Wunsch
+            int jbAnz = K.AnzahlJailbreak(m2Leeren, usbLeeren);
+            bool jbLoeschen = false;
+            if (jbAnz > 0)
+                jbLoeschen = FrageWahl(T("Gefunden: ", "Found: ") + jbAnz + T(" mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser) samt ihren Daten.\n\nBEHALTEN: Sie bleiben - dieser Jailbreak-Weg funktioniert weiter.\n\nAUCH LÖSCHEN: Sie werden mit gelöscht. Danach funktioniert dieser Jailbreak-Weg erst wieder, wenn er neu eingerichtet ist.",
+                    " possible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser) with their data.\n\nKEEP: they stay - this jailbreak method keeps working.\n\nALSO DELETE: they are deleted too. This jailbreak method only works again once it has been set up again."),
+                    T("Jailbreak-Einstiege", "Jailbreak entries"), T("Behalten (empfohlen)", "Keep (recommended)"), T("Auch löschen", "Also delete"));
+            K.WaehleKomplett(m2Leeren, usbLeeren);
+            if (jbLoeschen) K.JailbreakDazu(m2Leeren, usbLeeren);
             ZeigeHaken(); AktualisiereStand();
-            if (!m2Leeren && K.HatPakete()) Log(T("(Trophäen-Listen bleiben, weil die Spiele auf der M.2 bleiben.)", "(Trophy lists stay because the games on the M.2 stay.)"));
+            if (K.Funde.Any(f => f.Paket && !f.Wahl)) Log(T("(Trophäen-Listen bleiben, weil Spiele auf M.2 oder USB bleiben.)", "(Trophy lists stay because games on M.2 or USB stay.)"));
             bool weiter;
             try { weiter = GroesseErmitteln(); }
             catch (AbbruchAusnahme) { foreach (var f in K.Funde) f.Wahl = false; K.SmZuruecksetzen(); ZeigeHaken(); throw; }
             if (!weiter) { Protokoll.Zeile(T("Fenster geschlossen - abgebrochen, nichts gelöscht.", "Window closed - cancelled, nothing deleted.")); return; }
-            string warn = m2Leeren ? T("!!! ACHTUNG: DIE M.2-SSD WIRD MIT GELEERT - ", "!!! WARNING: THE M.2 SSD WILL BE WIPED TOO - ") + K.Anzahl(7) + T(" Einträge, alle Spiele darauf sind danach weg !!!\n\n", " entries, all games on it will be gone !!!\n\n") : T("Die M.2-SSD bleibt unangetastet.\n\n", "The M.2 SSD stays untouched.\n\n");
+            // da_Chris86 28.10.2026: deutliche Warnung mit der echten Anzahl, wenn M.2 oder USB mit geleert werden
+            // (gezählt nach der Auswahl - mit Jailbreak-Einträgen und ShadowMount-Spieldateien, Codex-Prüfung 28)
+            var gewAnz = new int[3];
+            foreach (var f in K.Funde.Where(f => f.Wahl)) { int o = f.Quelle == "" ? f.Ort : (f.Pfade.Contains(f.Quelle) ? Kern.PfadOrt(f.Quelle) : Kern.ORT_INTERN); if (o == Kern.ORT_M2 || o == Kern.ORT_USB) gewAnz[o]++; }
+            string warn = "";
+            for (int o = Kern.ORT_M2; o <= Kern.ORT_USB; o++)
+            {
+                if (extAnz[o] == 0) continue;
+                if (leeren[o]) warn += T("!!! ACHTUNG: ", "!!! WARNING: ") + (o == Kern.ORT_M2 ? T("DIE M.2-SSD", "THE M.2 SSD") : T("DER USB-SPEICHER", "THE USB STORAGE")) + T(" WIRD MIT GELEERT - ", " WILL BE WIPED TOO - ") + gewAnz[o] + (gewAnz[o] == 1 ? T(" Eintrag", " entry") : T(" Einträge", " entries")) + T(", alle Spiele und Dateien darauf sind danach weg !!!\n\n", ", all games and files on it will be gone !!!\n\n");
+                else warn += (o == Kern.ORT_M2 ? T("Die M.2-SSD", "The M.2 SSD") : T("Der USB-Speicher", "The USB storage")) + T(" bleibt unangetastet.\n\n", " stays untouched.\n\n");
+            }
+            if (jbAnz > 0 && !jbLoeschen) warn += T("Die Jailbreak-Einstiege bleiben.\n\n", "The jailbreak entries stay.\n\n");
             string a = FrageText(warn + Zusammenfassung(true) + T("\n\nZum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):", "\n\nType DELETE to confirm (anything else = cancel):"), T("Endgültig löschen?", "Delete permanently?"));
             bool bestaetigt = Sp.EN ? a == "DELETE" : (a == "LOESCHEN" || a == "LÖSCHEN");
             if (!bestaetigt)
@@ -953,14 +1001,25 @@ namespace PS5Cleanup
                 K.SetzeSmSpieldateien(mit);
             }
             else K.SmZuruecksetzen();
-            var m2 = K.M2Gewaehlt();
+            var m2 = K.ExtGewaehlt();   // NEU 1.0.6: M.2, USB-Speicher und USB-Stick
             if (m2.Count > 0)
             {
                 string l = string.Join("\n", m2.Take(15).Select(f => "   " + f.Text));
                 if (m2.Count > 15) l += T("\n   ... und ", "\n   ... and ") + (m2.Count - 15) + T(" weitere", " more");
-                if (!FrageWahl(T("ACHTUNG - du hast ", "WARNING - you selected ") + m2.Count + T(" Einträge der M.2-SSD gewählt:\n", " M.2 SSD entries:\n") + l +
+                if (!FrageWahl(T("ACHTUNG - du hast ", "WARNING - you selected ") + m2.Count + (m2.Count == 1 ? T(" Eintrag auf M.2/USB gewählt:\n", " entry on M.2/USB:\n") : T(" Einträge auf M.2/USB gewählt:\n", " entries on M.2/USB:\n")) + l +
                     T("\n\nAlles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nEverything in them (games, folders, files) will be deleted permanently.\n\nNothing is deleted before the final question."),
-                    T("M.2-SSD", "M.2 SSD"), T("Abbrechen", "Cancel"), T("Weiter (M.2-Einträge löschen)", "Continue (delete M.2 entries)")))
+                    "M.2 / USB", T("Abbrechen", "Cancel"), T("Weiter (diese Einträge löschen)", "Continue (delete these entries)")))
+                { Log(T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed.")); K.SmZuruecksetzen(); HintergrundStarten(); return; }
+            }
+            // NEU 1.0.6 (da_Chris86 29.10.2026 07:28): gewählte Jailbreak-Einstiege - deutliche Warnung mit Namen
+            var jbw = K.Funde.Where(f => f.Wahl && f.Jailbreak && !f.Gesperrt).ToList();
+            if (jbw.Count > 0)
+            {
+                string l = string.Join("\n", jbw.Take(15).Select(f => "   " + f.Text + " → " + Kern.JbWeg(f)));
+                if (jbw.Count > 15) l += T("\n   ... und ", "\n   ... and ") + (jbw.Count - 15) + T(" weitere", " more");
+                if (!FrageWahl(T("ACHTUNG - du hast ", "WARNING - you selected ") + jbw.Count + (jbw.Count == 1 ? T(" Eintrag gewählt, der zu deinem Jailbreak gehört:\n", " entry that belongs to your jailbreak:\n") : T(" Einträge gewählt, die zu deinem Jailbreak gehören:\n", " entries that belong to your jailbreak:\n")) + l +
+                    T("\n\nWerden sie gelöscht, funktioniert dieser Jailbreak erst wieder, wenn er neu eingerichtet ist.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nIf they are deleted, this jailbreak only works again once it has been set up again.\n\nNothing is deleted before the final question."),
+                    "Jailbreak", T("Abbrechen", "Cancel"), T("Weiter (trotzdem löschen)", "Continue (delete anyway)")))
                 { Log(T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed.")); K.SmZuruecksetzen(); HintergrundStarten(); return; }
             }
             if (!GroesseErmitteln()) { Protokoll.Zeile(T("Fenster geschlossen - abgebrochen, nichts gelöscht.", "Window closed - cancelled, nothing deleted.")); return; }
@@ -1052,6 +1111,7 @@ namespace PS5Cleanup
         {
             tbReihe.Text = "–"; tbModellNr.Text = T("Noch nicht verbunden", "Not connected yet");
             foreach (var t in new[] { tbFirmware, tbErkannt, tbVerbindung, tbIntern, tbM2, tbUsb, tbSm }) { t.Text = "–"; t.Foreground = (Brush)W.FindResource("Text"); }
+            tbJailbreak.Visibility = Visibility.Collapsed; tbJailbreakWarnung.Visibility = Visibility.Collapsed;   // NEU 1.0.6
             tbFundInfo.Text = "";
             bdHinweis.Visibility = Visibility.Collapsed;
             ZeigeKopplung();
@@ -1060,9 +1120,12 @@ namespace PS5Cleanup
         public void ZeigeKonsole(string modell, string reihe, string firmware, string quelle, int port)
         {
             tbReihe.Text = reihe != "" ? reihe : T("Unbekanntes Modell", "Unknown model");
-            tbModellNr.Text = modell != "" ? modell : T("Modellnummer unbekannt", "Model number unknown");
+            // NEU 1.0.6 (da_Chris86 28.10.2026): "CFI-7021 · Europa · seit Nov. 2024"; "Modell erkannt" nur noch, wenn das Modell fehlt
+            tbModellNr.Text = modell != "" ? Kern.ModellZeile(modell) : T("Modell nicht erkannt - Angaben ohne Gewähr", "Model not detected - no guarantee for the details");
             tbFirmware.Text = firmware != "" ? firmware : T("unbekannt", "unknown");
             tbErkannt.Text = quelle;
+            var sichtbar = modell != "" ? Visibility.Collapsed : Visibility.Visible;
+            tbErkannt.Visibility = sichtbar; ((TextBlock)W.FindName("tbLErkannt")).Visibility = sichtbar;
             tbVerbindung.Text = "FTP, Port " + port;
             ZeigeKopplung();
         }
@@ -1089,16 +1152,28 @@ namespace PS5Cleanup
         public void ZeigeSpeicher()
         {
             if (!VERBUNDEN) return;
-            int intern = K.Funde.Count(f => f.Kat >= 1 && f.Kat <= 6);
-            tbIntern.Text = T("durchsucht · ", "scanned · ") + intern + T(" Einträge", " entries");
-            if (!K.m2Da) { tbM2.Text = T("nicht gefunden", "not found"); tbM2.Foreground = (Brush)W.FindResource("Text"); }
+            // NEU 1.0.6 (da_Chris86 28.10.2026): nur die Anzahl; weiß = gefunden, grau = nicht angeschlossen, gelb = unklar
+            Func<int, string> eintraege = n => n + (n == 1 ? T(" Eintrag", " entry") : T(" Einträge", " entries"));
+            Brush weiss = (Brush)W.FindResource("Text"), grau = (Brush)W.FindResource("Grau");
+            tbIntern.Text = eintraege(K.Funde.Count(f => f.Ort == Kern.ORT_INTERN)); tbIntern.Foreground = weiss;
+            if (!K.m2Da) { tbM2.Text = T("nicht eingebaut", "not installed"); tbM2.Foreground = grau; }
             else if (K.M2_OHNE_USER) { tbM2.Text = T("leer oder nicht richtig erkannt", "empty or not detected properly"); tbM2.Foreground = (Brush)W.FindResource("Gelb"); }
-            else { tbM2.Text = T("erkannt · ", "detected · ") + K.Anzahl(7) + T(" Einträge", " entries"); tbM2.Foreground = Farbe("#8FE0B5"); }
-            tbUsb.Text = K.USB_SPEICHER ? T("angeschlossen (erweiterter Speicher)", "connected (extended storage)") : T("nicht gefunden", "not found");
-            tbUsb.Foreground = K.USB_SPEICHER ? (Brush)W.FindResource("Gelb") : (Brush)W.FindResource("Text");
+            else { tbM2.Text = eintraege(K.Funde.Count(f => f.Ort == Kern.ORT_M2)); tbM2.Foreground = weiss; }
+            string u = "";
+            if (K.USB_SPEICHER) u = T("erweiterter Speicher · ", "extended storage · ") + eintraege(K.Funde.Count(f => f.Ort == Kern.ORT_USB));
+            if (K.STICK_DA) { int n = K.Funde.Count(f => f.Ort == Kern.ORT_STICK); u += (u != "" ? "  ·  " : "") + T("USB-Stick · ", "USB stick · ") + n + (n == 1 ? T(" Datei", " file") : T(" Dateien", " files")); }
+            tbUsb.Text = u != "" ? u : T("nicht angeschlossen", "not connected");
+            tbUsb.Foreground = u != "" ? weiss : grau;
             int sm = K.Funde.Count(f => f.Kat == 1 && f.Quelle != "");
-            tbSm.Text = sm > 0 ? sm + T(" Spiel(e) gefunden", " game(s) found") : T("keine Spiele gefunden", "no games found");
+            tbSm.Text = sm > 0 ? sm + (sm == 1 ? T(" Spiel", " game") : T(" Spiele", " games")) : T("keine Spiele", "no games");
+            tbSm.Foreground = sm > 0 ? weiss : grau;
             tbFundInfo.Text = K.Funde.Count + T(" Einträge gefunden · nichts verändert", " entries found · nothing changed");
+            // NEU 1.0.6 (da_Chris86 28.10.2026): Jailbreak-Anzeige wie in der PS5-App
+            string jbWarn; string jb = K.JailbreakErkannt(out jbWarn);
+            tbJailbreak.Text = jb != null ? T("Jailbreak eingerichtet: ", "Jailbreak set up: ") + jb : T("Jailbreak: kein Einstieg eingerichtet", "Jailbreak: no entry set up");   // da_Chris86 29.10.2026 19:12: was EINGERICHTET ist, nicht womit gestartet wurde
+            tbJailbreak.Foreground = jb != null ? (Brush)new SolidColorBrush(Color.FromRgb(0x8F, 0xE0, 0xB5)) : grau;
+            tbJailbreak.Visibility = Visibility.Visible;
+            tbJailbreakWarnung.Text = jbWarn ?? ""; tbJailbreakWarnung.Visibility = jbWarn != null ? Visibility.Visible : Visibility.Collapsed;
             string h = K.SpeicherHinweis().Trim();
             tbHinweis.Text = h;
             bdHinweis.Visibility = h != "" ? Visibility.Visible : Visibility.Collapsed;

@@ -17,9 +17,9 @@ using System.Windows;
 [assembly: AssemblyCompany("da_Chris86")]
 [assembly: AssemblyProduct("PS5 Cleanup")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 da_Chris86 - MIT-Lizenz")]
-[assembly: AssemblyVersion("1.0.5.0")]
-[assembly: AssemblyFileVersion("1.0.5.0")]
-[assembly: AssemblyInformationalVersion("1.0.5 Beta")]
+[assembly: AssemblyVersion("1.0.6.0")]
+[assembly: AssemblyFileVersion("1.0.6.0")]
+[assembly: AssemblyInformationalVersion("1.0.6")]
 
 namespace PS5Cleanup
 {

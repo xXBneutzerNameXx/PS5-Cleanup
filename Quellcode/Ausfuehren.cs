@@ -20,9 +20,26 @@ namespace PS5Cleanup
     public partial class Kern
     {
         public int Anzahl(int k) { return Funde.Count(f => f.Kat == k); }
-        public int AnzahlKomplett(int k) { return Funde.Count(f => f.Kat == k && !f.Gesperrt && !f.Paket); }
+        public int AnzahlKomplett(int k) { return Funde.Count(f => f.Kat == k && !f.Gesperrt && !f.Paket && !f.NurEinzeln); }
         public List<Eintrag> Gewaehlt() { return Funde.Where(f => f.Wahl).ToList(); }
         public bool HatPakete() { return Funde.Any(f => f.Paket); }
+        // ShadowMount "Spiel + Kachel": Spieldatei, Kachel und (NEU 1.0.6) der App-Datenspeicher; "nur Kachel": er bleibt
+        List<string> QuelleDavor(Eintrag f)
+        {
+            var l = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList();
+            var m = f.PfadeBasis.Count > 0 ? H.Mt(f.PfadeBasis[0], "^/user/app/([^/]+)$") : null;
+            string ad = m != null && m.Success ? AppDaten(m.Groups[1].Value) : null;
+            if (ad != null && !l.Contains(ad)) l.Add(ad);
+            return l;
+        }
+        // NEU 1.0.6: Jailbreak-Einstiege nur auf ausdrücklichen Wunsch in der vollständigen Bereinigung
+        // Codex-Prüfung 36: Ort der Daten wie bei der vollständigen Bereinigung (ShadowMount: die Kachel liegt intern)
+        public int AnzahlJailbreak(bool m2, bool usb) { return Funde.Count(f => f.Jailbreak && !f.Gesperrt && OrtDabei(DatenOrt(f), m2, usb)); }
+        public void JailbreakDazu(bool m2, bool usb) { foreach (var f in Funde) if (f.Jailbreak && !f.Gesperrt && OrtDabei(DatenOrt(f), m2, usb)) f.Wahl = true; }
+        // NEU 1.0.6: Liegen die Daten eines Eintrags auf einem Speicher, der mit geleert wird? (ShadowMount: die Kachel liegt intern)
+        static bool OrtDabei(int ort, bool m2, bool usb) { return ort == ORT_INTERN || (ort == ORT_M2 && m2) || (ort == ORT_USB && usb); }
+        public static int DatenOrt(Eintrag f) { return f.Quelle != "" ? ORT_INTERN : f.Ort; }
+        public int AnzahlOrt(int ort) { return Funde.Count(f => f.Ort == ort && !f.Gesperrt && !f.NurEinzeln); }
 
         // ShadowMount-Spiele (Bereich 1) auf "wie gefunden" zurücksetzen
         public void SmZuruecksetzen()
@@ -30,20 +47,21 @@ namespace PS5Cleanup
             foreach (var f in Funde)
                 if (f.Kat == 1 && f.Quelle != "") { f.Pfade = new List<string>(f.PfadeBasis); f.Text = f.TextBasis; }
         }
-        // KOMPLETT: alles auf der internen SSD (Bereich 1-6), M.2 nur auf Wunsch.
-        public void WaehleKomplett(bool m2Leeren)
+        // KOMPLETT: alles auf der internen SSD (Bereich 1-6); M.2 und USB-Speicher nur auf Wunsch (NEU 1.0.6: je eine Frage);
+        // USB-Sticks nie (nur einzeln). Gleich wie kern_waehle_komplett (C-Kern).
+        public void WaehleKomplett(bool m2, bool usb)
         {
             SmZuruecksetzen();
             foreach (var f in Funde) f.Wahl = false;
-            foreach (var f in Funde) if (f.Kat <= 6 && !f.Gesperrt && !f.Paket) f.Wahl = true;
-            if (m2Leeren) foreach (var f in Funde) if ((f.Kat == 7 || f.Paket) && !f.Gesperrt) f.Wahl = true;
-            // ShadowMount-Spiele: liegt das Spiel auf der internen SSD, geht es mit;
-            // liegt es auf der M.2, nur wenn die M.2 geleert wird (dann über Bereich 7).
+            foreach (var f in Funde) if (!f.Gesperrt && !f.Paket && !f.NurEinzeln && OrtDabei(DatenOrt(f), m2, usb)) f.Wahl = true;
+            // Trophäen-Listen noch installierter Spiele: gehen mit, wenn kein Spiel auf einem behaltenen Speicher bleibt
+            bool spielBleibt = Funde.Any(f => f.IstTeil("Spiel") && !OrtDabei(f.Ort, m2, usb));
+            if (!spielBleibt) foreach (var f in Funde) if (f.Paket && !f.Gesperrt && !f.NurEinzeln) f.Wahl = true;
+            // ShadowMount-Spiele: Kachel immer; die Spieldatei geht mit, wenn ihr Speicher mit geleert wird (USB-Stick nie).
             foreach (var f in Funde)
             {
                 if (f.Kat != 1 || f.Quelle == "" || f.Gesperrt) continue;
-                if (H.Like(f.Quelle, "/user/data/*")) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + SM_MIT; }
-                else if (m2Leeren) f.Text = f.TextBasis + T(" - Spiel + Kachel (über Bereich 7)", " - game + tile (via section 7)");
+                if (OrtDabei(PfadOrt(f.Quelle), m2, usb)) { f.Pfade = QuelleDavor(f); f.Text = f.TextBasis + SM_MIT; }
                 else f.Text = f.TextBasis + SM_OHNE;
             }
         }
@@ -55,11 +73,12 @@ namespace PS5Cleanup
             SmZuruecksetzen();
             foreach (var f in SmGewaehlt())
             {
-                if (mit) { f.Pfade = new[] { f.Quelle }.Concat(f.PfadeBasis).ToList(); f.Text = f.TextBasis + SM_MIT; }
+                if (mit) { f.Pfade = QuelleDavor(f); f.Text = f.TextBasis + SM_MIT; }
                 else f.Text = f.TextBasis + SM_OHNE;
             }
         }
-        public List<Eintrag> M2Gewaehlt() { return Funde.Where(f => f.Wahl && f.Kat == 7).ToList(); }
+        // NEU 1.0.6: gewählte Einträge, deren Daten auf M.2, USB-Speicher oder USB-Stick liegen (statt M2Gewaehlt)
+        public List<Eintrag> ExtGewaehlt() { return Funde.Where(f => f.Wahl && DatenOrt(f) != ORT_INTERN).ToList(); }
 
         // -------------------------------------------------------------
         // Größen
@@ -279,8 +298,8 @@ namespace PS5Cleanup
                 }
             }
             // Sobald ShadowMount-Kacheln, -Spiele, -Daten oder die M.2 dran sind: erst anhalten.
-            int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Kat == 7 || f.Kachel ||
-                f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data")));
+            int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Ort != ORT_INTERN || f.Kachel ||   // 1.0.6: statt Bereich 7 der Ort (M.2, USB, USB-Stick)
+                f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data") || H.M(p, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")));   // Codex-Prüfung 28: Spiel-Abbilder
             if (smBetroffen > 0)
             {
                 // Nur bei bestätigt angehaltenem oder nachweislich nicht laufendem ShadowMount
@@ -302,10 +321,10 @@ namespace PS5Cleanup
             S.Ftp.Timeout = 7200000;                 // Löschen großer Dateien kann Minuten dauern
             var spielFehlt = H.Tab<int>();
             bool verloren = false;
-            int nr = 0, anzahl = gewaehlt.Count(x => new[] { 1, 2, 3, 4, 5, 7, 6 }.Contains(x.Kat));
+            int nr = 0, anzahl = gewaehlt.Count(x => new[] { 1, 2, 3, 4, 5, 6 }.Contains(x.Kat));   // 1.0.6: ohne Bereich 7
             try
             {
-                foreach (var k in new[] { 1, 2, 3, 4, 5, 7, 6 })
+                foreach (var k in new[] { 1, 2, 3, 4, 5, 6 })
                 {
                     foreach (var f in gewaehlt.Where(x => x.Kat == k))
                     {

@@ -25,11 +25,11 @@ SOFTWARE.
 Bestandteile anderer Urheber / Third-party components
 -------------------------------------------------------------------------------
 
-Die MIT-Lizenz oben gilt für den Code von PS5 Cleanup (das C#-Programm, die
-alte PowerShell-Fassung und die Batch-Dateien). Diese Bestandteile haben
+Die MIT-Lizenz oben gilt für den Code des Windows-Programms PS5 Cleanup (das
+C#-Programm, die alte PowerShell-Fassung und die Batch-Dateien). Diese Bestandteile haben
 eigene Lizenzen:
-The MIT License above covers the PS5 Cleanup code (the C# program, the old
-PowerShell version and batch files). These components have their own licenses:
+The MIT License above covers the code of the PS5 Cleanup Windows program (the
+C# program, the old PowerShell version and batch files). These components have their own licenses:
 
 ps5info (Quellcode/ps5info.c, Quellcode/ps5info_antwort.h, Quellcode/ps5info.elf)
   Kleines PS5-Programm, das Modellnummer und Laufwerks-Status ausliest.
@@ -40,6 +40,19 @@ ps5info (Quellcode/ps5info.c, Quellcode/ps5info_antwort.h, Quellcode/ps5info.elf
   Modellabfrage nach / model query based on drakmor/ps5-hwinfo and PS5Upload.
   Laufwerks-Status nach / drive status based on earthonion/ddd_status.
   Bauanleitung / build file: Quellcode/ps5info.mk
+
+PS5-App (PS5-App/, ps5cleanup.elf, ps5cleanup_simulation.elf) - NEU in 1.0.6
+  PS5 Cleanup direkt auf der PS5. / PS5 Cleanup running directly on the PS5.
+  Lizenz / License: GNU General Public License v3.0 or later
+  (PS5-App/LICENSE_GPL-3.0.txt), Copyright (C) 2026 da_Chris86.
+  Enthält / contains:
+    - ELF-Lader aus ps5-payload-dev/websrv (John Törnblom, GPL-3.0)
+    - gebaut mit / built with ps5-payload-sdk (John Törnblom, GPL-3.0)
+    - SDL2-Portierung ps5-payload-dev/SDL (zlib License)
+    - PCRE2 10.44 (BSD License), cJSON 1.7.18 (MIT License)
+    - stb_image, stb_truetype (Sean Barrett, public domain / MIT)
+    - DejaVu-Schriften / fonts (PS5-App/probelauf/fremd/LICENSE_DejaVu.txt)
+  Bauanleitung / build instructions: PS5-App/BAUEN.txt
 
 PS2EXE (Quellcode/powershell-1.0.3/bauen/ps2exe.ps1 - nur die alte PowerShell-
 Fassung 1.0.3 / only the old PowerShell version 1.0.3)

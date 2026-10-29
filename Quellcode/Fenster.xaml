@@ -26,6 +26,8 @@
     <SolidColorBrush x:Key="RotHg" Color="#351A1A"/><SolidColorBrush x:Key="RotRand2" Color="#8E2E2E"/><SolidColorBrush x:Key="RotText" Color="#F5C9C9"/>
 
     <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+    <!-- NEU 1.0.6 (PS5-Test da_Chris86 30.10.2026 08:10): Infofenster dunkel wie die Oberfläche - vorher helle Schrift auf weißem Grund -->
+    <Style TargetType="ToolTip"><Setter Property="Background" Value="#2A2D35"/><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="BorderBrush" Value="#4A4F5C"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10,7"/></Style>
     <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Margin" Value="0,3,0,3"/><Setter Property="VerticalContentAlignment" Value="Center"/></Style>
     <Style TargetType="Button">
       <Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Background" Value="{StaticResource Fl2}"/>
@@ -174,11 +176,14 @@
                 <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                 <TextBlock x:Name="tbLFirmware" Style="{StaticResource Feld}" Text="Firmware"/>
                 <TextBlock x:Name="tbFirmware" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
-                <TextBlock x:Name="tbLErkannt" Grid.Row="1" Style="{StaticResource Feld}" Text="Modell erkannt"/>
-                <TextBlock x:Name="tbErkannt" Grid.Row="1" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
+                <TextBlock x:Name="tbLErkannt" Grid.Row="1" Style="{StaticResource Feld}" Text="Modell erkannt" Visibility="Collapsed"/>
+                <TextBlock x:Name="tbErkannt" Grid.Row="1" Grid.Column="1" Style="{StaticResource Wert}" Text="–" Visibility="Collapsed"/>
                 <TextBlock x:Name="tbLVerbindung" Grid.Row="2" Style="{StaticResource Feld}" Text="Verbindung"/>
                 <TextBlock x:Name="tbVerbindung" Grid.Row="2" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
               </Grid>
+              <!-- NEU 1.0.6 (da_Chris86 28.10.2026): welcher Jailbreak-Einstieg - und was man dafür nicht löschen darf -->
+              <TextBlock x:Name="tbJailbreak" FontSize="12.5" FontWeight="SemiBold" Foreground="#8FE0B5" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+              <TextBlock x:Name="tbJailbreakWarnung" FontSize="11.5" Foreground="#FF9F66" TextWrapping="Wrap" Visibility="Collapsed"/>
             </StackPanel>
           </Border>
 
@@ -196,9 +201,9 @@
                   <TextBlock x:Name="tbKopplungText" FontSize="12" Foreground="{StaticResource Grau}" Text="Erst verbinden."/>
                 </StackPanel>
               </Grid>
-              <TextBlock x:Name="tbKopplungNie" FontSize="11.5" Foreground="{StaticResource Grau}" Text="Nur gelesen. Das Programm fasst die Kopplung nie an."/>
-              <TextBlock x:Name="tbLegendeKopf" Style="{StaticResource Etikett}" Margin="0,8,0,4" Text="STATUSLEGENDE"/>
-              <WrapPanel>
+              <TextBlock x:Name="tbKopplungNie" FontSize="11.5" Foreground="{StaticResource Grau}" Text="Wird nur gelesen, nie verändert."/>
+              <TextBlock x:Name="tbLegendeKopf" Style="{StaticResource Etikett}" Margin="0,8,0,4" Text="STATUSLEGENDE" Visibility="Collapsed"/>
+              <WrapPanel Visibility="Collapsed">
                 <Border Style="{StaticResource Chip}" Background="#173525"><TextBlock x:Name="tbLeg1" FontSize="10.5" Foreground="#8FE0B5" Text="Kopplung bestätigt"/></Border>
                 <Border Style="{StaticResource Chip}" Background="#2A2D35"><TextBlock x:Name="tbLeg2" FontSize="10.5" Foreground="#C9CCD4" Text="Keine Kopplung"/></Border>
                 <Border Style="{StaticResource Chip}" Background="#3A2E14"><TextBlock x:Name="tbLeg3" FontSize="10.5" Foreground="{StaticResource Gelb}" Text="Nicht sicher bestimmbar"/></Border>
@@ -214,11 +219,11 @@
               <Grid Margin="0,2,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                <TextBlock x:Name="tbLIntern" Style="{StaticResource Feld}" Text="Interne SSD"/>
+                <TextBlock x:Name="tbLIntern" Style="{StaticResource Feld}" Text="Intern"/>
                 <TextBlock x:Name="tbIntern" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
                 <TextBlock x:Name="tbLM2" Grid.Row="1" Style="{StaticResource Feld}" Text="M.2-SSD"/>
                 <TextBlock x:Name="tbM2" Grid.Row="1" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
-                <TextBlock x:Name="tbLUsb" Grid.Row="2" Style="{StaticResource Feld}" Text="USB-Speicher"/>
+                <TextBlock x:Name="tbLUsb" Grid.Row="2" Style="{StaticResource Feld}" Text="USB"/>
                 <TextBlock x:Name="tbUsb" Grid.Row="2" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>
                 <TextBlock x:Name="tbLSm" Grid.Row="3" Style="{StaticResource Feld}" Text="ShadowMount"/>
                 <TextBlock x:Name="tbSm" Grid.Row="3" Grid.Column="1" Style="{StaticResource Wert}" Text="–"/>

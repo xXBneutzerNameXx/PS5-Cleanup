@@ -29,10 +29,10 @@ namespace PS5Cleanup
             c.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         }
 
-        static Eintrag E(int kat, string text, string quelle = "", bool gesperrt = false)
+        static Eintrag E(int kat, string text, string quelle = "", bool gesperrt = false, int ort = Kern.ORT_INTERN)
         {
             if (gesperrt) text += Kern.GESPERRT_TEXT;
-            return new Eintrag { Pfade = new List<string> { "/x" + text.GetHashCode() }, PfadeBasis = new List<string> { "/x" + text.GetHashCode() }, Kat = kat, Text = text, TextBasis = text, Quelle = quelle, Gesperrt = gesperrt };
+            return new Eintrag { Pfade = new List<string> { "/x" + text.GetHashCode() }, PfadeBasis = new List<string> { "/x" + text.GetHashCode() }, Kat = kat, Text = text, TextBasis = text, Quelle = quelle, Gesperrt = gesperrt, Ort = ort };
         }
 
         public static void Laufen(Oberflaeche o, string bild)
@@ -42,10 +42,9 @@ namespace PS5Cleanup
             var K = o.K;
             Func<string, string, string> T = Sp.T;
             K.Funde = new List<Eintrag> {
-                E(7, "homebrew/Red Dead Redemption - PPSA30528.exfat" + T("  [Spiel: ", "  [game: ") + "Red Dead Redemption (PPSA30528)" + T(", Kachel geht mit]", ", tile goes with it]"), "/mnt/ext1/homebrew/x.exfat"),
-                E(1, "Red Dead Redemption (PPSA30528)" + T(" - ShadowMount-Spiel auf der M.2", " - ShadowMount game on the M.2"), "/mnt/ext1/homebrew/x.exfat"),
+                E(1, "M.2 – Red Dead Redemption (PPSA30528)" + T(" - ShadowMount-Spiel", " - ShadowMount game"), "/mnt/ext1/homebrew/x.exfat", false, Kern.ORT_M2),
                 E(1, T("Echtes Spiel (PPSA55555) + Update + Zusatzinhalte", "Real game (PPSA55555) + update + add-ons")),
-                E(1, "Game X (PPSA11111)" + T(" - ShadowMount-Spiel auf der M.2", " - ShadowMount game on the M.2"), "/mnt/ext1/homebrew/y.exfat", true),
+                E(1, "M.2 – Game X (PPSA11111)" + T(" - ShadowMount-Spiel", " - ShadowMount game"), "/mnt/ext1/homebrew/y.exfat", true, Kern.ORT_M2),
                 E(2, T("Spielstand ", "Saved data ") + "PPSA55555 (Real Game)"),
                 E(3, T("Trophäen-Daten ", "Trophy data ") + "trophy/data"),
                 E(4, T("Unfertige Aufnahme von ", "Unfinished capture of ") + "Real Game (PPSA55555) (3" + T(" Dateien)", " files)")),
@@ -53,7 +52,8 @@ namespace PS5Cleanup
                 E(5, T("Fehlerberichte (100)", "Error reports (100)")),
                 E(6, T("Tool-Kachel: ", "Tool tile: ") + "Payload Manager (PLDM00001)"),
                 E(6, "shadowmount"),
-                E(7, "games/DuckTales Remastered [BLES01969].iso") };
+                E(5, "M.2 – games/DuckTales Remastered [BLES01969].iso", "", false, Kern.ORT_M2),
+                E(5, "M.2 – games/Spiel-Sicherung.zip", "", false, Kern.ORT_M2) };
             // ein normal installiertes PS4-Spiel mit Update und DLC
             var teile = new[] { new[] { "Spiel", "Bloodborne (CUSA00900)" + T(" - Spiel", " - game") }, new[] { "Update", "Bloodborne (CUSA00900) - Update (Version 01.09)" }, new[] { "DLC", "Bloodborne (CUSA00900)" + T(" - Zusatzinhalt: ", " - add-on: ") + "The Old Hunters" } };
             int pos = 2;
@@ -122,7 +122,7 @@ namespace PS5Cleanup
                     // SM-Probe: KOMPLETT abgebrochen, dann "nur Kacheln" -> keine Spieldatei mehr
                     var smf = K.Funde.First(f => f.Kat == 1 && f.Quelle != "" && !f.Gesperrt);
                     smf.Pfade = new List<string> { "/user/app/PPSA30528" }; smf.PfadeBasis = new List<string>(smf.Pfade); smf.Quelle = "/user/data/x.exfat";
-                    K.WaehleKomplett(false); foreach (var f in K.Funde) f.Wahl = false;
+                    K.WaehleKomplett(false, false); foreach (var f in K.Funde) f.Wahl = false;
                     smf.Wahl = true; K.SetzeSmSpieldateien(false);
                     smOk = !smf.Pfade.Contains("/user/data/x.exfat") && smf.Text == smf.TextBasis + Kern.SM_OHNE;
                     K.SmZuruecksetzen(); foreach (var f in K.Funde) f.Wahl = false; o.ZeigeHaken();
@@ -138,26 +138,27 @@ namespace PS5Cleanup
                     bool fragen = !o.FrageWahl("x", "x", "a", "b") && o.FrageText("x", "x") == null && !o.FrageJaNein("x", "x");
                     o.Zaehlen = altZaehlen; o.LoescheJetztErsatz = null; o.FENSTER_ZU = false;
                     // M.2 in der Auswahl -> eigene Liste stimmt, Abschlussfrage warnt oben
-                    foreach (var f in K.Funde) f.Wahl = f.Kat == 7 || f.Kat == 5;
-                    var m2 = K.M2Gewaehlt();
-                    bool m2Zahl = m2.Count == K.Funde.Count(f => f.Kat == 7) && m2.All(f => f.Kat == 7);
+                    foreach (var f in K.Funde) f.Wahl = f.Ort == Kern.ORT_M2 || f.Kat == 5;
+                    var m2 = K.ExtGewaehlt();   // 1.0.6: statt Bereich 7 der Ort
+                    bool m2Zahl = m2.Count == K.Funde.Count(f => f.Ort == Kern.ORT_M2 && f.Quelle == "") && m2.All(f => f.Ort == Kern.ORT_M2);
                     bool m2Warn = o.Zusammenfassung(false).StartsWith("!!! ") && o.Zusammenfassung(false).Contains("M.2");
                     foreach (var f in K.Funde) f.Wahl = false; o.ZeigeHaken();
                     schliessOk = !geloescht && fehler == "" && fragen && m2Zahl && m2Warn;
                     Schreib("Schließ-Probe: gelöscht=" + geloescht + ", Fehler='" + fehler + "', Fragen sicher=" + fragen + ", M.2-Warnung=" + m2Warn + ", M.2-Anzahl richtig=" + m2Zahl + " -> " + (schliessOk ? "OK" : "FEHLER"));
 
                     // Größen-Probe (NEU): bekannte Größe erscheint am Eintrag und in der Kopfzeile
-                    var g1 = K.Funde.First(f => f.Kat == 7 && f.Quelle == "");
+                    // 1.0.6: Bereich 5 (Reste) mit den M.2-Dateien statt Bereich 7
+                    var g1 = K.Funde.First(f => f.Ort == Kern.ORT_M2 && f.Quelle == "");
                     K.GroesseSetzen(g1.PfadeBasis[0], new Groesse { Bytes = 18738184192L, Dateien = 1 });
                     o.ZeigeBereiche();
                     var cb7 = o.Kaestchen.First(c => c.Tag == g1);
                     string inhalt = new TextRange(cb7);
-                    var ex7 = (Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, 7)];
-                    bool kopfOhneSumme = !((CheckBox)ex7.Header).Content.ToString().Contains("GB");   // anderer M.2-Eintrag noch ungezählt
-                    var g2 = K.Funde.First(f => f.Kat == 7 && f.Quelle != "");
-                    K.GroesseSetzen(g2.PfadeBasis[0], new Groesse { Bytes = 10385096704L, Dateien = 1 });
+                    var ex7 = (Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, g1.Kat)];
+                    bool kopfOhneSumme = !((CheckBox)ex7.Header).Content.ToString().Contains("GB");   // andere Einträge des Bereichs noch ungezählt
+                    var rest = K.Funde.Where(f => f.Kat == g1.Kat && f != g1).ToList();
+                    foreach (var g2 in rest) K.GroesseSetzen(g2.PfadeBasis[0], new Groesse { Bytes = 10385096704L, Dateien = 1 });
                     o.ZeigeBereiche();
-                    bool kopfSumme = ((CheckBox)((Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, 7)]).Header).Content.ToString().Contains(Kern.GroesseText(18738184192L + 10385096704L));
+                    bool kopfSumme = ((CheckBox)((Expander)sp.Children[Array.IndexOf(Kern.ALLE_KAT, g1.Kat)]).Header).Content.ToString().Contains(Kern.GroesseText(18738184192L + rest.Count * 10385096704L));
                     groesseOk = inhalt.Contains(Kern.GroesseText(18738184192L)) && kopfOhneSumme && kopfSumme;
                     Schreib("Größen-Probe: Eintrag zeigt '" + inhalt.Substring(Math.Max(0, inhalt.Length - 12)).Trim() + "', Kopf erst ohne Summe=" + kopfOhneSumme + ", dann mit Summe=" + kopfSumme + " -> " + (groesseOk ? "OK" : "FEHLER"));
 

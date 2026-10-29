@@ -1,0 +1,5 @@
+Herkunft: ps5-payload-dev/websrv, Commit 7748df9 (11.10.2026), https://github.com/ps5-payload-dev/websrv
+Copyright (C) 2024 John Törnblom, Lizenz GPL-3.0-or-later (siehe LICENSE).
+Unverändert übernommen: elfldr.c, elfldr.h, pt.c, pt.h.
+hbldr_original.c = unverändertes src/ps5/hbldr.c, nur zum Vergleich (wird NICHT gebaut).
+Unsere abgeleitete Fassung ohne Schreibzugriffe auf /system_ex: ../../start_hbldr.c

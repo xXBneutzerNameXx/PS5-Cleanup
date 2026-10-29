@@ -3,42 +3,26 @@
 <img width="600" height="600" alt="image" src="https://github.com/user-attachments/assets/5bc025d3-b6b1-47f6-9f27-4ea7dd483b52" />
 
 
-
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
+*Clean up your PS5 as if freshly set up – no reinstall, no reset. [English below](#english)*
 
-*Clean up your PS5 as if freshly set up – no reinstall, no reset.*
-
-🌍 [**English version below**](#english)
-
-
----
-
-### 🗳️ PS5 Cleanup Community – Deine Meinung zählt!
-
-**Welche PS5 nutzt du?**
-
-Hilf uns, PS5 Cleanup für verschiedene Konsolen und Firmware-Versionen zu verbessern!
-
-[**🗳️ Jetzt abstimmen**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Diskussionen & Vorschläge**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Kompatibilität melden**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
-
----
-
-
-> **Beta** – getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
-> Andere Modelle und Firmwares sollten laufen, sind aber noch nicht getestet.
-> Rückmeldungen am einfachsten über den Knopf **„Feedback / Kompatibilität melden“** im Programm – er bereitet ein [Issue](../../issues) vor, das du vor dem Absenden siehst und änderst. Es wird nichts automatisch gesendet.
+> **Neu in 1.0.6:** PS5 Cleanup läuft jetzt auch **direkt auf der PS5** – als `ps5cleanup.elf` mit eigener Kachel, bedienbar mit dem Controller am Fernseher, ohne Homebrew Launcher. Kacheln werden über Sonys eigenen Deinstallations-Dienst entfernt, dein **Jailbreak wird erkannt und geschützt**. [Alle Neuerungen](../../releases)
 >
-> Erfahrungen, Fragen und Ideen gern auch in den [Discussions](../../discussions) – Modell, Firmware und Ergebnis unter [Compatibility](../../discussions/categories/compatibility).
+> Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet.
+> Rückmeldungen am einfachsten über den Knopf **„Feedback / Kompatibilität melden“** im Programm – er bereitet ein [Issue](../../issues) vor, das du vor dem Absenden siehst und änderst. Es wird nichts automatisch gesendet.
 
 Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gelöschter Spiele, alte Downloads, Fehlerberichte, Daten von Tools, die man längst nicht mehr nutzt. Die Systemsoftware neu aufspielen will man deswegen aber nicht – erst recht nicht bei Slim und Pro, wo dabei die Laufwerks-Kopplung verloren gehen kann.
 
-**PS5 Cleanup** ist ein kleines Windows-Programm, das per FTP auf die PS5 schaut, alles übersichtlich mit Namen auflistet und nur das löscht, was du auswählst.
+**PS5 Cleanup** listet alles auf der PS5 übersichtlich mit Namen auf und löscht nur das, was du auswählst – entweder **direkt auf der PS5** (`ps5cleanup.elf`, Bedienung mit dem Controller) oder **vom Windows-PC aus** über FTP (`PS5-Cleanup.exe`).
 
 **Zwei Wege:**
 - **Gezielt** – einzelne Einträge anhaken, z. B. wenn ein Spiel oder Tool Probleme macht: nur dessen Daten, Spielstand oder Trophäen löschen, der Rest bleibt.
 - **Vollständige Bereinigung** – alles auf der internen SSD auf einmal, wie frisch eingerichtet (die M.2 wird extra gefragt, Bestätigung mit `LÖSCHEN`).
 
 ## Was es kann
+
+- **PS5-App:** eigene Kachel auf dem Startbildschirm, Bedienung mit dem Controller, Kacheln verschwinden sauber über Sonys Deinstallations-Dienst (nur nach dem Löschen von Spielständen, Bildern oder Videos ist noch ein Datenbank-Neuaufbau nötig – das Programm sagt es dann am Ende), am Ende wird die PS5 immer ganz ausgeschaltet (Knopf „PS5 ausschalten“, kein Ruhemodus). Nachschauen und Anhaken löscht nichts – gelöscht wird erst nach ausdrücklicher Bestätigung
+- **Jailbreak-Schutz:** YouTube (Y2JB), Netflix ('N Hack), Lua-Spiele, PS2-Spielstand-Jailbreak und offline gespeicherter WebKit-Jailbreak werden erkannt, nie automatisch angehakt und vor dem Löschen deutlich gewarnt
 
 - Findet die PS5 im Heimnetz selbst – auch den passenden FTP-Port (2121 oder 2120) – und erkennt Modell, Firmware und ob das Laufwerk gekoppelt ist
 - Erkennt den FTP-Server samt Version (soweit der Server sie nennt) und stellt sich selbst auf dessen Art der Datenverbindung ein
@@ -67,6 +51,10 @@ Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen u
 
 ## So geht's
 
+**PS5-App:** Jailbreak laden, `ps5cleanup.elf` aus den [Releases](../../releases) über den Payload-Lader oder Payload Manager starten. Nachschauen, anhaken, löschen – am Ende „PS5 ausschalten“.
+
+**Windows:**
+
 1. Jailbreak laden, `PS5-Cleanup.exe` aus den [Releases](../../releases) starten
 2. **PS5 im Netz suchen**, dann **Verbinden und nachschauen**
 3. Im Testmodus alles anschauen, dann den Haken *Testmodus* entfernen und löschen
@@ -92,11 +80,15 @@ Seit 1.0.4 ist PS5 Cleanup ein echtes Windows-Programm (C#, .NET Framework 4.8 �
 | `Quellcode/bauen.cmd` | baut die `.exe` mit dem in Windows enthaltenen Compiler |
 | `Quellcode/ps5info.c`, `ps5info_antwort.h` | kleines PS5-Programm: liest Modell und Laufwerks-Status (nur lesend) |
 | `Quellcode/powershell-1.0.3/` | die bisherige PowerShell-Fassung (1.0.3) samt Textversion |
+| `PS5-App/kern/` | gemeinsamer C-Kern der PS5-App: Schutzliste, Suche, Löschen, Abläufe |
+| `PS5-App/app/` | Oberfläche am Fernseher (SDL2, DualSense) und PS5-Anbindung (Sony-Deinstallation, Ausschalten) |
+| `PS5-App/start/` | `ps5cleanup.elf`: Start, eigene Kachel (PSCL00001), eingebettete Oberfläche |
+| `PS5-App/fremd/` | Anleitung und Skript für die fremden Bibliotheken (PCRE2, cJSON) |
 
 ## Lizenz
 
-MIT – Copyright (c) 2026 da_Chris86, siehe [LICENSE.txt](LICENSE.txt).
-`ps5info` steht unter der GPL-3.0 (und die alte PowerShell-Fassung nutzte PS2EXE, Ms-LPL) – Details ebenfalls in [LICENSE.txt](LICENSE.txt).
+Windows-Programm: MIT – Copyright (c) 2026 da_Chris86, siehe [LICENSE.txt](LICENSE.txt).
+Die PS5-App (`PS5-App/`, `ps5cleanup.elf`) und `ps5info` stehen unter der GPL-3.0 (und die alte PowerShell-Fassung nutzte PS2EXE, Ms-LPL) – Details ebenfalls in [LICENSE.txt](LICENSE.txt).
 
 ## Danke an
 
@@ -111,22 +103,9 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## English
 
----
+**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. **New in 1.0.6:** it also runs **directly on the PS5** (`ps5cleanup.elf`, own home-screen tile, no Homebrew Launcher needed, DualSense on your TV, tiles removed via Sony's uninstall service, jailbreak detection and protection). The Windows version connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
 
-### 🗳️ PS5 Cleanup Community – Your Feedback Matters!
-
-**Which PS5 do you own?**
-
-Help us improve PS5 Cleanup across different console models and firmware versions!
-
-[**🗳️ Vote in our poll**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Join discussions**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Report compatibility**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
-
----
-
-
-**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
-
-> **Beta** – tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares should work but are untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically. Experiences, questions and ideas are also welcome in [Discussions](../../discussions) – model, firmware and result under [Compatibility](../../discussions/categories/compatibility).
+> Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares are not blocked but untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically.
 
 **Features:** finds the PS5 on your network including the right FTP port (2121 or 2120) and detects model, firmware and disc drive pairing status · detects the FTP server and its version (if the server reports it) and adapts to its kind of data connection · dashboard for console, disc drive pairing (with status legend) and storage · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *Full cleanup* (M.2 asked separately, confirmed by typing `DELETE`) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports ("Copy all", separate window) · voluntary feedback report to check and edit, without IP addresses, user names or paths – only submitted if you submit it on GitHub yourself.
 
@@ -138,6 +117,6 @@ Help us improve PS5 Cleanup across different console models and firmware version
 
 **Antivirus:** since 1.0.4 the program is a native Windows application (C#, .NET Framework 4.8), no longer a packed script. The `.exe` is not code-signed, so a few scanners may still flag it as a false positive. The full source is in this repository – build it yourself with `Quellcode/bauen.cmd` (Windows only, nothing to install).
 
-**License:** MIT (c) 2026 da_Chris86 – `ps5info` is GPL-3.0, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
+**License:** Windows program MIT (c) 2026 da_Chris86 – the PS5 app (`PS5-App/`, `ps5cleanup.elf`) and `ps5info` are GPL-3.0, see [LICENSE.txt](LICENSE.txt). Made with the help of the AI Claude (Anthropic); idea, requirements and real-console testing by da_Chris86.
 
 **Use at your own risk – deleted data is gone for good.** Unofficial community project, not affiliated with Sony. PlayStation and PS5 are trademarks of Sony Interactive Entertainment Inc.

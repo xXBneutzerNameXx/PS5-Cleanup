@@ -32,8 +32,12 @@ namespace PS5Cleanup
         public bool NurLeer;       // leerer M.2-Ordner: wird nur entfernt, wenn er wirklich leer ist (RMD)
         public bool Kachel;        // betrifft eine Kachel im Menü -> ShadowMount vor dem Löschen anhalten
         public bool SmTipp;        // ShadowMount-Spiel, dessen Kachel mitgeht (Hinweis am Kästchen)
+        public bool NurEinzeln;    // NEU 1.0.6: nur einzeln wählbar (nie über den ganzen Bereich); vollständig nur auf ausdrücklichen Wunsch
+        public bool Jailbreak;     // NEU 1.0.6: möglicher Jailbreak-Einstieg - einzeln löschbar, die vollständige Bereinigung fragt
+        public string SperrGrund;  // NEU 1.0.6: Grund einer Sperre (null = Game Compressor arbeitet daran)
         // Größe beim Löschen (für "Freigeräumt")
         public long Bytes; public int Dateien; public int Ordner; public bool HatGroesse;
+        public int Ort;            // NEU 1.0.6: wo die Daten liegen (Kern.ORT_*) - steht vorne im Text, entscheidet bei der vollständigen Bereinigung
         public bool IstTeil(string t) { return Teil != null && Teil == t; }
     }
 
@@ -46,11 +50,13 @@ namespace PS5Cleanup
 
     public partial class Kern
     {
-        public const string VERSION = "1.0.5 Beta";
+        public const string VERSION = "1.0.6";   // da_Chris86 29.10.2026: ohne "Beta"
         static string T(string de, string en) { return Sp.T(de, en); }
         public const int STANDARD_PORT = 2121;
         public const int ZWEIT_PORT = 2120;      // NEU 1.0.5: z.B. zftpd lauscht auf der Konsole auf 2120
-        public const string BEHALTEN_APP = "PPSA01325";   // Astro's Playroom
+        public const string BEHALTEN_APP = "PPSA01325";   // Astro's Playroom - seit 1.0.6 ein normales Spiel (da_Chris86 28.10.2026)
+        // NEU 1.0.6 (da_Chris86 28.10.2026): Speicherorte. USB = USB-Platte als erweiterter Speicher, USB-Stick = normaler Datenträger
+        public const int ORT_INTERN = 0, ORT_M2 = 1, ORT_USB = 2, ORT_STICK = 3;
         public const string M2 = "/mnt/ext1";
         public const string SYS_META = "/system_data/priv/appmeta";
         public const string SM_ORDNER = "/user/data/shadowmount";
@@ -62,8 +68,8 @@ namespace PS5Cleanup
         volatile bool abbruch;
         public bool Abbruch { get { return abbruch; } set { abbruch = value; } }
 
-        public List<string> ASTRO_IDS = new List<string> { BEHALTEN_APP };
-        public List<string> ASTRO_NPWRS = new List<string> { "NPWR20188_00" };
+        public List<string> ASTRO_IDS = new List<string>();     // 1.0.6: Astro ist ein normales Spiel - bleibt leer
+        public List<string> ASTRO_NPWRS = new List<string>();
 
         public bool Verbinden(string ip, int port)
         {
@@ -98,41 +104,43 @@ namespace PS5Cleanup
         }
 
         static readonly string[] GESPERRT = {
-            "^/user/app/" + BEHALTEN_APP + "(/|$)", "^/user/appmeta/" + BEHALTEN_APP + "(/|$)",
-            "^/user/patch/" + BEHALTEN_APP + "(/|$)", "^/user/addcont/" + BEHALTEN_APP + "(/|$)",
+            // 1.0.6: die Astro-Sperren aus 1.0.5 sind weg (Astro ist ein normales Spiel)
             "^/user/appmeta/external$", "^/user/appmeta/addcont$",
-            "^/user/home/[^/]+/savedata[^/]*/" + BEHALTEN_APP + "(/|$)",
             "^/user/home/[^/]+/savedata[^/]*/(NPXS|sce_)",
             "^" + M2 + "/user(/|$)", "^" + M2 + "/system_data(/|$)", "^" + M2 + "/lost\\+found(/|$)",
+            "^" + USB_ERW + "/user(/|$)", "^" + USB_ERW + "/system_data(/|$)", "^" + USB_ERW + "/lost\\+found(/|$)",   // NEU 1.0.6: USB wie M.2
             "/app/NPXS", "/appmeta/NPXS", "/patch/NPXS", "/addcont/NPXS", "^/user/download/NPXS",
             "^/user/license/(act\\.dat|nobackup)", "^/user/system/share/(trophy|share_)",
             "^/user/catalog_downloader/[^/]+$" };
         static readonly string[] ERLAUBT = {
-            "^/user/app/[^/]+", "^/user/appmeta/[^/]+", "^/user/patch/[^/]+",
+            // NEU 1.0.6 (Nutzer-Protokoll 28.10.2026, Sony-Ordner "push_resource"): unter appmeta und download nur Spielnummern
+            "^/user/(app|patch|addcont)/[A-Za-z]{4}\\d{5}(/|$)", "^/user/appmeta/(addcont/|external/addcont/)?[A-Za-z]{4}\\d{5}(/|$)",
             "^/user/home/[^/]+/savedata/[^/]+", "^/user/home/[^/]+/savedata_prospero/[^/]+",
             "^/user/home/[^/]+/trophy/[^/]+", "^/user/home/[^/]+/trophy2/[^/]+",
             "^/user/home/[^/]+/webkit/shell/local$",
             "^/user/av_contents/[^/]+/[^/]+",
-            "^/user/data/[^/]+", "^/user/download/[^/]+", "^/user/addcont/[^/]+",
-            "^/user/_zu_loeschen_[^/]+", "^" + M2 + "/[^/]+" };
+            "^/user/data/[^/]+", "^/user/download/[A-Za-z]{4}\\d{5}(/|$)",
+            "^/user/_zu_loeschen_[^/]+", "^" + M2 + "/[^/]+",
+            "^" + USB_ERW + "/[^/]+", "^/mnt/usb\\d+/[^/]+" };   // NEU 1.0.6: USB-Speicher wie M.2, USB-Stick (nur einzeln angeboten)
 
         public bool Erlaubt(string p)
         {
             if (p == null) return false;
             if (H.M(p, "(^|/)\\.\\.?(/|$)") || H.M(p, "//") || H.M(p, "\\s$") || H.Steuerzeichen(p) || !H.M(p, "^/")) return false;
-            // Astro's Playroom: nie, egal wo und unter welcher Länderkennung
+            if (H.M(p, "./$") || H.M(p, "^/user/appmeta/(.+/)?NPXS")) return false;   // NEU 1.0.6: "/x/" umginge Sperren mit $; Sony-Apps auch in Unterordnern
+            // Astro's Playroom: seit 1.0.6 ein normales Spiel (Liste leer)
             if (AstroPfad(p)) return false;
-            // M.2-Verwaltung: nur einzelne Spiele/Updates, nie die Ordner selbst
-            if (H.M(p, "^" + M2 + "/user/(app|patch)/[^/]+$")) return !H.M(p, "/(NPXS|" + BEHALTEN_APP + ")");
-            if (H.M(p, "^" + M2 + "/user/addcont/[A-Z]{4}\\d{5}(/[^/]+)?$")) return !H.M(p, "/(NPXS|" + BEHALTEN_APP + ")");
-            // Kachel-Infos der PS5: nur einzelne Spiel-/App-Kennungen, nie NPXS, Astro, external
-            if (H.M(p, "^" + SYS_META + "/[A-Z]{4}\\d{5}$")) return !H.M(p, "/NPXS") && !H.Gleich(p, SYS_META + "/" + BEHALTEN_APP);
+            // M.2- und USB-Verwaltung (USB NEU 1.0.6): nur einzelne Spiele/Updates, nie die Ordner selbst
+            if (H.M(p, "^(" + M2 + "|" + USB_ERW + ")/user/(app|patch)/[^/]+$")) return !H.M(p, "/NPXS");
+            if (H.M(p, "^(" + M2 + "|" + USB_ERW + ")/user/addcont/[A-Z]{4}\\d{5}(/[^/]+)?$")) return !H.M(p, "/NPXS");
+            // Kachel-Infos der PS5: nur einzelne Spiel-/App-Kennungen, nie NPXS, external
+            if (H.M(p, "^" + SYS_META + "/[A-Z]{4}\\d{5}$")) return !H.M(p, "/NPXS");
             // Merkzettel für Spiele auf externen USB-Platten
             if (H.M(p, "^" + SYS_META + "/external/[A-Z]{4}\\d{5}$")) return !H.M(p, "/NPXS");
             // Fake-Lizenzen des Jailbreaks (act.dat und nobackup/ = echte Lizenzen, nie)
             if (H.M(p, "^/user/license/fake[^/]+\\.(rif|idx)$")) return true;
             // Share-Einstellungen einzelner Spiele (trophy/ und die .mst-Datei nie)
-            if (H.M(p, "^/user/system/share/[A-Z]{4}\\d{5}$")) return !H.M(p, "/NPXS") && !H.Gleich(p, "/user/system/share/" + BEHALTEN_APP);
+            if (H.M(p, "^/user/system/share/[A-Z]{4}\\d{5}$")) return !H.M(p, "/NPXS");
             // Store-Bildercache
             if (H.M(p, "^/user/catalog_downloader/(conceptmeta|appmeta)/[^/]+$")) return true;
             // temporäre Dateien: nur Inhalte, nie die Ordner selbst
@@ -197,9 +205,37 @@ namespace PS5Cleanup
             S.Befehl("RMD " + d);
         }
 
+        // NEU 1.0.6 (27.10.2026, Codex-Prüfung 23, wie 1.1 kern_loeschen.c): Liegt in einem Ordner irgendetwas Geschütztes,
+        // wird der Ordner gar nicht angefasst - auch kein CHMOD. Nicht lesbar = geschützt. Verknüpfungen werden nicht verfolgt.
+        bool NachkommeGeschuetzt(string c)
+        {
+            return (!H.M(c, "^/user/av_contents/") && H.M(c, "/NPXS\\d{5}(/|$)")) || H.M(c, "^/user/home/[^/]+/savedata[^/]*/sce_") || H.M(c, "^/user/license/(act\\.dat|nobackup)")
+                || H.M(c, "^/user/av_contents/content_tmp/sharevideo_[0-9A-Fa-f]+_hdr\\.webm$") || AstroPfad(c);
+        }
+        bool BaumHatGeschuetztes(string d, ref string fund, int tiefe)
+        {
+            if (tiefe > 64) { fund = d; return true; }
+            List<Datei> l;
+            try { l = S.Liste(d, true); }
+            catch (AbbruchAusnahme) { throw; }
+            catch { l = null; }
+            if (l == null) { fund = d; return true; }
+            foreach (var e in l)
+            {
+                string c = d + "/" + e.Name;
+                // Codex-Prüfung 37: ein Spiel-Abbild eines Jailbreak-Einstiegs IN einem gewählten Ordner - nur einzeln löschbar
+                if (NachkommeGeschuetzt(c) || JbAbbild(c)) { fund = c; return true; }
+                if (e.IstOrdner && !e.IstLink && BaumHatGeschuetztes(c, ref fund, tiefe + 1)) return true;
+            }
+            return false;
+        }
+
         int WAR_SCHON_WEG;
         bool Loeschen(string p)
         {
+            // NEU 1.0.6: nicht sicher zugeordnete Spieldatei - weder sie noch ein Ordner darüber
+            foreach (var sq in SperrQuellen)
+                if (sq == p || sq.StartsWith(p + "/", StringComparison.Ordinal) || p.StartsWith(sq + "/", StringComparison.Ordinal)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" enthält eine nicht sicher zugeordnete Spieldatei (", " contains a game file that is not assigned for certain (") + sq + T(") - nichts gelöscht.", ") - nothing deleted.")); return false; }
             if (!Erlaubt(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" ist gesperrt - nichts gelöscht.", " is protected - nothing deleted.")); return false; }
             if (!OhneVerknuepfung(p)) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" liegt hinter einer Verknüpfung - nichts gelöscht.", " is behind a symlink - nothing deleted.")); return false; }
             if (!S.Existiert(p)) { WAR_SCHON_WEG++; return true; }
@@ -212,12 +248,25 @@ namespace PS5Cleanup
                 return !S.Existiert(p);
             }
             if (selbst == null) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" steht nicht in der Ordnerliste - nichts gelöscht.", " is not in the folder listing - nothing deleted.")); return false; }
+            // 27.10.2026 (Codex-Prüfung 24): auch für einzeln gewählte Dateien
+            {
+                string fund = NachkommeGeschuetzt(p) ? p : null;
+                if (fund != null || (selbst.IstOrdner && BaumHatGeschuetztes(p, ref fund, 0)))
+                { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" enthält Geschütztes (", " contains something protected (") + fund + T(") - nichts gelöscht.", ") - nothing deleted.")); return false; }
+            }
             S.Befehl("SITE CHMOD 777 " + p);
             S.Befehl("DELE " + p);                           // falls Datei
             if (!S.Existiert(p)) return true;
             Freigeben(p);                                     // Ordner
-            S.Befehl("RMDA " + p);
-            if (S.Existiert(p)) LoescheBaum(p);
+            var ra = S.Befehl("RMDA " + p);
+            if (S.Existiert(p))
+            {
+                // 27.10.2026 (Codex-Prüfung 24, wie 1.1): Ausweichweg Datei für Datei nur, wenn der Server RMDA gar nicht kennt (502)
+                // 30.10.2026 (PS5-Test da_Chris86 09:22, Beleg Claude Arbeit\2026-10-30\zftpd\probe.txt): zftpd antwortet auf RMDA mit
+                // "500 Unknown command" statt 502 - auch 500 heißt "Befehl unbekannt, nicht ausgeführt" -> Ausweichweg erlaubt
+                if (ra.Code != 502 && ra.Code != 500) { Melde(T("  SICHERHEITSSTOPP: ", "  SAFETY STOP: ") + p + T(" ließ sich nicht sicher als Ganzes löschen - der Rest bleibt stehen.", " could not be deleted safely as a whole - the rest is kept.")); return false; }
+                LoescheBaum(p);
+            }
             return !S.Existiert(p);
         }
 
@@ -463,7 +512,7 @@ namespace PS5Cleanup
             m = Regex.Replace(m ?? "", "\\s", "").ToUpperInvariant();
             if (Regex.IsMatch(m, "^CFI-1[012]")) return "fat";
             if (Regex.IsMatch(m, "^CFI-2[01]")) return "slim";
-            if (Regex.IsMatch(m, "^CFI-70")) return "pro";
+            if (Regex.IsMatch(m, "^CFI-7[01]")) return "pro";   // 1.0.6: auch die zweite Pro-Baureihe CFI-71xx (Sep. 2025, PS5 Dev Wiki)
             return "";
         }
         public static bool ModellDigital(string m) { return Regex.IsMatch(Regex.Replace(m ?? "", "\\s", "").ToUpperInvariant(), "^CFI-\\d{4}B"); }
@@ -478,7 +527,48 @@ namespace PS5Cleanup
             return T("unbekannt", "unknown");
         }
 
+        // NEU 1.0.6 (da_Chris86 28.10.2026): Modellzeile "CFI-7021 · Europa · seit Nov. 2024" statt "CFI-7021 B01Y".
+        // Region aus den letzten beiden Ziffern, Datum aus der Baureihe - Quelle: PS5 Dev Wiki (SKU Models).
+        // Unbekannte Nummern: nur die Nummer. Gleich wie kern_modell_zeile (C-Kern).
+        public static string ModellZeile(string m)
+        {
+            var t = Regex.Match((m ?? "").ToUpperInvariant(), "^\\s*(CFI-(\\d)(\\d)(\\d\\d)[A-Z]*)");
+            if (!t.Success) return m ?? "";
+            string nr = t.Groups[1].Value, region = null, seit = null;
+            int reihe = int.Parse(t.Groups[2].Value) * 10 + int.Parse(t.Groups[3].Value), reg = int.Parse(t.Groups[4].Value);
+            if (reihe == 70 || reihe == 71)   // PS5 Pro: eigene Regionsnummern; 71 = zweite Baureihe
+            {
+                switch (reg)
+                {
+                    case 0: region = "Japan"; break; case 2: region = T("Australien", "Australia"); break; case 14: region = T("Süd-/Mittelamerika", "South/Central America"); break;
+                    case 19: region = T("USA/Kanada", "US/Canada"); break; case 20: region = T("Mexiko", "Mexico"); break; case 21: region = T("Europa", "Europe"); break;
+                    case 22: region = T("Südostasien/Korea", "Southeast Asia/Korea"); break;
+                }
+                seit = reihe == 70 ? T("Nov. 2024", "Nov 2024") : T("Sep. 2025", "Sep 2025");
+            }
+            else
+            {
+                switch (reg)
+                {
+                    case 0: region = "Japan"; break; case 2: region = T("Australien", "Australia"); break; case 8: region = T("Osteuropa/Indien", "Eastern Europe/India"); break;
+                    case 9: region = "China"; break; case 14: region = T("Süd-/Mittelamerika", "South/Central America"); break; case 15: region = T("USA/Kanada", "US/Canada"); break;
+                    case 16: region = T("Europa", "Europe"); break; case 18: region = T("Südostasien/Korea", "Southeast Asia/Korea"); break;
+                }
+                if (reihe == 10) seit = T("Nov. 2020", "Nov 2020");
+                else if (reihe == 11) seit = "2021";
+                else if (reihe == 12) seit = "2022";
+                else if (reihe == 20) seit = T("Nov. 2023", "Nov 2023");
+            }
+            string z = nr;
+            if (region != null) z += " · " + region;
+            if (seit != null) z += T(" · seit ", " · since ") + seit;
+            // Sonderedition 30 Jahre PlayStation (Slim und Pro): Endung B30 statt B01 (PS5 Dev Wiki, da_Chris86 28.10.2026)
+            if (Regex.IsMatch((m ?? "").ToUpperInvariant(), "^\\s*CFI-\\d{4}[A-Z]*\\s*B30")) z += " · 30th Anniversary Edition";
+            return z;
+        }
+
         // Klartext zum ausgelesenen Laufwerks-Status (nur lesend ermittelt).
+        // NEU 1.0.6 (da_Chris86 28.10.2026): ohne Statuswerte - Titel vor dem Doppelpunkt, danach ein kurzer Satz.
         // NEU 1.0.5: Drei klar getrennte Aussagen - Kopplung bestätigt / keine
         // Kopplung / nicht sicher bestimmbar bzw. nicht auslesbar. Zuerst das Modell:
         // Bei der ersten PS5 sagt der Statuswert nichts aus (dort wird auch 0 gemeldet).
@@ -494,17 +584,16 @@ namespace PS5Cleanup
                 if (MODELL_DIGITAL) return T("Keine Kopplung: Digital Edition ohne Laufwerk (erste PS5).", "No pairing: Digital Edition without disc drive (original PS5).");
                 return T("Keine Kopplung nötig: fest eingebautes Laufwerk (erste PS5).", "No pairing needed: built-in disc drive (original PS5).");
             }
-            if (DDD_STATUS == null) return T("Kopplung nicht abgefragt (Modellabfrage aus oder nicht möglich).", "Pairing not queried (model query off or not possible).");
+            if (DDD_STATUS == null) return T("Nicht abgefragt: Konnte nicht gelesen werden.", "Not queried: could not be read.");
             int s = DDD_STATUS.Value;
             switch (s)
             {
-                case 1: return T("Kopplung bestätigt: Laufwerk ist gekoppelt (Statuswert 1).", "Pairing confirmed: disc drive is paired (status value 1).");
-                case 2: return T("Keine Kopplung: kein gekoppeltes Laufwerk (keins angeschlossen oder nicht gekoppelt, Statuswert 2).", "No pairing: no paired disc drive (none attached or not paired, status value 2).");
-                case 6: return T("Kopplung nicht sicher bestimmbar: Statuswert 6 (wurde bei Slim-Konsolen mit ab Werk gekoppeltem Laufwerk beobachtet).", "Pairing not reliably determinable: status value 6 (seen on Slim consoles with a factory-paired disc drive).");
-                case 0: case 3: case 4: case 5:
-                    return T("Kopplung nicht sicher bestimmbar: Statuswert ", "Pairing not reliably determinable: status value ") + s + T(" (Bedeutung nicht belegt).", " (meaning not confirmed).");
+                case 1: return T("Kopplung bestätigt: Laufwerk ist mit dieser Konsole gekoppelt.", "Pairing confirmed: the disc drive is paired with this console.");
+                case 2: return T("Keine Kopplung: Kein Laufwerk gekoppelt.", "No pairing: no disc drive is paired.");
+                case 0: case 3: case 4: case 5: case 6:
+                    return T("Nicht sicher bestimmbar: Der Zustand ließ sich nicht eindeutig lesen.", "Not reliably determinable: the state could not be read unambiguously.");
             }
-            return T("Kopplung nicht auslesbar: keine gültige Antwort vom Laufwerks-Treiber.", "Pairing not readable: no valid answer from the disc drive driver.");
+            return T("Nicht abgefragt: Konnte nicht gelesen werden.", "Not queried: could not be read.");
         }
         // NEU 1.0.5: nur für die Farbe der Anzeige - dieselbe Einteilung wie LaufwerkText()
         public enum KopplungsArt { Bestaetigt, Keine, Unklar, NichtAuslesbar }

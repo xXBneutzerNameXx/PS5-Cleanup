@@ -1,5 +1,5 @@
-﻿PS5 CLEANUP 1.0.5 BETA by da_Chris86
-====================================
+﻿PS5 CLEANUP 1.0.6 by da_Chris86
+===============================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
 reinstalling and without a reset. The program never touches your account,
@@ -13,10 +13,77 @@ TWO WAYS
   - Full: everything on the internal SSD at once, like freshly set up
     (the M.2 is asked separately). Button "Full cleanup".
 
-BETA: Tested on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
-Other models and firmwares should work but have not been tested yet.
+TWO VERSIONS
+  - PS5 app (ps5cleanup.elf): runs directly on the PS5, controlled with
+    the DualSense on your TV, no PC needed. See "PS5 APP" below.
+  - Windows (PS5-Cleanup.exe): works from your PC over FTP.
+
+TESTED on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
+Other models and firmwares are not blocked but have not been tested yet.
 Feedback is easiest with the button "Send Feedback / Compatibility
 Report" - even without deleting anything. Nothing is sent automatically.
+
+
+NEW IN 1.0.6
+------------
+- PS5 Cleanup now runs directly on the PS5 (ps5cleanup.elf), controlled
+  with the DualSense on your TV. On first start the ELF adds its own
+  "PS5 Cleanup" tile to the home screen. No Homebrew Launcher or websrv
+  needed.
+- Scanning and ticking deletes nothing. Nothing is deleted until you
+  explicitly confirm at the end - you can cancel at any time before.
+- PS5 app: tiles (games, apps, tool tiles) are removed through Sony's own
+  uninstall service - no empty tiles are left. If you only delete games
+  and apps, no database rebuild is needed. If saved data, screenshots or
+  videos were deleted, "rebuild the database" is shown at the end
+  (otherwise empty entries remain there).
+  If Sony refuses, files are deleted as before and the entry is reported
+  as PARTIAL (with a list of what was removed and what is left).
+- PS5 app: at the end the PS5 is always turned off completely (not rest
+  mode) - button "Turn off PS5", no time pressure, with X or O. That way
+  it is ready if the database has to be rebuilt. PS5 Cleanup removes
+  itself first (always with the full cleanup, optionally with a
+  selection).
+- Jailbreak protection: the entry points your jailbreak starts from are
+  detected and never ticked automatically - neither by selecting the
+  whole area nor by the full cleanup (which asks; "Keep" is recommended).
+  Ticking or deleting them shows a warning. Detected: YouTube (Y2JB),
+  Netflix ('N Hack), Lua jailbreak (the known Lua games and their saves),
+  PS2 save jailbreak (Okage, Star Wars Racer Revenge, Jak X), Ren'Py
+  jailbreak (yarpe), WebKit Autoloader (tile and the browser's offline
+  storage, also PSH5/Goldengames) and the browser storage. Only what the
+  jailbreak needs to start is protected. Jailbreak tools (etaHEN, Payload
+  Manager, autoloader settings, update packages, ELF files) stay
+  selectable as usual.
+- The console overview shows which jailbreak entry points are set up (and
+  a Blu-ray jailbreak disc in the drive) and which entries you must not
+  delete to keep them.
+- Tiles without an app folder (e.g. Spectrum Library) cannot be removed by
+  Sony: they are reported as PARTIAL and listed by name under "rebuild the
+  database" at the end.
+- 6 areas (see "WHAT CAN GO"), the location is shown in front of each entry.
+- USB storage like M.2: games on USB can be deleted too. The full cleanup
+  asks separately for M.2 and USB storage ("keep" is preselected).
+  Normal USB sticks only individually.
+- Game images (exFAT etc.) count as games everywhere.
+- Shorter tags, long names scroll in the PS5 app.
+- App data (e.g. the Y2JB file) only goes together with its app.
+- The Windows version is now called 1.0.6 (no longer "Beta"). It still
+  removes tiles via files - rebuild the database afterwards as before.
+
+
+PS5 APP (directly on the PS5)
+-----------------------------
+1. Load your jailbreak. Start ps5cleanup.elf with your payload loader or
+   Payload Manager.
+2. On first start the "PS5 Cleanup" tile appears. The interface starts
+   right away: use the controller (Cross = select, hold Circle = quit,
+   Options = log).
+3. "Scan", then tick entries (Square = delete selection only) or
+   Triangle = full cleanup.
+4. At the end choose "Turn off PS5". Then turn it on and start your
+   jailbreak again as usual. If the end screen says "rebuild the
+   database", do the steps shown on screen first.
 
 
 NEW IN 1.0.5
@@ -92,8 +159,8 @@ NEW IN 1.0.4
 - A notice when a newer version is available on GitHub.
 
 
-QUICK START
------------
+QUICK START WINDOWS
+-------------------
 1. Turn on the PS5, load the jailbreak and start an FTP server.
    Tested on a PS5 Pro (firmware 12.00):
      - ftpsrv by drakmor, version 1.16 (port 2121)
@@ -122,21 +189,28 @@ THE PROGRAM NEVER TOUCHES
 
 WHAT CAN GO (you choose)
 ------------------------
-[1] Games & apps on the internal SSD - game, update and every DLC can be
-    selected individually (the game takes its update and DLC with it)
+[1] Games & apps - on the internal SSD, M.2 and USB, the location comes
+    first. Game, update and every DLC can be selected individually (the
+    game takes its update and DLC with it). Game images (exFAT etc.)
+    count as games.
 [2] Saved data
 [3] Trophies
 [4] Screenshots & videos
-[5] Downloads, add-ons & leftovers (caches, error reports, empty tiles)
-[6] Jailbreak tools & homebrew data (set up your jailbreak again afterwards)
-[7] M.2 SSD contents (only if one is installed) - every game and file
-    individually; if M.2 entries are selected, there is a separate
-    confirmation
+[5] Leftovers - downloads, add-ons and updates without a game, caches,
+    error reports, empty tiles and other files on M.2 and USB
+[6] Jailbreak & homebrew - tool tiles, homebrew data and ELF files on
+    all storage (set up your jailbreak again afterwards)
+Empty areas are not shown. Entries on M.2 or USB: if any are selected,
+there is a separate confirmation. Files on a normal USB stick can only
+be selected individually. The full cleanup asks for the M.2 and the USB
+storage whether they should be wiped too.
 
 
 IMPORTANT
 ---------
-- Rebuild the database, otherwise empty tiles stay in the menu:
+- Windows version: rebuild the database, otherwise empty tiles stay in
+  the menu. PS5 app: only when it shows this at the end (after deleting
+  saved data, screenshots or videos):
   turn off the PS5, hold the power button until the second beep,
   connect the controller via USB, choose "Rebuild Database".
   NEVER choose "Reset PS5" or "Reinstall System Software"!
@@ -145,7 +219,9 @@ IMPORTANT
   choice is preselected in every question. If a size has not been counted yet, the
   program counts it before the final question - NOTHING is deleted while
   it does. Closing the window or "Cancel" = nothing happens.
-- After a full cleanup you have to set up your jailbreak again.
+- After a full cleanup you have to set up your jailbreak tools again.
+  The jailbreak entry points (e.g. YouTube/Y2JB) stay if you choose
+  "Keep" when asked.
 - If the program reports an error while scanning (e.g. "could not be read
   completely"), nothing is deleted - just connect again. Better to cancel
   than to delete with an incomplete list.
@@ -154,7 +230,7 @@ IMPORTANT
   log shows the exact reason.
 - If an M.2 is installed but the program reports "no M.2 found": do not
   delete, restart the PS5 instead.
-- Use at your own risk. This is a beta - errors are possible. Back up
+- Use at your own risk. Errors are possible. Back up
   anything important to you first.
 - If there are problems: the program writes everything to PS5-Cleanup.log
   (next to the .exe, otherwise in %TEMP%\PS5-Cleanup). "Save log" also
