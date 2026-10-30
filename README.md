@@ -4,12 +4,31 @@
 
 
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
-*Clean up your PS5 as if freshly set up – no reinstall, no reset. [English below](#english)*
+
+*Clean up your PS5 as if freshly set up – no reinstall, no reset.*
+
+🌍 [**English version below**](#english)
+
+
+---
+
+### 🗳️ PS5 Cleanup Community – Deine Meinung zählt!
+
+**Welche PS5 nutzt du?**
+
+Hilf uns, PS5 Cleanup für verschiedene Konsolen und Firmware-Versionen zu verbessern!
+
+[**🗳️ Jetzt abstimmen**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Diskussionen & Vorschläge**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Kompatibilität melden**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
+
+---
+
 
 > **Neu in 1.0.6:** PS5 Cleanup läuft jetzt auch **direkt auf der PS5** – als `ps5cleanup.elf` mit eigener Kachel, bedienbar mit dem Controller am Fernseher, ohne Homebrew Launcher. Kacheln werden über Sonys eigenen Deinstallations-Dienst entfernt, dein **Jailbreak wird erkannt und geschützt**. [Alle Neuerungen](../../releases)
 >
 > Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet.
 > Rückmeldungen am einfachsten über den Knopf **„Feedback / Kompatibilität melden“** im Programm – er bereitet ein [Issue](../../issues) vor, das du vor dem Absenden siehst und änderst. Es wird nichts automatisch gesendet.
+>
+> Erfahrungen, Fragen und Ideen gern auch in den [Discussions](../../discussions) – Modell, Firmware und Ergebnis unter [Compatibility](../../discussions/categories/compatibility).
 
 Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gelöschter Spiele, alte Downloads, Fehlerberichte, Daten von Tools, die man längst nicht mehr nutzt. Die Systemsoftware neu aufspielen will man deswegen aber nicht – erst recht nicht bei Slim und Pro, wo dabei die Laufwerks-Kopplung verloren gehen kann.
 
@@ -103,9 +122,22 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## English
 
+---
+
+### 🗳️ PS5 Cleanup Community – Your Feedback Matters!
+
+**Which PS5 do you own?**
+
+Help us improve PS5 Cleanup across different console models and firmware versions!
+
+[**🗳️ Vote in our poll**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Join discussions**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Report compatibility**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
+
+---
+
+
 **PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. **New in 1.0.6:** it also runs **directly on the PS5** (`ps5cleanup.elf`, own home-screen tile, no Homebrew Launcher needed, DualSense on your TV, tiles removed via Sony's uninstall service, jailbreak detection and protection). The Windows version connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).
 
-> Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares are not blocked but untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically.
+> Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmwares are not blocked but untested. The easiest way to report results is the **"Send Feedback / Compatibility Report"** button in the program: it prepares an [issue](../../issues) that you can check and edit before submitting. Nothing is sent automatically. Experiences, questions and ideas are also welcome in [Discussions](../../discussions) – model, firmware and result under [Compatibility](../../discussions/categories/compatibility).
 
 **Features:** finds the PS5 on your network including the right FTP port (2121 or 2120) and detects model, firmware and disc drive pairing status · detects the FTP server and its version (if the server reports it) and adapts to its kind of data connection · dashboard for console, disc drive pairing (with status legend) and storage · starts in test mode (view only) · readable names for games (PS5 and PS4) with update and each DLC selectable separately, saves, trophies, captures per game, downloads, leftovers, jailbreak tools · every game and file on the M.2 listed individually (folders are kept) · size of every entry shown in the list, abort button · update hint · *Full cleanup* (M.2 asked separately, confirmed by typing `DELETE`) or per-item selection · ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first · removes tile metadata so no locked ghost tiles remain after rebuilding the database · shows space to be freed and space freed · writes a log for bug reports ("Copy all", separate window) · voluntary feedback report to check and edit, without IP addresses, user names or paths – only submitted if you submit it on GitHub yourself.
 
