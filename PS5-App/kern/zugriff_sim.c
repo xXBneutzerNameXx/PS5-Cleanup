@@ -101,6 +101,21 @@ static antwort s_lies(zugriff *z, arena *a, const char *pfad, const unsigned cha
     return s->innen->lies(s->innen, a, v, d, n);
 }
 
+/* NEU 1.0.6 Fix: Suche nach einer Byte-Folge - an den inneren Zugriff weiterreichen (sonst ganz lesen) */
+static antwort s_enthaelt(zugriff *z, arena *a, const char *pfad, const void *m, size_t ml, bool *ja)
+{
+    sz *s = z->zustand;
+    const char *v = norm(a, pfad);
+    *ja = false;
+    sdaten *vd = mt_hole(&s->virtuell, v);
+    if (vd) { *ja = vd->n >= ml && basis_suche(vd->d, vd->n, m, ml) != NULL; return A(a, 226, "226 done"); }
+    if (ist_weg(s, v)) return A(a, 550, "550 no");
+    if (s->innen->enthaelt) return s->innen->enthaelt(s->innen, a, v, m, ml, ja);
+    const unsigned char *d; size_t n;
+    antwort r = s->innen->lies(s->innen, a, v, &d, &n);
+    if (r.code < 400) *ja = n >= ml && basis_suche(d, n, m, ml) != NULL;
+    return r;
+}
 static antwort s_kopf(zugriff *z, arena *a, const char *pfad, size_t n, const unsigned char **d, size_t *len)
 {
     sz *s = z->zustand;
@@ -197,7 +212,7 @@ zugriff *zugriff_sim(zugriff *lesen)
     s->innen = lesen; s->a = arena_neu();
     s->weg = mt_neu(false); s->virtuell = mt_neu(false);
     z->art = "sim";
-    z->cwd = s_cwd; z->liste = s_liste; z->lies = s_lies; z->kopf = s_kopf; z->schreibe = s_schreibe; z->befehl = s_befehl;
+    z->cwd = s_cwd; z->liste = s_liste; z->lies = s_lies; z->kopf = s_kopf; z->enthaelt = s_enthaelt; z->schreibe = s_schreibe; z->befehl = s_befehl;
     z->schliessen = s_schliessen; z->zustand = s;
     return z;
 }

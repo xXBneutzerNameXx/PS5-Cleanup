@@ -65,6 +65,7 @@ typedef struct {
     int    kopien;             /* NEU 1.1 (S2): gefundene Programmdateien mit unserer Kennung */
     sliste eigene;             /* NEU 28.10.2026: was zu PS5 Cleanup selbst gehört (Programmdateien, Daten, Kachel) - wird am Ende entfernt */
     bool   frei;               /* NEU 28.10.2026: gerade läuft die Selbstentfernung - eigene Pfade sind dann nicht gesperrt */
+    sliste unlesbar;           /* NEU 1.0.6 Fix (30.10.2026, Playden): Ordner, die die PS5 nicht lesen lässt (privat) - geschützt, still übersprungen */
 } selbstschutz;
 
 typedef struct kern {
@@ -242,6 +243,7 @@ bool kern_selbstschutz_gesperrt(kern *k, const char *p);       /* darf NICHT gel
 bool kern_selbstschutz_anbieten(kern *k, const char *p);       /* darf in der Liste stehen */
 bool kern_selbstschutz_enthaelt(kern *k, const char *p);       /* Geschütztes liegt darin -> aufklappen */
 const char *kern_selbstschutz_hinweis(kern *k);
+bool kern_selbstschutz_unlesbar(kern *k, const char *p);       /* NEU 1.0.6 Fix: p ist ein privater, nicht lesbarer Ordner (oder liegt darin) */
 bool kern_selbst_eigen(kern *k, const char *p);                  /* NEU 28.10.2026: p gehört zu PS5 Cleanup selbst (liegt in/ist ein eigener Pfad) */
 bool kern_selbst_da(kern *k, bool m2, bool usb);                                    /* NEU 28.10.2026: liegt noch etwas von PS5 Cleanup selbst auf der PS5? */
 int  kern_selbst_entfernen(kern *k, bool m2, bool usb);                             /* NEU 28.10.2026: PS5 Cleanup ganz zum Schluss selbst entfernen (Fehlerzahl) */

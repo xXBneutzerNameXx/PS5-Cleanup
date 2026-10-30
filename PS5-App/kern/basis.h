@@ -22,6 +22,19 @@ typedef struct arena arena;
 arena *arena_neu(void);
 void   arena_frei(arena *a);
 void  *a_hole(arena *a, size_t n);                 /* mit 0 gefüllt */
+/* NEU 1.0.6.1 (Absturz auf FW 13.60, 30.10.2026): Speicherverbrauch des Kerns (alle Arenen) und letzter Grund vor abort().
+ * basis_kein_speicher: wird aufgerufen, bevor das Programm mangels Arbeitsspeicher abbricht (PS5: Meldung + Protokoll). */
+size_t basis_speicher_belegt(void);                 /* Byte, gerade belegt */
+size_t basis_speicher_spitze(void);                 /* Byte, Höchststand */
+extern void (*basis_kein_speicher)(size_t n);
+extern const char *volatile basis_grund;            /* NULL oder Grund für einen Abbruch (abort) */
+extern const char *volatile basis_schritt;          /* was die Oberfläche gerade macht (für die Absturzmeldung) */
+extern volatile int basis_zaehlt;                   /* 1 = das Größenzählen im Hintergrund läuft */
+/* NEU 1.0.6 Fix: Faden starten wie pthread_create, aber mit mindestens 1 MB Stapel (nie weniger als die Voreinstellung) */
+#include <pthread.h>
+int basis_faden(pthread_t *t, void *(*f)(void *), void *x);
+/* NEU 1.0.6 Fix: Byte-Folge suchen (memmem gibt es in der PS5-Bibliothek nicht) */
+const void *basis_suche(const void *d, size_t n, const void *m, size_t ml);
 char  *a_kopie(arena *a, const char *s);           /* NULL -> "" */
 char  *a_kopie_n(arena *a, const char *s, size_t n);
 char  *a_fmt(arena *a, const char *fmt, ...) __attribute__((format(printf, 2, 3)));

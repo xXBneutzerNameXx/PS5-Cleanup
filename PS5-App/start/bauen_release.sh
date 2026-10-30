@@ -14,6 +14,22 @@ CC=$PS5_PAYLOAD_SDK/bin/prospero-clang; NM=$PS5_PAYLOAD_SDK/bin/llvm-nm
 O=$HOME/ps5c-bau/kachel_$V; rm -rf $O; mkdir -p $O "$K/start/ausgabe"
 exec > >(tee "$K/start/ausgabe/_bauen_$V.log") 2>&1
 date "+%Y-%m-%d %H:%M:%S Start"
+# NEU 1.0.6 Fix (da_Chris86 30.10.2026: "wie wir solche Fehler in Zukunft vermeiden"):
+# P1 Werkzeuge aktuell? Installierte SDK-Fassung (Datei .ps5cleanup_sdk_version, beim Einrichten geschrieben) gegen die neueste auf GitHub.
+#    Nur die Release-Fassung bricht ab; ohne Netz nur ein deutlicher Hinweis.
+SDK_IST=$(cat $PS5_PAYLOAD_SDK/.ps5cleanup_sdk_version 2>/dev/null || echo unbekannt)
+SDK_NEU=$(curl -s --max-time 10 https://api.github.com/repos/ps5-payload-dev/sdk/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
+echo "SDK installiert: $SDK_IST   neueste auf GitHub: ${SDK_NEU:-nicht erreichbar}"
+if [ -z "$SDK_NEU" ]; then echo "WARNUNG: neueste SDK-Fassung nicht prüfbar (kein Netz) - vor der Veröffentlichung nachholen!"
+elif [ "$SDK_IST" != "$SDK_NEU" ]; then
+  echo "SDK VERALTET: installiert $SDK_IST, neu $SDK_NEU - erst aktualisieren (neue Firmwares werden sonst nicht unterstützt)"
+  if [ "$V" = release ]; then echo "BAU FEHLGESCHLAGEN: SDK veraltet"; exit 1; fi
+fi
+# P2 keine Testreste in der Release-Oberfläche (z. B. die zweite, unsichtbare Suche aus der Testzeit, bis 1.0.6)
+if [ "$V" = release ] && strings "$KK/app/ausgabe/$V/eboot.elf" | grep -q -E "OHNE_SELBSTSCHUTZ_WIE_105|PRUEFLAUF FERTIG"; then
+  echo "BAU FEHLGESCHLAGEN: Testcode (Prüflauf) in der Release-Oberfläche"; exit 1
+fi
+echo "Testreste in der Release-Oberfläche: keine"
 cp "$KK/app/ausgabe/$V/eboot.elf" $O/oberflaeche.elf
 cp "$KK/probelauf/sce_sys/icon0.png" $O/icon0.png
 echo "eingebettete Oberfläche ($V): $(sha256sum $O/oberflaeche.elf | cut -d' ' -f1)"

@@ -6,6 +6,9 @@ Lizenz / License: GPL-3.0-or-later (LICENSE_GPL-3.0.txt), Copyright (C) 2026 da_
 Voraussetzungen / Requirements (Linux oder WSL):
   - ps5-payload-sdk (John Törnblom, GPL-3.0) unter /opt/ps5-payload-sdk
     https://github.com/ps5-payload-dev/sdk
+    1.0.6 Fix: immer die neueste SDK-Fassung (Release-Bau bricht sonst ab). Nach dem Einrichten die Fassung eintragen /
+    always the newest SDK release (the release build stops otherwise). After installing, record its version:
+      echo v0.45 > /opt/ps5-payload-sdk/.ps5cleanup_sdk_version     (v0.45 = die installierte Fassung / the installed version)
   - SDL2-Portierung für PS5-Payloads / SDL2 port for PS5 payloads:
     https://github.com/ps5-payload-dev/SDL  (Zweig / branch release-2.30.x-ps5, zlib-Lizenz)
     gebaut nach / built into  bau/sdl2  (include/, lib/libSDL2.a)

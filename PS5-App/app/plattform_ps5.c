@@ -206,6 +206,47 @@ bool plattform_ausschalten_uebergeben(void) { return false; }
 #endif
 
 /* NEU 1.0.6: Diagnoseprotokoll der Selbstentfernung = Kernel-Protokoll (liegt außerhalb der zu löschenden Daten) */
+/* ------------------------------------------------------------- 1.0.6 Fix: Absturzmelder */
+typedef struct { char unused[45]; char message[3075]; } pl_meldung_t;
+int sceKernelSendNotificationRequest(int, pl_meldung_t *, size_t, int);
+static const char *am_name = "PS5 Cleanup";
+static volatile sig_atomic_t am_schon = 0;
+static void am_melden(const char *grund)
+{
+    if (am_schon) _exit(1);
+    am_schon = 1;
+    static pl_meldung_t m;
+    memset(&m, 0, sizeof m);
+    snprintf(m.message, sizeof m.message, SP_EN
+             ? "%s crashed: %s. Step: %s%s. Memory %.0f MB (peak %.0f MB). Please send a photo of this message to the developer (GitHub: PS5-Cleanup)."
+             : "%s ist abgestürzt: %s. Schritt: %s%s. Speicher %.0f MB (Höchststand %.0f MB). Bitte ein Foto dieser Meldung an den Entwickler schicken (GitHub: PS5-Cleanup).",
+             am_name, grund, basis_schritt ? basis_schritt : "?", basis_zaehlt ? (SP_EN ? ", sizes being counted" : ", Größen werden gezählt") : "",
+             basis_speicher_belegt() / 1048576.0, basis_speicher_spitze() / 1048576.0);
+    klog_printf("PS5 Cleanup: ABSTURZ - %s\n", m.message);
+    sceKernelSendNotificationRequest(0, &m, sizeof m, 0);
+    _exit(1);
+}
+static void am_signal(int sig)
+{
+    const char *g = sig == SIGSEGV ? (SP_EN ? "memory access error (SIGSEGV)" : "Speicherzugriffsfehler (SIGSEGV)")
+                  : sig == SIGBUS ? (SP_EN ? "bus error (SIGBUS)" : "Busfehler (SIGBUS)")
+                  : sig == SIGILL ? (SP_EN ? "illegal instruction (SIGILL)" : "ungültiger Befehl (SIGILL)")
+                  : sig == SIGFPE ? (SP_EN ? "arithmetic error (SIGFPE)" : "Rechenfehler (SIGFPE)")
+                  : basis_grund ? basis_grund : (SP_EN ? "aborted (SIGABRT)" : "abgebrochen (SIGABRT)");
+    if (sig == SIGABRT && basis_grund && SP_EN) g = !strcmp(basis_grund, "kein Arbeitsspeicher mehr") ? "out of memory" : "unhandled error";
+    am_melden(g);
+}
+static void am_kein_speicher(size_t n) { (void)n; am_melden(SP_EN ? "out of memory" : "kein Arbeitsspeicher mehr"); }
+void plattform_absturzmelder(const char *name)
+{
+    am_name = name;
+    struct sigaction sa; memset(&sa, 0, sizeof sa); sa.sa_handler = am_signal;
+    sigaction(SIGSEGV, &sa, NULL); sigaction(SIGBUS, &sa, NULL); sigaction(SIGILL, &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL); sigaction(SIGABRT, &sa, NULL);
+    basis_kein_speicher = am_kein_speicher;
+    klog_printf("PS5 Cleanup: %s - Absturzmelder an\n", name);
+}
+
 static void diagnose_klog(const char *t) { klog_printf("PS5 Cleanup: %s\n", t ? t : ""); }
 void plattform_start(void)
 {

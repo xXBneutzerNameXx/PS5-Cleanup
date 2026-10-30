@@ -50,7 +50,7 @@ namespace PS5Cleanup
 
     public partial class Kern
     {
-        public const string VERSION = "1.0.6";   // da_Chris86 29.10.2026: ohne "Beta"
+        public const string VERSION = "1.0.6 Fix";   // da_Chris86 29.10.2026: ohne "Beta"; 30.10.2026: korrigierte 1.0.6
         static string T(string de, string en) { return Sp.T(de, en); }
         public const int STANDARD_PORT = 2121;
         public const int ZWEIT_PORT = 2120;      // NEU 1.0.5: z.B. zftpd lauscht auf der Konsole auf 2120
@@ -620,7 +620,8 @@ namespace PS5Cleanup
             T("Letzter Schritt an der PS5, damit sie alles sauber neu einliest:", "Last step on the PS5 so it re-reads everything cleanly:"),
             T("1. PS5 ausschalten.", "1. Turn off the PS5."),
             T("2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.", "2. Hold the power button until it beeps a second time."),
-            T("3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.", "3. Connect the controller via USB and choose 'Rebuild Database'."),
+            // 1.0.6 Fix (30.10.2026): genau die Menünamen von Sony, ohne Nummer (die ändert sich mit der Firmware)
+            T("3. Controller per USB anstecken: „Cache leeren und Datenbank neu erstellen“ → „Datenbank neu aufbauen“.", "3. Connect the controller via USB: 'Clear Cache and Rebuild Database' → 'Rebuild Database'."),
             T("Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!", "Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!") }; } }
     }
 }

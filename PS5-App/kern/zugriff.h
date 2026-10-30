@@ -41,6 +41,9 @@ struct zugriff {
     /* NEU 1.1 (Selbstschutz S2): nur die ersten bis zu n Bytes einer Datei lesen (Verknüpfung wird
      * nicht verfolgt). 226 = gelesen. Darf NULL sein (dann gibt es diese Möglichkeit nicht). */
     antwort (*kopf)(zugriff *z, arena *a, const char *pfad, size_t n, const unsigned char **daten, size_t *len);
+    /* NEU 1.0.6 Fix (30.10.2026): enthält die Datei die Byte-Folge m? Liest stückweise (nie die ganze Datei in den Speicher).
+     * 226 = gelesen (*ja), sonst Fehler. Darf NULL sein (dann liest die Sitzung die Datei ganz und gibt den Speicher gleich frei). */
+    antwort (*enthaelt)(zugriff *z, arena *a, const char *pfad, const void *m, size_t ml, bool *ja);
     /* Befehl mit Pfad: "SITE CHMOD 777", "DELE", "RMD", "RMDA"; ohne Pfad: "NOOP" */
     antwort (*befehl)(zugriff *z, arena *a, const char *befehl, const char *pfad);
     void (*schliessen)(zugriff *z);

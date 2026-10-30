@@ -1,10 +1,21 @@
-﻿PS5 CLEANUP 1.0.6 by da_Chris86
-===============================
+﻿PS5 CLEANUP 1.0.6 Fix by da_Chris86
+===================================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
 ohne Neuinstallation und ohne Zurücksetzen. Konto, Lizenzen, Systemsoftware
 und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 (PS5, Slim, Pro, jeweils mit Laufwerk oder als Digital Edition).
+
+WELCHE DATEI IST WAS? - BITTE ZUERST LESEN!
+-------------------------------------------
+  ps5cleanup.elf ........ PS5-App. LÖSCHT - aber erst nach deiner
+                          ausdrücklichen Bestätigung!
+  PS5-Cleanup-Test.elf .. PS5-App zum gefahrlosen Ausprobieren (z. B. auf
+                          einer neuen Firmware). Zeigt alles an, oben steht
+                          "TEST". KANN TECHNISCH NICHTS LÖSCHEN!
+  PS5-Cleanup.exe ....... Windows-Fassung (vom PC über FTP). LÖSCHT - aber
+                          erst nach deiner ausdrücklichen Bestätigung!
+  Unsicher? Nimm zuerst die Test-Datei! (einzeln auf GitHub zum Download)
 
 ZWEI WEGE
   - Gezielt: einzelne Einträge anhaken - z. B. wenn ein Spiel oder Tool
@@ -23,6 +34,27 @@ GETESTET auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet.
 Rückmeldungen am einfachsten über den Knopf "Feedback / Kompatibilität
 melden" - auch ohne etwas zu löschen. Es wird nichts automatisch gesendet.
+
+
+UPDATE 30.10.2026 - "1.0.6 Fix"
+-------------------------------
+PS5-App:
+- Viel weniger Arbeitsspeicher: Bisher wuchs der Verbrauch mit jeder
+  ELF-Datei auf der Konsole und dem USB-Stick - bei vielen Dateien konnte
+  die App abstürzen. Jetzt bleibt er klein.
+- Nachschauen geht schneller (eine überflüssige zweite Suche ist weg).
+- Tools mit privaten oder sehr tief verschachtelten Ordnern (z. B.
+  Playden) brechen das Nachschauen nicht mehr ab und sperren nichts mehr -
+  diese Ordner werden übersprungen und nicht angefasst.
+- Absturzmelder: Stürzt PS5 Cleanup ab, kommt eine Benachrichtigung mit
+  dem Grund. Bitte ein Foto davon schicken.
+- Gebaut für Firmware bis 14.10.
+- Neu: PS5-Cleanup-Test.elf zum gefahrlosen Ausprobieren (löscht nichts).
+PS5-App und Windows:
+- Anleitung zum Datenbank-Neuaufbau mit den genauen Menünamen der PS5.
+- Die WebKit-Jailbreak-Kachel "JAILBREAK ME" (WKAG00001) wird jetzt
+  ebenfalls als Jailbreak erkannt und geschützt.
+Oben im Programm steht "1.0.6 Fix".
 
 
 NEU IN 1.0.6
@@ -216,7 +248,8 @@ WICHTIG
   im Menü. PS5-App: nur, wenn sie es am Ende anzeigt (nach dem Löschen
   von Spielständen, Bildern oder Videos):
   PS5 ausschalten, Einschaltknopf halten bis zum zweiten Piepton,
-  Controller per USB anstecken, "Datenbank neu erstellen" wählen.
+  Controller per USB anstecken, "Cache leeren und Datenbank neu
+  erstellen" und darin "Datenbank neu aufbauen" wählen.
   NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
 - Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst. Bei allen

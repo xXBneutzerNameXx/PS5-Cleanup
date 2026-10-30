@@ -46,7 +46,11 @@ EINBINDEN(logo_png, "../probelauf/logo.png")
 #elif defined(NUR_LESEN)
 #define VERSION_TEXT "1.0.6 Test (nur lesen)"
 #else
-#define VERSION_TEXT "1.0.6"
+#ifdef KERN_LOESCHEN
+#define VERSION_TEXT "1.0.6 Fix"        /* 30.10.2026: korrigierte 1.0.6 (Speicher, Playden, Absturzmelder) */
+#else
+#define VERSION_TEXT "1.0.6 Fix TEST"   /* da_Chris86 30.10.2026: Testfassung PS5-Cleanup-Test.elf - ohne Löschbefehle gebaut, löscht nie */
+#endif
 #endif
 
 /* Farben wie 1.0.5 (Fenster.xaml) */
@@ -86,6 +90,7 @@ static Glyph *glyph(int f, int groesse, int cp)
             int adv, lsb;
             g->belegt = 1; g->f = f; g->groesse = groesse; g->cp = cp;
             g->bild = stbtt_GetCodepointBitmap(&font[f], s, s, cp, &g->w, &g->h, &g->xoff, &g->yoff);
+            if (!g->bild) { g->w = 0; g->h = 0; }   /* 1.0.6 Fix: ohne Bild (z. B. kein Speicher) nichts zeichnen statt abstürzen */
             stbtt_GetCodepointHMetrics(&font[f], cp, &adv, &lsb);
             g->vorschub = (int)(adv * s + 0.5f);
             return g;
@@ -357,14 +362,16 @@ static void pruefausgabe(void)
     printf("PRUEF SCHUTZ aktiv=%s unsicher=%s eigen=%s launcher=%s\n", wf(K->SCHUTZ.aktiv), wf(K->SCHUTZ.unsicher), wf(K->SCHUTZ.eigen_gefunden), wf(K->SCHUTZ.launcher_gefunden));
     for (int i = 0; i < K->SCHUTZ.pfade.n; i++) printf("PRUEF SCHUTZPFAD %s\n", K->SCHUTZ.pfade.e[i]);
     if (ablauf_verbunden(&A)) fundliste_ausgeben(K, "MIT_SELBSTSCHUTZ");
+#ifdef PRUEFLAUF
     /* Zweite, unsichtbare Suche OHNE Selbstschutz = genau wie 1.0.5 (für den 1:1-Vergleich).
-     * Nur lesen; diese Liste wird nirgends angezeigt und kann nicht ausgewählt werden. */
+     * Nur lesen; diese Liste wird nirgends angezeigt und kann nicht ausgewählt werden.
+     * 1.0.6 Fix (30.10.2026): nur noch im Prüflauf-Bau - bis 1.0.6 lief sie in JEDEM Bau nach jedem Nachschauen mit
+     * (doppelte Wartezeit, doppelter Speicher, gleichzeitig mit dem Größenzählen). */
     kern *k2 = kern_neu(plattform_zugriff());
     k2->simulation = true;
     k2->MODELL_TYP = K->MODELL_TYP; k2->MODELL_DIGITAL = K->MODELL_DIGITAL; k2->DDD_BEKANNT = K->DDD_BEKANNT; k2->DDD_STATUS = K->DDD_STATUS;
     VERSUCHE { kern_suche_funde(k2); fundliste_ausgeben(k2, "OHNE_SELBSTSCHUTZ_WIE_105"); }
     FANGE { printf("PRUEF FEHLER zweite Suche: %s\n", ausn_text); } ENDE_VERSUCHE;
-#ifdef PRUEFLAUF
     /* Prüflauf vor Schritt 10 (nur lesen): Schutzentscheidung je Pfad, Größen, Auswahl - für den Vergleich
      * mit 1.0.5 ohne Selbstschutz, dazu dasselbe mit Selbstschutz (eigener, unsichtbarer Kern). */
     VERSUCHE { pruef_ausgabe(k2, "OHNE_SELBSTSCHUTZ_WIE_105"); }
@@ -377,13 +384,29 @@ static void pruefausgabe(void)
     kern_frei(k3);
     printf("PRUEFLAUF FERTIG\n"); fflush(stdout);
     pruef_fertig_ab = SDL_GetTicks();    /* Prüflauf: 15 s danach schließt sich das Programm von selbst */
-#endif
     kern_frei(k2);
+#endif
 }
 
+/* 1.0.6 Fix (30.10.2026): Speicherverbrauch ins Protokoll - nach dem Nachschauen und wenn alle Größen gezählt sind */
+static void speicher_zeile(const char *wann)
+{
+    char t[200];
+    snprintf(t, sizeof t, "%s: %s %.0f MB, %s %.0f MB", wann, T("Arbeitsspeicher", "memory"), basis_speicher_belegt() / 1048576.0,
+             T("Höchststand", "peak"), basis_speicher_spitze() / 1048576.0);
+    ui_log(NULL, t);
+}
+static volatile int groessen_gemeldet = 0;
+static void groesse_neu_app(void *c)
+{
+    (void)c;
+    neu_zeichnen();
+    if (!groessen_gemeldet && A.hg_gesamt > 0 && A.hg_n >= A.hg_gesamt) { groessen_gemeldet = 1; speicher_zeile(T("Größen fertig gezählt", "sizes counted")); }
+}
 static void lauf_suchen(void *x)
 {
     (void)x;
+    groessen_gemeldet = 0;
     ablauf_hintergrund_anhalten(&A);
     kern_verbinden(K, plattform_zugriff());
     /* Selbstschutz (NEU 1.1): eigener Ort + Homebrew Launcher, auf allen Speichern */
@@ -391,6 +414,7 @@ static void lauf_suchen(void *x)
     kern_selbstschutz_ermitteln(K);
     ablauf_suchen(&A, KI.modell, KI.firmware);
     pruefausgabe();
+    speicher_zeile(T("Nachschauen fertig", "scan finished"));
 }
 static void *arbeit(void *x)
 {
@@ -399,6 +423,7 @@ static void *arbeit(void *x)
     else if (a == AUF_KOMPLETT) ablauf_starte(&A, (void (*)(void *))ablauf_komplett, &A);
     else ablauf_starte(&A, (void (*)(void *))ablauf_auswahl, &A);
     if (a == AUF_SUCHEN) { GESUCHT = ablauf_verbunden(&A); AUSWAHL_OFFEN = false; }
+    basis_schritt = T("Liste/Menü", "list/menu");
     G.beschaeftigt = false; neu_zeichnen();
     return NULL;
 }
@@ -407,8 +432,9 @@ static void starte(auftrag a)
     if (G.beschaeftigt) return;
     G.beschaeftigt = true;
     pthread_mutex_lock(&G.m); G.stand[0] = 0; G.prozent = 0; G.unbestimmt = false; pthread_mutex_unlock(&G.m);
+    basis_schritt = a == AUF_SUCHEN ? T("Nachschauen", "scan") : a == AUF_KOMPLETT ? T("vollständige Bereinigung", "full cleanup") : T("Auswahl löschen", "delete selection");
     pthread_t t;
-    if (pthread_create(&t, NULL, arbeit, (void *)(intptr_t)a) != 0) { G.beschaeftigt = false; return; }
+    if (basis_faden(&t, arbeit, (void *)(intptr_t)a) != 0) { G.beschaeftigt = false; return; }
     pthread_detach(t);
 }
 
@@ -1052,6 +1078,7 @@ static int programm(void)
 
     SP_EN = plattform_englisch();
     plattform_konsole(&KI);
+    plattform_absturzmelder("PS5 Cleanup " VERSION_TEXT);   /* 1.0.6 Fix: ab hier jeder Absturz als Benachrichtigung + Protokoll */
     K = kern_neu(plattform_zugriff());
 #ifdef KERN_LOESCHEN
     K->simulation = false;                                  /* Release-Bau: löscht wirklich (nach Bestätigung) */
@@ -1063,7 +1090,7 @@ static int programm(void)
     ablauf_ui ui = { ui_wahl, ui_text, ui_log, ui_stand, ui_fertig, ui_fehler, ui_liste_neu, NULL };
     ablauf_init(&A, K, &ui);
     K->melde = ui_log; K->melde_ctx = NULL;
-    A.groesse_neu = (void (*)(void *))neu_zeichnen; A.groesse_ctx = NULL;
+    A.groesse_neu = groesse_neu_app; A.groesse_ctx = NULL;
     A.neue_verbindung = neue_verbindung;
     A.neustart_frage = NULL;   /* da_Chris86 30.10.2026 09:01: keine Neustart-Frage mehr */
     A.protokoll_datei = T("nur in der Protokoll-Ansicht (Options) - es wird keine Datei geschrieben", "only in the log view (Options) - no file is written");

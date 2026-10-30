@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+void plattform_absturzmelder(const char *name) { (void)name; }   /* 1.0.6 Fix: nur PS5 */
 
 void plattform_start(void) { }
 void plattform_ende(void) { }

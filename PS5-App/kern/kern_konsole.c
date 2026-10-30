@@ -96,7 +96,11 @@ int kern_schluss_text(const char ***zeilen)
     z[0] = T("Letzter Schritt an der PS5, damit sie alles sauber neu einliest:", "Last step on the PS5 so it re-reads everything cleanly:");
     z[1] = T("1. PS5 ausschalten.", "1. Turn off the PS5.");
     z[2] = T("2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.", "2. Hold the power button until it beeps a second time.");
-    z[3] = T("3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.", "3. Connect the controller via USB and choose 'Rebuild Database'.");
+    /* 1.0.6 Fix (30.10.2026): genau die Menünamen von Sony (PS5-Foto da_Chris86 30.10.2026, FW 12.00 deutsch: "Gesicherter Modus" ->
+     * 6. "Cache leeren und Datenbank neu erstellen" -> 2. "Datenbank neu aufbauen"; Sonys Webseite schreibt anders - es zählt die Konsole). Ohne Nummer -
+     * die Nummer des Menüpunkts ändert sich mit der Firmware. */
+    z[3] = T("3. Controller per USB anstecken: „Cache leeren und Datenbank neu erstellen“ → „Datenbank neu aufbauen“.",
+             "3. Connect the controller via USB: 'Clear Cache and Rebuild Database' → 'Rebuild Database'.");
     z[4] = T("Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!", "Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!");
     *zeilen = z;
     return 5;

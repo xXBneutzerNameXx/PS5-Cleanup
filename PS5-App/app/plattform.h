@@ -33,5 +33,8 @@ bool plattform_neustart_uebergeben(void);
  * Ganz aus, kein Ruhemodus. Gleiche Regeln wie beim Neustart (Release-Bau, Übergabe an den Hintergrundteil). */
 bool plattform_ausschalten(void);
 bool plattform_ausschalten_uebergeben(void);
+/* NEU 1.0.6 Fix (30.10.2026, Absturz auf FW 13.60 ohne jede Meldung): ab jetzt meldet sich jeder Absturz (Speicherfehler, kein
+ * Arbeitsspeicher, unbehandelter Fehler) als Benachrichtigung und im Kernel-Protokoll - mit Schritt, Grund und Speicherverbrauch. */
+void plattform_absturzmelder(const char *name);
 
 #endif

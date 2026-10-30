@@ -410,24 +410,32 @@ void kern_groessen_im_hintergrund(kern *k, bool (*stopp)(void *), void *sc, void
     sitzung *s = sitzung_neu(k->S->z, a);
     s->abbruch = stopp; s->abbruch_ctx = sc;
     pliste liste = {0}; for (int i = 0; i < k->Funde.n; i++) pl_add(a, &liste, k->Funde.e[i]);
+    /* NEU 1.0.6.1 (Absturz auf FW 13.60, 30.10.2026): bis 1.0.6 blieben ALLE Ordnerlisten bis zum Ende des Zählens im Speicher
+     * (bei vielen Dateien Hunderte MB). Jetzt eigener Speicher je Eintrag, danach sofort frei. Gemerkt wird nur die Summe
+     * (groesse_merken kopiert den Pfad in k->ga). */
+    arena *volatile t = NULL;
     VERSUCHE {
         for (int i = 0; i < liste.n; i++) {
             eintrag *e = liste.e[i];
             if (stopp(sc)) break;
-            sliste pfade = sl_kopie(a, &e->PfadeBasis);
-            if (e->Kat == 1 && e->Quelle[0]) sl_add(a, &pfade, e->Quelle);
+            t = arena_neu(); s->a = t;
+            sliste pfade = sl_kopie(t, &e->PfadeBasis);
+            if (e->Kat == 1 && e->Quelle[0]) sl_add(t, &pfade, e->Quelle);
             bool aufhoeren = false;
             for (int j = 0; j < pfade.n && !aufhoeren; j++) {
                 bool doppelt = false; for (int m = 0; m < j; m++) if (strcmp(pfade.e[m], pfade.e[j]) == 0) doppelt = true;
                 if (doppelt || kern_pfad_gezaehlt(k, pfade.e[j])) continue;
-                groesse g = baum_groesse(s, a, pfade.e[j], jetzt() + 120, NULL, NULL);
+                groesse g = baum_groesse(s, t, pfade.e[j], jetzt() + 120, NULL, NULL);
                 if (g.Lesefehler) { aufhoeren = true; break; }    /* nichts merken, aufhören */
                 groesse_merken(k, pfade.e[j], &g, true);
             }
+            s->a = a; s->letzter_fehler = ""; arena_frei(t); t = NULL;
             if (aufhoeren) break;
             fertig(fc, e);
         }
     } FANGE { } ENDE_VERSUCHE;                                   /* catch { } */
+    s->a = a;
+    if (t) arena_frei(t);
     arena_frei(a);
 }
 

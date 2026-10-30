@@ -197,6 +197,33 @@ static antwort d_lies(zugriff *z, arena *a, const char *pfad, const unsigned cha
 
 /* NEU 1.1 (S2): nur den Dateianfang lesen (für die Erkennung von PS5 Cleanup an jedem Ort).
  * Eine Verknüpfung wird nicht verfolgt. Nur lesen - auch im PS5-Bau. */
+/* NEU 1.0.6 Fix (30.10.2026, Speicheranzeige auf da_Chris86s PS5: 151 MB nach dem Nachschauen): bis 1.0.6 wurde jede ELF für die
+ * Suche nach der eigenen Kennung GANZ eingelesen und blieb im Speicher (orbit_store.elf: 65 MB). Jetzt in Stücken zu 1 MB. */
+static antwort d_enthaelt(zugriff *z, arena *a, const char *pfad, const void *m, size_t ml, bool *ja)
+{
+    dz *d = z->zustand;
+    *ja = false;
+    if (stirbt(d, VERB(a, "RETR ", pfad))) return TOT;
+    const char *r = echt(d, a, norm(a, pfad));
+    if (!ist_datei(r)) return A(a, 550, "550 no");
+    if (ml == 0 || ml > 4096) return A(a, 501, "501 Muster");
+    FILE *f = fopen(r, "rb");
+    if (!f) return A(a, 550, VERB(a, "550 ", strerror(errno)));
+    enum { STUECK = 1 << 20 };
+    unsigned char *b = malloc(STUECK + ml);
+    if (!b) { fclose(f); return A(a, 451, "451 kein Speicher"); }
+    size_t rest = 0, k;
+    while (!*ja && (k = fread(b + rest, 1, STUECK, f)) > 0) {
+        size_t n = rest + k;
+        if (n >= ml && basis_suche(b, n, m, ml)) *ja = true;
+        rest = n < ml - 1 ? n : ml - 1;                /* Überlappung: die Kennung kann über eine Stückgrenze gehen */
+        memmove(b, b + n - rest, rest);
+    }
+    int lesefehler = ferror(f);
+    fclose(f); free(b);
+    if (lesefehler && !*ja) return A(a, 451, "451 Lesefehler");
+    return A(a, 226, "226 done");
+}
 static antwort d_kopf(zugriff *z, arena *a, const char *pfad, size_t n, const unsigned char **daten, size_t *len)
 {
     dz *d = z->zustand;
@@ -574,7 +601,7 @@ zugriff *zugriff_datei(const datei_optionen *o)
     d->o.wurzel = strdup(o->wurzel ? o->wurzel : "");
     d->o.test_hier = o->test_hier ? strdup(o->test_hier) : NULL;
     z->art = "datei";
-    z->cwd = d_cwd; z->liste = d_liste; z->lies = d_lies; z->kopf = d_kopf; z->schreibe = d_schreibe; z->befehl = d_befehl;
+    z->cwd = d_cwd; z->liste = d_liste; z->lies = d_lies; z->kopf = d_kopf; z->enthaelt = d_enthaelt; z->schreibe = d_schreibe; z->befehl = d_befehl;
     z->schliessen = d_schliessen; z->zustand = d;
 #ifdef KERN_LOESCHEN
     if (o->test_einspielungen) {

@@ -320,7 +320,7 @@ const char *kern_mehrfach_grund(void) { return T("Gesperrt - mehrere Kacheln zei
 /* NEU 1.0.6 (Recherche 29.10.2026 19:4x, da_Chris86: "alle Jailbreak-Varianten"): Ren'Py-Jailbreak yarpe (A Year of Springs,
  * Arcade Spirits) - Spiel + Spielstand; WebKit-Autoloader-Kacheln (itsPLK WKAL00001, Goldengames GGAU00001) - Kachel + Browserspeicher */
 #define JB_YARPE "CUSA(30428|30429|30430|30431|32096|32097)|PPSA(06409|06410)"
-#define JB_WEBKIT "WKAL00001|GGAU00001"
+#define JB_WEBKIT "WKAL00001|WKAG00001|GGAU00001"   /* 1.0.6 Fix (Recherche 30.10.2026): + WKAG00001 = Yahballon JB_AUTOLOADER, Kachel "JAILBREAK ME" */
 #define JB_IDS JB_Y2JB "|" JB_NETFLIX "|" JB_LUA "|" JB_PS2 "|" JB_YARPE "|" JB_WEBKIT
 #define JB_MUSTER "^(/user/(app|appmeta|appmeta/addcont|appmeta/external/addcont|patch|addcont|download)|/system_data/priv/appmeta(/external)?|/mnt/ext[01]/user/(app|patch|addcont)|/user/home/[^/]+/savedata(_prospero)?)/(" JB_IDS ")(/|$)"
 /* NEU 1.0.6 (Recherche 29.10.2026): der Offline-Jailbreak liegt im AppCache (appcache) UND in localStorage (local) - beide nötig */
@@ -446,6 +446,14 @@ static void merke_o(kern *k, const sliste *pfade, int kat, const char *text, mer
 {
     /* Astro bleibt immer - seine Pfade werden gar nicht erst angeboten */
     sliste p = {0};
+    /* 1.0.6 Fix (da_Chris86 30.10.2026: "keinen Hinweis"): private, nicht lesbare Ordner (z. B. Playden) erscheinen gar nicht -
+     * sie bleiben geschützt und unangetastet */
+    if (k->SCHUTZ.unlesbar.n > 0) {
+        sliste ohne = {0};
+        for (int i = 0; i < pfade->n; i++) if (!kern_selbstschutz_unlesbar(k, pfade->e[i])) sl_add(A, &ohne, pfade->e[i]);
+        if (ohne.n == 0) { k->MERKE_OK = false; return; }
+        if (ohne.n != pfade->n) { sliste *np = a_hole(A, sizeof *np); *np = ohne; pfade = np; }
+    }
     /* NEU 1.1, Selbstschutz: Ein Eintrag, der irgendetwas betrifft, das PS5 Cleanup oder der
      * Homebrew Launcher braucht (ein Pfad oder die Spieldatei), ist als Ganzes gesperrt - auch nicht
      * teilweise löschbar, damit nie ein Eintrag mehr verspricht, als gelöscht werden darf.
@@ -454,6 +462,8 @@ static void merke_o(kern *k, const sliste *pfade, int kat, const char *text, mer
         bool betroffen = o.quelle && o.quelle[0] && !kern_selbstschutz_anbieten(k, o.quelle);
         for (int i = 0; i < pfade->n && !betroffen; i++) if (!kern_selbstschutz_anbieten(k, pfade->e[i])) betroffen = true;
         bool nur_eigen = betroffen;              /* NEU 28.10.2026: gehört alles zu PS5 Cleanup selbst -> "wird zum Schluss entfernt" */
+        /* 1.0.6 Fix (PS5-Test 30.10.2026 15:50): eine geschützte Spieldatei, die NICHT zu PS5 Cleanup gehört, ist nie "PS5 Cleanup" */
+        if (nur_eigen && o.quelle && o.quelle[0] && !kern_selbstschutz_anbieten(k, o.quelle) && !kern_selbst_eigen(k, o.quelle)) nur_eigen = false;
         for (int i = 0; i < pfade->n && nur_eigen; i++) if (!kern_selbstschutz_anbieten(k, pfade->e[i]) && !kern_selbst_eigen(k, pfade->e[i])) nur_eigen = false;
         /* NEU 1.0.6: eine Kopie auf einem USB-Stick wird nie automatisch entfernt - eigener Text */
         bool stick = false;
@@ -804,7 +814,9 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
         if (!drin && !link && e->ist_ordner && kern_selbstschutz_enthaelt(k, p) && !h_gleich(x, "homebrew")) {
             sliste frei = {0}, eig = {0};
             sammle_ohne_schutz(k, p, &frei, &eig);
-            if (frei.n > 0) MERKE(k, &frei, kat, VERB(A, vorsatz, x, T("  (alles außer PS5 Cleanup)", "  (everything except PS5 Cleanup)")), 0);
+            bool echt_eigen = false;   /* 1.0.6 Fix: nur private, nicht lesbare Ordner geschützt (Playden) -> ohne Zusatz */
+            for (int j = 0; j < eig.n; j++) if (!kern_selbstschutz_unlesbar(k, eig.e[j])) echt_eigen = true;
+            if (frei.n > 0) MERKE(k, &frei, kat, echt_eigen ? VERB(A, vorsatz, x, T("  (alles außer PS5 Cleanup)", "  (everything except PS5 Cleanup)")) : VERB(A, vorsatz, x), 0);
             for (int j = 0; j < eig.n; j++) { sliste l = L1(A, eig.e[j]); MERKE(k, &l, kat, VERB(A, vorsatz, x, eig.e[j] + strlen(p)), 0); }
             continue;
         }

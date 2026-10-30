@@ -176,7 +176,9 @@ static void h_fertig(void *c, eintrag *e)
 static void *h_lauf(void *c)
 {
     hlauf *h = c;
+    basis_zaehlt = 1;
     kern_groessen_im_hintergrund(h->a->K, h_stopp, h, h_fertig, h);
+    basis_zaehlt = 0;
     if (!h->stopp) { h->a->hg_n = h->a->hg_gesamt; if (h->a->groesse_neu) h->a->groesse_neu(h->a->groesse_ctx); }
     return NULL;
 }
@@ -187,7 +189,7 @@ void ablauf_hintergrund_starten(ablauf *a)
     hlauf *h = calloc(1, sizeof *h); h->a = a;
     a->hg_n = 0; a->hg_gesamt = KN->Funde.n;
     a->hintergrund = h;
-    if (pthread_create(&h->t, NULL, h_lauf, h) == 0) h->laeuft = true; else { a->hintergrund = NULL; free(h); }
+    if (basis_faden(&h->t, h_lauf, h) == 0) h->laeuft = true;   /* 1.0.6 Fix: mit ausreichend Stapel */ else { a->hintergrund = NULL; free(h); }
 }
 /* Hält die Zählung an und wartet, bis ihr Faden wirklich weg ist - erst danach geht es zum Löschen weiter. */
 void ablauf_hintergrund_anhalten(ablauf *a)

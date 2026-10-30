@@ -292,7 +292,7 @@ namespace PS5Cleanup
         // NEU 1.0.6 (Recherche 29.10.2026, da_Chris86: "alle Jailbreak-Varianten"): Ren'Py-Jailbreak yarpe - Spiel + Spielstand;
         // WebKit-Autoloader-Kacheln (itsPLK WKAL00001, Goldengames GGAU00001) - Kachel + Browserspeicher
         const string JB_YARPE = "CUSA(30428|30429|30430|30431|32096|32097)|PPSA(06409|06410)";
-        const string JB_WEBKIT = "WKAL00001|GGAU00001";
+        const string JB_WEBKIT = "WKAL00001|WKAG00001|GGAU00001";   // 1.0.6 Fix (Recherche 30.10.2026): + WKAG00001 = Yahballon JB_AUTOLOADER, Kachel "JAILBREAK ME"
         const string JB_IDS = JB_Y2JB + "|" + JB_NETFLIX + "|" + JB_LUA + "|" + JB_PS2 + "|" + JB_YARPE + "|" + JB_WEBKIT;
         const string JB_MUSTER = "^(/user/(app|appmeta|appmeta/addcont|appmeta/external/addcont|patch|addcont|download)|/system_data/priv/appmeta(/external)?|/mnt/ext[01]/user/(app|patch|addcont)|/user/home/[^/]+/savedata(_prospero)?)/(" + JB_IDS + ")(/|$)";
         const string JB_BROWSER = "^/user/home/[^/]+/webkit/shell/(local|appcache)$";   // 1.0.6: AppCache UND localStorage

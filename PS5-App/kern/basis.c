@@ -13,13 +13,57 @@
 typedef struct block { struct block *vor; size_t frei, groesse; unsigned char daten[]; } block;
 struct arena { block *b; };
 
-arena *arena_neu(void) { arena *a = calloc(1, sizeof *a); if (!a) abort(); return a; }
+/* NEU 1.0.6.1: Speicherzähler (alle Fäden) und Grund vor abort() - siehe basis.h */
+static size_t speicher_belegt = 0, speicher_spitze = 0;
+size_t basis_speicher_belegt(void) { return __atomic_load_n(&speicher_belegt, __ATOMIC_RELAXED); }
+size_t basis_speicher_spitze(void) { return __atomic_load_n(&speicher_spitze, __ATOMIC_RELAXED); }
+void (*basis_kein_speicher)(size_t n) = NULL;
+const char *volatile basis_grund = NULL;
+const char *volatile basis_schritt = "Start";
+volatile int basis_zaehlt = 0;
+static void speicher_plus(size_t n)
+{
+    size_t v = __atomic_add_fetch(&speicher_belegt, n, __ATOMIC_RELAXED);
+    size_t s = __atomic_load_n(&speicher_spitze, __ATOMIC_RELAXED);
+    while (v > s && !__atomic_compare_exchange_n(&speicher_spitze, &s, v, true, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) { }
+}
+int basis_faden(pthread_t *t, void *(*f)(void *), void *x)
+{
+    pthread_attr_t at;
+    if (pthread_attr_init(&at)) return pthread_create(t, NULL, f, x);
+    size_t g = 0;
+    if (!pthread_attr_getstacksize(&at, &g) && g < 1024 * 1024) pthread_attr_setstacksize(&at, 1024 * 1024);
+    int r = pthread_create(t, &at, f, x);
+    pthread_attr_destroy(&at);
+    return r;
+}
+const void *basis_suche(const void *d, size_t n, const void *m, size_t ml)
+{
+    const unsigned char *a = d, *b = m;
+    if (ml == 0) return d;
+    if (n < ml) return NULL;
+    for (size_t i = 0; i + ml <= n; i++) {
+        const unsigned char *t = memchr(a + i, b[0], n - ml - i + 1);
+        if (!t) return NULL;
+        i = (size_t)(t - a);
+        if (!memcmp(t, b, ml)) return t;
+    }
+    return NULL;
+}
+static void kein_speicher(size_t n)
+{
+    basis_grund = "kein Arbeitsspeicher mehr";
+    if (basis_kein_speicher) basis_kein_speicher(n);
+    abort();
+}
+
+arena *arena_neu(void) { arena *a = calloc(1, sizeof *a); if (!a) kein_speicher(sizeof *a); return a; }
 
 void arena_frei(arena *a)
 {
     if (!a) return;
     block *b = a->b;
-    while (b) { block *v = b->vor; free(b); b = v; }
+    while (b) { block *v = b->vor; __atomic_sub_fetch(&speicher_belegt, sizeof(block) + b->groesse, __ATOMIC_RELAXED); free(b); b = v; }
     free(a);
 }
 
@@ -29,7 +73,8 @@ void *a_hole(arena *a, size_t n)
     if (!a->b || a->b->frei < n) {
         size_t g = n > 65536 ? n : 65536;
         block *b = malloc(sizeof(block) + g);
-        if (!b) abort();
+        if (!b) kein_speicher(sizeof(block) + g);
+        speicher_plus(sizeof(block) + g);
         b->vor = a->b; b->frei = g; b->groesse = g; a->b = b;
     }
     void *p = a->b->daten + (a->b->groesse - a->b->frei);
@@ -121,12 +166,12 @@ void wirf(ausn_t art, const char *text)
 {
     ausn_art = art;
     snprintf(ausn_text, sizeof ausn_text, "%s", text ? text : "");
-    if (!ausn_oben) { fprintf(stderr, "UNBEHANDELTE AUSNAHME: %s\n", ausn_text); abort(); }
+    if (!ausn_oben) { fprintf(stderr, "UNBEHANDELTE AUSNAHME: %s\n", ausn_text); basis_grund = "unbehandelte Ausnahme"; abort(); }
     longjmp(ausn_oben->j, 1);
 }
 void weiterwerfen(void)
 {
-    if (!ausn_oben) { fprintf(stderr, "UNBEHANDELTE AUSNAHME: %s\n", ausn_text); abort(); }
+    if (!ausn_oben) { fprintf(stderr, "UNBEHANDELTE AUSNAHME: %s\n", ausn_text); basis_grund = "unbehandelte Ausnahme"; abort(); }
     longjmp(ausn_oben->j, 1);
 }
 

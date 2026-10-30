@@ -23,6 +23,23 @@ Hilf uns, PS5 Cleanup für verschiedene Konsolen und Firmware-Versionen zu verbe
 ---
 
 
+## ⚠️ Welche Datei ist was? Bitte zuerst lesen!
+
+| Datei | Wofür | Löscht? |
+|---|---|---|
+| **`ps5cleanup.elf`** | **PS5-App** – läuft direkt auf der PS5, Bedienung mit dem Controller | **Ja!** Erst nach deiner ausdrücklichen Bestätigung |
+| **`PS5-Cleanup-Test.elf`** | **PS5-App zum gefahrlosen Ausprobieren** (z. B. auf einer neuen Firmware) – zeigt alles an wie die echte App, oben steht „TEST“ | **Nein! Kann technisch nichts löschen** |
+| **`PS5-Cleanup-1.0.6.zip`** | **Windows-Fassung** (`PS5-Cleanup.exe`, arbeitet vom PC über FTP) + `ps5cleanup.elf` + Anleitungen | **Ja!** Erst nach deiner ausdrücklichen Bestätigung |
+
+> **Unsicher? Nimm zuerst die Test-Datei!** Sie zeigt dir genau, was die echte App anbieten würde – ohne jedes Risiko.
+
+> **Update 30.10.2026 – „1.0.6 Fix“:**
+> - **PS5-App:** viel weniger Arbeitsspeicher (bisher wuchs der Verbrauch mit jeder ELF-Datei auf Konsole und USB-Stick), schnelleres Nachschauen, Tools mit privaten oder sehr tief verschachtelten Ordnern (z. B. Playden) brechen das Nachschauen nicht mehr ab und sperren nichts mehr, Absturzmelder, gebaut für Firmware bis 14.10. Neu: **`PS5-Cleanup-Test.elf`** zum gefahrlosen Ausprobieren.
+> - **PS5-App und Windows:** Anleitung zum Datenbank-Neuaufbau mit den genauen Menünamen der PS5; die WebKit-Jailbreak-Kachel „JAILBREAK ME“ (WKAG00001) wird jetzt ebenfalls als Jailbreak erkannt und geschützt.
+>
+> **Wer 1.0.6 vor dem 30.10. heruntergeladen hat: bitte neu laden** – oben im Programm steht dann „1.0.6 Fix“.
+
+
 > **Neu in 1.0.6:** PS5 Cleanup läuft jetzt auch **direkt auf der PS5** – als `ps5cleanup.elf` mit eigener Kachel, bedienbar mit dem Controller am Fernseher, ohne Homebrew Launcher. Kacheln werden über Sonys eigenen Deinstallations-Dienst entfernt, dein **Jailbreak wird erkannt und geschützt**. [Alle Neuerungen](../../releases)
 >
 > Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet.
@@ -133,6 +150,23 @@ Help us improve PS5 Cleanup across different console models and firmware version
 [**🗳️ Vote in our poll**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/4) · [**💬 Join discussions**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) · [**🎮 Report compatibility**](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)
 
 ---
+
+
+## ⚠️ Which file is which? Please read first!
+
+| File | What for | Deletes? |
+|---|---|---|
+| **`ps5cleanup.elf`** | **PS5 app** – runs directly on the PS5, controlled with the DualSense | **Yes!** Only after you explicitly confirm |
+| **`PS5-Cleanup-Test.elf`** | **PS5 app for trying it out safely** (e.g. on a new firmware) – shows everything like the real app, "TEST" at the top | **No! Technically cannot delete anything** |
+| **`PS5-Cleanup-1.0.6.zip`** | **Windows version** (`PS5-Cleanup.exe`, works from your PC over FTP) + `ps5cleanup.elf` + manuals | **Yes!** Only after you explicitly confirm |
+
+> **Not sure? Start with the test file!** It shows exactly what the real app would offer – without any risk.
+
+> **Update 30 Oct 2026 – "1.0.6 Fix":**
+> - **PS5 app:** much less memory (until now usage grew with every ELF file on the console and USB stick), faster scanning, tools with private or very deeply nested folders (e.g. Playden) no longer stop the scan or lock anything, crash reporter, built for firmware up to 14.10. New: **`PS5-Cleanup-Test.elf`** for trying it out safely.
+> - **PS5 app and Windows:** database rebuild steps with the exact PS5 menu names; the WebKit jailbreak tile "JAILBREAK ME" (WKAG00001) is now also detected and protected as a jailbreak.
+>
+> **If you downloaded 1.0.6 before 30 Oct: please download it again** – the program then shows "1.0.6 Fix" at the top.
 
 
 **PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. **New in 1.0.6:** it also runs **directly on the PS5** (`ps5cleanup.elf`, own home-screen tile, no Homebrew Launcher needed, DualSense on your TV, tiles removed via Sony's uninstall service, jailbreak detection and protection). The Windows version connects over FTP, lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. The program is available in **English and German** (follows the Windows language, switch at the top right).

@@ -1,10 +1,21 @@
-﻿PS5 CLEANUP 1.0.6 by da_Chris86
-===============================
+﻿PS5 CLEANUP 1.0.6 Fix by da_Chris86
+===================================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
 reinstalling and without a reset. The program never touches your account,
 licenses, system software or the disc drive pairing. For all PS5 models
 (PS5, Slim, Pro, each with disc drive or as Digital Edition).
+
+WHICH FILE IS WHICH? - PLEASE READ FIRST!
+-----------------------------------------
+  ps5cleanup.elf ........ PS5 app. DELETES - but only after you explicitly
+                          confirm!
+  PS5-Cleanup-Test.elf .. PS5 app for trying it out safely (e.g. on a new
+                          firmware). Shows everything, "TEST" at the top.
+                          TECHNICALLY CANNOT DELETE ANYTHING!
+  PS5-Cleanup.exe ....... Windows version (from your PC over FTP). DELETES -
+                          but only after you explicitly confirm!
+  Not sure? Start with the test file! (separate download on GitHub)
 
 TWO WAYS
   - Targeted: tick single entries - e.g. when one game or tool causes
@@ -22,6 +33,27 @@ TESTED on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
 Other models and firmwares are not blocked but have not been tested yet.
 Feedback is easiest with the button "Send Feedback / Compatibility
 Report" - even without deleting anything. Nothing is sent automatically.
+
+
+UPDATE 30 Oct 2026 - "1.0.6 Fix"
+--------------------------------
+PS5 app:
+- Much less memory: until now usage grew with every ELF file on the
+  console and the USB stick - with many files the app could crash. Now
+  it stays small.
+- Scanning is faster (an unneeded second scan is gone).
+- Tools with private or very deeply nested folders (e.g. Playden) no
+  longer stop the scan or lock anything - those folders are skipped and
+  never touched.
+- Crash reporter: if PS5 Cleanup crashes, a notification shows the
+  reason. Please send a photo of it.
+- Built for firmware up to 14.10.
+- New: PS5-Cleanup-Test.elf for trying it out safely (deletes nothing).
+PS5 app and Windows:
+- Database rebuild steps now use the exact PS5 menu names.
+- The WebKit jailbreak tile "JAILBREAK ME" (WKAG00001) is now also
+  detected and protected as a jailbreak.
+The program shows "1.0.6 Fix" at the top.
 
 
 NEW IN 1.0.6
@@ -212,7 +244,8 @@ IMPORTANT
   the menu. PS5 app: only when it shows this at the end (after deleting
   saved data, screenshots or videos):
   turn off the PS5, hold the power button until the second beep,
-  connect the controller via USB, choose "Rebuild Database".
+  connect the controller via USB, choose "Clear Cache and Rebuild
+  Database" and then "Rebuild Database".
   NEVER choose "Reset PS5" or "Reinstall System Software"!
 - Deleted data is gone for good. So is saved data without a cloud backup.
 - Nothing is deleted until you agree in the final question. The safe

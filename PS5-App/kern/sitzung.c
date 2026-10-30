@@ -152,6 +152,25 @@ bool s_kopf(sitzung *s, const char *pfad, size_t n, const unsigned char **d, siz
     return true;
 }
 
+/* NEU 1.0.6 Fix (30.10.2026): enthält die Datei die Byte-Folge m? Ohne eigene Suche im Zugriff: ganz lesen, Speicher sofort frei */
+int s_enthaelt(sitzung *s, const char *pfad, const void *m, size_t ml)
+{
+    if (s->z->enthaelt) {
+        bool ja = false;
+        pruefe_zeile(s, VERB(s->a, "RETR ", pfad));
+        antwort a = verbindung(s->z->enthaelt(s->z, s->a, pfad, m, ml, &ja));
+        if (a.code >= 400) { s->letzter_fehler = VERB(s->a, "RETR ", pfad, ": ", a.text); return -1; }
+        return ja ? 1 : 0;
+    }
+    arena *alt = s->a;
+    arena *volatile t = arena_neu();
+    s->a = t;
+    volatile int r = -1;
+    VERSUCHE { const unsigned char *d; size_t n; if (s_bytes(s, pfad, &d, &n)) r = (n >= ml && basis_suche(d, n, m, ml)) ? 1 : 0; }
+    FANGE { s->a = alt; s->letzter_fehler = ""; arena_frei(t); WEITERWERFEN(); } ENDE_VERSUCHE;
+    s->a = alt; s->letzter_fehler = r < 0 ? VERB(alt, "RETR ", pfad) : ""; arena_frei(t);
+    return r;
+}
 static const char *als_text(sitzung *s, const unsigned char *d, size_t n);
 const char *s_text(sitzung *s, const char *pfad)
 {

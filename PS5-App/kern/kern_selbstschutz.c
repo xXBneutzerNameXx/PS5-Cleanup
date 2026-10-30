@@ -31,13 +31,6 @@ __attribute__((used)) const char KERN_KENNUNG[] = "PS5CLEANUP-ELF-KENNUNG:7c1e5b
 
 #define A (k->a)
 
-static bool hat_kennung(const unsigned char *d, size_t n)
-{
-    size_t l = strlen(KERN_KENNUNG);
-    if (n < l) return false;
-    for (size_t i = 0; i + l <= n; i++) if (d[i] == 'P' && memcmp(d + i, KERN_KENNUNG, l) == 0) return true;
-    return false;
-}
 static void schuetze(kern *k, const char *p) { if (!h_hat(&k->SCHUTZ.pfade, p)) sl_add(A, &k->SCHUTZ.pfade, p); }
 /* NEU 28.10.2026 (da_Chris86): gehört zu PS5 Cleanup selbst - während des Laufs geschützt, am Ende entfernbar */
 static void eigen(kern *k, const char *p) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.eigene, p)) sl_add(A, &k->SCHUTZ.eigene, p); }
@@ -70,8 +63,10 @@ static bool ist_elf_mit_kennung(kern *k, const char *p, bool *unlesbar)
     *unlesbar = false;
     if (!s_kopf(k->S, p, 4, &d, &n)) { *unlesbar = true; return false; }
     if (n < 4 || d[0] != 0x7F || d[1] != 'E' || d[2] != 'L' || d[3] != 'F') return false;
-    if (!s_bytes(k->S, p, &d, &n)) { *unlesbar = true; return false; }
-    return hat_kennung(d, n);
+    /* 1.0.6 Fix: stückweise suchen statt die ganze Datei dauerhaft in den Speicher zu laden */
+    int r = s_enthaelt(k->S, p, KERN_KENNUNG, strlen(KERN_KENNUNG));
+    if (r < 0) { *unlesbar = true; return false; }
+    return r == 1;
 }
 static bool spiel_kopie(const dliste *l)
 {
@@ -85,8 +80,14 @@ static bool spiel_kopie(const dliste *l)
 static void kopien_suchen(kern *k, const char *ordner, int tiefe, suchstand *st)
 {
     if (st->voll) return;
-    dliste *l = s_liste(k->S, ordner, true);          /* streng: Lesefehler -> Ausnahme */
-    if (!l) return;
+    /* 1.0.6 Fix (30.10.2026, da_Chris86: Playden legt private Ordner an, z. B. /user/data/playden/runtime-state, die die PS5
+     * niemandem zeigt): bis 1.0.6 brach EIN solcher Ordner das ganze Nachschauen ab. Jetzt: die oberste Ebene weiter streng;
+     * ein nicht lesbarer Unterordner wird geschützt (nie gelöscht, auch kein Ordner darüber als Ganzes) und still übersprungen. */
+    dliste *l = s_liste(k->S, ordner, tiefe == 0);   /* oberste Ebene streng: Lesefehler -> Ausnahme */
+    if (!l) {
+        if (tiefe > 0) { schuetze(k, ordner); if (!h_hat(&k->SCHUTZ.unlesbar, ordner)) sl_add(A, &k->SCHUTZ.unlesbar, ordner); }
+        return;
+    }
     /* NEU 1.1 (Codex-Prüfung 26.10.2026): Spiel-Kopie (sce_sys/ + eboot.bin) wird nicht ganz durchsucht,
      * aber ihre Dateien der obersten Ebene werden geprüft (eine dort abgelegte PS5-Cleanup-Kopie wird erkannt). */
     bool nur_dateien = tiefe > 0 && spiel_kopie(l);
@@ -100,7 +101,10 @@ static void kopien_suchen(kern *k, const char *ordner, int tiefe, suchstand *st)
         if (e->ist_ordner) {
             /* nur auf M.2 und USB-Speicher: deren Systemordner nicht durchsuchen (1.0.6, Codex-Prüfung 30: auf USB-Sticks schon) */
             if (tiefe == 0 && (h_gleich(e->name, "user") || h_gleich(e->name, "system_data") || h_gleich(e->name, "lost+found")) && (!strcmp(ordner, M2) || !strcmp(ordner, USB_ERW))) continue;
-            if (tiefe + 1 >= SUCH_TIEFE) { st->voll = true; continue; }
+            /* 1.0.6 Fix (PS5-Test da_Chris86 30.10.2026 15:50, Playden: Windows-Spiele mit sehr tiefen Ordnern): bis hier wurden bei
+             * erreichter Tiefe ALLE Homebrew-Daten gesperrt. Jetzt: nur dieser Ordner wird geschützt (nie gelöscht, auch kein Ordner
+             * darüber als Ganzes) und still übersprungen - wie ein privater, nicht lesbarer Ordner. */
+            if (tiefe + 1 >= SUCH_TIEFE) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.unlesbar, p)) sl_add(A, &k->SCHUTZ.unlesbar, p); continue; }
             kopien_suchen(k, p, tiefe + 1, st);
             continue;
         }
@@ -121,16 +125,16 @@ static void ermitteln_innen(kern *k)
     /* da_Chris86 28.10.2026 13:29: Der Homebrew Launcher gehört nicht zu PS5 Cleanup (Start über ELF + eigene Kachel) -
      * kein Sonderschutz mehr, er wird wie jedes Homebrew-Programm angeboten. */
     /* PS5 Cleanup selbst - an jedem Ort, unter jedem Namen (S2) */
-    suchstand st = {0};
-    /* NEU 1.1 (Codex-Prüfung 26.10.2026): auch Downloads und Zwischenspeicher durchsuchen; wird eine Grenze
-     * erreicht, wird der betroffene Ort und jeder danach nicht mehr durchsuchte Ort GANZ gesperrt. */
+    /* NEU 1.1 (Codex-Prüfung 26.10.2026): auch Downloads und Zwischenspeicher durchsuchen.
+     * 1.0.6 Fix (30.10.2026): die Eintragsgrenze gilt je Ort; wird sie erreicht, wird NUR dieser Ort ganz gesperrt
+     * (bis hier: dieser und jeder weitere Ort, dazu alle Homebrew-Daten der PS5). */
     const char *orte[6] = { "/user/data", M2, USB_ERW, "/user/download", "/user/temp", "/user/bgft" };
     for (int w = 0; w < 6; w++) {
+        suchstand st = {0};
         st.zaehlt = w < 3;                               /* wie bisher: nur diese drei Orte zählen als "gefunden" */
         kopien_suchen(k, orte[w], 0, &st);
         if (st.voll) schuetze(k, orte[w]);
     }
-    if (st.voll) k->SCHUTZ.unsicher = true;              /* nicht alles durchsucht -> lieber sperren */
     /* NEU 1.0.6 (Codex-Prüfung 27): auch normale USB-Sticks /mnt/usb0..7 durchsuchen. Lässt sich ein Stick nicht ganz
      * lesen oder ist er zu groß, wird der ganze Stick gesperrt (nichts darauf angeboten) - die übrige Prüfung läuft weiter. */
     for (int u = 0; u < 8; u++) {
@@ -208,6 +212,12 @@ bool kern_selbst_eigen(kern *k, const char *p)
     return false;
 }
 
+bool kern_selbstschutz_unlesbar(kern *k, const char *p)
+{
+    if (!k->SCHUTZ.aktiv || !p) return false;
+    for (int i = 0; i < k->SCHUTZ.unlesbar.n; i++) if (in_oder_gleich(p, k->SCHUTZ.unlesbar.e[i])) return true;
+    return false;
+}
 /* Darf p in der Liste angeboten werden?  (geschützt oder darin: nein) */
 bool kern_selbstschutz_anbieten(kern *k, const char *p) { return !kern_selbstschutz_gesperrt(k, p); }
 
