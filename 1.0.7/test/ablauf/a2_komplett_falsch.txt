@@ -1,0 +1,8 @@
+# Vollständige Bereinigung - Weiter, (Jailbreak-Einstiege: Behalten, seit 29.10.2026) M.2 behalten, falsches Bestätigungswort -> nichts gelöscht
+MODELL CFI-2016
+ABLAUF KOMPLETT
+ANTWORT J
+ANTWORT N
+ANTWORT N
+ANTWORT loeschen
+ZEIGE

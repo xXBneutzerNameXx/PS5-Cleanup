@@ -1,0 +1,58 @@
+GROESSE etwa 6 KB in 77 Dateien und 83 Ordnern
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   Altes Spiel (CUSA12345) - Spiel
+LOG:   gelöscht   Altes Spiel (CUSA12345) - Update (Version 01.09)
+LOG:   gelöscht   Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung
+LOG:   gelöscht   unbekannter Name (PPSA01325) - Spiel
+LOG:   gelöscht   ASTRO PLAYROOM (PPSA01326) - Spiel
+LOG:   gelöscht   Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel
+LOG:   gelöscht   Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel
+LOG:   gelöscht   Echtes Spiel (PPSA55555) - Spiel
+LOG:   gelöscht   Echtes Spiel (PPSA55555) - Update
+LOG:   gelöscht   Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1
+LOG:   SICHERHEITSSTOPP: /user/data/hb/Sym Game.exfat liegt hinter einer Verknüpfung - nichts gelöscht.
+LOG:   FEHLER      Sym Spiel (PPSA55556) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel (konnte nicht ganz gelöscht werden)
+LOG:   gelöscht   Testspiel Fünf (PPSA77700) - Spiel
+LOG:   gelöscht   Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)
+LOG:   gelöscht   Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1
+LOG:   gelöscht   Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars
+LOG:   gelöscht   M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel - nur Kachel, Spiel bleibt
+LOG:   gelöscht   M.2 – Top Game (PPSA99999) - ShadowMount-Spiel - nur Kachel, Spiel bleibt
+LOG:   gelöscht   Spielstand PPSA01326 (ASTRO PLAYROOM)
+LOG:   gelöscht   Spielstand PPSA01327 (ASTRO PLAYROOM)
+LOG:   gelöscht   Spielstand PPSA55555 (Echtes Spiel)
+LOG:   gelöscht   Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole
+LOG:   gelöscht   Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)
+LOG:   gelöscht   Trophäen-Fortschritt: NPWR20188_00
+LOG:   gelöscht   Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00)
+LOG:   gelöscht   Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+LOG:   gelöscht   Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot
+LOG:   gelöscht   Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video
+LOG:   gelöscht   Vorschaubilder ohne Aufnahme (1) - Reste
+LOG:   gelöscht   Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei)
+LOG:   gelöscht   Leere Aufnahme-Zwischenordner (1) - Reste
+LOG:   gelöscht   Update ohne Spiel: PPSA77777
+LOG:   gelöscht   Reste: Altes Spiel (PPSA88888)
+LOG:   gelöscht   Share-Einstellungen alter Spiele (2)
+LOG:   gelöscht   Store-Bildercache (1, lädt die PS5 neu)
+LOG:   gelöscht   Temporäre Dateien (2)
+LOG:   gelöscht   Fehlerberichte (3)
+LOG:   gelöscht   Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)
+LOG:   gelöscht   Leere Kachel (Schloss): Geisterspiel (PPSA12121)
+LOG:   gelöscht   Tool-Kachel: PS5Upload Minion (PSUP00001)
+LOG:   gelöscht      – ps5upload
+LOG:   gelöscht   Tool-Kachel: Mein Tool (TOOL00001)
+LOG:   gelöscht   .kstuff_noautomount
+LOG:   gelöscht   hb  (Verknüpfung, nur sie wird gelöscht)
+LOG:   gelöscht   shadowmount
+LOG:   gelöscht   Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert)
+LOG:   gelöscht   leerer Ordner /user/data/homebrew
+LOG:   gelöscht   leerer Ordner /user/addcont/CUSA12345
+LOG:   gelöscht   leerer Ordner /user/addcont/PPSA55555
+LOG:   gelöscht   leerer Ordner /user/addcont/PPSA77700
+ERG Fehler=1 Abgebrochen=False Freigeräumt: 6 KB in 74 Dateien und 81 Ordnern
+OK   Fortschritt meldet jeden Eintrag einmal: 45 von 45
+FEHLERZAHL 0

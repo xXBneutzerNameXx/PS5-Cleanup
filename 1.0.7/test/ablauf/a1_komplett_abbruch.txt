@@ -1,0 +1,6 @@
+# Vollständige Bereinigung - gleich bei der ersten Frage "Abbrechen"
+MODELL CFI-2016
+ZEIGE
+ABLAUF KOMPLETT
+ANTWORT N
+ZEIGE

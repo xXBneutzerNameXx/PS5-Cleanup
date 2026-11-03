@@ -1,0 +1,11 @@
+OK   alle Einträge mit 'Kachel' im Text sind markiert (8)
+OK   auf Englisch dieselben Einträge markiert (12)
+OK   keine deutschen Wörter in den englischen Einträgen
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   Tool tile: Mein Tool (TOOL00001)
+OK   nur eine Tool-Kachel gewählt (Englisch) -> ShadowMount wird vorher angehalten
+ERG Fehler=0
+FEHLERZAHL 0

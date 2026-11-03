@@ -1,0 +1,13 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount reagiert nicht (evtl. älter als 1.7), aber Spiele sind eingebunden.
+LOG: 
+LOG:  ShadowMount konnte nicht sicher angehalten werden. Läuft es noch, können
+LOG:  eingebundene Spieldaten beim Löschen beschädigt werden.
+LOG:  Der Nutzer hat 'Trotzdem löschen' gewählt.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   Tool-Kachel: Mein Tool (TOOL00001)
+ERG Fall=trotzdem gefragt=True weg=True abgebrochen=False Grund=ShadowMount reagiert nicht (evtl. älter als 1.7), aber Spiele sind eingebunden.
+OK   Fall trotzdem: Rückfrage kommt
+OK   Fall trotzdem: gelöscht
+FEHLERZAHL 0

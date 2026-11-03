@@ -1,0 +1,25 @@
+  M2 Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1 :: /mnt/ext1/_zu_loeschen_1
+  M2 L.A. Noire (CUSA09172) - game :: /mnt/ext1/user/app/CUSA09172 | /user/appmeta/CUSA09172 | /system_data/priv/appmeta/CUSA09172 | /user/system/share/CUSA09172 | /user/license/fakeEP1004-CUSA09172_00.idx | /user/license/fakeEP1004-CUSA09172_00.rif
+  M2 L.A. Noire (CUSA09172) - Update (Version 01.04) :: /mnt/ext1/user/patch/CUSA09172
+  M2 L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster :: /mnt/ext1/user/addcont/CUSA09172/LANDLC0001 | /user/appmeta/addcont/CUSA09172/LANDLC0001
+  M2 M2 Spiel (PPSA66666) - game :: /mnt/ext1/user/app/PPSA66666 | /user/appmeta/PPSA66666 | /system_data/priv/appmeta/PPSA66666
+  M2 M2 Spiel (PPSA66666) - Update :: /mnt/ext1/user/patch/PPSA66666
+  M2 Testspiel Fünf (PPSA77700) - game :: /mnt/ext1/user/app/PPSA77700
+  M2 Testspiel Fünf (PPSA77700) - Update :: /mnt/ext1/user/patch/PPSA77700
+  M2 Top Game - PPSA99999.exfat  [game: Top Game (PPSA99999), tile goes with it] :: /mnt/ext1/Top Game - PPSA99999.exfat | /user/app/PPSA99999 | /user/appmeta/PPSA99999
+  M2 games/x.iso :: /mnt/ext1/games/x.iso
+  M2 homebrew/Game A - PPSA11111.exfat  [game: Spiel PPSA11111 (PPSA11111), tile goes with it]  [LOCKED: Game Compressor is working on it] :: /mnt/ext1/homebrew/Game A - PPSA11111.exfat | /user/app/PPSA11111 | /user/appmeta/PPSA11111
+  M2 homebrew/Game B - PPSA22222  [game: Spiel PPSA22222 (PPSA22222), tile goes with it] :: /mnt/ext1/homebrew/Game B - PPSA22222 | /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+  M2 homebrew/anderes.txt :: /mnt/ext1/homebrew/anderes.txt
+  M2 homebrew/sub :: /mnt/ext1/homebrew/sub
+OK   Einträge innerhalb der M.2-Ordner einzeln vorhanden
+OK   kein voller M.2-Ordner als Ganzes angeboten
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   games/x.iso
+ERG Fehler=0 geloescht=/mnt/ext1/games/x.iso
+OK   gewählter Eintrag gelöscht
+OK   M.2-Ordner selbst bleibt stehen
+FEHLERZAHL 0

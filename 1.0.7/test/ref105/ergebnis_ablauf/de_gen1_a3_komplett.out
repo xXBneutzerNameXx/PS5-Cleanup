@@ -1,0 +1,267 @@
+[18:54:40] Verbinde mit PS5 (127.0.0.1, Port 2199) ...
+[18:54:40] Verbunden.
+[18:54:40] FTP-Server: Unbekannt (Begrüßung: „mini“), Port 2199
+[18:54:40] Datenverbindung: EPSV
+[18:54:40] Modell: CFI-2016  Reihe: PS5 Slim  Firmware: unbekannt
+[18:54:40] Laufwerk: Nicht abgefragt: Konnte nicht gelesen werden.
+[18:54:40] Schaue nach, was drauf ist ...
+[18:54:41] ACHTUNG: Der Game Compressor arbeitet gerade (oder wurde abgebrochen):
+[18:54:41]    /mnt/ext1/homebrew/.Zwei - PPSA90002.exfat.gc-compress.tmp
+[18:54:41]    /user/data/homebrew/.Spiel Eins - PPSA90001.exfat.gc-compress.tmp
+[18:54:41] Das betroffene Spiel ist GESPERRT. Lass den Game Compressor erst fertig werden.
+[18:54:41] 145 Einträge gefunden. Nichts wurde verändert.
+[18:54:41] === ABLAUF
+[18:54:41] > ABLAUF KOMPLETT
+[18:54:42] DIALOG Vollständige Bereinigung
+[18:54:42]   | VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:
+[18:54:42]   |    - Spiele & Apps: 48
+[18:54:42]   |    - Spielstände: 30
+[18:54:42]   |    - Trophäen: 17
+[18:54:42]   |    - Bilder & Videos: 10
+[18:54:42]   |    - Reste: 13
+[18:54:42]   |    - Jailbreak & Homebrew: 9
+[18:54:42]   | (M.2 und USB-Speicher: gleich wird jeweils gefragt. USB-Sticks bleiben unangetastet.)
+[18:54:42]   | 
+[18:54:42]   | Das heißt:
+[18:54:42]   |  - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.
+[18:54:42]   |  - Nie mit dem PSN abgeglichene Trophäen sind weg.
+[18:54:42]   |  - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.
+[18:54:42]   | 
+[18:54:42]   | Bleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.
+[18:54:42]   | Mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser): 1 - gleich wird gefragt, ob sie bleiben.
+[18:54:42]   KNOPF sicher: Abbrechen
+[18:54:42]   KNOPF gefährlich: Weiter
+[18:54:42]   ANTWORT J
+[18:54:42] DIALOG M.2-SSD
+[18:54:42]   | Auf der M.2-SSD liegen 12 Einträge (Spiele, Ordner, Dateien).
+[18:54:42]   | 
+[18:54:42]   | BEHALTEN: Die Spiele bleiben. Nur Kacheln von ShadowMount-Spielen darauf gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.
+[18:54:42]   | 
+[18:54:42]   | AUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.
+[18:54:42]   KNOPF sicher: M.2-SSD behalten (empfohlen)
+[18:54:42]   KNOPF gefährlich: M.2-SSD auch leeren
+[18:54:42]   ANTWORT N
+[18:54:43] DIALOG Jailbreak-Einstiege
+[18:54:43]   | Gefunden: 1 mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser) samt ihren Daten.
+[18:54:43]   | 
+[18:54:43]   | BEHALTEN: Sie bleiben - dieser Jailbreak-Weg funktioniert weiter.
+[18:54:43]   | 
+[18:54:43]   | AUCH LÖSCHEN: Sie werden mit gelöscht. Danach funktioniert dieser Jailbreak-Weg erst wieder, wenn er neu eingerichtet ist.
+[18:54:43]   KNOPF sicher: Behalten (empfohlen)
+[18:54:43]   KNOPF gefährlich: Auch löschen
+[18:54:43]   ANTWORT N
+[18:54:43] (Trophäen-Listen bleiben, weil Spiele auf M.2 oder USB bleiben.)
+[18:54:43] Ausgewählt: etwa 57 KB in 253 Dateien und 266 Ordnern.
+[18:54:43] DIALOG Endgültig löschen?
+[18:54:43]   | Die M.2-SSD bleibt unangetastet.
+[18:54:43]   | 
+[18:54:43]   | Die Jailbreak-Einstiege bleiben.
+[18:54:43]   | 
+[18:54:43]   | Wird ENDGÜLTIG gelöscht: 127 Einträge
+[18:54:43]   |    - Spiele & Apps: 48
+[18:54:43]   |    - Spielstände: 30
+[18:54:43]   |    - Trophäen: 17
+[18:54:43]   |    - Bilder & Videos: 10
+[18:54:43]   |    - Reste: 13
+[18:54:43]   |    - Jailbreak & Homebrew: 9
+[18:54:43]   |    davon ShadowMount-Spiele MIT Spieldatei: 1
+[18:54:43]   |    (M.2-SSD bleibt unverändert)
+[18:54:43]   |    Bleibt (Game Compressor arbeitet daran): 2
+[18:54:43]   | 
+[18:54:43]   | Das sind etwa 57 KB in 253 Dateien und 266 Ordnern.
+[18:54:43]   | 
+[18:54:43]   | Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+[18:54:43]   | Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.
+[18:54:43]   | 
+[18:54:43]   | Zum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):
+[18:54:43]   EINGABE
+[18:54:43]   ANTWORT LÖSCHEN
+[18:54:43] 
+[18:54:43] Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+[18:54:49]   ShadowMount ist beendet.
+[18:54:49] 
+[18:54:49] Lösche ... (große Spiele können etwas dauern)
+[18:54:49]   gelöscht   Café Crème 0 meta DE (CUSA10000) - Spiel
+[18:54:49]   gelöscht   東京ドリフト 5 PS4 (CUSA10185) - Spiel
+[18:54:49]   gelöscht   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - Spiel
+[18:54:49]   gelöscht   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - Zusatzinhalt: Erw meta 0 DE
+[18:54:49]   gelöscht   Ninja's "Zitat" 15 meta DE (CUSA10555) - Spiel
+[18:54:49]   gelöscht   Ünïcödé Ärger 20 sys DE (CUSA10740) - Spiel
+[18:54:49]   gelöscht   Ünïcödé Ärger 20 sys DE (CUSA10740) - Update (Version 02.20)
+[18:54:49]   gelöscht   Bärenhöhle 2 25 PS4 (CUSA10925) - Spiel
+[18:54:49]   gelöscht   Русская игра 30 meta DE (CUSA11110) - Spiel
+[18:54:49]   gelöscht   Ω Omega 35 PS4 (CUSA11295) - Spiel
+[18:54:49]   gelöscht   12345 (PPSA10074) - Spiel
+[18:54:49]   gelöscht   12345 (PPSA10074) - Update (Version 02.020)
+[18:54:50]   gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Spiel
+[18:54:50]   gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erw meta 0 DE
+[18:54:50]   gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erweiterung 1 kaputt
+[18:54:50]   gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erw meta 2 DE
+[18:54:50]   gelöscht   Ninja's "Zitat" 6 meta DE (PPSA10222) - Spiel
+[18:54:50]   gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+[18:54:50]   gelöscht   Bärenhöhle 2 8 DE (PPSA10296) - Spiel
+[18:54:50]   gelöscht   Bärenhöhle 2 8 DE (PPSA10296) - Update (Version 02.080)
+[18:54:50]   gelöscht   Ninja's "Zitat" 9 meta DE (PPSA10333) - Spiel
+[18:54:50]   gelöscht   Emoji 🎮 Spiel 11 ci (PPSA10407) - Spiel
+[18:54:50]   gelöscht   Ninja's "Zitat" 12 meta DE (PPSA10444) - Spiel
+[18:54:50]   gelöscht   Schräg/Strich 14 BOM (PPSA10518) - Spiel
+[18:54:50]   gelöscht   Schräg/Strich 14 BOM (PPSA10518) - Update (Version 02.040)
+[18:54:50]   gelöscht   Caf\u00e9 Cr\u00e8me 16 muell (PPSA10592) - Spiel
+[18:54:50]   gelöscht   Café Crème 17 DE (PPSA10629) - Spiel
+[18:54:50]   gelöscht   Café Crème 17 DE (PPSA10629) - Zusatzinhalt: Erw meta 0 DE
+[18:54:50]   gelöscht   Café Crème 17 DE (PPSA10629) - Zusatzinhalt: Erweiterung 1 DE
+[18:54:50]   gelöscht   Русская игра 18 meta DE (PPSA10666) - Spiel
+[18:54:50]   gelöscht   Tab	im Namen 19 DE (PPSA10703) - Spiel
+[18:54:51]   gelöscht   東京ドリフト 21 meta DE (PPSA10777) - Spiel
+[18:54:51]   gelöscht   unbekannter Name (PPSA10851) - Spiel
+[18:54:51]   gelöscht   Русская игра 24 meta DE (PPSA10888) - Spiel
+[18:54:51]   gelöscht   Русская игра 24 meta DE (PPSA10888) - Zusatzinhalt: Erw meta 0 DE
+[18:54:51]   gelöscht   unbekannter Name (PPSA10962) - Spiel
+[18:54:51]   gelöscht   unbekannter Name (PPSA10962) - Update (Version 02.060)
+[18:54:51]   gelöscht   Ω Omega 27 meta DE (PPSA10999) - Spiel
+[18:54:51]   gelöscht   unbekannter Name (PPSA11073) - Spiel
+[18:54:51]   gelöscht   Café Crème 32 DE (PPSA11184) - Spiel
+[18:54:51]   gelöscht   Café Crème 32 DE (PPSA11184) - Update (Version 02.020)
+[18:54:51]   gelöscht   Weltraum Rennen 33 meta DE (PPSA11221) - Spiel
+[18:54:51]   gelöscht   Weltraum Rennen 34 FR (PPSA11258) - Spiel
+[18:54:51]   gelöscht   SM PPSA90003 DE (PPSA90003) - ShadowMount: Spiel nicht mehr da, tote Kachel
+[18:54:51]   gelöscht   SM PPSA90004 DE (PPSA90004) - ShadowMount: Spiel liegt auf /somewhere/else.exfat, nur die Kachel wird gelöscht
+[18:54:51]   gelöscht   SM PPSA90005 DE (PPSA90005) - ShadowMount: Speicherort unbekannt, nur die Kachel wird gelöscht
+[18:54:51]   gelöscht   SM PPSA90006 DE (PPSA90006) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel
+[18:54:51]   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+[18:54:52]   gelöscht   Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)
+[18:54:52]   gelöscht   Spielstand PPSA10259 (ASTRO's PLAYROOM)
+[18:54:52]   gelöscht   Spielstand PPSA10481
+[18:54:52]   gelöscht   Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool)
+[18:54:52]   gelöscht   Spielstand CUSA11110 (Русская игра 30 meta DE)
+[18:54:52]   gelöscht   Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)
+[18:54:52]   gelöscht   Spielstand PPSA10296 (Bärenhöhle 2 8 DE)
+[18:54:52]   gelöscht   Spielstand PPSA10444 (Ninja's "Zitat" 12 meta DE)
+[18:54:52]   gelöscht   Spielstand PPSA10518 (Schräg/Strich 14 BOM)
+[18:54:52]   gelöscht   Spielstand PPSA10666 (Русская игра 18 meta DE)
+[18:54:52]   gelöscht   Spielstand PPSA10888 (Русская игра 24 meta DE)
+[18:54:52]   gelöscht   Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool)
+[18:54:52]   gelöscht   Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+[18:54:52]   gelöscht   Spielstand CUSA10925 (Bärenhöhle 2 25 PS4)
+[18:54:52]   gelöscht   Spielstand PPSA10037 (Ninja's "Zitat" 1 Tool)
+[18:54:52]   gelöscht   Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+[18:54:52]   gelöscht   Spielstand PPSA10703 (Tab	im Namen 19 DE)
+[18:54:52]   gelöscht   Spielstand PPSA10814
+[18:54:52]   gelöscht   Spielstand PPSA11147
+[18:54:52]   gelöscht   Spielstand PPSA11258 (Weltraum Rennen 34 FR)
+[18:54:52]   gelöscht   Spielstand CUSA10000 (Café Crème 0 meta DE)
+[18:54:52]   gelöscht   Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+[18:54:52]   gelöscht   Spielstand CUSA10740 (Ünïcödé Ärger 20 sys DE)
+[18:54:52]   gelöscht   Spielstand PPSA10074 (12345)
+[18:54:52]   gelöscht   Spielstand PPSA10222 (Ninja's "Zitat" 6 meta DE)
+[18:54:52]   gelöscht   Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+[18:54:52]   gelöscht   Spielstand PPSA10814
+[18:54:52]   gelöscht   Spielstand PPSA10962
+[18:54:52]   gelöscht   Spielstand PPSA11184 (Café Crème 32 DE)
+[18:54:52]   gelöscht   Spielstand PPSA11258 (Weltraum Rennen 34 FR)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: NPWR31000_00 (PS4-Spiel) - Spiel nicht mehr auf der Konsole
+[18:54:52]   gelöscht   Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: 東京ドリフト 5 PS4 (NPWR30005_00)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr auf der Konsole
+[18:54:52]   gelöscht   Trophäen-Daten trophy2/conf.dat
+[18:54:52]   gelöscht   Trophäen-Daten trophy2/nobackup/other.dat
+[18:54:52]   gelöscht   Trophäen-Fortschritt: NPWR31000_00 (PS4-Spiel) - Spiel nicht mehr auf der Konsole
+[18:54:52]   gelöscht   Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: 東京ドリフト 5 PS4 (NPWR30005_00)
+[18:54:52]   gelöscht   Trophäen-Fortschritt: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr auf der Konsole
+[18:54:52]   gelöscht   Trophäen-Daten trophy2/conf.dat
+[18:54:52]   gelöscht   Trophäen-Daten trophy2/nobackup/other.dat
+[18:54:53]   gelöscht   Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+[18:54:53]   gelöscht   Trophäen-Liste: NPWR31000_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+[18:54:53]   gelöscht   Trophäen-Liste: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+[18:54:53]   gelöscht   Aufnahmen von Café Crème 0 meta DE (CUSA10000): 5 Screenshots, 2 Videos
+[18:54:53]   gelöscht   Aufnahmen von CUSA77777 (Spiel nicht mehr auf der Konsole): 5 Screenshots
+[18:54:53]   gelöscht   Aufnahmen von Systemmenü (NPXS40140): 5 Screenshots
+[18:54:53]   gelöscht   Aufnahmen von Weltraum Rennen 4 sys DE (PPSA10148): 5 Screenshots
+[18:54:53]   gelöscht   Aufnahmen von Galerie Spiel Neun (PPSA99001, Spiel nicht mehr auf der Konsole): 5 Screenshots
+[18:54:53]   gelöscht   Vorschaubilder ohne Aufnahme (1) - Reste
+[18:54:53]   gelöscht   Unfertige Aufnahme von Ninja's "Zitat" 1 Tool (PPSA10037) (1 Datei)
+[18:54:53]   gelöscht   Leere Aufnahme-Zwischenordner (1) - Reste
+[18:54:53]   gelöscht   Weitere Galerie-Daten: extra/PPSA10111 (Ünïcödé Ärger 3 meta DE)
+[18:54:53]   gelöscht   Weitere Galerie-Daten: sdr/abc
+[18:54:53]   gelöscht   App-Daten ohne installierte App: PPSA44400
+[18:54:53]   gelöscht   Update ohne Spiel: PPSA44401
+[18:54:53]   gelöscht   Zusatzinhalt: PPSA44402
+[18:54:53]   gelöscht   Zusatzinhalt-Infos: PPSA44403
+[18:54:53]   gelöscht   Rest einer früheren Aufräumaktion: /user/_zu_loeschen_7
+[18:54:53]   gelöscht   Reste: Rest Spiel DE (PPSA44404)
+[18:54:53]   gelöscht   Reste: entferntes Spiel (PPSA44405)
+[18:54:54]   gelöscht   Store-Bildercache (2, lädt die PS5 neu)
+[18:54:54]   gelöscht   Temporäre Dateien (3)
+[18:54:54]   gelöscht   Fehlerberichte (1)
+[18:54:54]   gelöscht   Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)
+[18:54:54]   gelöscht   Leere Kachel (Schloss): Schloss DE (PPSA44406)
+[18:54:54]   gelöscht   Zusatzinhalt-Infos: PPSA44408
+[18:54:54]   gelöscht   Tool-Kachel: Ninja's "Zitat" 1 Tool (PPSA10037)
+[18:54:54]   gelöscht   Tool-Kachel: Ünïcödé Ärger 28 Tool (PPSA11036)
+[18:54:54]   gelöscht   etaHEN
+[18:54:54]   gelöscht   homebrew/anderes.bin
+[18:54:54]   gelöscht   homebrew/sub/tief/nachbar.txt
+[18:54:54]   gelöscht   ps5upload
+[18:54:54]   gelöscht   shadowmount
+[18:54:54]   gelöscht   Fake-Lizenz: EP0000-PPSA44409 (Spiel nicht mehr installiert)
+[18:54:54]   gelöscht   Fake-Lizenz: UP9999-XYZ (Spiel nicht mehr installiert)
+[18:54:54]   gelöscht   leerer Ordner /user/data/homebrew/sub/tief
+[18:54:54]   gelöscht   leerer Ordner /user/data/homebrew/sub
+[18:54:54]   gelöscht   leerer Ordner /user/addcont/CUSA10370
+[18:54:54]   gelöscht   leerer Ordner /user/appmeta/addcont/CUSA10370
+[18:54:54]   gelöscht   leerer Ordner /user/addcont/PPSA10111
+[18:54:54]   gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10111
+[18:54:54]   gelöscht   leerer Ordner /user/addcont/PPSA10629
+[18:54:54]   gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10629
+[18:54:54]   gelöscht   leerer Ordner /user/addcont/PPSA10888
+[18:54:54]   gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10888
+[18:54:54] 
+[18:54:54] Fertig - alles Ausgewählte ist gelöscht.
+[18:54:54] Freigeräumt: 57 KB in 253 Dateien und 266 Ordnern
+[18:54:54] Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+[18:54:54] ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.
+[18:54:54] Letzter Schritt an der PS5, damit sie alles sauber neu einliest:
+[18:54:54] 1. PS5 ausschalten.
+[18:54:54] 2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.
+[18:54:54] 3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.
+[18:54:54] Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!
+[18:54:54] FERTIG Fertig - alles Ausgewählte ist gelöscht.
+[18:54:54]   frei: Freigeräumt: 57 KB in 253 Dateien und 266 Ordnern
+[18:54:54]   sm:
+[18:54:54]   | ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.
+[18:54:54]   schritt: Letzter Schritt an der PS5, damit sie alles sauber neu einliest:
+[18:54:54]   1. PS5 ausschalten.
+[18:54:54]   2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.
+[18:54:54]   3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.
+[18:54:54]   wichtig: Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!
+[18:54:54] > ABLAUF ENDE verbunden=True
+[18:54:54] > ZEIGE
+[18:54:55] KOPF [1] Spiele & Apps   (9 Einträge · 5 KB)
+[18:54:55]   [ ] SM PPSA90001 DE (PPSA90001) - ShadowMount-Spiel auf der internen SSD  [GESPERRT: Game Compressor arbeitet gerade daran]   427 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[18:54:55]   [ ] M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran]   425 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA10074) - Spiel   171 Byte
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA10074) - Update (Version 03.000)   28 Byte
+[18:54:55]   [ ] M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel   1 KB
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA10481) - Spiel   320 Byte
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA10814) - Spiel   2 KB
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA11147) - Spiel   409 Byte
+[18:54:55]   [ ] M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE   251 Byte
+[18:54:55] KOPF [3] Trophäen   (3 Einträge · 6 Byte)
+[18:54:55]   [ ] Trophäen-Liste: NPWR30001_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[18:54:55]   [ ] Trophäen-Liste: NPWR30005_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[18:54:55]   [ ] Trophäen-Liste: NPWR30009_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[18:54:55] KOPF [5] Reste   (6 Einträge · 104 Byte)
+[18:54:55]   [ ] Share-Einstellungen alter Spiele (1)   1 Byte
+[18:54:55]   [ ] M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2   1 Byte
+[18:54:55]   [ ] M.2 – datei.bin   1 Byte
+[18:54:55]   [ ] M.2 – games/a.iso   100 Byte
+[18:54:55]   [ ] M.2 – games/sub   1 Byte
+[18:54:55]   [ ] M.2 – leer  (leerer Ordner)   0 Byte
+[18:54:55] KOPF [6] Jailbreak & Homebrew   (1 Einträge · 1 Byte)
+[18:54:55]   [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln]   1 Byte  {Gehört zum Jailbreak: WebKit-Jailbreak (Browser). Nur einzeln wählbar. Wird es gelöscht, funktioniert dieser Jailbreak erst wieder, wenn er neu eingerichtet ist. Die vollständige Bereinigung fragt, ob es bleibt.}
+[18:54:55] STAND Nichts ausgewählt.
+[18:54:55] ENDE fehler=0
+[18:54:55] Ende.

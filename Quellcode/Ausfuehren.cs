@@ -15,6 +15,12 @@ namespace PS5Cleanup
     {
         public bool Abgebrochen; public int Fehler; public bool SmGestoppt; public Groesse Frei = new Groesse();
         public string SmText = ""; public bool Verloren;
+        // NEU 1.0.7 (da_Chris86 31.10.2026): PS4-Spieleschutz, Datenbank-Sicherung, Schlusstext
+        public int Geschuetzt;                                        // geschützte Pfade (kein Fehler)
+        public bool SicherungFehlt; public string SicherungGrund = ""; public string SicherungOrdner = "";
+        public bool DbGesperrt;                                       // Löschen gesperrt: Datenbank nicht lesbar / nicht geprüft (Grund in SicherungGrund)
+        public bool Kacheln;                                          // gewählt war etwas, das eine Kachel im Menü haben kann
+        public List<Ps4Spiel> Ps4Gefaehrdet = new List<Ps4Spiel>();  // PS4-Spiele intern/USB, die nach dem Lauf noch installiert sind
     }
 
     public partial class Kern
@@ -45,7 +51,7 @@ namespace PS5Cleanup
         public void SmZuruecksetzen()
         {
             foreach (var f in Funde)
-                if (f.Kat == 1 && f.Quelle != "") { f.Pfade = new List<string>(f.PfadeBasis); f.Text = f.TextBasis; }
+                if (f.Quelle != "") { f.Pfade = new List<string>(f.PfadeBasis); f.Text = f.TextBasis; }
         }
         // KOMPLETT: alles auf der internen SSD (Bereich 1-6); M.2 und USB-Speicher nur auf Wunsch (NEU 1.0.6: je eine Frage);
         // USB-Sticks nie (nur einzeln). Gleich wie kern_waehle_komplett (C-Kern).
@@ -60,14 +66,14 @@ namespace PS5Cleanup
             // ShadowMount-Spiele: Kachel immer; die Spieldatei geht mit, wenn ihr Speicher mit geleert wird (USB-Stick nie).
             foreach (var f in Funde)
             {
-                if (f.Kat != 1 || f.Quelle == "" || f.Gesperrt) continue;
+                if (f.Quelle == "" || f.Gesperrt) continue;   // 1.0.7: Spieldatei statt Bereich 1 (Jailbreak-Spiele stehen unter 7)
                 if (OrtDabei(PfadOrt(f.Quelle), m2, usb)) { f.Pfade = QuelleDavor(f); f.Text = f.TextBasis + SM_MIT; }
                 else f.Text = f.TextBasis + SM_OHNE;
             }
         }
         public static string SM_MIT { get { return T(" - Spiel + Kachel", " - game + tile"); } }
         public static string SM_OHNE { get { return T(" - nur Kachel, Spiel bleibt", " - tile only, game stays"); } }
-        public List<Eintrag> SmGewaehlt() { return Funde.Where(f => f.Wahl && f.Kat == 1 && f.Quelle != "").ToList(); }
+        public List<Eintrag> SmGewaehlt() { return Funde.Where(f => f.Wahl && f.Quelle != "").ToList(); }
         public void SetzeSmSpieldateien(bool mit)
         {
             SmZuruecksetzen();
@@ -164,7 +170,7 @@ namespace PS5Cleanup
                 {
                     if (stopp()) return;
                     var pfade = new List<string>(e.PfadeBasis);
-                    if (e.Kat == 1 && e.Quelle != "") pfade.Add(e.Quelle);
+                    if (e.Quelle != "") pfade.Add(e.Quelle);
                     foreach (var p in pfade.Distinct())
                     {
                         if (PfadGezaehlt(p)) continue;
@@ -275,7 +281,16 @@ namespace PS5Cleanup
             SM_ANGEHALTEN = false; SM_STOP_GESENDET = false; SM_GRUND = "";
             // Fenster inzwischen zu oder Abbruch angefordert: gar nicht erst anfangen
             if (Abbruch) { erg.Abgebrochen = true; return erg; }
+            // NEU 1.0.7 (da_Chris86 31.10.2026, Entscheidung 1): Datenbank der PS5 nicht lesbar (oder noch nicht geprüft) -> gar nicht
+            // erst anfangen, vor allem anderen (auch kein ShadowMount-Stopp). Die Oberfläche sperrt die Knöpfe schon vorher.
+            if (LoeschenGesperrt)
+            {
+                string sperre = LoeschSperreText();
+                Melde(T("FEHLER: ", "ERROR: ") + sperre + T(" - nichts gelöscht.", " - nothing deleted."));
+                erg.Abgebrochen = true; erg.Fehler = 1; erg.DbGesperrt = true; erg.SicherungGrund = sperre; return erg;
+            }
             AbhaengigeMitnehmen();
+            foreach (var f in Funde) if (f.Wahl && f.Gesperrt) f.Wahl = false;   // NEU 1.0.7: Gesperrtes (z. B. Apps mit Kachel) nie löschen, auch nicht als abhängiger Teil
             LINK_CACHE = new Dictionary<string, List<Datei>>(StringComparer.Ordinal);
             var gewaehlt = Gewaehlt();
             erg.Frei.Gekappt = GROESSE_GEKAPPT;
@@ -297,6 +312,22 @@ namespace PS5Cleanup
                     erg.Abgebrochen = true; erg.Fehler = 1; return erg;
                 }
             }
+            // NEU 1.0.7 (da_Chris86 31.10.2026): erst app.db/appinfo.db sichern (nur lesen) - ohne vollständige, geprüfte Sicherung wird
+            // nichts gelöscht (auch ShadowMount wird dann nicht angehalten). Zweite Sperre neben LoeschenGesperrt oben; geprüft heißt
+            // seit Entscheidung 2: Rohkopie + geprüfte Kopie (SQLite integrity_check: ok, erstellt mit der SQLite-Backup-Schnittstelle)
+            {
+                string grund;
+                try { grund = DatenbankSichern(); }
+                catch (AbbruchAusnahme) { throw; }
+                catch (Exception ex) { grund = ex.Message; }
+                if (grund != null)
+                {
+                    Melde(T("FEHLER: Die Datenbank der PS5 ließ sich nicht sichern und prüfen - nichts gelöscht. Grund: ", "ERROR: The PS5 database could not be backed up and checked - nothing deleted. Reason: ") + grund);
+                    if (SICHERUNG_ORDNER != "") Melde(T("  (Unvollständige Sicherung zur Fehlersuche: ", "  (Incomplete backup for troubleshooting: ") + SICHERUNG_ORDNER + ")");
+                    erg.Abgebrochen = true; erg.Fehler = 1; erg.SicherungFehlt = true; erg.SicherungGrund = grund; return erg;
+                }
+                erg.SicherungOrdner = SICHERUNG_ORDNER;
+            }
             // Sobald ShadowMount-Kacheln, -Spiele, -Daten oder die M.2 dran sind: erst anhalten.
             int smBetroffen = gewaehlt.Count(f => f.Quelle != "" || f.Ort != ORT_INTERN || f.Kachel ||   // 1.0.6: statt Bereich 7 der Ort (M.2, USB, USB-Stick)
                 f.Pfade.Any(p => H.Like(p, SM_ORDNER + "*") || H.Gleich(p, "/user/data") || H.M(p, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")));   // Codex-Prüfung 28: Spiel-Abbilder
@@ -317,14 +348,19 @@ namespace PS5Cleanup
                 Melde("");
             }
             Melde(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
+            // NEU 1.0.7 (da_Chris86 31.10.2026): welche installierten PS4-Spiele gehen in diesem Lauf selbst mit? Nur deren Daten dürfen weg
+            // (geprüft in Loeschen() direkt vor jedem Löschen). Scheitert ein Spiel, sind seine übrigen Teile ab dann wieder geschützt.
+            PS4_LOESCHT = Ps4Mitgeloescht(gewaehlt, PS4_SPIELE);
+            PS4_GESCHUETZT = 0;
+            var ps4Weg = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // Installationen, die in diesem Lauf wirklich gelöscht wurden
             int altTimeout = S.Ftp.Timeout;
             S.Ftp.Timeout = 7200000;                 // Löschen großer Dateien kann Minuten dauern
             var spielFehlt = H.Tab<int>();
             bool verloren = false;
-            int nr = 0, anzahl = gewaehlt.Count(x => new[] { 1, 2, 3, 4, 5, 6 }.Contains(x.Kat));   // 1.0.6: ohne Bereich 7
+            int nr = 0, anzahl = gewaehlt.Count(x => new[] { 1, 2, 3, 4, 5, 6, 7 }.Contains(x.Kat));   // 1.0.7: 6 = Apps, 7 = Jailbreak ganz zuletzt
             try
             {
-                foreach (var k in new[] { 1, 2, 3, 4, 5, 6 })
+                foreach (var k in new[] { 1, 2, 3, 4, 5, 6, 7 })
                 {
                     foreach (var f in gewaehlt.Where(x => x.Kat == k))
                     {
@@ -336,6 +372,8 @@ namespace PS5Cleanup
                         { Melde(T("  übersprungen   ", "  skipped   ") + f.Text + T(" (das Spiel selbst konnte nicht gelöscht werden)", " (the game itself could not be deleted)")); erg.Fehler++; continue; }
                         bool ok = true;
                         WAR_SCHON_WEG = 0;
+                        LOESCH_TEXT = f.Text;                  // NEU 1.0.7: für die Zeile "geschützt" im Protokoll
+                        int geschuetztVorher = PS4_GESCHUETZT;
                         foreach (var p in f.Pfade)
                         {
                             try { if (!(f.NurLeer ? LeerenOrdnerLoeschen(p) : Loeschen(p))) ok = false; }
@@ -352,16 +390,24 @@ namespace PS5Cleanup
                             // Der Rest des Eintrags nur, wenn das Vorherige wirklich weg ist
                             if (!ok) break;
                         }
-                        if (ok && WAR_SCHON_WEG >= f.Pfade.Count) { Melde(T("  war schon weg   ", "  already gone   ") + f.Text); continue; }
+                        LOESCH_TEXT = "";
+                        // NEU 1.0.7 (da_Chris86 31.10.2026): geschützte Pfade (installierte PS4-Spiele) sind kein Fehler - schon einzeln protokolliert
+                        int geschuetzt = PS4_GESCHUETZT - geschuetztVorher;
+                        if (ok && geschuetzt > 0 && geschuetzt >= f.Pfade.Count) continue;   // ganz geschützt: nichts gelöscht, nichts freigeräumt
+                        if (ok) foreach (var g in PS4_SPIELE) if (Ps4SpielEintrag(f, g) && PS4_LOESCHT.Contains(g.Schluessel)) ps4Weg.Add(g.Schluessel);
+                        if (ok && WAR_SCHON_WEG + geschuetzt >= f.Pfade.Count) { Melde(T("  war schon weg   ", "  already gone   ") + f.Text); continue; }
                         if (ok)
                         {
-                            Melde(T("  gelöscht   ", "  deleted   ") + f.Text);
-                            if (f.HatGroesse) { erg.Frei.Bytes += f.Bytes; erg.Frei.Dateien += f.Dateien; erg.Frei.Ordner += f.Ordner; }
+                            Melde(T("  gelöscht   ", "  deleted   ") + f.Text + (geschuetzt > 0 ? T(" (ohne die geschützten Teile)", " (except the protected parts)") : ""));
+                            if (f.HatGroesse && geschuetzt == 0) { erg.Frei.Bytes += f.Bytes; erg.Frei.Dateien += f.Dateien; erg.Frei.Ordner += f.Ordner; }
+                            else if (f.HatGroesse) erg.Frei.Gekappt = true;   // teilweise geschützt: Größe nicht mitzählen -> "mindestens"
                         }
                         else
                         {
                             Melde(T("  FEHLER      ", "  ERROR      ") + f.Text + T(" (konnte nicht ganz gelöscht werden)", " (could not be deleted completely)")); erg.Fehler++;
                             if (f.IstTeil("Spiel")) spielFehlt[f.Gruppe] = 1;
+                            // NEU 1.0.7: Spiel nicht ganz gelöscht - seine übrigen Teile sind ab jetzt wieder geschützt
+                            foreach (var g in PS4_SPIELE) if (Ps4SpielEintrag(f, g)) PS4_LOESCHT.Remove(g.Schluessel);
                         }
                     }
                 }
@@ -382,11 +428,24 @@ namespace PS5Cleanup
                     }
                 }
             }
-            finally { S.Ftp.Timeout = altTimeout; }
+            finally
+            {
+                S.Ftp.Timeout = altTimeout;
+                // NEU 1.0.7: Stand des PS4-Schutzes für den Schlusstext merken, dann zurücksetzen (gilt nur während des Laufs)
+                erg.Geschuetzt = PS4_GESCHUETZT;
+                PS4_LOESCHT = null; LOESCH_TEXT = "";
+            }
             erg.SmText = SmSchlusstext(gewaehlt);
             erg.Verloren = verloren;
+            // NEU 1.0.7 (da_Chris86 31.10.2026): Schlusstext - Kacheln können bleiben (es werden nur Dateien gelöscht); genannt werden die
+            // PS4-Spiele auf interner SSD und USB-Speicher, die nach diesem Lauf noch installiert sind (ohne ShadowMount-Kacheln und
+            // ohne Ordner, in denen sicher kein app.pkg liegt)
+            erg.Kacheln = gewaehlt.Any(f => f.Kachel || f.Teil != null || f.Quelle != "" || f.Pfade.Any(p => H.M(p, KACHEL_PFADE)));
+            erg.Ps4Gefaehrdet = PS4_SPIELE.Where(g => (g.Ort == ORT_INTERN || g.Ort == ORT_USB) && !g.Abbild && (g.AppPkg || !g.AppGelesen) && !ps4Weg.Contains(g.Schluessel)).ToList();
             return erg;
         }
+        // NEU 1.0.7: Pfade, die zu einer Kachel im Menü gehören können (App, Update, Zusatzinhalt, Kachel-Infos - intern, M.2, USB)
+        const string KACHEL_PFADE = "^(/user/(app|patch|addcont|appmeta)/|" + SYS_META + "/|/mnt/ext[01]/user/(app|patch|addcont)/)";
 
         // Was der Nutzer zu ShadowMount wissen muss, je nachdem was gelöscht wurde.
         string SmSchlusstext(List<Eintrag> gewaehlt)
@@ -395,7 +454,7 @@ namespace PS5Cleanup
             foreach (var f in gewaehlt)
             {
                 foreach (var p in f.Pfade) if (H.Gleich(p, SM_ORDNER) || H.Gleich(p, "/user/data")) smDatenWeg = true;
-                if (f.Kat == 1 && f.Quelle != "") kachelnWeg = true;
+                if (f.Quelle != "") kachelnWeg = true;
             }
             if (smDatenWeg) return T("ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.", "ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.");
             if (SM_ANGEHALTEN) return T("ShadowMount wurde angehalten - zum Weiterspielen einfach neu laden.", "ShadowMount was stopped - just load it again to keep playing.");

@@ -1,0 +1,15 @@
+# Nach den Entscheidungen vom 25.10. (Testversion nur lesen): Statuszeile, Kopplungstext, Einzahl, Launcher-Zwischenordner
+WARTE 400
+TASTE X
+WARTEFREI
+WARTE 300
+BILD e_01_uebersicht
+TASTE X
+WARTE 200
+BILD e_02_liste
+TASTE RUNTER
+TASTE RUNTER
+TASTE RUNTER
+WARTE 100
+BILD e_03_bilder_videos
+ENDE

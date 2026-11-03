@@ -1,0 +1,25 @@
+PS5 Cleanup 1.1 – Weg A: eigenständiger Vollbild-Start (Start-Test)
+===================================================================
+Ziel: EINE ELF, die man wie ShadowMountPlus an den Payload-Lader schickt und die unsere
+unveränderte Fernseh-Oberfläche im Vollbild mit DualSense öffnet – ohne websrv-Bedienung.
+
+Wie: start.c + start_hbldr.c (abgeleitet aus websrv hbldr.c, GPL-3.0-or-later, siehe fremd/websrv).
+  - Die Oberfläche (app/ausgabe/schritt9/eboot.elf = Testversion "nur lesen") ist eingebettet.
+  - Start als Vordergrund-App über die VORHANDENE Platzhalter-App /system_ex/app/FAKE00000
+    (wird nur nachgesehen; fehlt sie: Abbruch). /system_ex wird nie beschrieben oder eingehängt,
+    keine Kachel, kein app.db.
+  - Wie bei websrv wird eine laufende App bzw. ein laufendes Spiel vorher beendet.
+  - Arbeitsordner der Oberfläche: /data/homebrew/PS5Cleanup (Test; dort liegt die eboot.elf).
+
+Bauen (nur PC):   bash bauen_start.sh   -> ausgabe/starttest.elf, ausgabe/_bauen.log
+Auf der PS5:      bash senden.sh        <- NUR NACH CHRISTIANS OK (schickt an Port 9021, Ausgabe ausgabe/ps5_start.txt)
+Hinweis: "U open" im Bauprotokoll stammt aus elfldr.c (elfldr_rfork_entry: /dev/deci_std*), wird vom
+Start-Test nicht benutzt; keine Dateisystem-Schreibbefehle (mkdir, nmount, unlink, ...).
+
+Stand 26.10.2026 (Entscheidung da_Chris86 22:36)
+-----------------------------------------------
+- Weg A ist der Startweg für PS5 Cleanup 1.1. Voraussetzung: Jailbreak mit ELF-Lader bzw.
+  Payload Manager und die vorhandene Platzhalter-App FAKE00000. Keine eigene Kachel in 1.1.
+- B1 (eigene Kachel, start_kachel*.c, kachel_b1.sh) und die Diagnose (diag.c, bauen_diag.sh,
+  diag_lauf.sh) sind ZURÜCKGESTELLT, nicht gelöscht. Hintergrund: ../REFERENZEN_B1.md.
+  Nichts davon ohne da_Chris86s ausdrückliche Freigabe auf der PS5 starten.

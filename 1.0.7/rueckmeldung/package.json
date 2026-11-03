@@ -1,0 +1,16 @@
+{
+  "name": "ps5cleanup-feedback",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rückmeldungs-Seite für PS5 Cleanup (Cloudflare Worker + D1 + Turnstile)",
+  "type": "module",
+  "scripts": {
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.mjs\"",
+    "check": "node --check src/index.js",
+    "dev": "npx wrangler dev",
+    "deploy": "npx wrangler deploy"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

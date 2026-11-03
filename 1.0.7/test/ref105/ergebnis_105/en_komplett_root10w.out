@@ -1,0 +1,56 @@
+GROESSE about 6 KB in 68 files and 71 folders
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   Altes Spiel (CUSA12345) - game
+LOG:   deleted   Altes Spiel (CUSA12345) - Update (Version 01.09)
+LOG:   deleted   Altes Spiel (CUSA12345) - add-on: Die Erweiterung
+LOG:   deleted   Spiel PPSA22222 (PPSA22222) - ShadowMount game on the M.2 - tile only, game stays
+LOG:   deleted   Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - game + tile
+LOG:   deleted   Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile
+LOG:   deleted   Real Game (PPSA55555) - game
+LOG:   deleted   Real Game (PPSA55555) - Update
+LOG:   deleted   Real Game (PPSA55555) - add-on: dlc1
+LOG:   SAFETY STOP: /user/data/hb/Sym Game.exfat is behind a symlink - nothing deleted.
+LOG:   ERROR      Sym Spiel (PPSA55556) - ShadowMount game on the internal SSD - game + tile (could not be deleted completely)
+LOG:   deleted   Testspiel Fünf (PPSA77700) - game
+LOG:   deleted   Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)
+LOG:   deleted   Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1
+LOG:   deleted   Testspiel Fünf (PPSA77700) - add-on: Bonus Cars
+LOG:   deleted   Top Game (PPSA99999) - ShadowMount game on the M.2 - tile only, game stays
+LOG:   deleted   Saved data PPSA55555 (Real Game)
+LOG:   deleted   Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console
+LOG:   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+LOG:   deleted   Trophy progress: Real Game (NPWR30405_00)
+LOG:   deleted   Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress)
+LOG:   deleted   Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot
+LOG:   deleted   Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video
+LOG:   deleted   Thumbnails without capture (1) - leftovers
+LOG:   deleted   Unfinished capture of Real Game (PPSA55555) (1 file)
+LOG:   deleted   Empty capture temp folders (1) - leftovers
+LOG:   deleted   Download: PPSA55555 (Real Game)
+LOG:   deleted   Update without game: PPSA77777
+LOG:   deleted   Leftovers: Altes Spiel (PPSA88888)
+LOG:   deleted   Share settings of old games (2)
+LOG:   deleted   Store image cache (1, re-downloaded by the PS5)
+LOG:   deleted   Temporary files (2)
+LOG:   deleted   Error reports (3)
+LOG:   deleted   Info on games on USB drives (1, recreated by the PS5)
+LOG:   deleted   Empty tile (lock icon): Geisterspiel (PPSA12121)
+LOG:   deleted   Tool tile: PS5Upload Minion (PSUP00001)
+LOG:   deleted   Tool tile: Mein Tool (TOOL00001)
+LOG:   deleted   .kstuff_noautomount
+LOG:   deleted   hb  (symlink, only the link is deleted)
+LOG:   already gone   homebrew/Game C - PPSA33333.exfat  [game: Spiel PPSA33333 (PPSA33333), tile goes with it]
+LOG:   deleted   ps5upload
+LOG:   deleted   shadowmount
+LOG:   deleted   Fake license: UP0000-SLIB00001_00 (game no longer installed)
+LOG:   deleted   Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)
+LOG:   deleted   empty folder /user/data/homebrew
+LOG:   deleted   empty folder /user/addcont/CUSA12345
+LOG:   deleted   empty folder /user/addcont/PPSA55555
+LOG:   deleted   empty folder /user/addcont/PPSA77700
+ERG Fehler=1 Abgebrochen=False Freed: 6 KB in 65 files and 69 folders
+OK   Fortschritt meldet jeden Eintrag einmal: 43 von 43
+FEHLERZAHL 0

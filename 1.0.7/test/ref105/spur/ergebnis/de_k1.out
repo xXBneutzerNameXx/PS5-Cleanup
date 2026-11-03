@@ -1,0 +1,11 @@
+OK   KOMPLETT nimmt SM-Spiel von der internen SSD mit
+OK   danach "nur Kacheln": Spieldatei NICHT mehr in der Liste
+OK   Text sauber: Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - nur Kachel, Spiel bleibt
+OK   zweimal "mit Spiel": Spieldatei genau einmal
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - nur Kachel, Spiel bleibt
+ERG Fehler=0
+FEHLERZAHL 0

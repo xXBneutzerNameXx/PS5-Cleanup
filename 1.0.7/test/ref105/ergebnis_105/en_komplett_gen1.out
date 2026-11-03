@@ -1,0 +1,145 @@
+GROESSE about 55 KB in 250 files and 263 folders
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   Café Crème 0 meta (CUSA10000) - game
+LOG:   deleted   東京ドリフト 5 PS4 (CUSA10185) - game
+LOG:   deleted   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - game
+LOG:   deleted   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - add-on: Erw meta 0
+LOG:   deleted   Ninja's "Zitat" 15 meta (CUSA10555) - game
+LOG:   deleted   Ünïcödé Ärger 20 sys (CUSA10740) - game
+LOG:   deleted   Ünïcödé Ärger 20 sys (CUSA10740) - Update (Version 02.20)
+LOG:   deleted   Bärenhöhle 2 25 PS4 (CUSA10925) - game
+LOG:   deleted   Русская игра 30 meta (CUSA11110) - game
+LOG:   deleted   Ω Omega 35 PS4 (CUSA11295) - game
+LOG:   deleted   12345 (PPSA10074) - game
+LOG:   deleted   12345 (PPSA10074) - Update (Version 02.020)
+LOG:   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - game
+LOG:   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erw meta 0
+LOG:   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erweiterung 1 kaputt
+LOG:   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erw meta 2
+LOG:   deleted   Ninja's "Zitat" 6 meta (PPSA10222) - game
+LOG:   deleted   Bärenhöhle 2 8 (PPSA10296) - game
+LOG:   deleted   Bärenhöhle 2 8 (PPSA10296) - Update (Version 02.080)
+LOG:   deleted   Ninja's "Zitat" 9 meta (PPSA10333) - game
+LOG:   deleted   Emoji 🎮 Spiel 11 ci (PPSA10407) - game
+LOG:   deleted   Ninja's "Zitat" 12 meta (PPSA10444) - game
+LOG:   deleted   Schräg/Strich 14 BOM (PPSA10518) - game
+LOG:   deleted   Schräg/Strich 14 BOM (PPSA10518) - Update (Version 02.040)
+LOG:   deleted   Caf\u00e9 Cr\u00e8me 16 muell (PPSA10592) - game
+LOG:   deleted   Café Crème 17 (PPSA10629) - game
+LOG:   deleted   Café Crème 17 (PPSA10629) - add-on: Erw meta 0
+LOG:   deleted   Café Crème 17 (PPSA10629) - add-on: Erweiterung 1
+LOG:   deleted   Русская игра 18 meta (PPSA10666) - game
+LOG:   deleted   Tab	im Namen 19 (PPSA10703) - game
+LOG:   deleted   東京ドリフト 21 meta (PPSA10777) - game
+LOG:   deleted   unknown name (PPSA10851) - game
+LOG:   deleted   Русская игра 24 meta (PPSA10888) - game
+LOG:   deleted   Русская игра 24 meta (PPSA10888) - add-on: Erw meta 0
+LOG:   deleted   unknown name (PPSA10962) - game
+LOG:   deleted   unknown name (PPSA10962) - Update (Version 02.060)
+LOG:   deleted   Ω Omega 27 meta (PPSA10999) - game
+LOG:   deleted   unknown name (PPSA11073) - game
+LOG:   deleted   Café Crème 32 (PPSA11184) - game
+LOG:   deleted   Café Crème 32 (PPSA11184) - Update (Version 02.020)
+LOG:   deleted   Weltraum Rennen 33 meta (PPSA11221) - game
+LOG:   deleted   Weltraum Rennen 34 FR (PPSA11258) - game
+LOG:   deleted   SM PPSA90003 (PPSA90003) - ShadowMount: game gone, dead tile
+LOG:   deleted   SM PPSA90004 (PPSA90004) - ShadowMount: game is at /somewhere/else.exfat, only the tile is deleted
+LOG:   deleted   SM PPSA90005 (PPSA90005) - ShadowMount: location unknown, only the tile is deleted
+LOG:   deleted   SM PPSA90006 (PPSA90006) - ShadowMount game on the internal SSD - game + tile
+LOG:   deleted   SM PPSA90007 (PPSA90007) - ShadowMount: game is at /mnt/ext1/user/app/x.exfat, only the tile is deleted
+LOG:   deleted   Saved data PPSA10148 (Weltraum Rennen 4 sys)
+LOG:   deleted   Saved data PPSA10481
+LOG:   deleted   Saved data PPSA11036 (Ünïcödé Ärger 28 Tool)
+LOG:   deleted   Saved data CUSA11110 (Русская игра 30 meta)
+LOG:   deleted   Saved data PPSA10148 (Weltraum Rennen 4 sys)
+LOG:   deleted   Saved data PPSA10296 (Bärenhöhle 2 8)
+LOG:   deleted   Saved data PPSA10444 (Ninja's "Zitat" 12 meta)
+LOG:   deleted   Saved data PPSA10518 (Schräg/Strich 14 BOM)
+LOG:   deleted   Saved data PPSA10666 (Русская игра 18 meta)
+LOG:   deleted   Saved data PPSA10888 (Русская игра 24 meta)
+LOG:   deleted   Saved data PPSA11036 (Ünïcödé Ärger 28 Tool)
+LOG:   deleted   Saved data CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+LOG:   deleted   Saved data CUSA10925 (Bärenhöhle 2 25 PS4)
+LOG:   deleted   Saved data PPSA10037 (Ninja's "Zitat" 1 Tool)
+LOG:   deleted   Saved data PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+LOG:   deleted   Saved data PPSA10703 (Tab	im Namen 19)
+LOG:   deleted   Saved data PPSA10814
+LOG:   deleted   Saved data PPSA11147
+LOG:   deleted   Saved data PPSA11258 (Weltraum Rennen 34 FR)
+LOG:   deleted   Saved data CUSA10000 (Café Crème 0 meta)
+LOG:   deleted   Saved data CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+LOG:   deleted   Saved data CUSA10740 (Ünïcödé Ärger 20 sys)
+LOG:   deleted   Saved data PPSA10074 (12345)
+LOG:   deleted   Saved data PPSA10222 (Ninja's "Zitat" 6 meta)
+LOG:   deleted   Saved data PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+LOG:   deleted   Saved data PPSA10814
+LOG:   deleted   Saved data PPSA10962
+LOG:   deleted   Saved data PPSA11184 (Café Crème 32)
+LOG:   deleted   Saved data PPSA11258 (Weltraum Rennen 34 FR)
+LOG:   deleted   Trophy progress: NPWR31000_00 (PS4 game) - game no longer on the console
+LOG:   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+LOG:   deleted   Trophy progress: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+LOG:   deleted   Trophy progress: 東京ドリフト 5 PS4 (NPWR30005_00)
+LOG:   deleted   Trophy progress: Galerie Spiel Neun (NPWR39999_00) - game no longer on the console
+LOG:   deleted   Trophy data trophy2/conf.dat
+LOG:   deleted   Trophy data trophy2/nobackup/other.dat
+LOG:   deleted   Trophy progress: NPWR31000_00 (PS4 game) - game no longer on the console
+LOG:   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+LOG:   deleted   Trophy progress: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+LOG:   deleted   Trophy progress: 東京ドリフト 5 PS4 (NPWR30005_00)
+LOG:   deleted   Trophy progress: Galerie Spiel Neun (NPWR39999_00) - game no longer on the console
+LOG:   deleted   Trophy data trophy2/conf.dat
+LOG:   deleted   Trophy data trophy2/nobackup/other.dat
+LOG:   deleted   Trophy list: NPWR31000_00 - game removed, can go (names/images, not your progress)
+LOG:   deleted   Trophy list: Galerie Spiel Neun (NPWR39999_00) - game removed, can go (names/images, not your progress)
+LOG:   deleted   Captures of Café Crème 0 meta (CUSA10000): 5 Screenshots, 2 Videos
+LOG:   deleted   Captures of CUSA77777 (game no longer on the console): 5 Screenshots
+LOG:   deleted   Captures of System menu (NPXS40140): 5 Screenshots
+LOG:   deleted   Captures of Weltraum Rennen 4 sys (PPSA10148): 5 Screenshots
+LOG:   deleted   Captures of Galerie Spiel Neun (PPSA99001, game no longer on the console): 5 Screenshots
+LOG:   deleted   Thumbnails without capture (1) - leftovers
+LOG:   deleted   Unfinished capture of Ninja's "Zitat" 1 Tool (PPSA10037) (1 file)
+LOG:   deleted   Empty capture temp folders (1) - leftovers
+LOG:   deleted   Other gallery data: extra/PPSA10111 (Ünïcödé Ärger 3 meta)
+LOG:   deleted   Other gallery data: sdr/abc
+LOG:   deleted   Download: CUSA10185 (東京ドリフト 5 PS4)
+LOG:   deleted   Download: PPSA44400
+LOG:   deleted   Update without game: PPSA44401
+LOG:   deleted   Add-on: PPSA44402
+LOG:   deleted   Add-on info: PPSA44403
+LOG:   deleted   Leftover from an earlier cleanup: /user/_zu_loeschen_7
+LOG:   deleted   Leftovers: Rest Spiel (PPSA44404)
+LOG:   deleted   Leftovers: removed game (PPSA44405)
+LOG:   deleted   Store image cache (2, re-downloaded by the PS5)
+LOG:   deleted   Temporary files (3)
+LOG:   deleted   Error reports (1)
+LOG:   deleted   Info on games on USB drives (1, recreated by the PS5)
+LOG:   deleted   Empty tile (lock icon): Schloss (PPSA44406)
+LOG:   deleted   Add-on info: PPSA44408
+LOG:   deleted   Tool tile: Ninja's "Zitat" 1 Tool (PPSA10037)
+LOG:   deleted   Tool tile: Ünïcödé Ärger 28 Tool (PPSA11036)
+LOG:   deleted   etaHEN
+LOG:   deleted   homebrew/anderes.bin
+LOG:   already gone   homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [game: SM PPSA90006 (PPSA90006), tile goes with it]
+LOG:   deleted   homebrew/sub/tief/nachbar.txt
+LOG:   deleted   ps5upload
+LOG:   deleted   shadowmount
+LOG:   deleted   Fake license: EP0000-PPSA44409 (game no longer installed)
+LOG:   deleted   Fake license: UP9999-XYZ (game no longer installed)
+LOG:   deleted   Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)
+LOG:   deleted   empty folder /user/data/homebrew/sub/tief
+LOG:   deleted   empty folder /user/data/homebrew/sub
+LOG:   deleted   empty folder /user/addcont/CUSA10370
+LOG:   deleted   empty folder /user/appmeta/addcont/CUSA10370
+LOG:   deleted   empty folder /user/addcont/PPSA10111
+LOG:   deleted   empty folder /user/appmeta/addcont/PPSA10111
+LOG:   deleted   empty folder /user/addcont/PPSA10629
+LOG:   deleted   empty folder /user/appmeta/addcont/PPSA10629
+LOG:   deleted   empty folder /user/addcont/PPSA10888
+LOG:   deleted   empty folder /user/appmeta/addcont/PPSA10888
+ERG Fehler=0 Abgebrochen=False Freed: 55 KB in 250 files and 263 folders
+OK   Fortschritt meldet jeden Eintrag einmal: 127 von 127
+FEHLERZAHL 0

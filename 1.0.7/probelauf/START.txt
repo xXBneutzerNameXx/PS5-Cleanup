@@ -1,0 +1,24 @@
+PS5 Cleanup 1.1 – Probelauf starten (nur Test, löscht nichts)
+
+Was der Probelauf tut: eigenes Bild am Fernseher, Modell + Firmware anzeigen,
+alle DualSense-Tasten sichtbar machen, auf △ die Bildschirmtastatur testen,
+mit ○ (1 Sekunde halten) beenden. Er sucht nichts, löscht nichts, schreibt keine Dateien.
+
+Einmalig vorbereiten (Startumgebung „Homebrew Launcher“ von websrv):
+1. PKG installieren: 1.1\werkzeug\IV9999-FAKE00000_00-HOMEBREWLOADER01.pkg
+   (über deinen PKG-Installer, z. B. PKG-Manager / etaHEN). Danach gibt es die Kachel „Homebrew Launcher“.
+2. Payload laden: 1.1\werkzeug\websrv-ps5.elf an den Payload-Lader (Port 9021) bzw. über den Payload Manager.
+
+Probelauf auf die PS5 legen (Ordner wird neu angelegt, sonst nichts verändert):
+   /data/homebrew/PS5Cleanup/eboot.elf          <- 1.1\probelauf\ausgabe\eboot.elf
+   /data/homebrew/PS5Cleanup/sce_sys/icon0.png  <- 1.1\probelauf\sce_sys\icon0.png
+
+Starten: Kachel „Homebrew Launcher“ öffnen -> „PS5Cleanup“ auswählen.
+
+Prüfwerte:
+  eboot.elf (Probelauf)  3a484b2d7bd2afe18df2a03b90c81eba4aa532c849e1af91eadd0a47b9a3f24c
+  websrv-ps5.elf (v0.34) 54730c867c6e1148536fdcb370e63a7762d989ea87b62488ad4caff64d43f263
+  Launcher-PKG           c737b79be8c47b89b2e4e38ca404cdad6d30c0ff659aaf25c7e9ea1368341434
+
+Lizenz: GPL-3.0-or-later (gebaut mit ps5-payload-sdk). Enthält SDL2 (zlib), stb (Public Domain/MIT),
+DejaVu-Schrift (freie Lizenz, siehe fremd\LICENSE_DejaVu.txt).

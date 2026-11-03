@@ -1,0 +1,149 @@
+[18:42:29] Verbinde mit PS5 (127.0.0.1, Port 2199) ...
+[18:42:29] Verbunden.
+[18:42:29] FTP-Server: Unbekannt (Begrüßung: „mini“), Port 2199
+[18:42:29] Datenverbindung: EPSV
+[18:42:29] Modell: CFI-2016  Reihe: PS5 Slim  Firmware: unbekannt
+[18:42:29] Laufwerk: Nicht abgefragt: Konnte nicht gelesen werden.
+[18:42:29] Schaue nach, was drauf ist ...
+[18:42:29] ACHTUNG: Der Game Compressor arbeitet gerade (oder wurde abgebrochen):
+[18:42:29]    /mnt/ext1/homebrew/.Game A - PPSA11111.exfat.gc-compress.tmp
+[18:42:29] Das betroffene Spiel ist GESPERRT. Lass den Game Compressor erst fertig werden.
+[18:42:29] 60 Einträge gefunden. Nichts wurde verändert.
+[18:42:29] === ABLAUF
+[18:42:29] > ABLAUF KOMPLETT
+[18:42:30] DIALOG Vollständige Bereinigung
+[18:42:30]   | VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:
+[18:42:30]   |    - Spiele & Apps: 14
+[18:42:30]   |    - Spielstände: 3
+[18:42:30]   |    - Trophäen: 5
+[18:42:30]   |    - Bilder & Videos: 5
+[18:42:30]   |    - Reste: 8
+[18:42:30]   |    - Jailbreak & Homebrew: 6
+[18:42:30]   | (M.2 und USB-Speicher: gleich wird jeweils gefragt. USB-Sticks bleiben unangetastet.)
+[18:42:30]   | 
+[18:42:30]   | Das heißt:
+[18:42:30]   |  - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.
+[18:42:30]   |  - Nie mit dem PSN abgeglichene Trophäen sind weg.
+[18:42:30]   |  - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.
+[18:42:30]   | 
+[18:42:30]   | Bleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.
+[18:42:30]   | Mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser): 1 - gleich wird gefragt, ob sie bleiben.
+[18:42:30]   KNOPF sicher: Abbrechen
+[18:42:30]   KNOPF gefährlich: Weiter
+[18:42:30]   ANTWORT J
+[18:42:30] DIALOG M.2-SSD
+[18:42:30]   | Auf der M.2-SSD liegen 14 Einträge (Spiele, Ordner, Dateien).
+[18:42:30]   | 
+[18:42:30]   | BEHALTEN: Die Spiele bleiben. Nur Kacheln von ShadowMount-Spielen darauf gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.
+[18:42:30]   | 
+[18:42:30]   | AUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.
+[18:42:30]   KNOPF sicher: M.2-SSD behalten (empfohlen)
+[18:42:30]   KNOPF gefährlich: M.2-SSD auch leeren
+[18:42:30]   ANTWORT N
+[18:42:30] DIALOG Jailbreak-Einstiege
+[18:42:30]   | Gefunden: 1 mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser) samt ihren Daten.
+[18:42:30]   | 
+[18:42:30]   | BEHALTEN: Sie bleiben - dieser Jailbreak-Weg funktioniert weiter.
+[18:42:30]   | 
+[18:42:30]   | AUCH LÖSCHEN: Sie werden mit gelöscht. Danach funktioniert dieser Jailbreak-Weg erst wieder, wenn er neu eingerichtet ist.
+[18:42:30]   KNOPF sicher: Behalten (empfohlen)
+[18:42:30]   KNOPF gefährlich: Auch löschen
+[18:42:30]   ANTWORT N
+[18:42:30] (Trophäen-Listen bleiben, weil Spiele auf M.2 oder USB bleiben.)
+[18:42:30] Ausgewählt: etwa 2 KB in 73 Dateien und 81 Ordnern.
+[18:42:30] DIALOG Endgültig löschen?
+[18:42:30]   | Die M.2-SSD bleibt unangetastet.
+[18:42:30]   | 
+[18:42:30]   | Die Jailbreak-Einstiege bleiben.
+[18:42:30]   | 
+[18:42:30]   | Wird ENDGÜLTIG gelöscht: 43 Einträge
+[18:42:30]   |    - Spiele & Apps: 16
+[18:42:30]   |    - Spielstände: 3
+[18:42:30]   |    - Trophäen: 5
+[18:42:30]   |    - Bilder & Videos: 5
+[18:42:30]   |    - Reste: 8
+[18:42:30]   |    - Jailbreak & Homebrew: 6
+[18:42:30]   |    davon ShadowMount-Spiele MIT Spieldatei: 1
+[18:42:30]   |    (M.2-SSD bleibt unverändert)
+[18:42:30]   |    Bleibt (Game Compressor arbeitet daran): 1
+[18:42:30]   | 
+[18:42:30]   | Das sind etwa 2 KB in 73 Dateien und 81 Ordnern.
+[18:42:30]   | 
+[18:42:30]   | Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+[18:42:30]   | Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.
+[18:42:30]   | 
+[18:42:30]   | Zum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):
+[18:42:30]   EINGABE
+[18:42:30]   ANTWORT loeschen
+[18:42:30] Abgebrochen - nichts verändert.
+[18:42:30] > ABLAUF ENDE verbunden=True
+[18:42:30] > ZEIGE
+[18:42:31] KOPF [1] Spiele & Apps   (25 Einträge · 2 KB)
+[18:42:31]   [ ] Altes Spiel (CUSA12345) - Spiel   126 Byte
+[18:42:31]   [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 Byte
+[18:42:31]   [ ] Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung   62 Byte
+[18:42:31]   [ ] unbekannter Name (PPSA01325) - Spiel   23 Byte
+[18:42:31]   [ ] ASTRO PLAYROOM (PPSA01326) - Spiel   151 Byte
+[18:42:31]   [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD   179 Byte
+[18:42:31]   [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel   140 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[18:42:31]   [ ] Echtes Spiel (PPSA55555) - Spiel   116 Byte
+[18:42:31]   [ ] Echtes Spiel (PPSA55555) - Update   0 Byte
+[18:42:31]   [ ] Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1   0 Byte
+[18:42:31]   [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[18:42:31]   [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 Byte
+[18:42:31]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1   2 Byte
+[18:42:31]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars   2 Byte
+[18:42:31]   [ ] M.2 – Spiel PPSA11111 (PPSA11111) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran]   155 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[18:42:31]   [ ] M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel   131 Byte
+[18:42:31]   [ ] M.2 – Top Game (PPSA99999) - ShadowMount-Spiel   131 Byte
+[18:42:31]   [ ] M.2 – L.A. Noire (CUSA09172) - Spiel   130 Byte
+[18:42:31]   [ ] M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04)   2 Byte
+[18:42:31]   [ ] M.2 – L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster   86 Byte
+[18:42:31]   [ ] M.2 – ASTRO PLAYROOM (PPSA01327) - Spiel   67 Byte
+[18:42:31]   [ ] M.2 – M2 Spiel (PPSA66666) - Spiel   25 Byte
+[18:42:31]   [ ] M.2 – M2 Spiel (PPSA66666) - Update   0 Byte
+[18:42:31]   [ ] M.2 – Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[18:42:31]   [ ] M.2 – Testspiel Fünf (PPSA77700) - Update   2 Byte
+[18:42:31] KOPF [2] Spielstände   (3 Einträge · 4 Byte)
+[18:42:31]   [ ] Spielstand PPSA01326 (ASTRO PLAYROOM)   2 Byte
+[18:42:31]   [ ] Spielstand PPSA01327 (ASTRO PLAYROOM)   2 Byte
+[18:42:31]   [ ] Spielstand PPSA55555 (Echtes Spiel)   0 Byte
+[18:42:31] KOPF [3] Trophäen   (8 Einträge · 20 Byte)
+[18:42:31]   [ ] Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole   2 Byte
+[18:42:31]   [ ] Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)   2 Byte
+[18:42:31]   [ ] Trophäen-Fortschritt: NPWR20188_00   2 Byte
+[18:42:31]   [ ] Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00)   2 Byte
+[18:42:31]   [ ] Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[18:42:31]   [ ] Trophäen-Liste: NPWR20188_00 - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   4 Byte  (gelb)
+[18:42:31]   [ ] Trophäen-Liste: ASTRO PLAYROOM (NPWR20189_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   2 Byte  (gelb)
+[18:42:31]   [ ] Trophäen-Liste: Echtes Spiel (NPWR30405_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   4 Byte  (gelb)
+[18:42:31] KOPF [4] Bilder & Videos   (5 Einträge · 137 Byte)
+[18:42:31]   [ ] Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot   115 Byte
+[18:42:31]   [ ] Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video   18 Byte
+[18:42:31]   [ ] Vorschaubilder ohne Aufnahme (1) - Reste   2 Byte
+[18:42:31]   [ ] Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei)   2 Byte
+[18:42:31]   [ ] Leere Aufnahme-Zwischenordner (1) - Reste   0 Byte
+[18:42:31] KOPF [5] Reste   (10 Einträge · 116 Byte)
+[18:42:31]   [ ] Update ohne Spiel: PPSA77777   0 Byte
+[18:42:31]   [ ] Reste: Altes Spiel (PPSA88888)   28 Byte
+[18:42:31]   [ ] Share-Einstellungen alter Spiele (2)   4 Byte
+[18:42:31]   [ ] Store-Bildercache (1, lädt die PS5 neu)   2 Byte
+[18:42:31]   [ ] Temporäre Dateien (2)   4 Byte
+[18:42:31]   [ ] Fehlerberichte (3)   9 Byte
+[18:42:31]   [ ] Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)   2 Byte
+[18:42:31]   [ ] Leere Kachel (Schloss): Geisterspiel (PPSA12121)   63 Byte
+[18:42:31]   [ ] M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_1   2 Byte
+[18:42:31]   [ ] M.2 – games/x.iso   2 Byte
+[18:42:31] KOPF [6] Jailbreak & Homebrew   (9 Einträge · 294 Byte)
+[18:42:31]   [ ] Tool-Kachel: PS5Upload Minion (PSUP00001)   158 Byte
+[18:42:31]   [ ]    – ps5upload   2 Byte
+[18:42:31]   [ ] Tool-Kachel: Mein Tool (TOOL00001)   122 Byte
+[18:42:31]   [ ] .kstuff_noautomount   2 Byte
+[18:42:31]   [ ] shadowmount   2 Byte
+[18:42:31]   [ ] Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert)   4 Byte
+[18:42:31]   [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln]   2 Byte  {Gehört zum Jailbreak: WebKit-Jailbreak (Browser). Nur einzeln wählbar. Wird es gelöscht, funktioniert dieser Jailbreak erst wieder, wenn er neu eingerichtet ist. Die vollständige Bereinigung fragt, ob es bleibt.}
+[18:42:31]   [ ] M.2 – homebrew/anderes.txt   2 Byte
+[18:42:31]   [ ] M.2 – homebrew/sub   0 Byte
+[18:42:31] STAND Nichts ausgewählt.
+[18:42:31] ENDE fehler=0
+[18:42:31] Ende.

@@ -1,0 +1,14 @@
+# Testversion Schritt 9 (nur lesen): Start, Nachschauen, Übersicht, Liste, Löschknöpfe gesperrt
+WARTE 400
+BILD s9_01_start
+TASTE X
+WARTEFREI
+WARTE 300
+BILD s9_02_uebersicht
+TASTE X
+TASTE RECHTS
+TASTE X
+TASTE DREIECK
+WARTE 100
+BILD s9_03_liste_gesperrt
+ENDE

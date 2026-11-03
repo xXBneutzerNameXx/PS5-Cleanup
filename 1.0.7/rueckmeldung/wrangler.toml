@@ -1,0 +1,35 @@
+# Cloudflare Worker: Rückmeldungs-Seite für PS5 Cleanup
+# (Nur nötig, wenn per Befehl "npx wrangler deploy" hochgeladen wird.
+#  Wer alles im Cloudflare-Dashboard einrichtet, braucht diese Datei nicht – siehe EINRICHTUNG.txt.)
+name = "feedback"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Adresse: https://feedback.ps5cleanup.workers.dev  (Konto-Unteradresse ps5cleanup, eingerichtet 03.11.2026)
+workers_dev = true
+# Keine zusätzlichen Vorschau-Adressen pro Version.
+preview_urls = false
+
+# Keine Protokolle bei Cloudflare speichern (Workers Logs aus; bei neuen Workern ist es sonst AN).
+[observability]
+enabled = false
+
+[observability.logs]
+enabled = false
+invocation_logs = false
+
+# Öffentlicher Turnstile-Schlüssel (steht ohnehin in jeder Seite) - der geheime Schlüssel ist ein Secret (Dashboard bzw. wrangler secret put)
+[vars]
+TURNSTILE_SITEKEY = "0x4AAAAAAFydoTstizvqgD8b"
+
+# Datenbank (D1). Die database_id bekommst du von:  npx wrangler d1 create ps5cleanup-feedback
+[[d1_databases]]
+binding = "DB"
+database_name = "ps5cleanup-feedback"
+database_id = "bf9d6b4d-2b20-4ab4-9796-3e5ef47eee5a"
+
+# Geheimnisse werden NICHT hier eingetragen, sondern mit
+#   npx wrangler secret put TURNSTILE_SECRET
+#   npx wrangler secret put UEBERSICHT_PASSWORT
+#   npx wrangler secret put HA_WEBHOOK_URL        (freiwillig; ohne → keine Benachrichtigungen)
+# Für lokale Tests mit "wrangler dev": Datei .dev.vars (Vorlage: .dev.vars.example).

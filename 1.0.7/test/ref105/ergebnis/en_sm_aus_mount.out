@@ -1,0 +1,9 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount does not respond (maybe older than 1.7), but games are mounted.
+LOG: 
+LOG:  ShadowMount could not be stopped safely. If it is still running,
+LOG:  mounted game data can be damaged while deleting.
+ERG Fall=aus_mount gefragt=True weg=False abgebrochen=True Grund=ShadowMount does not respond (maybe older than 1.7), but games are mounted.
+OK   Fall aus_mount: Rückfrage kommt
+OK   Fall aus_mount: nichts gelöscht
+FEHLERZAHL 0

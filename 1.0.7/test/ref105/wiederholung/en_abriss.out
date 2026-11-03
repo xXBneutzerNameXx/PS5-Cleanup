@@ -1,0 +1,11 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:     (/user/download/PPSA55555 : FTP connection interrupted)
+LOG:   ERROR      Download: PPSA55555 (Real Game) (could not be deleted completely)
+LOG: ERROR: The connection to the PS5 dropped - the rest was not deleted. Please connect again.
+ERG Fehler=9 Verloren=True Sekunden=5
+OK   Abriss erkannt und sofort beendet
+OK   Zeitlimit danach wieder normal
+FEHLERZAHL 0

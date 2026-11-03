@@ -33,6 +33,7 @@ namespace PS5Cleanup
         TextBox tbIp, tbLog; Button btSuchen, btVerbinden, btProtokoll, btHilfe, btAuswahl, btKomplett, btAbbrechen;
         CheckBox cbModell, cbTest; TextBlock tbInfo, tbFuss, tbLeer, tbStand, tbUpdate; StackPanel spBereiche; ProgressBar pbFortschritt;
         Button btSprache;
+        object komplettTipp;   // NEU 1.0.7: ursprüngliches Infofeld von "Vollständige Bereinigung" (bei gesperrtem Löschen steht dort der Grund)
         // NEU 1.0.5: neue Oberfläche (Konsole, Kopplung, Speicher, Hinweise, Feedback)
         Button btLogKopie, btLogFenster; GridSplitter gsProtokoll; RowDefinition rdProtokoll; double protokollHoehe = 220;
         Window logFenster; TextBox logFensterTb;
@@ -85,6 +86,7 @@ namespace PS5Cleanup
             tbIntern = tb("tbIntern"); tbM2 = tb("tbM2"); tbUsb = tb("tbUsb"); tbSm = tb("tbSm"); tbHinweis = tb("tbHinweis"); tbFundInfo = tb("tbFundInfo"); tbVersion = tb("tbVersion"); tbJailbreak = tb("tbJailbreak"); tbJailbreakWarnung = tb("tbJailbreakWarnung");
             tbVersion.Text = Kern.VERSION;
             TexteSetzen();
+            komplettTipp = btKomplett.ToolTip;
             try { W.Icon = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.cleanup.ico")); } catch { }
             try { ((Image)W.FindName("imLogo")).Source = System.Windows.Media.Imaging.BitmapFrame.Create(typeof(Oberflaeche).Assembly.GetManifestResourceStream("PS5Cleanup.logo.png")); } catch { }
             tbFuss.Text = "PS5 Cleanup " + Kern.VERSION + "  ·  da_Chris86  ·  " + T("Inoffizielles Community-Projekt, keine Verbindung zu Sony", "Unofficial community project, not affiliated with Sony");
@@ -336,19 +338,20 @@ namespace PS5Cleanup
         // Schlussmeldung nach dem Löschen - eigenes Fenster statt der Windows-Meldung,
         // damit die Schritte sauber eingerückt sind (umbrechende Zeilen bleiben
         // unter ihrem Text statt unter der Nummer).
-        public void FertigMeldung(string kopf, bool ok, string frei, string smText, string protokoll)
+        // NEU 1.0.7 (da_Chris86 31.10.2026): schritte = Schlusstext dieses Laufs (Kern.SchlussText); null = Kern.SCHLUSS_TEXT
+        public void FertigMeldung(string kopf, bool ok, string frei, string smText, string protokoll, string[] schritte = null)
         {
             if (FensterZu()) return;
             if (TestAntworten != null) { Log("[Test] Meldung: Fertig"); return; }
             UI(() =>
             {
-                var d = FertigFenster(kopf, ok, frei, smText, protokoll);
+                var d = FertigFenster(kopf, ok, frei, smText, protokoll, schritte);
                 if (W.IsVisible) d.Owner = W;
                 d.ShowDialog();
             });
         }
         // baut das Fenster (auch für den Selbsttest, der ein Bild davon speichert)
-        public static Window FertigFenster(string kopf, bool ok, string frei, string smText, string protokoll)
+        public static Window FertigFenster(string kopf, bool ok, string frei, string smText, string protokoll, string[] schritte = null)
         {
                 var d = Dialog(DLG_KOPF + "Width=\"580\"><StackPanel Margin=\"20,18,20,16\">" +
                     "<TextBlock x:Name=\"tKopf\" FontSize=\"16\" FontWeight=\"SemiBold\" TextWrapping=\"Wrap\"/>" +
@@ -368,11 +371,11 @@ namespace PS5Cleanup
                 ((TextBlock)d.FindName("tFrei")).Text = frei;
                 var ts = (TextBlock)d.FindName("tSm");
                 if (string.IsNullOrEmpty(smText)) ts.Visibility = Visibility.Collapsed; else ts.Text = smText;
-                // Kern.SCHLUSS_TEXT: Überschrift, nummerierte Schritte, zuletzt die Warnung
+                // Kern.SchlussText: Überschrift, nummerierte Punkte, zuletzt die Warnung (NEU 1.0.7: ohne "Datenbank neu aufbauen" als Schritt)
                 var g = (Grid)d.FindName("gSchritte");
                 var tw = (TextBlock)d.FindName("tWichtig");
                 var tsch = (TextBlock)d.FindName("tSchritt");
-                var schluss = Kern.SCHLUSS_TEXT;
+                var schluss = schritte ?? Kern.SCHLUSS_TEXT;
                 for (int i = 0; i < schluss.Length; i++)
                 {
                     string z = schluss[i];
@@ -420,6 +423,13 @@ namespace PS5Cleanup
                 bool test = cbTest.IsChecked == true;
                 if (an && (K.Funde.Count == 0 || test || !VERBUNDEN)) { btAuswahl.IsEnabled = false; btKomplett.IsEnabled = false; }
                 if (an && !test && VERBUNDEN && K.Funde.Count > 0) { btKomplett.IsEnabled = true; btAuswahl.IsEnabled = K.Gewaehlt().Count > 0; }
+                // NEU 1.0.7 (da_Chris86 31.10.2026): Datenbank der PS5 nicht lesbar (oder noch nicht geprüft) -> beide Lösch-Knöpfe gesperrt,
+                // der Grund steht im Infofeld der Knöpfe. Suchen, Verbinden, Nachschauen und Anhaken bleiben frei.
+                bool sperre = K.LoeschenGesperrt;
+                if (sperre) { btAuswahl.IsEnabled = false; btKomplett.IsEnabled = false; }
+                string grund = sperre && VERBUNDEN ? K.LoeschSperreText() : null;
+                btKomplett.ToolTip = grund ?? komplettTipp; btAuswahl.ToolTip = grund;
+                ToolTipService.SetShowOnDisabled(btKomplett, grund != null); ToolTipService.SetShowOnDisabled(btAuswahl, grund != null);
             });
         }
 
@@ -564,7 +574,9 @@ namespace PS5Cleanup
             // Alte Liste sofort verwerfen - sie gehört evtl. zu einer anderen PS5
             VERBUNDEN = false; K.FUNDE_IP = ""; K.DDD_STATUS = null;
             F_MODELL = ""; F_REIHE = ""; F_QUELLE = ""; F_FIRMWARE = ""; F_PORT = 0; F_SCAN = false; F_FTPSERVER = ""; F_BEGRUESSUNG = ""; F_DATEN = "";
-            K.Funde = new List<Eintrag>();
+            K.FIRMWARE = ""; K.MODELL = "";   // NEU 1.0.7: für den Ordnernamen der Datenbank-Sicherung
+            K.DbBereitschaftSetzen(Kern.DbStand.Ungeprueft, "");   // NEU 1.0.7: Löschen erst wieder nach der Datenbank-Prüfung dieser Verbindung
+            K.Funde = new List<Eintrag>(); K.PS4_SPIELE = new List<Ps4Spiel>();
             UI(() =>
             {
                 tbInfo.Text = T("Verbinde ...", "Connecting ...");
@@ -639,6 +651,7 @@ namespace PS5Cleanup
             K.MODELL_DIGITAL = Kern.ModellDigital(modell);
             string reihe = Kern.ModellReihe(K.MODELL_TYP, K.MODELL_DIGITAL);
             F_MODELL = modell; F_REIHE = K.MODELL_TYP != "" ? reihe : ""; F_FIRMWARE = firmware; F_PORT = port;
+            K.FIRMWARE = firmware; K.MODELL = modell;   // NEU 1.0.7 (da_Chris86 31.10.2026): Ordnername der Datenbank-Sicherung (leer = "unbekannt")
             F_QUELLE = automatisch ? T("automatisch (ps5info)", "automatic (ps5info)") : modell != "" ? T("von Hand eingegeben", "entered by hand") : abfrage ? T("nicht erkannt", "not detected") : T("Abfrage ausgeschaltet", "query switched off");
             { string m0 = modell, r0 = F_REIHE, f0 = firmware, q0 = F_QUELLE; int p0 = port; UI(() => ZeigeKonsole(m0, r0, f0, q0, p0)); }
             if (modell == "") modell = T("unbekannt", "unknown");
@@ -652,6 +665,10 @@ namespace PS5Cleanup
             try { K.SucheFunde(); }
             catch (AbbruchAusnahme) { throw; }
             catch (Exception ex) { throw new Exception(ex.Message + "\n\n" + FTP_TIPP, ex); }
+            // NEU 1.0.7 (da_Chris86 31.10.2026, Entscheidung 1): Lässt sich die Datenbank der PS5 für die Sicherung lesen? Nur lesen.
+            // Nein -> Nachschauen und Anzeigen gehen weiter, alle Lösch-Wege sind gesperrt (Grund im Protokoll und im gelben Hinweis).
+            Stand(T("Prüfe, ob sich die Datenbank der PS5 sichern lässt (nur lesen) ...", "Checking whether the PS5 database can be backed up (read only) ..."));
+            K.DatenbankBereitPruefen();
             UI(() => pbFortschritt.IsIndeterminate = false);
             if (K.KOMPRIMIERUNG.Count > 0)
             {
@@ -664,6 +681,7 @@ namespace PS5Cleanup
             UI(() => { tbLeer.Visibility = Visibility.Collapsed; ZeigeBereiche(); ZeigeSpeicher(); });
             if (K.Funde.Count == 0) Log(T("Nichts zu tun - die PS5 ist bereits sauber.", "Nothing to do - the PS5 is already clean."));
             else Log(K.Funde.Count + T(" Einträge gefunden. Nichts wurde verändert.", " entries found. Nothing was changed."));
+            if (VERBUNDEN) foreach (var z in K.Ps4Protokoll()) Log(z);   // NEU 1.0.7 (da_Chris86 31.10.2026): erkannte PS4-Spiele (nur Protokoll)
             { string h = K.SpeicherHinweis(); if (h != "") Log(h.Trim()); }
             if (Testmodus()) Log(T("(Testmodus - zum Löschen den Haken \"Testmodus\" entfernen.)", "(Test mode - untick \"Test mode\" to delete.)"));
             HintergrundStarten();
@@ -838,9 +856,10 @@ namespace PS5Cleanup
                     if (alleDa) t = n + T(" Einträge ausgewählt (", " entries selected (") + GroesseKurz(sum) + ").";
                 }
                 if (cbTest.IsChecked == true) t = T("TESTMODUS - es wird nichts gelöscht.  ", "TEST MODE - nothing will be deleted.  ") + t;
+                else if (VERBUNDEN && K.LoeschenGesperrt) t = T("LÖSCHEN GESPERRT - nur Nachschauen möglich (Grund im gelben Hinweis).  ", "DELETING LOCKED - scan only (reason in the yellow note).  ") + t;   // NEU 1.0.7
                 if (zusatz != null) t += "   " + zusatz;
                 STAND_BASIS = t; tbStand.Text = t;
-                btAuswahl.IsEnabled = n > 0 && cbTest.IsChecked != true && !BESCHAEFTIGT && VERBUNDEN;
+                btAuswahl.IsEnabled = n > 0 && cbTest.IsChecked != true && !BESCHAEFTIGT && VERBUNDEN && !K.LoeschenGesperrt;
             });
         }
         public void ZeigeHaken() { UI(() => { foreach (var cb in Kaestchen) cb.IsChecked = ((Eintrag)cb.Tag).Wahl; GruppenAbgleich(); }); }
@@ -883,7 +902,7 @@ namespace PS5Cleanup
                 int c = g.Count(f => f.Kat == k);
                 if (c > 0) t += "   - " + Kern.KatName[k] + ": " + c + "\n";
             }
-            int smDatei = g.Count(f => f.Kat == 1 && f.Quelle != "" && f.Pfade.Contains(f.Quelle));
+            int smDatei = g.Count(f => f.Quelle != "" && f.Pfade.Contains(f.Quelle));
             if (smDatei > 0) t += T("   davon ShadowMount-Spiele MIT Spieldatei: ", "   of these, ShadowMount games WITH game file: ") + smDatei + "\n";
             // NEU 1.0.6: je Speicher außerhalb der internen SSD
             for (int o = Kern.ORT_M2; o <= Kern.ORT_STICK; o++)
@@ -920,23 +939,36 @@ namespace PS5Cleanup
             return true;
         }
 
+        // NEU 1.0.7 (da_Chris86 31.10.2026, Entscheidung 1): Datenbank der PS5 nicht lesbar -> Löschen gesperrt. Zweite Sperre neben den
+        // Knöpfen: die Abläufe brechen vor der ersten Frage ab, nichts wird gewählt, gezählt oder gelöscht. true = gesperrt.
+        bool LoeschenGesperrtMelden()
+        {
+            if (!K.LoeschenGesperrt) return false;
+            string g = K.LoeschSperreText();
+            Log(g);
+            Meldung(g, T("Löschen gesperrt", "Deleting locked"), MessageBoxImage.Warning);
+            return true;
+        }
+
         public void KomplettAblauf()
         {
+            if (LoeschenGesperrtMelden()) return;   // NEU 1.0.7
             HintergrundAnhalten();
             string t = T("VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:\n", "FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:\n");
-            foreach (var k in Kern.ALLE_KAT) t += "   - " + Kern.KatName[k] + ": " + K.Funde.Count(f => f.Kat == k && f.Ort == Kern.ORT_INTERN && !f.Gesperrt && !f.Paket && !f.NurEinzeln) + "\n";
+            foreach (var k in Kern.ALLE_KAT.Where(x => x != 7)) t += "   - " + Kern.KatName[k] + ": " + K.Funde.Count(f => f.Kat == k && f.Ort == Kern.ORT_INTERN && !f.Gesperrt && !f.Paket && !f.NurEinzeln) + "\n";
             t += T("(M.2 und USB-Speicher: gleich wird jeweils gefragt. USB-Sticks bleiben unangetastet.)\n", "(M.2 and USB storage: you will be asked for each. USB sticks stay untouched.)\n");
             t += T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
                    "\nThis means:\n - Saved data without a cloud backup (PS Plus) is gone for good.\n - Trophies never synced with PSN are gone.\n - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.\n\nKept: system software, disc drive pairing, user account, real licenses, Sony system apps.");
-            if (K.AnzahlJailbreak(true, true) > 0)   // NEU 1.0.6
-                t += T("\nMögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser): ", "\nPossible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser): ") + K.AnzahlJailbreak(true, true) + T(" - gleich wird gefragt, ob sie bleiben.", " - you will be asked next whether they stay.");
+            // NEU 1.0.7 (da_Chris86 31.10.2026, Bereich "Jailbreak"): die vollständige Bereinigung fasst den Bereich "Jailbreak" nie an - keine Zusatzfrage mehr
+            if (K.AnzahlJailbreak(true, true) > 0)
+                t += T("\nJailbreak-Einstiege bleiben: ", "\nJailbreak entries stay: ") + K.AnzahlJailbreak(true, true) + T(" - die vollständige Bereinigung fasst den Bereich „Jailbreak“ nie an. Einzeln löschen geht dort.", " - the full cleanup never touches the \"Jailbreak\" section. You can delete them individually there.");
             t += K.SpeicherHinweis();
             if (!FrageWahl(t, T("Vollständige Bereinigung", "Full cleanup"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { HintergrundStarten(); return; }
             // da_Chris86 28.10.2026: M.2 und USB-Speicher gehören zur vollständigen Bereinigung - je auf Nachfrage (wie 1.0.5 bei der M.2).
             // Zählt die Spieldateien von ShadowMount-Spielen mit, die auf diesem Speicher liegen. USB-Sticks nie (nur einzeln).
             var extAnz = new int[3];
             // Codex-Prüfung 37: Jailbreak-Einstiege auf M.2/USB zählen mit (sonst fehlt die Frage, wenn dort nur Einstiege liegen)
-            foreach (var f in K.Funde) if (!f.Gesperrt && (!f.NurEinzeln || f.Jailbreak)) { int o = f.Quelle != "" ? Kern.PfadOrt(f.Quelle) : f.Ort; if (o == Kern.ORT_M2 || o == Kern.ORT_USB) extAnz[o]++; }
+            foreach (var f in K.Funde) if (!f.Gesperrt && !f.NurEinzeln) { int o = f.Quelle != "" ? Kern.PfadOrt(f.Quelle) : f.Ort; if (o == Kern.ORT_M2 || o == Kern.ORT_USB) extAnz[o]++; }
             var leeren = new bool[3];
             for (int o = Kern.ORT_M2; o <= Kern.ORT_USB; o++)
             {
@@ -949,7 +981,7 @@ namespace PS5Cleanup
             }
             bool m2Leeren = leeren[Kern.ORT_M2], usbLeeren = leeren[Kern.ORT_USB];
             // NEU 1.0.6: Jailbreak-Einstiege nur auf ausdrücklichen Wunsch
-            int jbAnz = K.AnzahlJailbreak(m2Leeren, usbLeeren);
+            int jbAnz = 0;   // 1.0.7: keine Frage mehr - der Bereich "Jailbreak" bleibt bei der vollständigen Bereinigung immer
             bool jbLoeschen = false;
             if (jbAnz > 0)
                 jbLoeschen = FrageWahl(T("Gefunden: ", "Found: ") + jbAnz + T(" mögliche Jailbreak-Einstiege (YouTube, Netflix, Lua-Spiele, PS2-Spielstände, Browser) samt ihren Daten.\n\nBEHALTEN: Sie bleiben - dieser Jailbreak-Weg funktioniert weiter.\n\nAUCH LÖSCHEN: Sie werden mit gelöscht. Danach funktioniert dieser Jailbreak-Weg erst wieder, wenn er neu eingerichtet ist.",
@@ -989,6 +1021,7 @@ namespace PS5Cleanup
 
         public void AuswahlAblauf()
         {
+            if (LoeschenGesperrtMelden()) return;   // NEU 1.0.7
             HintergrundAnhalten();
             var sm = K.SmGewaehlt();
             if (sm.Count > 0)
@@ -1033,7 +1066,8 @@ namespace PS5Cleanup
         {
             if (LoescheJetztErsatz != null) { LoescheJetztErsatz(); return; }
             UI(() => { pbFortschritt.IsIndeterminate = false; pbFortschritt.Value = 0; btAbbrechen.Visibility = Visibility.Collapsed; exProtokoll.IsExpanded = true; });
-            Stand(T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
+            // NEU 1.0.7 (da_Chris86 31.10.2026): vor dem ersten Löschen wird die Datenbank der PS5 gesichert
+            Stand(T("Sichere und prüfe zuerst die Datenbank der PS5 (nur lesen), dann wird gelöscht ...", "Backing up and checking the PS5 database first (read only), then deleting ..."));
             // NEU 1.0.5: "Eintrag i von n" (und GB, wenn die Größen bekannt sind) - nur Anzeige
             {
                 var gew = K.Gewaehlt();
@@ -1077,17 +1111,37 @@ namespace PS5Cleanup
             {
                 if (K.SM_STOP_GESENDET) Log(T("Abgebrochen - nichts gelöscht. ShadowMount hat das Stopp-Signal erhalten - zum Weiterspielen neu laden.", "Cancelled - nothing deleted. ShadowMount received the stop signal - load it again to keep playing."));
                 else Log(T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed."));
+                // NEU 1.0.7 (da_Chris86 31.10.2026): ohne geprüfte Datenbank-Sicherung wird nicht gelöscht - dem Nutzer sagen, warum
+                if (erg.DbGesperrt)
+                    Meldung(erg.SicherungGrund, T("Löschen gesperrt", "Deleting locked"), MessageBoxImage.Warning);
+                else if (erg.SicherungFehlt)
+                    Meldung(T("Die Datenbank der PS5 ließ sich nicht sichern und prüfen - darum wurde NICHTS gelöscht.\n\nGrund: ", "The PS5 database could not be backed up and checked - so NOTHING was deleted.\n\nReason: ") + erg.SicherungGrund +
+                            T("\n\nVor jedem Löschen lädt PS5 Cleanup app.db und appinfo.db der PS5 (nur lesen) in den Ordner „Datenbank-Sicherung“ neben dem Programm - als ", "\n\nBefore every deletion PS5 Cleanup downloads the PS5's app.db and appinfo.db (read only) to the folder \"Datenbank-Sicherung\" next to the program - as a ") +
+                            Kern.ROH_TEXT + T(" und als ", " and as a ") + Kern.GEPRUEFT_TEXT +
+                            T(". Gelöscht wird nur, wenn beides klappt. Bitte Verbindung und Speicherplatz prüfen, etwas warten und es nochmal versuchen. Einzelheiten stehen im Protokoll.",
+                              ". Deleting only happens when both work. Please check the connection and disk space, wait a moment and try again. Details are in the log."),
+                            "PS5 Cleanup", MessageBoxImage.Warning);
                 K.SmZuruecksetzen(); return;
             }
             UI(() => pbFortschritt.Value = 100);
             Log("");
-            Log(erg.Fehler == 0 ? T("Fertig - alles Ausgewählte ist gelöscht.", "Done - everything selected has been deleted.") : T("Fertig, aber mit ", "Done, but with ") + erg.Fehler + T(" Fehler(n) - siehe oben.", " error(s) - see above."));
-            Log(Kern.FreigeraeumtText(erg.Frei));
+            // NEU 1.0.7 (da_Chris86 31.10.2026): Geschütztes (installierte PS4-Spiele) ist kein Fehler, wird aber genannt
+            string fertig = erg.Fehler > 0 ? null : erg.Geschuetzt > 0 ? T("Fertig - Ausgewähltes gelöscht, Geschütztes blieb.", "Done - selection deleted, protected items kept.")
+                                                                   : T("Fertig - alles Ausgewählte ist gelöscht.", "Done - everything selected has been deleted.");
+            Log(fertig ?? T("Fertig, aber mit ", "Done, but with ") + erg.Fehler + T(" Fehler(n) - siehe oben.", " error(s) - see above."));
+            string frei = Kern.FreigeraeumtText(erg.Frei);
+            Log(frei);
+            if (erg.Geschuetzt > 0)
+            {
+                string gz = T("Geschützt und nicht gelöscht (gehört zu installierten PS4-Spielen): ", "Protected and not deleted (belongs to installed PS4 games): ") + erg.Geschuetzt + (erg.Geschuetzt == 1 ? T(" Pfad", " path") : T(" Pfade", " paths"));
+                Log(gz); frei += "\n" + gz;
+            }
+            if (erg.SicherungOrdner != "") { string sz = T("Datenbank-Sicherung: ", "Database backup: ") + erg.SicherungOrdner; Log(sz); frei += "\n" + sz; }
             Log(K.KopplungsText());
             if (erg.SmText != "") Log(erg.SmText);
-            foreach (var z in Kern.SCHLUSS_TEXT) Log(z);
-            FertigMeldung(erg.Fehler == 0 ? T("Fertig - alles Ausgewählte ist gelöscht.", "Done - everything selected has been deleted.") : T("Fertig, aber mit ", "Done, but with ") + erg.Fehler + T(" Fehler(n) - siehe Protokoll.", " error(s) - see log."),
-                          erg.Fehler == 0, Kern.FreigeraeumtText(erg.Frei), erg.SmText, Protokoll.Datei);
+            foreach (var z in Kern.SchlussText(erg.Kacheln, erg.Ps4Gefaehrdet, 0)) Log(z);   // NEU 1.0.7: Protokoll mit allen Spielen
+            FertigMeldung(fertig ?? T("Fertig, aber mit ", "Done, but with ") + erg.Fehler + T(" Fehler(n) - siehe Protokoll.", " error(s) - see log."),
+                          erg.Fehler == 0, frei, erg.SmText, Protokoll.Datei, Kern.SchlussText(erg.Kacheln, erg.Ps4Gefaehrdet, 10));
             // neu nachschauen, damit die Liste stimmt. Klappt das nicht, keine alte
             // Liste stehen lassen - lieber neu verbinden lassen.
             try { K.Abbruch = false; K.SucheFunde(); }
@@ -1164,7 +1218,7 @@ namespace PS5Cleanup
             if (K.STICK_DA) { int n = K.Funde.Count(f => f.Ort == Kern.ORT_STICK); u += (u != "" ? "  ·  " : "") + T("USB-Stick · ", "USB stick · ") + n + (n == 1 ? T(" Datei", " file") : T(" Dateien", " files")); }
             tbUsb.Text = u != "" ? u : T("nicht angeschlossen", "not connected");
             tbUsb.Foreground = u != "" ? weiss : grau;
-            int sm = K.Funde.Count(f => f.Kat == 1 && f.Quelle != "");
+            int sm = K.Funde.Count(f => f.Quelle != "");
             tbSm.Text = sm > 0 ? sm + (sm == 1 ? T(" Spiel", " game") : T(" Spiele", " games")) : T("keine Spiele", "no games");
             tbSm.Foreground = sm > 0 ? weiss : grau;
             tbFundInfo.Text = K.Funde.Count + T(" Einträge gefunden · nichts verändert", " entries found · nothing changed");
@@ -1175,6 +1229,8 @@ namespace PS5Cleanup
             tbJailbreak.Visibility = Visibility.Visible;
             tbJailbreakWarnung.Text = jbWarn ?? ""; tbJailbreakWarnung.Visibility = jbWarn != null ? Visibility.Visible : Visibility.Collapsed;
             string h = K.SpeicherHinweis().Trim();
+            // NEU 1.0.7 (da_Chris86 31.10.2026): gesperrtes Löschen (Datenbank nicht lesbar) - der Grund steht zuerst im gelben Hinweis
+            if (K.LoeschenGesperrt) h = K.LoeschSperreText() + (h != "" ? "\n\n" + h : "");
             tbHinweis.Text = h;
             bdHinweis.Visibility = h != "" ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -1299,7 +1355,7 @@ namespace PS5Cleanup
             {
                 d.M2 = !K.m2Da ? T("nicht gefunden", "not found") : K.M2_OHNE_USER ? T("leer oder nicht richtig erkannt", "empty or not detected properly") : T("erkannt", "detected");
                 d.Usb = K.USB_SPEICHER ? T("angeschlossen (erweiterter Speicher)", "connected (extended storage)") : T("nicht gefunden", "not found");
-                d.ShadowMountSpiele = K.Funde.Count(f => f.Kat == 1 && f.Quelle != "");
+                d.ShadowMountSpiele = K.Funde.Count(f => f.Quelle != "");
             }
             d.GeloeschtInSitzung = F_GELOESCHT;
             d.Fehler = Feedback.FehlerAus(tbLog.Text);

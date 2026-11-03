@@ -1,0 +1,563 @@
+diff -r ergebnis_schutz_105/_schutz.log ergebnis_schutz/_schutz.log
+1c1
+< 2026-10-25 12:13:28 Start
+---
+> 2026-10-29 17:20:55 Start
+10,18c10,18
+< v1 detail: 151 Einträge, danach 719
+< v1 komplettm2: 0 Einträge, danach 118
+< v2 detail: 150 Einträge, danach 717
+< v2 komplettm2: 0 Einträge, danach 118
+< v3 detail: 152 Einträge, danach 727
+< v3 komplettm2: 0 Einträge, danach 125
+< v4 detail: 150 Einträge, danach 715
+< v4 komplettm2: 0 Einträge, danach 118
+< 2026-10-25 12:22:15 FERTIG
+---
+> v1 detail: 150 Einträge, danach 719
+> v1 komplettm2: 0 Einträge, danach 112
+> v2 detail: 149 Einträge, danach 717
+> v2 komplettm2: 0 Einträge, danach 112
+> v3 detail: 150 Einträge, danach 727
+> v3 komplettm2: 0 Einträge, danach 115
+> v4 detail: 149 Einträge, danach 715
+> v4 komplettm2: 0 Einträge, danach 112
+> 2026-10-29 17:30:08 FERTIG
+diff -r ergebnis_schutz_105/de_detail_v1.out ergebnis_schutz/de_detail_v1.out
+2c2
+< DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+---
+> DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+17a18
+> DETAIL 1 | ASTRO's PLAYROOM (PPSA10259) - Spiel | basis=ASTRO's PLAYROOM (PPSA10259) - Spiel | gruppe=/user|PPSA10259 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/PPSA10259 || /user/app/PPSA10259
+44d44
+< DETAIL 1 | SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+49c49,58
+< DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+---
+> DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+> DETAIL 1 | M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+> DETAIL 1 | M.2 – Homebrew Launcher (FAKE00000) - Spiel | basis=M.2 – Homebrew Launcher (FAKE00000) - Spiel | gruppe=/mnt/ext1/user|FAKE00000 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif || /mnt/ext1/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Spiel | basis=M.2 – 12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Update (Version 03.000) | basis=M.2 – 12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+> DETAIL 1 | M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10481) - Spiel | basis=M.2 – unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10814) - Spiel | basis=M.2 – unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Spiel | basis=M.2 – unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+50a60
+> DETAIL 2 | Spielstand PPSA10259 (ASTRO's PLAYROOM) | basis=Spielstand PPSA10259 (ASTRO's PLAYROOM) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/savedata/PPSA10259 || /user/home/1a2b3c4d/savedata/PPSA10259
+92a103
+> DETAIL 3 | Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | basis=Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/trophy2/nobackup/conf/NPWR20188_00 || /user/trophy2/nobackup/conf/NPWR20188_00
+108,109c119
+< DETAIL 5 | Download: CUSA10185 (東京ドリフト 5 PS4) | basis=Download: CUSA10185 (東京ドリフト 5 PS4) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/CUSA10185 || /user/download/CUSA10185
+< DETAIL 5 | Download: PPSA44400 | basis=Download: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+---
+> DETAIL 5 | App-Daten ohne installierte App: PPSA44400 | basis=App-Daten ohne installierte App: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+121a132,136
+> DETAIL 5 | M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+> DETAIL 5 | M.2 – datei.bin | basis=M.2 – datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+> DETAIL 5 | M.2 – games/a.iso | basis=M.2 – games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+> DETAIL 5 | M.2 – games/sub | basis=M.2 – games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+> DETAIL 5 | M.2 – leer  (leerer Ordner) | basis=M.2 – leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+128d142
+< DETAIL 6 | homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/Spiel Eins - PPSA90001.exfat :: /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001 || /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001
+130d143
+< DETAIL 6 | homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | basis=homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg :: /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006 || /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006
+136,151c149,150
+< DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+< DETAIL 7 | Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+< DETAIL 7 | Homebrew Launcher (FAKE00000) - Spiel | basis=Homebrew Launcher (FAKE00000) - Spiel | gruppe=/mnt/ext1/user|FAKE00000 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif || /mnt/ext1/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif
+< DETAIL 7 | 12345 (PPSA10074) - Spiel | basis=12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+< DETAIL 7 | 12345 (PPSA10074) - Update (Version 03.000) | basis=12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+< DETAIL 7 | Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+< DETAIL 7 | unbekannter Name (PPSA10481) - Spiel | basis=unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+< DETAIL 7 | unbekannter Name (PPSA10814) - Spiel | basis=unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+< DETAIL 7 | unbekannter Name (PPSA11147) - Spiel | basis=unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+< DETAIL 7 | unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+< DETAIL 7 | datei.bin | basis=datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+< DETAIL 7 | games/a.iso | basis=games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+< DETAIL 7 | games/sub | basis=games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+< DETAIL 7 | homebrew/MeinCleaner | basis=homebrew/MeinCleaner | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/homebrew/MeinCleaner || /mnt/ext1/homebrew/MeinCleaner
+< DETAIL 7 | homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002
+< DETAIL 7 | leer  (leerer Ordner) | basis=leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+---
+> DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+> DETAIL 6 | M.2 – homebrew/MeinCleaner | basis=M.2 – homebrew/MeinCleaner | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/homebrew/MeinCleaner || /mnt/ext1/homebrew/MeinCleaner
+153c152
+< ANZAHL 151
+---
+> ANZAHL 150
+diff -r ergebnis_schutz_105/de_detail_v2.out ergebnis_schutz/de_detail_v2.out
+2c2
+< DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+---
+> DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+18a19
+> DETAIL 1 | ASTRO's PLAYROOM (PPSA10259) - Spiel | basis=ASTRO's PLAYROOM (PPSA10259) - Spiel | gruppe=/user|PPSA10259 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/PPSA10259 || /user/app/PPSA10259
+45d45
+< DETAIL 1 | SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+50c50,58
+< DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+---
+> DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+> DETAIL 1 | M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Spiel | basis=M.2 – 12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Update (Version 03.000) | basis=M.2 – 12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+> DETAIL 1 | M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10481) - Spiel | basis=M.2 – unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10814) - Spiel | basis=M.2 – unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Spiel | basis=M.2 – unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+51a60
+> DETAIL 2 | Spielstand PPSA10259 (ASTRO's PLAYROOM) | basis=Spielstand PPSA10259 (ASTRO's PLAYROOM) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/savedata/PPSA10259 || /user/home/1a2b3c4d/savedata/PPSA10259
+93a103
+> DETAIL 3 | Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | basis=Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/trophy2/nobackup/conf/NPWR20188_00 || /user/trophy2/nobackup/conf/NPWR20188_00
+109,110c119
+< DETAIL 5 | Download: CUSA10185 (東京ドリフト 5 PS4) | basis=Download: CUSA10185 (東京ドリフト 5 PS4) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/CUSA10185 || /user/download/CUSA10185
+< DETAIL 5 | Download: PPSA44400 | basis=Download: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+---
+> DETAIL 5 | App-Daten ohne installierte App: PPSA44400 | basis=App-Daten ohne installierte App: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+122a132,136
+> DETAIL 5 | M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+> DETAIL 5 | M.2 – datei.bin | basis=M.2 – datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+> DETAIL 5 | M.2 – games/a.iso | basis=M.2 – games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+> DETAIL 5 | M.2 – games/sub | basis=M.2 – games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+> DETAIL 5 | M.2 – leer  (leerer Ordner) | basis=M.2 – leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+129d142
+< DETAIL 6 | homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/Spiel Eins - PPSA90001.exfat :: /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001 || /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001
+131d143
+< DETAIL 6 | homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | basis=homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg :: /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006 || /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006
+137,150c149
+< DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+< DETAIL 7 | Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+< DETAIL 7 | 12345 (PPSA10074) - Spiel | basis=12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+< DETAIL 7 | 12345 (PPSA10074) - Update (Version 03.000) | basis=12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+< DETAIL 7 | Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+< DETAIL 7 | unbekannter Name (PPSA10481) - Spiel | basis=unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+< DETAIL 7 | unbekannter Name (PPSA10814) - Spiel | basis=unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+< DETAIL 7 | unbekannter Name (PPSA11147) - Spiel | basis=unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+< DETAIL 7 | unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+< DETAIL 7 | datei.bin | basis=datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+< DETAIL 7 | games/a.iso | basis=games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+< DETAIL 7 | games/sub | basis=games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+< DETAIL 7 | homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002
+< DETAIL 7 | leer  (leerer Ordner) | basis=leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+---
+> DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+152c151
+< ANZAHL 150
+---
+> ANZAHL 149
+diff -r ergebnis_schutz_105/de_detail_v3.out ergebnis_schutz/de_detail_v3.out
+2c2
+< DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+---
+> DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+18a19
+> DETAIL 1 | ASTRO's PLAYROOM (PPSA10259) - Spiel | basis=ASTRO's PLAYROOM (PPSA10259) - Spiel | gruppe=/user|PPSA10259 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/PPSA10259 || /user/app/PPSA10259
+45d45
+< DETAIL 1 | SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+50c50,59
+< DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+---
+> DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+> DETAIL 1 | M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Spiel | basis=M.2 – 12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Update (Version 03.000) | basis=M.2 – 12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+> DETAIL 1 | M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10481) - Spiel | basis=M.2 – unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10814) - Spiel | basis=M.2 – unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Spiel | basis=M.2 – unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+> DETAIL 1 | USB – Homebrew Launcher (FAKE00000) - Spiel | basis=USB – Homebrew Launcher (FAKE00000) - Spiel | gruppe=/mnt/ext0/user|FAKE00000 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext0/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif || /mnt/ext0/user/app/FAKE00000 | /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 | /user/license/fakeEP0000-FAKE00000.rif
+51a61
+> DETAIL 2 | Spielstand PPSA10259 (ASTRO's PLAYROOM) | basis=Spielstand PPSA10259 (ASTRO's PLAYROOM) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/savedata/PPSA10259 || /user/home/1a2b3c4d/savedata/PPSA10259
+93a104
+> DETAIL 3 | Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | basis=Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/trophy2/nobackup/conf/NPWR20188_00 || /user/trophy2/nobackup/conf/NPWR20188_00
+109,110c120
+< DETAIL 5 | Download: CUSA10185 (東京ドリフト 5 PS4) | basis=Download: CUSA10185 (東京ドリフト 5 PS4) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/CUSA10185 || /user/download/CUSA10185
+< DETAIL 5 | Download: PPSA44400 | basis=Download: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+---
+> DETAIL 5 | App-Daten ohne installierte App: PPSA44400 | basis=App-Daten ohne installierte App: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+115d124
+< DETAIL 5 | Reste: Homebrew Launcher (FAKE00000) | basis=Reste: Homebrew Launcher (FAKE00000) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000 || /user/appmeta/FAKE00000 | /system_data/priv/appmeta/FAKE00000
+123a133,137
+> DETAIL 5 | M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+> DETAIL 5 | M.2 – datei.bin | basis=M.2 – datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+> DETAIL 5 | M.2 – games/a.iso | basis=M.2 – games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+> DETAIL 5 | M.2 – games/sub | basis=M.2 – games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+> DETAIL 5 | M.2 – leer  (leerer Ordner) | basis=M.2 – leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+129d142
+< DETAIL 6 | homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/Spiel Eins - PPSA90001.exfat :: /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001 || /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001
+131d143
+< DETAIL 6 | homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | basis=homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg :: /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006 || /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006
+135d146
+< DETAIL 6 | Fake-Lizenz: EP0000-FAKE00000 - (Homebrew Launcher) (Spiel nicht mehr installiert) | basis=Fake-Lizenz: EP0000-FAKE00000 - (Homebrew Launcher) (Spiel nicht mehr installiert) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/license/fakeEP0000-FAKE00000.rif || /user/license/fakeEP0000-FAKE00000.rif
+138,154c149,152
+< DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+< DETAIL 7 | Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+< DETAIL 7 | 12345 (PPSA10074) - Spiel | basis=12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+< DETAIL 7 | 12345 (PPSA10074) - Update (Version 03.000) | basis=12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+< DETAIL 7 | Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+< DETAIL 7 | unbekannter Name (PPSA10481) - Spiel | basis=unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+< DETAIL 7 | unbekannter Name (PPSA10814) - Spiel | basis=unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+< DETAIL 7 | unbekannter Name (PPSA11147) - Spiel | basis=unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+< DETAIL 7 | unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+< DETAIL 7 | datei.bin | basis=datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+< DETAIL 7 | games/a.iso | basis=games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+< DETAIL 7 | games/sub | basis=games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+< DETAIL 7 | homebrew/PS5Cleanup | basis=homebrew/PS5Cleanup | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/homebrew/PS5Cleanup || /mnt/ext1/homebrew/PS5Cleanup
+< DETAIL 7 | homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002
+< DETAIL 7 | leer  (leerer Ordner) | basis=leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+< HINWEIS HINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf sieht das Programm nicht als installiert - ihre Lizenzen und Kacheln können in der Liste als Reste stehen. Solche Einträge nicht auswählen; die vollständige Bereinigung würde sie mit löschen.
+< ANZAHL 152
+---
+> DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+> DETAIL 6 | M.2 – homebrew/PS5Cleanup | basis=M.2 – homebrew/PS5Cleanup | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/homebrew/PS5Cleanup || /mnt/ext1/homebrew/PS5Cleanup
+> HINWEIS HINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf gelten als installiert.
+> ANZAHL 150
+diff -r ergebnis_schutz_105/de_detail_v4.out ergebnis_schutz/de_detail_v4.out
+2c2
+< DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+---
+> DETAIL 1 | 東京ドリフト 5 PS4 (CUSA10185) - Spiel | basis=東京ドリフト 5 PS4 (CUSA10185) - Spiel | gruppe=/user|CUSA10185 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif || /user/app/CUSA10185 | /system_data/priv/appmeta/CUSA10185 | /user/download/CUSA10185 | /user/license/fakeEP0000-CUSA10185.idx | /user/license/fakeEP0000-CUSA10185.rif
+18a19
+> DETAIL 1 | ASTRO's PLAYROOM (PPSA10259) - Spiel | basis=ASTRO's PLAYROOM (PPSA10259) - Spiel | gruppe=/user|PPSA10259 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/app/PPSA10259 || /user/app/PPSA10259
+45d45
+< DETAIL 1 | SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+50c50,58
+< DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+---
+> DETAIL 1 | SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | basis=SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=False | quelle= :: /user/app/PPSA90007 | /user/appmeta/PPSA90007 || /user/app/PPSA90007 | /user/appmeta/PPSA90007
+> DETAIL 1 | M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=False | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /user/app/PPSA90002 | /user/appmeta/PPSA90002
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Spiel | basis=M.2 – 12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+> DETAIL 1 | M.2 – 12345 (PPSA10074) - Update (Version 03.000) | basis=M.2 – 12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+> DETAIL 1 | M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10481) - Spiel | basis=M.2 – unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+> DETAIL 1 | M.2 – unbekannter Name (PPSA10814) - Spiel | basis=M.2 – unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Spiel | basis=M.2 – unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+> DETAIL 1 | M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+51a60
+> DETAIL 2 | Spielstand PPSA10259 (ASTRO's PLAYROOM) | basis=Spielstand PPSA10259 (ASTRO's PLAYROOM) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/savedata/PPSA10259 || /user/home/1a2b3c4d/savedata/PPSA10259
+93a103
+> DETAIL 3 | Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | basis=Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/trophy2/nobackup/conf/NPWR20188_00 || /user/trophy2/nobackup/conf/NPWR20188_00
+109,110c119
+< DETAIL 5 | Download: CUSA10185 (東京ドリフト 5 PS4) | basis=Download: CUSA10185 (東京ドリフト 5 PS4) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/CUSA10185 || /user/download/CUSA10185
+< DETAIL 5 | Download: PPSA44400 | basis=Download: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+---
+> DETAIL 5 | App-Daten ohne installierte App: PPSA44400 | basis=App-Daten ohne installierte App: PPSA44400 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/download/PPSA44400 || /user/download/PPSA44400
+122a132,136
+> DETAIL 5 | M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+> DETAIL 5 | M.2 – datei.bin | basis=M.2 – datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+> DETAIL 5 | M.2 – games/a.iso | basis=M.2 – games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+> DETAIL 5 | M.2 – games/sub | basis=M.2 – games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+> DETAIL 5 | M.2 – leer  (leerer Ordner) | basis=M.2 – leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+129d142
+< DETAIL 6 | homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Spiel Eins - PPSA90001.exfat  [Spiel: SM PPSA90001 DE (PPSA90001), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/Spiel Eins - PPSA90001.exfat :: /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001 || /user/data/homebrew/Spiel Eins - PPSA90001.exfat | /user/app/PPSA90001 | /user/appmeta/PPSA90001
+131d143
+< DETAIL 6 | homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | basis=homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg :: /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006 || /user/data/homebrew/sub/tief/Sechs - PPSA90006.ffpkg | /user/app/PPSA90006 | /user/appmeta/PPSA90006
+137,150c149
+< DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+< DETAIL 7 | Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | basis=Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2 | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/_zu_loeschen_2 || /mnt/ext1/_zu_loeschen_2
+< DETAIL 7 | 12345 (PPSA10074) - Spiel | basis=12345 (PPSA10074) - Spiel | gruppe=/mnt/ext1/user|PPSA10074 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10074 || /mnt/ext1/user/app/PPSA10074
+< DETAIL 7 | 12345 (PPSA10074) - Update (Version 03.000) | basis=12345 (PPSA10074) - Update (Version 03.000) | gruppe=/mnt/ext1/user|PPSA10074 | teil=Update | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/patch/PPSA10074 || /mnt/ext1/user/patch/PPSA10074
+< DETAIL 7 | Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | basis=Weltraum Rennen 4 sys DE (PPSA10148) - Spiel | gruppe=/mnt/ext1/user|PPSA10148 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148 || /mnt/ext1/user/app/PPSA10148 | /system_data/priv/appmeta/PPSA10148
+< DETAIL 7 | unbekannter Name (PPSA10481) - Spiel | basis=unbekannter Name (PPSA10481) - Spiel | gruppe=/mnt/ext1/user|PPSA10481 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif || /mnt/ext1/user/app/PPSA10481 | /system_data/priv/appmeta/PPSA10481 | /user/license/fakeEP0000-PPSA10481.idx | /user/license/fakeEP0000-PPSA10481.rif
+< DETAIL 7 | unbekannter Name (PPSA10814) - Spiel | basis=unbekannter Name (PPSA10814) - Spiel | gruppe=/mnt/ext1/user|PPSA10814 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA10814 || /mnt/ext1/user/app/PPSA10814
+< DETAIL 7 | unbekannter Name (PPSA11147) - Spiel | basis=unbekannter Name (PPSA11147) - Spiel | gruppe=/mnt/ext1/user|PPSA11147 | teil=Spiel | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147 || /mnt/ext1/user/app/PPSA11147 | /user/system/share/PPSA11147
+< DETAIL 7 | unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | basis=unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE | gruppe=/mnt/ext1/user|PPSA11147 | teil=DLC | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000 || /mnt/ext1/user/addcont/PPSA11147/DLC0000 | /user/appmeta/addcont/PPSA11147/DLC0000
+< DETAIL 7 | datei.bin | basis=datei.bin | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/datei.bin || /mnt/ext1/datei.bin
+< DETAIL 7 | games/a.iso | basis=games/a.iso | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/a.iso || /mnt/ext1/games/a.iso
+< DETAIL 7 | games/sub | basis=games/sub | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /mnt/ext1/games/sub || /mnt/ext1/games/sub
+< DETAIL 7 | homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | basis=homebrew/Zwei - PPSA90002.exfat  [Spiel: SM PPSA90002 DE (PPSA90002), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran] | gruppe=- | teil=- | gesperrt=True | paket=False | nurleer=False | kachel=True | smtipp=True | quelle=/mnt/ext1/homebrew/Zwei - PPSA90002.exfat :: /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002 || /mnt/ext1/homebrew/Zwei - PPSA90002.exfat | /user/app/PPSA90002 | /user/appmeta/PPSA90002
+< DETAIL 7 | leer  (leerer Ordner) | basis=leer  (leerer Ordner) | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=True | kachel=False | smtipp=False | quelle= :: /mnt/ext1/leer || /mnt/ext1/leer
+---
+> DETAIL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | basis=Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln] | gruppe=- | teil=- | gesperrt=False | paket=False | nurleer=False | kachel=False | smtipp=False | quelle= :: /user/home/1a2b3c4d/webkit/shell/local || /user/home/1a2b3c4d/webkit/shell/local
+152c151
+< ANZAHL 150
+---
+> ANZAHL 149
+diff -r ergebnis_schutz_105/de_komplettm2_v1.baum ergebnis_schutz/de_komplettm2_v1.baum
+22,23d21
+< d 0 user/app/PPSA10259
+< d 0 user/app/PPSA10259/sce_sys
+60d57
+< d 0 user/home/1a2b3c4d/savedata/PPSA10259
+68a66
+> d 0 user/home/1a2b3c4d/webkit/shell/local
+100d97
+< d 0 user/trophy2/nobackup/conf/NPWR20188_00
+103a101
+> f 1 user/home/1a2b3c4d/webkit/shell/local/x.db
+106d103
+< f 1 user/trophy2/nobackup/conf/NPWR20188_00/TROPCONF.SFM
+109d105
+< f 1678 user/app/PPSA10259/eboot.bin
+115d110
+< f 4 user/home/1a2b3c4d/savedata/PPSA10259/sdimage
+117d111
+< f 69 user/app/PPSA10259/sce_sys/param.json
+diff -r ergebnis_schutz_105/de_komplettm2_v1.out ergebnis_schutz/de_komplettm2_v1.out
+21a22
+> LOG:   gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+51c52,60
+< LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht
+---
+> LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+> LOG:   gelöscht   M.2 – Homebrew Launcher (FAKE00000) - Spiel
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Spiel
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Update (Version 03.000)
+> LOG:   gelöscht   M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10481) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10814) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+52a62
+> LOG:   gelöscht   Spielstand PPSA10259 (ASTRO's PLAYROOM)
+94a105
+> LOG:   gelöscht   Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+110,111c121
+< LOG:   gelöscht   Download: CUSA10185 (東京ドリフト 5 PS4)
+< LOG:   gelöscht   Download: PPSA44400
+---
+> LOG:   gelöscht   App-Daten ohne installierte App: PPSA44400
+124,137c134,138
+< LOG:   gelöscht   Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+< LOG:   gelöscht   Homebrew Launcher (FAKE00000) - Spiel
+< LOG:   gelöscht   12345 (PPSA10074) - Spiel
+< LOG:   gelöscht   12345 (PPSA10074) - Update (Version 03.000)
+< LOG:   gelöscht   Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10481) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10814) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+< LOG:   gelöscht   datei.bin
+< LOG:   gelöscht   games/a.iso
+< LOG:   gelöscht   games/sub
+< LOG:   gelöscht   homebrew/MeinCleaner
+< LOG:   gelöscht   leer  (leerer Ordner)
+---
+> LOG:   gelöscht   M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+> LOG:   gelöscht   M.2 – datei.bin
+> LOG:   gelöscht   M.2 – games/a.iso
+> LOG:   gelöscht   M.2 – games/sub
+> LOG:   gelöscht   M.2 – leer  (leerer Ordner)
+145d145
+< LOG:   war schon weg   homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit]
+151c151
+< LOG:   gelöscht   Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)
+---
+> LOG:   gelöscht   M.2 – homebrew/MeinCleaner
+diff -r ergebnis_schutz_105/de_komplettm2_v2.baum ergebnis_schutz/de_komplettm2_v2.baum
+22,23d21
+< d 0 user/app/PPSA10259
+< d 0 user/app/PPSA10259/sce_sys
+60d57
+< d 0 user/home/1a2b3c4d/savedata/PPSA10259
+68a66
+> d 0 user/home/1a2b3c4d/webkit/shell/local
+100d97
+< d 0 user/trophy2/nobackup/conf/NPWR20188_00
+103a101
+> f 1 user/home/1a2b3c4d/webkit/shell/local/x.db
+106d103
+< f 1 user/trophy2/nobackup/conf/NPWR20188_00/TROPCONF.SFM
+109d105
+< f 1678 user/app/PPSA10259/eboot.bin
+115d110
+< f 4 user/home/1a2b3c4d/savedata/PPSA10259/sdimage
+117d111
+< f 69 user/app/PPSA10259/sce_sys/param.json
+diff -r ergebnis_schutz_105/de_komplettm2_v2.out ergebnis_schutz/de_komplettm2_v2.out
+22a23
+> LOG:   gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+52c53,60
+< LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht
+---
+> LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Spiel
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Update (Version 03.000)
+> LOG:   gelöscht   M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10481) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10814) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+53a62
+> LOG:   gelöscht   Spielstand PPSA10259 (ASTRO's PLAYROOM)
+95a105
+> LOG:   gelöscht   Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+111,112c121
+< LOG:   gelöscht   Download: CUSA10185 (東京ドリフト 5 PS4)
+< LOG:   gelöscht   Download: PPSA44400
+---
+> LOG:   gelöscht   App-Daten ohne installierte App: PPSA44400
+125,136c134,138
+< LOG:   gelöscht   Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+< LOG:   gelöscht   12345 (PPSA10074) - Spiel
+< LOG:   gelöscht   12345 (PPSA10074) - Update (Version 03.000)
+< LOG:   gelöscht   Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10481) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10814) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+< LOG:   gelöscht   datei.bin
+< LOG:   gelöscht   games/a.iso
+< LOG:   gelöscht   games/sub
+< LOG:   gelöscht   leer  (leerer Ordner)
+---
+> LOG:   gelöscht   M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+> LOG:   gelöscht   M.2 – datei.bin
+> LOG:   gelöscht   M.2 – games/a.iso
+> LOG:   gelöscht   M.2 – games/sub
+> LOG:   gelöscht   M.2 – leer  (leerer Ordner)
+144d145
+< LOG:   war schon weg   homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit]
+150d150
+< LOG:   gelöscht   Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)
+diff -r ergebnis_schutz_105/de_komplettm2_v3.baum ergebnis_schutz/de_komplettm2_v3.baum
+6,7d5
+< d 0 mnt/ext0/user/app/FAKE00000
+< d 0 mnt/ext0/user/app/FAKE00000/sce_sys
+27,28d24
+< d 0 user/app/PPSA10259
+< d 0 user/app/PPSA10259/sce_sys
+65d60
+< d 0 user/home/1a2b3c4d/savedata/PPSA10259
+73a69
+> d 0 user/home/1a2b3c4d/webkit/shell/local
+105d100
+< d 0 user/trophy2/nobackup/conf/NPWR20188_00
+108a104
+> f 1 user/home/1a2b3c4d/webkit/shell/local/x.db
+111d106
+< f 1 user/trophy2/nobackup/conf/NPWR20188_00/TROPCONF.SFM
+114,115d108
+< f 122 mnt/ext0/user/app/FAKE00000/sce_sys/param.json
+< f 1678 user/app/PPSA10259/eboot.bin
+121d113
+< f 4 user/home/1a2b3c4d/savedata/PPSA10259/sdimage
+123d114
+< f 69 user/app/PPSA10259/sce_sys/param.json
+125d115
+< f 8 mnt/ext0/user/app/FAKE00000/eboot.bin
+diff -r ergebnis_schutz_105/de_komplettm2_v3.out ergebnis_schutz/de_komplettm2_v3.out
+22a23
+> LOG:   gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+52c53,61
+< LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht
+---
+> LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Spiel
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Update (Version 03.000)
+> LOG:   gelöscht   M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10481) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10814) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+> LOG:   gelöscht   USB – Homebrew Launcher (FAKE00000) - Spiel
+53a63
+> LOG:   gelöscht   Spielstand PPSA10259 (ASTRO's PLAYROOM)
+95a106
+> LOG:   gelöscht   Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+111,112c122
+< LOG:   gelöscht   Download: CUSA10185 (東京ドリフト 5 PS4)
+< LOG:   gelöscht   Download: PPSA44400
+---
+> LOG:   gelöscht   App-Daten ohne installierte App: PPSA44400
+117d126
+< LOG:   gelöscht   Reste: Homebrew Launcher (FAKE00000)
+126,138c135,139
+< LOG:   gelöscht   Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+< LOG:   gelöscht   12345 (PPSA10074) - Spiel
+< LOG:   gelöscht   12345 (PPSA10074) - Update (Version 03.000)
+< LOG:   gelöscht   Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10481) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10814) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+< LOG:   gelöscht   datei.bin
+< LOG:   gelöscht   games/a.iso
+< LOG:   gelöscht   games/sub
+< LOG:   gelöscht   homebrew/PS5Cleanup
+< LOG:   gelöscht   leer  (leerer Ordner)
+---
+> LOG:   gelöscht   M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+> LOG:   gelöscht   M.2 – datei.bin
+> LOG:   gelöscht   M.2 – games/a.iso
+> LOG:   gelöscht   M.2 – games/sub
+> LOG:   gelöscht   M.2 – leer  (leerer Ordner)
+145d145
+< LOG:   war schon weg   homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit]
+149d148
+< LOG:   gelöscht   Fake-Lizenz: EP0000-FAKE00000 - (Homebrew Launcher) (Spiel nicht mehr installiert)
+152c151
+< LOG:   gelöscht   Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)
+---
+> LOG:   gelöscht   M.2 – homebrew/PS5Cleanup
+diff -r ergebnis_schutz_105/de_komplettm2_v4.baum ergebnis_schutz/de_komplettm2_v4.baum
+22,23d21
+< d 0 user/app/PPSA10259
+< d 0 user/app/PPSA10259/sce_sys
+60d57
+< d 0 user/home/1a2b3c4d/savedata/PPSA10259
+68a66
+> d 0 user/home/1a2b3c4d/webkit/shell/local
+100d97
+< d 0 user/trophy2/nobackup/conf/NPWR20188_00
+103a101
+> f 1 user/home/1a2b3c4d/webkit/shell/local/x.db
+106d103
+< f 1 user/trophy2/nobackup/conf/NPWR20188_00/TROPCONF.SFM
+109d105
+< f 1678 user/app/PPSA10259/eboot.bin
+115d110
+< f 4 user/home/1a2b3c4d/savedata/PPSA10259/sdimage
+117d111
+< f 69 user/app/PPSA10259/sce_sys/param.json
+diff -r ergebnis_schutz_105/de_komplettm2_v4.out ergebnis_schutz/de_komplettm2_v4.out
+22a23
+> LOG:   gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+52c53,60
+< LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Spiel liegt auf /mnt/ext1/user/app/x.exfat, nur die Kachel wird gelöscht
+---
+> LOG:   gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Spiel
+> LOG:   gelöscht   M.2 – 12345 (PPSA10074) - Update (Version 03.000)
+> LOG:   gelöscht   M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10481) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA10814) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Spiel
+> LOG:   gelöscht   M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+53a62
+> LOG:   gelöscht   Spielstand PPSA10259 (ASTRO's PLAYROOM)
+95a105
+> LOG:   gelöscht   Trophäen-Liste: NPWR20188_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+111,112c121
+< LOG:   gelöscht   Download: CUSA10185 (東京ドリフト 5 PS4)
+< LOG:   gelöscht   Download: PPSA44400
+---
+> LOG:   gelöscht   App-Daten ohne installierte App: PPSA44400
+125,136c134,138
+< LOG:   gelöscht   Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+< LOG:   gelöscht   12345 (PPSA10074) - Spiel
+< LOG:   gelöscht   12345 (PPSA10074) - Update (Version 03.000)
+< LOG:   gelöscht   Weltraum Rennen 4 sys DE (PPSA10148) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10481) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA10814) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Spiel
+< LOG:   gelöscht   unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE
+< LOG:   gelöscht   datei.bin
+< LOG:   gelöscht   games/a.iso
+< LOG:   gelöscht   games/sub
+< LOG:   gelöscht   leer  (leerer Ordner)
+---
+> LOG:   gelöscht   M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2
+> LOG:   gelöscht   M.2 – datei.bin
+> LOG:   gelöscht   M.2 – games/a.iso
+> LOG:   gelöscht   M.2 – games/sub
+> LOG:   gelöscht   M.2 – leer  (leerer Ordner)
+144d145
+< LOG:   war schon weg   homebrew/sub/tief/Sechs - PPSA90006.ffpkg  [Spiel: SM PPSA90006 DE (PPSA90006), Kachel geht mit]
+150d150
+< LOG:   gelöscht   Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)

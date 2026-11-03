@@ -1,0 +1,20 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   M.2 – games/x.iso
+OK   leerer Ordner games wird als 'nur leer' angeboten
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   /mnt/ext1/games ist nicht mehr leer - bleibt stehen.
+LOG:   FEHLER      M.2 – games  (leerer Ordner) (konnte nicht ganz gelöscht werden)
+OK   inzwischen gefüllt: nichts gelöscht, Datei bleibt (Fehler=1)
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   M.2 – games  (leerer Ordner)
+OK   wirklich leer: Ordner entfernt
+FEHLERZAHL 0

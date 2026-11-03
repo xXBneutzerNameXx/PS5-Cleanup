@@ -1,0 +1,61 @@
+#!/bin/bash
+# Test ShadowMount: verschobene Spieldateien (27.10.2026) - läuft in WSL
+K="/pfad/zu/PS5-Cleanup/1.0.7"
+ln -sfn "$K" $HOME/ps5c-k; KK=$HOME/ps5c-k
+B=$HOME/ps5c-bau/test; T=$HOME/ps5c-test/sm; RF=$KK/test/ref105
+mkdir -p "$K/test/kern/ergebnis" $B $T
+exec > "$K/test/kern/ergebnis/sm.log" 2>&1
+set -o pipefail
+RC=0
+date "+%Y-%m-%d %H:%M:%S Start"
+KERN="$(ls $KK/kern/*.c | tr "\n" " ")"
+gcc -O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-format-truncation -Wno-missing-field-initializers -Wno-clobbered -DKERN_LOESCHEN -I$KK/bau/pcre2-pc/include -I$KK/bau/cjson \
+   $KERN $KK/bau/cjson/cJSON.c $KK/test/kern/test_sm.c -L$KK/bau/pcre2-pc/lib -lpcre2-8 -lpthread -o $B/test_sm || { echo BAU FEHLGESCHLAGEN; exit 1; }
+kachel() {  # id titel quelle-in-mount_img.lnk
+  mkdir -p "$T/w/user/app/$1/sce_sys"
+  printf '{"titleId":"%s","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"%s"}},"contentVersion":"01.00"}' "$1" "$2" > "$T/w/user/app/$1/sce_sys/param.json"
+  printf '/mnt/shadowmnt/%s\n%s' "$1" "$3" > "$T/w/user/app/$1/mount_img.lnk"
+}
+for art in schutz ohne; do
+  rm -rf $T/w; cp -r $RF/schutz_v1 $T/w
+  rm -f "$T/w/mnt/ext1/homebrew/.Zwei - PPSA90002.exfat.gc-compress.tmp"
+  kachel PPSA30528 "Red Dead Redemption" "/mnt/ext1/homebrew/Red Dead Redemption - PPSA30528 - v1.2.0 - US.exfat"
+  echo x > "$T/w/user/data/homebrew/Red Dead Redemption - PPSA30528 - v1.2.0 - US.exfat"
+  kachel PPSA99058 "Overdrive" "/mnt/ext1/homebrew/Overdrive.exfat"
+  echo x > "$T/w/user/data/homebrew/Overdrive.exfat"
+  kachel PPSA77771 "Usb Spiel" "/mnt/ext1/homebrew/Usb Spiel - PPSA77771.exfat"
+  mkdir -p $T/w/mnt/usb0/homebrew; echo x > "$T/w/mnt/usb0/homebrew/Usb Spiel - PPSA77771.exfat"
+  kachel PPSA77772 "Umbenannt" "/mnt/ext1/homebrew/Alt - PPSA77772.exfat"
+  echo x > "$T/w/user/data/homebrew/Neu PPSA77772.exfat"
+  kachel PPSA77773 "Eigener Ort" "/data/homebrew/Eigen.exfat"
+  mkdir -p $T/w/user/data/meinespiele; echo x > $T/w/user/data/meinespiele/Eigen.exfat
+  printf '# Beispiel\n# scanpath=/data/falsch\nscanpath=/data/meinespiele/   # eigene Spiele\n' > $T/w/user/data/shadowmount/config.ini
+  kachel PPSA77774 "Abgezogen" "/mnt/usb3/homebrew/Abgezogen - PPSA77774.exfat"
+  kachel PPSA77775 "Geteilt A" "/data/homebrew/Geteilt - PPSA77775.exfat"
+  kachel PPSA77776 "Geteilt B" "/data/homebrew/Geteilt - PPSA77775.exfat"
+  echo x > "$T/w/user/data/homebrew/Geteilt - PPSA77775.exfat"
+  kachel PPSA77777 "Fremd am alten Ort" "/data/homebrew/Fremd - PPSA88888.exfat"; echo x > "$T/w/user/data/homebrew/Fremd - PPSA88888.exfat"
+  kachel PPSA77778 "Doppel vermutet" "/mnt/ext1/homebrew/Doppel.exfat"
+  kachel PPSA77779 "Doppel echt" "/data/homebrew/Doppel.exfat"; echo x > "$T/w/user/data/homebrew/Doppel.exfat"
+  kachel PPSA77770 "Rueck echt" "/data/homebrew/Rueck.exfat"; echo x > "$T/w/user/data/homebrew/Rueck.exfat"
+  kachel PPSA77780 "Rueck vermutet" "/mnt/ext1/homebrew/Rueck.exfat"
+  kachel PPSA77781 "Zwei Kandidaten" "/mnt/ext1/homebrew/Zwei.exfat"
+  mkdir -p $T/w/user/data/homebrew/backports; echo x > $T/w/user/data/homebrew/Zwei.exfat; echo x > $T/w/user/data/homebrew/backports/Zwei.exfat
+  (cd $T; RMDA=1 FAKESM=1 $B/test_sm $T $art) | grep -v "^LOG:" || { echo "FAIL Testprogramm meldet Fehler (Rückgabewert)"; RC=1; }
+  echo "-- keine M.2 eingebaut (Geräteliste ohne ssd1)"
+  rm -rf $T/w; cp -r $RF/schutz_v1 $T/w; rm -rf $T/w/mnt/ext1; mkdir -p $T/w/dev; touch $T/w/dev/ssd0 $T/w/dev/ssd0.user $T/w/dev/da1
+  mkdir -p $T/w/system_data/priv/appmeta/PPSA90002; echo '{}' > $T/w/system_data/priv/appmeta/PPSA90002/param.json   # Codex-Prüfung 19 (P2)
+  (cd $T; RMDA=1 FAKESM=1 $B/test_sm $T $art m2weg) | grep -v "^LOG:" || { echo "FAIL Testprogramm meldet Fehler (Rückgabewert)"; RC=1; }
+  echo "-- Einhängeordner gelöschter ShadowMount-Spiele (03.11.2026)"
+  rm -rf $T/w; cp -r $RF/schutz_v1 $T/w
+  rm -f "$T/w/user/data/homebrew/.Spiel Eins - PPSA90001.exfat.gc-compress.tmp"
+  mkdir -p $T/w/system_ex/app/PPSA90001 $T/w/system_ex/app/PPSA90002 $T/w/system_ex/app/PPSA90003 $T/w/system_ex/app/FAKE78001 $T/w/system_ex/app/FAKE77031
+  echo x > $T/w/system_ex/app/PPSA90003/x
+  (cd $T; RMDA=1 FAKESM=1 $B/test_sm $T $art einhaenge) | grep -v "^LOG:" || { echo "FAIL Testprogramm meldet Fehler (Rückgabewert)"; RC=1; }
+  echo "-- M.2 eingebaut, aber nicht eingehängt (Geräteliste mit ssd1)"
+  rm -rf $T/w; cp -r $RF/schutz_v1 $T/w; rm -rf $T/w/mnt/ext1; mkdir -p $T/w/dev; touch $T/w/dev/ssd0 $T/w/dev/ssd1 $T/w/dev/ssd1.user
+  rm -f "$T/w/user/data/homebrew/.Spiel Eins - PPSA90001.exfat.gc-compress.tmp"   # sonst sperrt die laufende Komprimierung (richtig, aber nicht Thema dieses Falls)
+  (cd $T; RMDA=1 FAKESM=1 $B/test_sm $T $art m2unerkannt) | grep -v "^LOG:" || { echo "FAIL Testprogramm meldet Fehler (Rückgabewert)"; RC=1; }
+done
+date "+%Y-%m-%d %H:%M:%S FERTIG"
+exit $RC

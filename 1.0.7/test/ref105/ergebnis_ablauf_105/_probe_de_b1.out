@@ -1,0 +1,215 @@
+[13:17:16] Verbinde mit PS5 (127.0.0.1, Port 2199) ...
+[13:17:16] Verbunden.
+[13:17:16] FTP-Server: Unbekannt (Begrüßung: „mini“), Port 2199
+[13:17:16] Datenverbindung: EPSV
+[13:17:16] Modell: CFI-2016  Reihe: PS5 Slim  Firmware: unbekannt
+[13:17:16] Laufwerk: Kopplung nicht abgefragt (Modellabfrage aus oder nicht möglich).
+[13:17:16] Schaue nach, was drauf ist ...
+[13:17:16] ACHTUNG: Der Game Compressor arbeitet gerade (oder wurde abgebrochen):
+[13:17:16]    /mnt/ext1/homebrew/.Game A - PPSA11111.exfat.gc-compress.tmp
+[13:17:16] Das betroffene Spiel ist GESPERRT. Lass den Game Compressor erst fertig werden.
+[13:17:16] 57 Einträge gefunden. Nichts wurde verändert.
+[13:17:16] === ABLAUF
+[13:17:16] > WAEHLE BEREICH 2
+[13:17:16] > WAEHLE TEXT Spiel PPSA22222
+[13:17:17] > WAEHLE TEXT games/x.iso
+[13:17:17] > WAEHLE TEXT Echtes Spiel (PPSA55555) - Spiel|Real Game (PPSA55555) - game
+[13:17:17] > ZEIGE
+[13:17:17] KOPF [1] Spiele & Apps (interne SSD)   (15 Einträge · 1 KB)
+[13:17:17]   [ ] Altes Spiel (CUSA12345) - Spiel   126 Byte
+[13:17:17]   [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 Byte
+[13:17:17]   [ ] Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung   62 Byte
+[13:17:17]   [ ] Spiel PPSA11111 (PPSA11111) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran]   155 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[13:17:17]   [x] Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2   131 Byte
+[13:17:17]   [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD   179 Byte
+[13:17:17]   [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel   140 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:17]   [x] Echtes Spiel (PPSA55555) - Spiel   116 Byte
+[13:17:17]   [x] Echtes Spiel (PPSA55555) - Update   0 Byte  [gesperrt]  {Geht mit dem Spiel weg.}
+[13:17:17]   [x] Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1   0 Byte  [gesperrt]  {Geht mit dem Spiel weg.}
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 Byte
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1   2 Byte
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars   2 Byte
+[13:17:17]   [ ] Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2   131 Byte
+[13:17:17] KOPF [2] Spielstände   (1 Einträge · 0 Byte)
+[13:17:17]   [x] Spielstand PPSA55555 (Echtes Spiel)   0 Byte
+[13:17:17] KOPF [3] Trophäen   (5 Einträge · 12 Byte)
+[13:17:17]   [ ] Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole   2 Byte
+[13:17:17]   [ ] Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)   2 Byte
+[13:17:17]   [ ] Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00)   2 Byte
+[13:17:17]   [ ] Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[13:17:17]   [ ] Trophäen-Liste: Echtes Spiel (NPWR30405_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   4 Byte  (gelb)
+[13:17:17] KOPF [4] Bilder & Videos (Aufnahmen)   (5 Einträge · 137 Byte)
+[13:17:17]   [ ] Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot   115 Byte
+[13:17:17]   [ ] Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video   18 Byte
+[13:17:17]   [ ] Vorschaubilder ohne Aufnahme (1) - Reste   2 Byte
+[13:17:17]   [ ] Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei)   2 Byte
+[13:17:17]   [ ] Leere Aufnahme-Zwischenordner (1) - Reste   0 Byte
+[13:17:17] KOPF [5] Downloads, Zusatzinhalte & Reste   (9 Einträge · 112 Byte)
+[13:17:17]   [ ] Download: PPSA55555 (Echtes Spiel)   0 Byte
+[13:17:17]   [ ] Update ohne Spiel: PPSA77777   0 Byte
+[13:17:17]   [ ] Reste: Altes Spiel (PPSA88888)   28 Byte
+[13:17:17]   [ ] Share-Einstellungen alter Spiele (2)   4 Byte
+[13:17:17]   [ ] Store-Bildercache (1, lädt die PS5 neu)   2 Byte
+[13:17:17]   [ ] Temporäre Dateien (2)   4 Byte
+[13:17:17]   [ ] Fehlerberichte (3)   9 Byte
+[13:17:17]   [ ] Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)   2 Byte
+[13:17:17]   [ ] Leere Kachel (Schloss): Geisterspiel (PPSA12121)   63 Byte
+[13:17:17] KOPF [6] Jailbreak-Tools & Homebrew-Daten   (8 Einträge · 473 Byte)
+[13:17:17]   [ ] Tool-Kachel: PS5Upload Minion (PSUP00001)   158 Byte
+[13:17:17]   [ ] Tool-Kachel: Mein Tool (TOOL00001)   122 Byte
+[13:17:17]   [ ] .kstuff_noautomount   2 Byte
+[13:17:17]   [ ] homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit]   181 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:17]   [ ] ps5upload   2 Byte
+[13:17:17]   [ ] shadowmount   2 Byte
+[13:17:17]   [ ] Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert)   4 Byte
+[13:17:17]   [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)   2 Byte
+[13:17:17] KOPF [7] Inhalt der M.2-SSD   (14 Einträge · 676 Byte)
+[13:17:17]   [ ] Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_1   2 Byte
+[13:17:17]   [ ] L.A. Noire (CUSA09172) - Spiel   130 Byte
+[13:17:17]   [ ] L.A. Noire (CUSA09172) - Update (Version 01.04)   2 Byte
+[13:17:17]   [ ] L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster   86 Byte
+[13:17:17]   [ ] M2 Spiel (PPSA66666) - Spiel   25 Byte
+[13:17:17]   [ ] M2 Spiel (PPSA66666) - Update   0 Byte
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[13:17:17]   [ ] Testspiel Fünf (PPSA77700) - Update   2 Byte
+[13:17:17]   [ ] Top Game - PPSA99999.exfat  [Spiel: Top Game (PPSA99999), Kachel geht mit]   133 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:17]   [x] games/x.iso   2 Byte
+[13:17:17]   [ ] homebrew/Game A - PPSA11111.exfat  [Spiel: Spiel PPSA11111 (PPSA11111), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran]   157 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[13:17:17]   [ ] homebrew/Game B - PPSA22222  [Spiel: Spiel PPSA22222 (PPSA22222), Kachel geht mit]   133 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:17]   [ ] homebrew/anderes.txt   2 Byte
+[13:17:17]   [ ] homebrew/sub   0 Byte
+[13:17:17] STAND 6 Einträge ausgewählt (249 Byte).
+[13:17:17] > ABLAUF AUSWAHL
+[13:17:17] DIALOG ShadowMount-Spiele
+[13:17:17]   | Du hast 1 ShadowMount-Spiel(e) gewählt:
+[13:17:17]   |    Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2
+[13:17:17]   | 
+[13:17:17]   | NUR KACHELN LÖSCHEN: Die Spiele bleiben auf der Platte und erscheinen wieder, sobald ShadowMount neu geladen ist.
+[13:17:17]   | 
+[13:17:17]   | SPIELE + KACHELN LÖSCHEN: Die Spieldateien werden endgültig gelöscht.
+[13:17:17]   KNOPF sicher: Nur Kacheln löschen (empfohlen)
+[13:17:17]   KNOPF gefährlich: Spiele + Kacheln löschen
+[13:17:17]   ANTWORT N
+[13:17:18] DIALOG M.2-SSD
+[13:17:18]   | ACHTUNG - du hast 1 Einträge der M.2-SSD gewählt:
+[13:17:18]   |    games/x.iso
+[13:17:18]   | 
+[13:17:18]   | Alles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.
+[13:17:18]   | 
+[13:17:18]   | Gelöscht wird erst nach der Abschlussfrage.
+[13:17:18]   KNOPF sicher: Abbrechen
+[13:17:18]   KNOPF gefährlich: Weiter (M.2-Einträge löschen)
+[13:17:18]   ANTWORT J
+[13:17:18] Ausgewählt: etwa 249 Byte in 7 Dateien und 12 Ordnern.
+[13:17:18] DIALOG Endgültig löschen?
+[13:17:18]   | !!! ACHTUNG: 1 EINTRÄGE DER M.2-SSD SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!
+[13:17:18]   | 
+[13:17:18]   | Wird ENDGÜLTIG gelöscht: 6 Einträge
+[13:17:18]   |    - Spiele & Apps (interne SSD): 4
+[13:17:18]   |    - Spielstände: 1
+[13:17:18]   |    - Inhalt der M.2-SSD: 1
+[13:17:18]   |    Bleibt (Game Compressor arbeitet daran): 2
+[13:17:18]   | 
+[13:17:18]   | Das sind etwa 249 Byte in 7 Dateien und 12 Ordnern.
+[13:17:18]   | 
+[13:17:18]   | Kopplung nicht abgefragt (Modellabfrage aus oder nicht möglich). Das Programm fasst die Kopplung nie an.
+[13:17:18]   | Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.
+[13:17:18]   KNOPF sicher: Abbrechen
+[13:17:18]   KNOPF gefährlich: Jetzt endgültig löschen
+[13:17:18]   ANTWORT J
+[13:17:18] 
+[13:17:18] Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+[13:17:23]   ShadowMount ist beendet.
+[13:17:23] 
+[13:17:23] Lösche ... (große Spiele können etwas dauern)
+[13:17:23]   gelöscht   Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2 - nur Kachel, Spiel bleibt
+[13:17:23]   gelöscht   Echtes Spiel (PPSA55555) - Spiel
+[13:17:23]   gelöscht   Echtes Spiel (PPSA55555) - Update
+[13:17:23]   gelöscht   Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1
+[13:17:23]   gelöscht   Spielstand PPSA55555 (Echtes Spiel)
+[13:17:23]   gelöscht   games/x.iso
+[13:17:23]   gelöscht   leerer Ordner /user/addcont/PPSA55555
+[13:17:23] 
+[13:17:23] Fertig - alles Ausgewählte ist gelöscht.
+[13:17:23] Freigeräumt: 249 Byte in 7 Dateien und 12 Ordnern
+[13:17:23] Kopplung nicht abgefragt (Modellabfrage aus oder nicht möglich). Das Programm fasst die Kopplung nie an.
+[13:17:23] ShadowMount wurde angehalten - zum Weiterspielen einfach neu laden.
+[13:17:23] Letzter Schritt an der PS5, damit sie alles sauber neu einliest:
+[13:17:23] 1. PS5 ausschalten.
+[13:17:23] 2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.
+[13:17:23] 3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.
+[13:17:23] Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!
+[13:17:23] FERTIG Fertig - alles Ausgewählte ist gelöscht.
+[13:17:23]   frei: Freigeräumt: 249 Byte in 7 Dateien und 12 Ordnern
+[13:17:23]   sm:
+[13:17:23]   | ShadowMount wurde angehalten - zum Weiterspielen einfach neu laden.
+[13:17:23]   schritt: Letzter Schritt an der PS5, damit sie alles sauber neu einliest:
+[13:17:23]   1. PS5 ausschalten.
+[13:17:23]   2. Einschaltknopf gedrückt halten, bis es zum zweiten Mal piept.
+[13:17:23]   3. Controller per USB anstecken und 'Datenbank neu erstellen' wählen.
+[13:17:23]   wichtig: Wichtig: NICHT 'PS5 zurücksetzen' oder 'Systemsoftware neu installieren' wählen!
+[13:17:23] > ABLAUF ENDE verbunden=True
+[13:17:23] > ZEIGE
+[13:17:24] KOPF [1] Spiele & Apps (interne SSD)   (11 Einträge · 923 Byte)
+[13:17:24]   [ ] Altes Spiel (CUSA12345) - Spiel   126 Byte
+[13:17:24]   [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 Byte
+[13:17:24]   [ ] Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung   62 Byte
+[13:17:24]   [ ] Spiel PPSA11111 (PPSA11111) - ShadowMount-Spiel auf der M.2  [GESPERRT: Game Compressor arbeitet gerade daran]   155 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[13:17:24]   [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD   179 Byte
+[13:17:24]   [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel   140 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 Byte
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1   2 Byte
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars   2 Byte
+[13:17:24]   [ ] Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2   131 Byte
+[13:17:24] KOPF [2] Spielstände   (0 Einträge)  [nicht wählbar]
+[13:17:24] KOPF [3] Trophäen   (5 Einträge · 12 Byte)
+[13:17:24]   [ ] Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole   2 Byte
+[13:17:24]   [ ] Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)   2 Byte
+[13:17:24]   [ ] Trophäen-Fortschritt: NPWR30405_00 - Spiel nicht mehr auf der Konsole   2 Byte
+[13:17:24]   [ ] Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+[13:17:24]   [ ] Trophäen-Liste: NPWR30405_00 - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   4 Byte
+[13:17:24] KOPF [4] Bilder & Videos (Aufnahmen)   (5 Einträge · 137 Byte)
+[13:17:24]   [ ] Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot   115 Byte
+[13:17:24]   [ ] Aufnahmen von PPSA55555 (Spiel nicht mehr auf der Konsole): 3 Screenshots, 1 Video   18 Byte
+[13:17:24]   [ ] Vorschaubilder ohne Aufnahme (1) - Reste   2 Byte
+[13:17:24]   [ ] Unfertige Aufnahme von PPSA55555 (Spiel nicht mehr auf der Konsole) (1 Datei)   2 Byte
+[13:17:24]   [ ] Leere Aufnahme-Zwischenordner (1) - Reste   0 Byte
+[13:17:24] KOPF [5] Downloads, Zusatzinhalte & Reste   (9 Einträge · 112 Byte)
+[13:17:24]   [ ] Download: PPSA55555   0 Byte
+[13:17:24]   [ ] Update ohne Spiel: PPSA77777   0 Byte
+[13:17:24]   [ ] Reste: Altes Spiel (PPSA88888)   28 Byte
+[13:17:24]   [ ] Share-Einstellungen alter Spiele (2)   4 Byte
+[13:17:24]   [ ] Store-Bildercache (1, lädt die PS5 neu)   2 Byte
+[13:17:24]   [ ] Temporäre Dateien (2)   4 Byte
+[13:17:24]   [ ] Fehlerberichte (3)   9 Byte
+[13:17:24]   [ ] Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)   2 Byte
+[13:17:24]   [ ] Leere Kachel (Schloss): Geisterspiel (PPSA12121)   63 Byte
+[13:17:24] KOPF [6] Jailbreak-Tools & Homebrew-Daten   (8 Einträge · 550 Byte)
+[13:17:24]   [ ] Tool-Kachel: PS5Upload Minion (PSUP00001)   158 Byte
+[13:17:24]   [ ] Tool-Kachel: Mein Tool (TOOL00001)   122 Byte
+[13:17:24]   [ ] .kstuff_noautomount   2 Byte
+[13:17:24]   [ ] homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit]   181 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:24]   [ ] ps5upload   2 Byte
+[13:17:24]   [ ] shadowmount   79 Byte
+[13:17:24]   [ ] Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert)   4 Byte
+[13:17:24]   [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)   2 Byte
+[13:17:24] KOPF [7] Inhalt der M.2-SSD   (14 Einträge · 543 Byte)
+[13:17:24]   [ ] Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_1   2 Byte
+[13:17:24]   [ ] L.A. Noire (CUSA09172) - Spiel   130 Byte
+[13:17:24]   [ ] L.A. Noire (CUSA09172) - Update (Version 01.04)   2 Byte
+[13:17:24]   [ ] L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster   86 Byte
+[13:17:24]   [ ] M2 Spiel (PPSA66666) - Spiel   25 Byte
+[13:17:24]   [ ] M2 Spiel (PPSA66666) - Update   0 Byte
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+[13:17:24]   [ ] Testspiel Fünf (PPSA77700) - Update   2 Byte
+[13:17:24]   [ ] Top Game - PPSA99999.exfat  [Spiel: Top Game (PPSA99999), Kachel geht mit]   133 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+[13:17:24]   [ ] games  (leerer Ordner)   0 Byte
+[13:17:24]   [ ] homebrew/Game A - PPSA11111.exfat  [Spiel: Spiel PPSA11111 (PPSA11111), Kachel geht mit]  [GESPERRT: Game Compressor arbeitet gerade daran]   157 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+[13:17:24]   [ ] homebrew/Game B - PPSA22222   2 Byte
+[13:17:24]   [ ] homebrew/anderes.txt   2 Byte
+[13:17:24]   [ ] homebrew/sub   0 Byte
+[13:17:24] STAND Nichts ausgewählt.
+[13:17:24] ENDE fehler=0
+[13:17:24] Ende.

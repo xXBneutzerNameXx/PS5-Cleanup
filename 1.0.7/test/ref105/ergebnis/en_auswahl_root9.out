@@ -1,0 +1,221 @@
+== KOMPLETT
+WAHL 1 | Altes Spiel (CUSA12345) - game :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - add-on: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | unknown name (PPSA01325) - game :: /user/app/PPSA01325 | /user/appmeta/PPSA01325 | /system_data/priv/appmeta/PPSA01325 | /user/system/share/PPSA01325
+WAHL 1 | ASTRO PLAYROOM (PPSA01326) - game :: /user/app/PPSA01326 | /system_data/priv/appmeta/PPSA01326 | /user/system/share/PPSA01326
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - game + tile :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Real Game (PPSA55555) - game :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555 | /user/download/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - add-on: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Testspiel Fünf (PPSA77700) - game :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game - tile only, game stays :: /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | M.2 – Top Game (PPSA99999) - ShadowMount game - tile only, game stays :: /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Saved data PPSA01326 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01326
+WAHL 2 | Saved data PPSA01327 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01327
+WAHL 2 | Saved data PPSA55555 (Real Game) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophy totals (level, bronze/silver/gold - rebuilt by the PS5) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophy progress: NPWR20188_00 :: /user/home/u1/trophy2/nobackup/data/NPWR20188_00
+WAHL 3 | Trophy progress: Real Game (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Thumbnails without capture (1) - leftovers :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfinished capture of Real Game (PPSA55555) (1 file) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Empty capture temp folders (1) - leftovers :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Update without game: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Leftovers: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share settings of old games (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store image cache (1, re-downloaded by the PS5) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporary files (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Error reports (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Info on games on USB drives (1, recreated by the PS5) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Empty tile (lock icon): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool tile: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 |    – ps5upload :: /user/data/ps5upload
+WAHL 6 | Tool tile: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake license: UP0000-SLIB00001_00 (game no longer installed) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+== KOMPLETT_M2
+WAHL 1 | Altes Spiel (CUSA12345) - game :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - add-on: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | unknown name (PPSA01325) - game :: /user/app/PPSA01325 | /user/appmeta/PPSA01325 | /system_data/priv/appmeta/PPSA01325 | /user/system/share/PPSA01325
+WAHL 1 | ASTRO PLAYROOM (PPSA01326) - game :: /user/app/PPSA01326 | /system_data/priv/appmeta/PPSA01326 | /user/system/share/PPSA01326
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - game + tile :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Real Game (PPSA55555) - game :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555 | /user/download/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - add-on: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Testspiel Fünf (PPSA77700) - game :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game - game + tile :: /mnt/ext1/homebrew/Game B - PPSA22222 | /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | M.2 – Top Game (PPSA99999) - ShadowMount game - game + tile :: /mnt/ext1/Top Game - PPSA99999.exfat | /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - game :: /mnt/ext1/user/app/CUSA09172 | /user/appmeta/CUSA09172 | /system_data/priv/appmeta/CUSA09172 | /user/system/share/CUSA09172 | /user/license/fakeEP1004-CUSA09172_00.idx | /user/license/fakeEP1004-CUSA09172_00.rif
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04) :: /mnt/ext1/user/patch/CUSA09172
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster :: /mnt/ext1/user/addcont/CUSA09172/LANDLC0001 | /user/appmeta/addcont/CUSA09172/LANDLC0001
+WAHL 1 | M.2 – ASTRO PLAYROOM (PPSA01327) - game :: /mnt/ext1/user/app/PPSA01327 | /user/appmeta/PPSA01327
+WAHL 1 | M.2 – M2 Spiel (PPSA66666) - game :: /mnt/ext1/user/app/PPSA66666 | /user/appmeta/PPSA66666 | /system_data/priv/appmeta/PPSA66666
+WAHL 1 | M.2 – M2 Spiel (PPSA66666) - Update :: /mnt/ext1/user/patch/PPSA66666
+WAHL 1 | M.2 – Testspiel Fünf (PPSA77700) - game :: /mnt/ext1/user/app/PPSA77700
+WAHL 1 | M.2 – Testspiel Fünf (PPSA77700) - Update :: /mnt/ext1/user/patch/PPSA77700
+WAHL 2 | Saved data PPSA01326 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01326
+WAHL 2 | Saved data PPSA01327 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01327
+WAHL 2 | Saved data PPSA55555 (Real Game) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophy totals (level, bronze/silver/gold - rebuilt by the PS5) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophy progress: NPWR20188_00 :: /user/home/u1/trophy2/nobackup/data/NPWR20188_00
+WAHL 3 | Trophy progress: Real Game (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress) :: /user/trophy/conf/NPWR16560_00
+WAHL 3 | Trophy list: NPWR20188_00 - game still installed, delete only with the game (names/images, not your progress) :: /user/trophy2/nobackup/conf/NPWR20188_00 | /user/np_uds/nobackup/conf/NPWR20188_00
+WAHL 3 | Trophy list: ASTRO PLAYROOM (NPWR20189_00) - game still installed, delete only with the game (names/images, not your progress) :: /user/trophy2/nobackup/conf/NPWR20189_00
+WAHL 3 | Trophy list: Real Game (NPWR30405_00) - game still installed, delete only with the game (names/images, not your progress) :: /user/trophy2/nobackup/conf/NPWR30405_00 | /user/np_uds/nobackup/conf/NPWR30405_00
+WAHL 4 | Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Thumbnails without capture (1) - leftovers :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfinished capture of Real Game (PPSA55555) (1 file) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Empty capture temp folders (1) - leftovers :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Update without game: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Leftovers: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share settings of old games (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store image cache (1, re-downloaded by the PS5) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporary files (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Error reports (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Info on games on USB drives (1, recreated by the PS5) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Empty tile (lock icon): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 5 | M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1 :: /mnt/ext1/_zu_loeschen_1
+WAHL 5 | M.2 – games/x.iso :: /mnt/ext1/games/x.iso
+WAHL 6 | Tool tile: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 |    – ps5upload :: /user/data/ps5upload
+WAHL 6 | Tool tile: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake license: UP0000-SLIB00001_00 (game no longer installed) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+WAHL 6 | M.2 – homebrew/anderes.txt :: /mnt/ext1/homebrew/anderes.txt
+WAHL 6 | M.2 – homebrew/sub :: /mnt/ext1/homebrew/sub
+== KOMPLETT_SM_NUR_KACHEL
+WAHL 1 | Altes Spiel (CUSA12345) - game :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - add-on: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | unknown name (PPSA01325) - game :: /user/app/PPSA01325 | /user/appmeta/PPSA01325 | /system_data/priv/appmeta/PPSA01325 | /user/system/share/PPSA01325
+WAHL 1 | ASTRO PLAYROOM (PPSA01326) - game :: /user/app/PPSA01326 | /system_data/priv/appmeta/PPSA01326 | /user/system/share/PPSA01326
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - tile only, game stays :: /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Real Game (PPSA55555) - game :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555 | /user/download/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - add-on: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Testspiel Fünf (PPSA77700) - game :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game - tile only, game stays :: /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | M.2 – Top Game (PPSA99999) - ShadowMount game - tile only, game stays :: /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Saved data PPSA01326 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01326
+WAHL 2 | Saved data PPSA01327 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01327
+WAHL 2 | Saved data PPSA55555 (Real Game) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophy totals (level, bronze/silver/gold - rebuilt by the PS5) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophy progress: NPWR20188_00 :: /user/home/u1/trophy2/nobackup/data/NPWR20188_00
+WAHL 3 | Trophy progress: Real Game (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Thumbnails without capture (1) - leftovers :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfinished capture of Real Game (PPSA55555) (1 file) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Empty capture temp folders (1) - leftovers :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Update without game: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Leftovers: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share settings of old games (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store image cache (1, re-downloaded by the PS5) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporary files (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Error reports (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Info on games on USB drives (1, recreated by the PS5) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Empty tile (lock icon): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool tile: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 |    – ps5upload :: /user/data/ps5upload
+WAHL 6 | Tool tile: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake license: UP0000-SLIB00001_00 (game no longer installed) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+== KOMPLETT_SM_MIT_SPIEL
+WAHL 1 | Altes Spiel (CUSA12345) - game :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - add-on: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | unknown name (PPSA01325) - game :: /user/app/PPSA01325 | /user/appmeta/PPSA01325 | /system_data/priv/appmeta/PPSA01325 | /user/system/share/PPSA01325
+WAHL 1 | ASTRO PLAYROOM (PPSA01326) - game :: /user/app/PPSA01326 | /system_data/priv/appmeta/PPSA01326 | /user/system/share/PPSA01326
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - game + tile :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Real Game (PPSA55555) - game :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555 | /user/download/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - add-on: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Testspiel Fünf (PPSA77700) - game :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game - game + tile :: /mnt/ext1/homebrew/Game B - PPSA22222 | /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | M.2 – Top Game (PPSA99999) - ShadowMount game - game + tile :: /mnt/ext1/Top Game - PPSA99999.exfat | /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Saved data PPSA01326 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01326
+WAHL 2 | Saved data PPSA01327 (ASTRO PLAYROOM) :: /user/home/u1/savedata_prospero/PPSA01327
+WAHL 2 | Saved data PPSA55555 (Real Game) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophy totals (level, bronze/silver/gold - rebuilt by the PS5) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophy progress: NPWR20188_00 :: /user/home/u1/trophy2/nobackup/data/NPWR20188_00
+WAHL 3 | Trophy progress: Real Game (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Thumbnails without capture (1) - leftovers :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfinished capture of Real Game (PPSA55555) (1 file) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Empty capture temp folders (1) - leftovers :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Update without game: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Leftovers: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share settings of old games (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store image cache (1, re-downloaded by the PS5) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporary files (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Error reports (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Info on games on USB drives (1, recreated by the PS5) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Empty tile (lock icon): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool tile: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 |    – ps5upload :: /user/data/ps5upload
+WAHL 6 | Tool tile: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake license: UP0000-SLIB00001_00 (game no longer installed) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+== SPIEL /user|CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - game :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - add-on: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+== SPIEL /user|PPSA01325
+WAHL 1 | unknown name (PPSA01325) - game :: /user/app/PPSA01325 | /user/appmeta/PPSA01325 | /system_data/priv/appmeta/PPSA01325 | /user/system/share/PPSA01325
+== SPIEL /user|PPSA01326
+WAHL 1 | ASTRO PLAYROOM (PPSA01326) - game :: /user/app/PPSA01326 | /system_data/priv/appmeta/PPSA01326 | /user/system/share/PPSA01326
+== SPIEL /user|PPSA55555
+WAHL 1 | Real Game (PPSA55555) - game :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555 | /user/download/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Real Game (PPSA55555) - add-on: dlc1 :: /user/addcont/PPSA55555/dlc1
+== SPIEL /user|PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - game :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - add-on: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+== SPIEL /mnt/ext1/user|CUSA09172
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - game :: /mnt/ext1/user/app/CUSA09172 | /user/appmeta/CUSA09172 | /system_data/priv/appmeta/CUSA09172 | /user/system/share/CUSA09172 | /user/license/fakeEP1004-CUSA09172_00.idx | /user/license/fakeEP1004-CUSA09172_00.rif
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04) :: /mnt/ext1/user/patch/CUSA09172
+WAHL 1 | M.2 – L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster :: /mnt/ext1/user/addcont/CUSA09172/LANDLC0001 | /user/appmeta/addcont/CUSA09172/LANDLC0001
+== SPIEL /mnt/ext1/user|PPSA01327
+WAHL 1 | M.2 – ASTRO PLAYROOM (PPSA01327) - game :: /mnt/ext1/user/app/PPSA01327 | /user/appmeta/PPSA01327
+== SPIEL /mnt/ext1/user|PPSA66666
+WAHL 1 | M.2 – M2 Spiel (PPSA66666) - game :: /mnt/ext1/user/app/PPSA66666 | /user/appmeta/PPSA66666 | /system_data/priv/appmeta/PPSA66666
+WAHL 1 | M.2 – M2 Spiel (PPSA66666) - Update :: /mnt/ext1/user/patch/PPSA66666
+== SPIEL /mnt/ext1/user|PPSA77700
+WAHL 1 | M.2 – Testspiel Fünf (PPSA77700) - game :: /mnt/ext1/user/app/PPSA77700
+WAHL 1 | M.2 – Testspiel Fünf (PPSA77700) - Update :: /mnt/ext1/user/patch/PPSA77700
+FEHLERZAHL 0

@@ -1,0 +1,24 @@
+# Schritt 1: dieselben Befehle echt (Kopie A) und als Simulation (Kopie B)
+EXISTIERT /user/app/PPSA44444
+SITE CHMOD 777 /user/app/PPSA44444
+RMDA /user/app/PPSA44444
+EXISTIERT /user/app/PPSA44444
+DELE /user/app/PPSA22222/mount_img.lnk
+DELE /user/app/PPSA22222
+RMD /user/app/PPSA22222/sce_sys
+RMD /user/temp/gls/screenshot
+RMD /user/bgft/trash
+DELE /user/license/act.dat
+DELE /gibtsnicht
+RMDA /gibtsnicht
+SITE CHMOD 777 /gibtsnicht
+STOR /user/data/shadowmount/STOP
+EXISTIERT /user/data/shadowmount/STOP
+DELE /user/data/shadowmount/STOP
+EXISTIERT /user/data/shadowmount/STOP
+RMDA /user/av_contents
+EXISTIERT /user/av_contents/photo
+DELE /user/home/u1/trophy/data/sce_trop
+RMDA /mnt/ext1/homebrew/Game
+RMD /user/download/NPXS40140
+RMD /mnt/ext1/games

@@ -1,0 +1,267 @@
+[18:56:58] Connecting to PS5 (127.0.0.1, Port 2199) ...
+[18:56:58] Connected.
+[18:56:58] FTP server: Unknown (greeting: "mini"), port 2199
+[18:56:58] Data connection: EPSV
+[18:56:58] Model: CFI-2016  Series: PS5 Slim  Firmware: unknown
+[18:56:58] Disc drive: Not queried: could not be read.
+[18:56:58] Scanning what is on it ...
+[18:56:59] WARNING: The Game Compressor is working right now (or was interrupted):
+[18:56:59]    /mnt/ext1/homebrew/.Zwei - PPSA90002.exfat.gc-compress.tmp
+[18:56:59]    /user/data/homebrew/.Spiel Eins - PPSA90001.exfat.gc-compress.tmp
+[18:56:59] The affected game is LOCKED. Let the Game Compressor finish first.
+[18:56:59] 145 entries found. Nothing was changed.
+[18:56:59] === ABLAUF
+[18:56:59] > ABLAUF KOMPLETT
+[18:57:00] DIALOG Full cleanup
+[18:57:00]   | FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:
+[18:57:00]   |    - Games & apps: 48
+[18:57:00]   |    - Saved data: 30
+[18:57:00]   |    - Trophies: 17
+[18:57:00]   |    - Screenshots & videos: 10
+[18:57:00]   |    - Leftovers: 13
+[18:57:00]   |    - Jailbreak & homebrew: 9
+[18:57:00]   | (M.2 and USB storage: you will be asked for each. USB sticks stay untouched.)
+[18:57:00]   | 
+[18:57:00]   | This means:
+[18:57:00]   |  - Saved data without a cloud backup (PS Plus) is gone for good.
+[18:57:00]   |  - Trophies never synced with PSN are gone.
+[18:57:00]   |  - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.
+[18:57:00]   | 
+[18:57:00]   | Kept: system software, disc drive pairing, user account, real licenses, Sony system apps.
+[18:57:00]   | Possible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser): 1 - you will be asked next whether they stay.
+[18:57:00]   KNOPF sicher: Cancel
+[18:57:00]   KNOPF gefährlich: Continue
+[18:57:00]   ANTWORT J
+[18:57:00] DIALOG M.2 SSD
+[18:57:00]   | On the M.2 SSD there are 12 entries (games, folders, files).
+[18:57:00]   | 
+[18:57:00]   | KEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.
+[18:57:00]   | 
+[18:57:00]   | ALSO WIPE: all games and files on it are deleted permanently.
+[18:57:00]   KNOPF sicher: M.2 SSD: keep (recommended)
+[18:57:00]   KNOPF gefährlich: M.2 SSD: also wipe
+[18:57:00]   ANTWORT N
+[18:57:00] DIALOG Jailbreak entries
+[18:57:00]   | Found: 1 possible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser) with their data.
+[18:57:00]   | 
+[18:57:00]   | KEEP: they stay - this jailbreak method keeps working.
+[18:57:00]   | 
+[18:57:00]   | ALSO DELETE: they are deleted too. This jailbreak method only works again once it has been set up again.
+[18:57:00]   KNOPF sicher: Keep (recommended)
+[18:57:00]   KNOPF gefährlich: Also delete
+[18:57:00]   ANTWORT N
+[18:57:00] (Trophy lists stay because games on M.2 or USB stay.)
+[18:57:00] Selected: about 57 KB in 253 files and 266 folders.
+[18:57:00] DIALOG Delete permanently?
+[18:57:00]   | The M.2 SSD stays untouched.
+[18:57:00]   | 
+[18:57:00]   | The jailbreak entries stay.
+[18:57:00]   | 
+[18:57:00]   | Will be deleted PERMANENTLY: 127 entries
+[18:57:00]   |    - Games & apps: 48
+[18:57:00]   |    - Saved data: 30
+[18:57:00]   |    - Trophies: 17
+[18:57:00]   |    - Screenshots & videos: 10
+[18:57:00]   |    - Leftovers: 13
+[18:57:00]   |    - Jailbreak & homebrew: 9
+[18:57:00]   |    of these, ShadowMount games WITH game file: 1
+[18:57:00]   |    (M.2 SSD stays unchanged)
+[18:57:00]   |    Kept (Game Compressor is working on it): 2
+[18:57:00]   | 
+[18:57:00]   | That is about 57 KB in 253 files and 266 folders.
+[18:57:00]   | 
+[18:57:00]   | Not queried: could not be read. The program never touches the pairing.
+[18:57:00]   | Use at your own risk - deleted data is gone for good.
+[18:57:00]   | 
+[18:57:00]   | Type DELETE to confirm (anything else = cancel):
+[18:57:00]   EINGABE
+[18:57:00]   ANTWORT DELETE
+[18:57:00] 
+[18:57:00] Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+[18:57:06]   ShadowMount has stopped.
+[18:57:06] 
+[18:57:06] Deleting ... (large games can take a while)
+[18:57:06]   deleted   Café Crème 0 meta (CUSA10000) - game
+[18:57:06]   deleted   東京ドリフト 5 PS4 (CUSA10185) - game
+[18:57:06]   deleted   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - game
+[18:57:06]   deleted   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - add-on: Erw meta 0
+[18:57:06]   deleted   Ninja's "Zitat" 15 meta (CUSA10555) - game
+[18:57:06]   deleted   Ünïcödé Ärger 20 sys (CUSA10740) - game
+[18:57:06]   deleted   Ünïcödé Ärger 20 sys (CUSA10740) - Update (Version 02.20)
+[18:57:06]   deleted   Bärenhöhle 2 25 PS4 (CUSA10925) - game
+[18:57:06]   deleted   Русская игра 30 meta (CUSA11110) - game
+[18:57:06]   deleted   Ω Omega 35 PS4 (CUSA11295) - game
+[18:57:06]   deleted   12345 (PPSA10074) - game
+[18:57:06]   deleted   12345 (PPSA10074) - Update (Version 02.020)
+[18:57:07]   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - game
+[18:57:07]   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erw meta 0
+[18:57:07]   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erweiterung 1 kaputt
+[18:57:07]   deleted   Ünïcödé Ärger 3 meta (PPSA10111) - add-on: Erw meta 2
+[18:57:07]   deleted   Ninja's "Zitat" 6 meta (PPSA10222) - game
+[18:57:07]   deleted   ASTRO's PLAYROOM (PPSA10259) - game
+[18:57:07]   deleted   Bärenhöhle 2 8 (PPSA10296) - game
+[18:57:07]   deleted   Bärenhöhle 2 8 (PPSA10296) - Update (Version 02.080)
+[18:57:07]   deleted   Ninja's "Zitat" 9 meta (PPSA10333) - game
+[18:57:07]   deleted   Emoji 🎮 Spiel 11 ci (PPSA10407) - game
+[18:57:07]   deleted   Ninja's "Zitat" 12 meta (PPSA10444) - game
+[18:57:07]   deleted   Schräg/Strich 14 BOM (PPSA10518) - game
+[18:57:07]   deleted   Schräg/Strich 14 BOM (PPSA10518) - Update (Version 02.040)
+[18:57:07]   deleted   Caf\u00e9 Cr\u00e8me 16 muell (PPSA10592) - game
+[18:57:07]   deleted   Café Crème 17 (PPSA10629) - game
+[18:57:07]   deleted   Café Crème 17 (PPSA10629) - add-on: Erw meta 0
+[18:57:07]   deleted   Café Crème 17 (PPSA10629) - add-on: Erweiterung 1
+[18:57:07]   deleted   Русская игра 18 meta (PPSA10666) - game
+[18:57:07]   deleted   Tab	im Namen 19 (PPSA10703) - game
+[18:57:07]   deleted   東京ドリフト 21 meta (PPSA10777) - game
+[18:57:07]   deleted   unknown name (PPSA10851) - game
+[18:57:07]   deleted   Русская игра 24 meta (PPSA10888) - game
+[18:57:07]   deleted   Русская игра 24 meta (PPSA10888) - add-on: Erw meta 0
+[18:57:07]   deleted   unknown name (PPSA10962) - game
+[18:57:08]   deleted   unknown name (PPSA10962) - Update (Version 02.060)
+[18:57:08]   deleted   Ω Omega 27 meta (PPSA10999) - game
+[18:57:08]   deleted   unknown name (PPSA11073) - game
+[18:57:08]   deleted   Café Crème 32 (PPSA11184) - game
+[18:57:08]   deleted   Café Crème 32 (PPSA11184) - Update (Version 02.020)
+[18:57:08]   deleted   Weltraum Rennen 33 meta (PPSA11221) - game
+[18:57:08]   deleted   Weltraum Rennen 34 FR (PPSA11258) - game
+[18:57:08]   deleted   SM PPSA90003 (PPSA90003) - ShadowMount: game gone, dead tile
+[18:57:08]   deleted   SM PPSA90004 (PPSA90004) - ShadowMount: game is at /somewhere/else.exfat, only the tile is deleted
+[18:57:08]   deleted   SM PPSA90005 (PPSA90005) - ShadowMount: location unknown, only the tile is deleted
+[18:57:08]   deleted   SM PPSA90006 (PPSA90006) - ShadowMount game on the internal SSD - game + tile
+[18:57:08]   deleted   SM PPSA90007 (PPSA90007) - ShadowMount: drive with the game not found (/mnt/ext1/user/app/x.exfat), only the tile is deleted
+[18:57:08]   deleted   Saved data PPSA10148 (Weltraum Rennen 4 sys)
+[18:57:08]   deleted   Saved data PPSA10259 (ASTRO's PLAYROOM)
+[18:57:08]   deleted   Saved data PPSA10481
+[18:57:08]   deleted   Saved data PPSA11036 (Ünïcödé Ärger 28 Tool)
+[18:57:08]   deleted   Saved data CUSA11110 (Русская игра 30 meta)
+[18:57:08]   deleted   Saved data PPSA10148 (Weltraum Rennen 4 sys)
+[18:57:08]   deleted   Saved data PPSA10296 (Bärenhöhle 2 8)
+[18:57:08]   deleted   Saved data PPSA10444 (Ninja's "Zitat" 12 meta)
+[18:57:08]   deleted   Saved data PPSA10518 (Schräg/Strich 14 BOM)
+[18:57:08]   deleted   Saved data PPSA10666 (Русская игра 18 meta)
+[18:57:08]   deleted   Saved data PPSA10888 (Русская игра 24 meta)
+[18:57:08]   deleted   Saved data PPSA11036 (Ünïcödé Ärger 28 Tool)
+[18:57:08]   deleted   Saved data CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+[18:57:08]   deleted   Saved data CUSA10925 (Bärenhöhle 2 25 PS4)
+[18:57:08]   deleted   Saved data PPSA10037 (Ninja's "Zitat" 1 Tool)
+[18:57:08]   deleted   Saved data PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+[18:57:08]   deleted   Saved data PPSA10703 (Tab	im Namen 19)
+[18:57:08]   deleted   Saved data PPSA10814
+[18:57:08]   deleted   Saved data PPSA11147
+[18:57:08]   deleted   Saved data PPSA11258 (Weltraum Rennen 34 FR)
+[18:57:08]   deleted   Saved data CUSA10000 (Café Crème 0 meta)
+[18:57:08]   deleted   Saved data CUSA10370 (Emoji 🎮 Spiel 10 PS4)
+[18:57:08]   deleted   Saved data CUSA10740 (Ünïcödé Ärger 20 sys)
+[18:57:08]   deleted   Saved data PPSA10074 (12345)
+[18:57:08]   deleted   Saved data PPSA10222 (Ninja's "Zitat" 6 meta)
+[18:57:09]   deleted   Saved data PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)
+[18:57:09]   deleted   Saved data PPSA10814
+[18:57:09]   deleted   Saved data PPSA10962
+[18:57:09]   deleted   Saved data PPSA11184 (Café Crème 32)
+[18:57:09]   deleted   Saved data PPSA11258 (Weltraum Rennen 34 FR)
+[18:57:09]   deleted   Trophy progress: NPWR31000_00 (PS4 game) - game no longer on the console
+[18:57:09]   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+[18:57:09]   deleted   Trophy progress: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+[18:57:09]   deleted   Trophy progress: 東京ドリフト 5 PS4 (NPWR30005_00)
+[18:57:09]   deleted   Trophy progress: Galerie Spiel Neun (NPWR39999_00) - game no longer on the console
+[18:57:09]   deleted   Trophy data trophy2/conf.dat
+[18:57:09]   deleted   Trophy data trophy2/nobackup/other.dat
+[18:57:09]   deleted   Trophy progress: NPWR31000_00 (PS4 game) - game no longer on the console
+[18:57:09]   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+[18:57:09]   deleted   Trophy progress: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+[18:57:09]   deleted   Trophy progress: 東京ドリフト 5 PS4 (NPWR30005_00)
+[18:57:09]   deleted   Trophy progress: Galerie Spiel Neun (NPWR39999_00) - game no longer on the console
+[18:57:09]   deleted   Trophy data trophy2/conf.dat
+[18:57:09]   deleted   Trophy data trophy2/nobackup/other.dat
+[18:57:09]   deleted   Trophy list: NPWR20188_00 - game removed, can go (names/images, not your progress)
+[18:57:09]   deleted   Trophy list: NPWR31000_00 - game removed, can go (names/images, not your progress)
+[18:57:09]   deleted   Trophy list: Galerie Spiel Neun (NPWR39999_00) - game removed, can go (names/images, not your progress)
+[18:57:09]   deleted   Captures of Café Crème 0 meta (CUSA10000): 5 Screenshots, 2 Videos
+[18:57:09]   deleted   Captures of CUSA77777 (game no longer on the console): 5 Screenshots
+[18:57:09]   deleted   Captures of System menu (NPXS40140): 5 Screenshots
+[18:57:09]   deleted   Captures of Weltraum Rennen 4 sys (PPSA10148): 5 Screenshots
+[18:57:09]   deleted   Captures of Galerie Spiel Neun (PPSA99001, game no longer on the console): 5 Screenshots
+[18:57:09]   deleted   Thumbnails without capture (1) - leftovers
+[18:57:09]   deleted   Unfinished capture of Ninja's "Zitat" 1 Tool (PPSA10037) (1 file)
+[18:57:09]   deleted   Empty capture temp folders (1) - leftovers
+[18:57:09]   deleted   Other gallery data: extra/PPSA10111 (Ünïcödé Ärger 3 meta)
+[18:57:09]   deleted   Other gallery data: sdr/abc
+[18:57:09]   deleted   App data without installed app: PPSA44400
+[18:57:09]   deleted   Update without game: PPSA44401
+[18:57:09]   deleted   Add-on: PPSA44402
+[18:57:09]   deleted   Add-on info: PPSA44403
+[18:57:09]   deleted   Leftover from an earlier cleanup: /user/_zu_loeschen_7
+[18:57:09]   deleted   Leftovers: Rest Spiel (PPSA44404)
+[18:57:10]   deleted   Leftovers: removed game (PPSA44405)
+[18:57:10]   deleted   Store image cache (2, re-downloaded by the PS5)
+[18:57:10]   deleted   Temporary files (3)
+[18:57:10]   deleted   Error reports (1)
+[18:57:10]   deleted   Info on games on USB drives (1, recreated by the PS5)
+[18:57:10]   deleted   Empty tile (lock icon): Schloss (PPSA44406)
+[18:57:10]   deleted   Add-on info: PPSA44408
+[18:57:10]   deleted   Tool tile: Ninja's "Zitat" 1 Tool (PPSA10037)
+[18:57:10]   deleted   Tool tile: Ünïcödé Ärger 28 Tool (PPSA11036)
+[18:57:10]   deleted   etaHEN
+[18:57:10]   deleted   homebrew/anderes.bin
+[18:57:10]   deleted   homebrew/sub/tief/nachbar.txt
+[18:57:10]   deleted   ps5upload
+[18:57:10]   deleted   shadowmount
+[18:57:10]   deleted   Fake license: EP0000-PPSA44409 (game no longer installed)
+[18:57:10]   deleted   Fake license: UP9999-XYZ (game no longer installed)
+[18:57:10]   deleted   empty folder /user/data/homebrew/sub/tief
+[18:57:10]   deleted   empty folder /user/data/homebrew/sub
+[18:57:10]   deleted   empty folder /user/addcont/CUSA10370
+[18:57:10]   deleted   empty folder /user/appmeta/addcont/CUSA10370
+[18:57:10]   deleted   empty folder /user/addcont/PPSA10111
+[18:57:10]   deleted   empty folder /user/appmeta/addcont/PPSA10111
+[18:57:10]   deleted   empty folder /user/addcont/PPSA10629
+[18:57:10]   deleted   empty folder /user/appmeta/addcont/PPSA10629
+[18:57:10]   deleted   empty folder /user/addcont/PPSA10888
+[18:57:10]   deleted   empty folder /user/appmeta/addcont/PPSA10888
+[18:57:10] 
+[18:57:10] Done - everything selected has been deleted.
+[18:57:10] Freed: 57 KB in 253 files and 266 folders
+[18:57:10] Not queried: could not be read. The program never touches the pairing.
+[18:57:10] ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.
+[18:57:10] Last step on the PS5 so it re-reads everything cleanly:
+[18:57:10] 1. Turn off the PS5.
+[18:57:10] 2. Hold the power button until it beeps a second time.
+[18:57:10] 3. Connect the controller via USB and choose 'Rebuild Database'.
+[18:57:10] Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!
+[18:57:10] FERTIG Done - everything selected has been deleted.
+[18:57:10]   frei: Freed: 57 KB in 253 files and 266 folders
+[18:57:10]   sm:
+[18:57:10]   | ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.
+[18:57:10]   schritt: Last step on the PS5 so it re-reads everything cleanly:
+[18:57:10]   1. Turn off the PS5.
+[18:57:10]   2. Hold the power button until it beeps a second time.
+[18:57:10]   3. Connect the controller via USB and choose 'Rebuild Database'.
+[18:57:10]   wichtig: Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!
+[18:57:10] > ABLAUF ENDE verbunden=True
+[18:57:10] > ZEIGE
+[18:57:11] KOPF [1] Games & apps   (9 entries · 5 KB)
+[18:57:11]   [ ] SM PPSA90001 (PPSA90001) - ShadowMount game on the internal SSD  [LOCKED: Game Compressor is working on it]   427 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+[18:57:11]   [ ] M.2 – SM PPSA90002 (PPSA90002) - ShadowMount game  [LOCKED: Game Compressor is working on it]   425 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+[18:57:11]   [ ] M.2 – unknown name (PPSA10074) - game   171 bytes
+[18:57:11]   [ ] M.2 – unknown name (PPSA10074) - Update (Version 03.000)   28 bytes
+[18:57:11]   [ ] M.2 – Weltraum Rennen 4 sys (PPSA10148) - game   1 KB
+[18:57:11]   [ ] M.2 – unknown name (PPSA10481) - game   320 bytes
+[18:57:11]   [ ] M.2 – unknown name (PPSA10814) - game   2 KB
+[18:57:11]   [ ] M.2 – unknown name (PPSA11147) - game   409 bytes
+[18:57:11]   [ ] M.2 – unknown name (PPSA11147) - add-on: Erw meta 0   251 bytes
+[18:57:11] KOPF [3] Trophies   (3 entries · 6 bytes)
+[18:57:11]   [ ] Trophy list: NPWR30001_00 - game removed, can go (names/images, not your progress)   2 bytes
+[18:57:11]   [ ] Trophy list: NPWR30005_00 - game removed, can go (names/images, not your progress)   2 bytes
+[18:57:11]   [ ] Trophy list: NPWR30009_00 - game removed, can go (names/images, not your progress)   2 bytes
+[18:57:11] KOPF [5] Leftovers   (6 entries · 104 bytes)
+[18:57:11]   [ ] Share settings of old games (1)   1 bytes
+[18:57:11]   [ ] M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_2   1 bytes
+[18:57:11]   [ ] M.2 – datei.bin   1 bytes
+[18:57:11]   [ ] M.2 – games/a.iso   100 bytes
+[18:57:11]   [ ] M.2 – games/sub   1 bytes
+[18:57:11]   [ ] M.2 – leer  (empty folder)   0 bytes
+[18:57:11] KOPF [6] Jailbreak & homebrew   (1 entries · 1 bytes)
+[18:57:11]   [ ] Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)  [jailbreak entry - individually only]   1 bytes  {Belongs to the jailbreak: WebKit jailbreak (browser). Can only be selected individually. If it is deleted, this jailbreak only works again once it has been set up again. The full cleanup asks whether it stays.}
+[18:57:11] STAND Nothing selected.
+[18:57:11] ENDE fehler=0
+[18:57:11] End.

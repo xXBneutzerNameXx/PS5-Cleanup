@@ -1,0 +1,9 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount reagiert nicht (evtl. älter als 1.7), aber Spiele sind eingebunden.
+LOG: 
+LOG:  ShadowMount konnte nicht sicher angehalten werden. Läuft es noch, können
+LOG:  eingebundene Spieldaten beim Löschen beschädigt werden.
+ERG Fall=aus_mount gefragt=True weg=False abgebrochen=True Grund=ShadowMount reagiert nicht (evtl. älter als 1.7), aber Spiele sind eingebunden.
+OK   Fall aus_mount: Rückfrage kommt
+OK   Fall aus_mount: nichts gelöscht
+FEHLERZAHL 0

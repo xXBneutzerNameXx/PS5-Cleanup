@@ -1,0 +1,6 @@
+# Nur Auswahl: eine M.2-Datei, M.2-Frage "Abbrechen"
+MODELL CFI-2016
+WAEHLE TEXT M.2 – homebrew/anderes.txt
+ABLAUF AUSWAHL
+ANTWORT N
+ZEIGE

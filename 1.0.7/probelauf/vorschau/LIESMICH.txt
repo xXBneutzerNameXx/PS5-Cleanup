@@ -1,0 +1,6 @@
+PC-Vorschau des Probelaufs (nur zum Prüfen des Bildes, läuft nicht auf der PS5)
+- vorschau.c bindet probelauf.c ein, ersetzt die PS5-Abfragen durch feste Testwerte
+  (CFI-7021 B01Y, 12.00) und speichert zwei Bilder: ohne Controller / mit gedrückten Tasten.
+- Gebaut mit SDL2 2.30 (Linux, Videotreiber "offscreen"):
+  gcc -I<sdl2>/include vorschau.c -L<sdl2>/lib -lSDL2 -lm -lpthread -ldl -o vorschau
+  SDL_VIDEODRIVER=offscreen ./vorschau

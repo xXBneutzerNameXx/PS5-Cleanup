@@ -1,0 +1,12 @@
+# Nur Auswahl: Bereich 2, ShadowMount-Spiel (nur Kachel), M.2-Datei, Spiel mit Update/DLC -> löschen
+MODELL CFI-2016
+WAEHLE BEREICH 2
+WAEHLE TEXT M.2 – Spiel PPSA22222
+WAEHLE TEXT M.2 – games/x.iso
+WAEHLE TEXT Echtes Spiel (PPSA55555) - Spiel|Real Game (PPSA55555) - game
+ZEIGE
+ABLAUF AUSWAHL
+ANTWORT N
+ANTWORT J
+ANTWORT J
+ZEIGE

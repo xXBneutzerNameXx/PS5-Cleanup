@@ -1,0 +1,149 @@
+[18:42:54] Connecting to PS5 (127.0.0.1, Port 2199) ...
+[18:42:54] Connected.
+[18:42:54] FTP server: Unknown (greeting: "mini"), port 2199
+[18:42:54] Data connection: EPSV
+[18:42:54] Model: CFI-2016  Series: PS5 Slim  Firmware: unknown
+[18:42:54] Disc drive: Not queried: could not be read.
+[18:42:54] Scanning what is on it ...
+[18:42:55] WARNING: The Game Compressor is working right now (or was interrupted):
+[18:42:55]    /mnt/ext1/homebrew/.Game A - PPSA11111.exfat.gc-compress.tmp
+[18:42:55] The affected game is LOCKED. Let the Game Compressor finish first.
+[18:42:55] 60 entries found. Nothing was changed.
+[18:42:55] === ABLAUF
+[18:42:55] > ABLAUF KOMPLETT
+[18:42:55] DIALOG Full cleanup
+[18:42:55]   | FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:
+[18:42:55]   |    - Games & apps: 14
+[18:42:55]   |    - Saved data: 3
+[18:42:55]   |    - Trophies: 5
+[18:42:55]   |    - Screenshots & videos: 5
+[18:42:55]   |    - Leftovers: 8
+[18:42:55]   |    - Jailbreak & homebrew: 6
+[18:42:55]   | (M.2 and USB storage: you will be asked for each. USB sticks stay untouched.)
+[18:42:55]   | 
+[18:42:55]   | This means:
+[18:42:55]   |  - Saved data without a cloud backup (PS Plus) is gone for good.
+[18:42:55]   |  - Trophies never synced with PSN are gone.
+[18:42:55]   |  - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.
+[18:42:55]   | 
+[18:42:55]   | Kept: system software, disc drive pairing, user account, real licenses, Sony system apps.
+[18:42:55]   | Possible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser): 1 - you will be asked next whether they stay.
+[18:42:55]   KNOPF sicher: Cancel
+[18:42:55]   KNOPF gefährlich: Continue
+[18:42:55]   ANTWORT J
+[18:42:55] DIALOG M.2 SSD
+[18:42:55]   | On the M.2 SSD there are 14 entries (games, folders, files).
+[18:42:55]   | 
+[18:42:55]   | KEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.
+[18:42:55]   | 
+[18:42:55]   | ALSO WIPE: all games and files on it are deleted permanently.
+[18:42:55]   KNOPF sicher: M.2 SSD: keep (recommended)
+[18:42:55]   KNOPF gefährlich: M.2 SSD: also wipe
+[18:42:55]   ANTWORT N
+[18:42:55] DIALOG Jailbreak entries
+[18:42:55]   | Found: 1 possible jailbreak entries (YouTube, Netflix, Lua games, PS2 saves, browser) with their data.
+[18:42:55]   | 
+[18:42:55]   | KEEP: they stay - this jailbreak method keeps working.
+[18:42:55]   | 
+[18:42:55]   | ALSO DELETE: they are deleted too. This jailbreak method only works again once it has been set up again.
+[18:42:55]   KNOPF sicher: Keep (recommended)
+[18:42:55]   KNOPF gefährlich: Also delete
+[18:42:55]   ANTWORT N
+[18:42:55] (Trophy lists stay because games on M.2 or USB stay.)
+[18:42:55] Selected: about 2 KB in 73 files and 81 folders.
+[18:42:56] DIALOG Delete permanently?
+[18:42:56]   | The M.2 SSD stays untouched.
+[18:42:56]   | 
+[18:42:56]   | The jailbreak entries stay.
+[18:42:56]   | 
+[18:42:56]   | Will be deleted PERMANENTLY: 43 entries
+[18:42:56]   |    - Games & apps: 16
+[18:42:56]   |    - Saved data: 3
+[18:42:56]   |    - Trophies: 5
+[18:42:56]   |    - Screenshots & videos: 5
+[18:42:56]   |    - Leftovers: 8
+[18:42:56]   |    - Jailbreak & homebrew: 6
+[18:42:56]   |    of these, ShadowMount games WITH game file: 1
+[18:42:56]   |    (M.2 SSD stays unchanged)
+[18:42:56]   |    Kept (Game Compressor is working on it): 1
+[18:42:56]   | 
+[18:42:56]   | That is about 2 KB in 73 files and 81 folders.
+[18:42:56]   | 
+[18:42:56]   | Not queried: could not be read. The program never touches the pairing.
+[18:42:56]   | Use at your own risk - deleted data is gone for good.
+[18:42:56]   | 
+[18:42:56]   | Type DELETE to confirm (anything else = cancel):
+[18:42:56]   EINGABE
+[18:42:56]   ANTWORT loeschen
+[18:42:56] Cancelled - nothing changed.
+[18:42:56] > ABLAUF ENDE verbunden=True
+[18:42:56] > ZEIGE
+[18:42:56] KOPF [1] Games & apps   (25 entries · 2 KB)
+[18:42:56]   [ ] Altes Spiel (CUSA12345) - game   126 bytes
+[18:42:56]   [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 bytes
+[18:42:56]   [ ] Altes Spiel (CUSA12345) - add-on: Die Erweiterung   62 bytes
+[18:42:56]   [ ] unknown name (PPSA01325) - game   23 bytes
+[18:42:56]   [ ] ASTRO PLAYROOM (PPSA01326) - game   151 bytes
+[18:42:56]   [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD   179 bytes
+[18:42:56]   [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile   140 bytes  {ShadowMount: if the game is deleted, its tile disappears from the menu too.}
+[18:42:56]   [ ] Real Game (PPSA55555) - game   116 bytes
+[18:42:56]   [ ] Real Game (PPSA55555) - Update   0 bytes
+[18:42:56]   [ ] Real Game (PPSA55555) - add-on: dlc1   0 bytes
+[18:42:56]   [ ] Testspiel Fünf (PPSA77700) - game   2 bytes
+[18:42:56]   [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 bytes
+[18:42:56]   [ ] Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1   2 bytes
+[18:42:56]   [ ] Testspiel Fünf (PPSA77700) - add-on: Bonus Cars   2 bytes
+[18:42:56]   [ ] M.2 – Spiel PPSA11111 (PPSA11111) - ShadowMount game  [LOCKED: Game Compressor is working on it]   155 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+[18:42:56]   [ ] M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game   131 bytes
+[18:42:56]   [ ] M.2 – Top Game (PPSA99999) - ShadowMount game   131 bytes
+[18:42:56]   [ ] M.2 – L.A. Noire (CUSA09172) - game   130 bytes
+[18:42:56]   [ ] M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04)   2 bytes
+[18:42:56]   [ ] M.2 – L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster   86 bytes
+[18:42:56]   [ ] M.2 – ASTRO PLAYROOM (PPSA01327) - game   67 bytes
+[18:42:56]   [ ] M.2 – M2 Spiel (PPSA66666) - game   25 bytes
+[18:42:56]   [ ] M.2 – M2 Spiel (PPSA66666) - Update   0 bytes
+[18:42:56]   [ ] M.2 – Testspiel Fünf (PPSA77700) - game   2 bytes
+[18:42:56]   [ ] M.2 – Testspiel Fünf (PPSA77700) - Update   2 bytes
+[18:42:56] KOPF [2] Saved data   (3 entries · 4 bytes)
+[18:42:56]   [ ] Saved data PPSA01326 (ASTRO PLAYROOM)   2 bytes
+[18:42:56]   [ ] Saved data PPSA01327 (ASTRO PLAYROOM)   2 bytes
+[18:42:56]   [ ] Saved data PPSA55555 (Real Game)   0 bytes
+[18:42:56] KOPF [3] Trophies   (8 entries · 20 bytes)
+[18:42:56]   [ ] Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console   2 bytes
+[18:42:56]   [ ] Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)   2 bytes
+[18:42:56]   [ ] Trophy progress: NPWR20188_00   2 bytes
+[18:42:56]   [ ] Trophy progress: Real Game (NPWR30405_00)   2 bytes
+[18:42:56]   [ ] Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress)   2 bytes
+[18:42:56]   [ ] Trophy list: NPWR20188_00 - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+[18:42:56]   [ ] Trophy list: ASTRO PLAYROOM (NPWR20189_00) - game still installed, delete only with the game (names/images, not your progress)   2 bytes  (gelb)
+[18:42:56]   [ ] Trophy list: Real Game (NPWR30405_00) - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+[18:42:56] KOPF [4] Screenshots & videos   (5 entries · 137 bytes)
+[18:42:56]   [ ] Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot   115 bytes
+[18:42:56]   [ ] Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video   18 bytes
+[18:42:56]   [ ] Thumbnails without capture (1) - leftovers   2 bytes
+[18:42:56]   [ ] Unfinished capture of Real Game (PPSA55555) (1 file)   2 bytes
+[18:42:56]   [ ] Empty capture temp folders (1) - leftovers   0 bytes
+[18:42:56] KOPF [5] Leftovers   (10 entries · 116 bytes)
+[18:42:56]   [ ] Update without game: PPSA77777   0 bytes
+[18:42:56]   [ ] Leftovers: Altes Spiel (PPSA88888)   28 bytes
+[18:42:56]   [ ] Share settings of old games (2)   4 bytes
+[18:42:56]   [ ] Store image cache (1, re-downloaded by the PS5)   2 bytes
+[18:42:56]   [ ] Temporary files (2)   4 bytes
+[18:42:56]   [ ] Error reports (3)   9 bytes
+[18:42:56]   [ ] Info on games on USB drives (1, recreated by the PS5)   2 bytes
+[18:42:56]   [ ] Empty tile (lock icon): Geisterspiel (PPSA12121)   63 bytes
+[18:42:56]   [ ] M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1   2 bytes
+[18:42:56]   [ ] M.2 – games/x.iso   2 bytes
+[18:42:56] KOPF [6] Jailbreak & homebrew   (9 entries · 294 bytes)
+[18:42:56]   [ ] Tool tile: PS5Upload Minion (PSUP00001)   158 bytes
+[18:42:56]   [ ]    – ps5upload   2 bytes
+[18:42:56]   [ ] Tool tile: Mein Tool (TOOL00001)   122 bytes
+[18:42:56]   [ ] .kstuff_noautomount   2 bytes
+[18:42:56]   [ ] shadowmount   2 bytes
+[18:42:56]   [ ] Fake license: UP0000-SLIB00001_00 (game no longer installed)   4 bytes
+[18:42:56]   [ ] Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)  [jailbreak entry - individually only]   2 bytes  {Belongs to the jailbreak: WebKit jailbreak (browser). Can only be selected individually. If it is deleted, this jailbreak only works again once it has been set up again. The full cleanup asks whether it stays.}
+[18:42:56]   [ ] M.2 – homebrew/anderes.txt   2 bytes
+[18:42:56]   [ ] M.2 – homebrew/sub   0 bytes
+[18:42:56] STAND Nothing selected.
+[18:42:56] ENDE fehler=0
+[18:42:56] End.

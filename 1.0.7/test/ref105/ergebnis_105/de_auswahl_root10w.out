@@ -1,0 +1,215 @@
+== KOMPLETT
+WAHL 1 | Altes Spiel (CUSA12345) - Spiel :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2 - nur Kachel, Spiel bleibt :: /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Echtes Spiel (PPSA55555) - Spiel :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Sym Spiel (PPSA55556) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/hb/Sym Game.exfat | /user/app/PPSA55556
+WAHL 1 | Testspiel Fünf (PPSA77700) - Spiel :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2 - nur Kachel, Spiel bleibt :: /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Spielstand PPSA55555 (Echtes Spiel) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Vorschaubilder ohne Aufnahme (1) - Reste :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Leere Aufnahme-Zwischenordner (1) - Reste :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Download: PPSA55555 (Echtes Spiel) :: /user/download/PPSA55555
+WAHL 5 | Update ohne Spiel: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Reste: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share-Einstellungen alter Spiele (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store-Bildercache (1, lädt die PS5 neu) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporäre Dateien (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Fehlerberichte (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Leere Kachel (Schloss): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool-Kachel: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 | Tool-Kachel: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | hb  (Verknüpfung, nur sie wird gelöscht) :: /user/data/hb
+WAHL 6 | homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit] :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 6 | ps5upload :: /user/data/ps5upload
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+WAHL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) :: /user/home/u1/webkit/shell/local
+== KOMPLETT_M2
+WAHL 1 | Altes Spiel (CUSA12345) - Spiel :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2 - Spiel + Kachel (über Bereich 7) :: /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Echtes Spiel (PPSA55555) - Spiel :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Sym Spiel (PPSA55556) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/hb/Sym Game.exfat | /user/app/PPSA55556
+WAHL 1 | Testspiel Fünf (PPSA77700) - Spiel :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2 - Spiel + Kachel (über Bereich 7) :: /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Spielstand PPSA55555 (Echtes Spiel) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) :: /user/trophy/conf/NPWR16560_00
+WAHL 3 | Trophäen-Liste: Echtes Spiel (NPWR30405_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt) :: /user/trophy2/nobackup/conf/NPWR30405_00 | /user/np_uds/nobackup/conf/NPWR30405_00
+WAHL 4 | Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Vorschaubilder ohne Aufnahme (1) - Reste :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Leere Aufnahme-Zwischenordner (1) - Reste :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Download: PPSA55555 (Echtes Spiel) :: /user/download/PPSA55555
+WAHL 5 | Update ohne Spiel: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Reste: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share-Einstellungen alter Spiele (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store-Bildercache (1, lädt die PS5 neu) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporäre Dateien (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Fehlerberichte (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Leere Kachel (Schloss): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool-Kachel: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 | Tool-Kachel: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | hb  (Verknüpfung, nur sie wird gelöscht) :: /user/data/hb
+WAHL 6 | homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit] :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 6 | ps5upload :: /user/data/ps5upload
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+WAHL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) :: /user/home/u1/webkit/shell/local
+WAHL 7 | Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_1 :: /mnt/ext1/_zu_loeschen_1
+WAHL 7 | L.A. Noire (CUSA09172) - Spiel :: /mnt/ext1/user/app/CUSA09172 | /user/appmeta/CUSA09172 | /system_data/priv/appmeta/CUSA09172 | /user/system/share/CUSA09172 | /user/license/fakeEP1004-CUSA09172_00.idx | /user/license/fakeEP1004-CUSA09172_00.rif
+WAHL 7 | L.A. Noire (CUSA09172) - Update (Version 01.04) :: /mnt/ext1/user/patch/CUSA09172
+WAHL 7 | L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster :: /mnt/ext1/user/addcont/CUSA09172/LANDLC0001 | /user/appmeta/addcont/CUSA09172/LANDLC0001
+WAHL 7 | M2 Spiel (PPSA66666) - Spiel :: /mnt/ext1/user/app/PPSA66666 | /user/appmeta/PPSA66666 | /system_data/priv/appmeta/PPSA66666
+WAHL 7 | M2 Spiel (PPSA66666) - Update :: /mnt/ext1/user/patch/PPSA66666
+WAHL 7 | Testspiel Fünf (PPSA77700) - Spiel :: /mnt/ext1/user/app/PPSA77700
+WAHL 7 | Testspiel Fünf (PPSA77700) - Update :: /mnt/ext1/user/patch/PPSA77700
+WAHL 7 | Top Game - PPSA99999.exfat  [Spiel: Top Game (PPSA99999), Kachel geht mit] :: /mnt/ext1/Top Game - PPSA99999.exfat | /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 7 | games/x.iso :: /mnt/ext1/games/x.iso
+WAHL 7 | homebrew/Game B - PPSA22222  [Spiel: Spiel PPSA22222 (PPSA22222), Kachel geht mit] :: /mnt/ext1/homebrew/Game B - PPSA22222 | /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 7 | homebrew/Sym Game.exfat :: /mnt/ext1/homebrew/Sym Game.exfat
+WAHL 7 | homebrew/anderes.txt :: /mnt/ext1/homebrew/anderes.txt
+WAHL 7 | homebrew/sub :: /mnt/ext1/homebrew/sub
+== KOMPLETT_SM_NUR_KACHEL
+WAHL 1 | Altes Spiel (CUSA12345) - Spiel :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2 - nur Kachel, Spiel bleibt :: /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - nur Kachel, Spiel bleibt :: /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Echtes Spiel (PPSA55555) - Spiel :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Sym Spiel (PPSA55556) - ShadowMount-Spiel auf der internen SSD - nur Kachel, Spiel bleibt :: /user/app/PPSA55556
+WAHL 1 | Testspiel Fünf (PPSA77700) - Spiel :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2 - nur Kachel, Spiel bleibt :: /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Spielstand PPSA55555 (Echtes Spiel) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Vorschaubilder ohne Aufnahme (1) - Reste :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Leere Aufnahme-Zwischenordner (1) - Reste :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Download: PPSA55555 (Echtes Spiel) :: /user/download/PPSA55555
+WAHL 5 | Update ohne Spiel: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Reste: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share-Einstellungen alter Spiele (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store-Bildercache (1, lädt die PS5 neu) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporäre Dateien (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Fehlerberichte (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Leere Kachel (Schloss): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool-Kachel: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 | Tool-Kachel: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | hb  (Verknüpfung, nur sie wird gelöscht) :: /user/data/hb
+WAHL 6 | homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit] :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 6 | ps5upload :: /user/data/ps5upload
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+WAHL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) :: /user/home/u1/webkit/shell/local
+== KOMPLETT_SM_MIT_SPIEL
+WAHL 1 | Altes Spiel (CUSA12345) - Spiel :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+WAHL 1 | Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel auf der M.2 - Spiel + Kachel :: /mnt/ext1/homebrew/Game B - PPSA22222 | /user/app/PPSA22222 | /user/appmeta/PPSA22222 | /system_data/priv/appmeta/PPSA22222
+WAHL 1 | Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 1 | Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel :: /user/app/PPSA44444 | /user/appmeta/PPSA44444
+WAHL 1 | Echtes Spiel (PPSA55555) - Spiel :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1 :: /user/addcont/PPSA55555/dlc1
+WAHL 1 | Sym Spiel (PPSA55556) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel :: /user/data/hb/Sym Game.exfat | /user/app/PPSA55556
+WAHL 1 | Testspiel Fünf (PPSA77700) - Spiel :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+WAHL 1 | Top Game (PPSA99999) - ShadowMount-Spiel auf der M.2 - Spiel + Kachel :: /mnt/ext1/Top Game - PPSA99999.exfat | /user/app/PPSA99999 | /user/appmeta/PPSA99999
+WAHL 2 | Spielstand PPSA55555 (Echtes Spiel) :: /user/home/u1/savedata_prospero/PPSA55555
+WAHL 3 | Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole :: /user/home/u1/trophy/data/NPWR16560_00
+WAHL 3 | Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf) :: /user/home/u1/trophy/data/sce_trop
+WAHL 3 | Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00) :: /user/home/u1/trophy2/nobackup/data/NPWR30405_00
+WAHL 3 | Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt) :: /user/trophy/conf/NPWR16560_00
+WAHL 4 | Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot :: /user/av_contents/photo/NPXS40087/CUSA00003
+WAHL 4 | Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video :: /user/av_contents/photo/NPXS40087/PPSA55555 | /user/av_contents/video/NPXS40087/PPSA55555 | /user/av_contents/thumbnails/photo/NPXS40087/PPSA55555
+WAHL 4 | Vorschaubilder ohne Aufnahme (1) - Reste :: /user/av_contents/thumbnails/video/NPXS40087/PPSA12121
+WAHL 4 | Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei) :: /user/av_contents/content_tmp/PPSA55555
+WAHL 4 | Leere Aufnahme-Zwischenordner (1) - Reste :: /user/av_contents/content_tmp/NPXS40140
+WAHL 5 | Download: PPSA55555 (Echtes Spiel) :: /user/download/PPSA55555
+WAHL 5 | Update ohne Spiel: PPSA77777 :: /user/patch/PPSA77777
+WAHL 5 | Reste: Altes Spiel (PPSA88888) :: /user/appmeta/PPSA88888
+WAHL 5 | Share-Einstellungen alter Spiele (2) :: /user/system/share/CUSA00003 | /user/system/share/PPSA30803
+WAHL 5 | Store-Bildercache (1, lädt die PS5 neu) :: /user/catalog_downloader/conceptmeta/209441
+WAHL 5 | Temporäre Dateien (2) :: /user/bgft/trash/old.bin | /user/temp/gls/screenshot/s.png
+WAHL 5 | Fehlerberichte (3) :: /system_data/priv/error/history/00000130.json | /system_data/priv/error/history/00000131.json | /system_data/priv/error/history/00000132.json
+WAHL 5 | Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an) :: /system_data/priv/appmeta/external/CUSA04301
+WAHL 5 | Leere Kachel (Schloss): Geisterspiel (PPSA12121) :: /system_data/priv/appmeta/PPSA12121
+WAHL 6 | Tool-Kachel: PS5Upload Minion (PSUP00001) :: /user/app/PSUP00001
+WAHL 6 | Tool-Kachel: Mein Tool (TOOL00001) :: /user/app/TOOL00001 | /system_data/priv/appmeta/TOOL00001
+WAHL 6 | .kstuff_noautomount :: /user/data/.kstuff_noautomount
+WAHL 6 | hb  (Verknüpfung, nur sie wird gelöscht) :: /user/data/hb
+WAHL 6 | homebrew/Game C - PPSA33333.exfat  [Spiel: Spiel PPSA33333 (PPSA33333), Kachel geht mit] :: /user/data/homebrew/Game C - PPSA33333.exfat | /user/app/PPSA33333 | /user/appmeta/PPSA33333
+WAHL 6 | ps5upload :: /user/data/ps5upload
+WAHL 6 | shadowmount :: /user/data/shadowmount
+WAHL 6 | Fake-Lizenz: UP0000-SLIB00001_00 (Spiel nicht mehr installiert) :: /user/license/fakeUP0000-SLIB00001_00.idx | /user/license/fakeUP0000-SLIB00001_00.rif
+WAHL 6 | Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak) :: /user/home/u1/webkit/shell/local
+== SPIEL /user|CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Spiel :: /user/app/CUSA12345 | /user/appmeta/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Update (Version 01.09) :: /user/patch/CUSA12345
+WAHL 1 | Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung :: /user/addcont/CUSA12345/BDLC0001
+== SPIEL /user|PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Spiel :: /user/app/PPSA55555 | /user/appmeta/PPSA55555 | /system_data/priv/appmeta/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Update :: /user/patch/PPSA55555
+WAHL 1 | Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1 :: /user/addcont/PPSA55555/dlc1
+== SPIEL /user|PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Spiel :: /user/app/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) :: /user/patch/PPSA77700
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1 :: /user/addcont/PPSA77700/DLC1
+WAHL 1 | Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars :: /user/addcont/PPSA77700/DLC2
+== SPIEL /mnt/ext1/user|CUSA09172
+WAHL 7 | L.A. Noire (CUSA09172) - Spiel :: /mnt/ext1/user/app/CUSA09172 | /user/appmeta/CUSA09172 | /system_data/priv/appmeta/CUSA09172 | /user/system/share/CUSA09172 | /user/license/fakeEP1004-CUSA09172_00.idx | /user/license/fakeEP1004-CUSA09172_00.rif
+WAHL 7 | L.A. Noire (CUSA09172) - Update (Version 01.04) :: /mnt/ext1/user/patch/CUSA09172
+WAHL 7 | L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster :: /mnt/ext1/user/addcont/CUSA09172/LANDLC0001 | /user/appmeta/addcont/CUSA09172/LANDLC0001
+== SPIEL /mnt/ext1/user|PPSA66666
+WAHL 7 | M2 Spiel (PPSA66666) - Spiel :: /mnt/ext1/user/app/PPSA66666 | /user/appmeta/PPSA66666 | /system_data/priv/appmeta/PPSA66666
+WAHL 7 | M2 Spiel (PPSA66666) - Update :: /mnt/ext1/user/patch/PPSA66666
+== SPIEL /mnt/ext1/user|PPSA77700
+WAHL 7 | Testspiel Fünf (PPSA77700) - Spiel :: /mnt/ext1/user/app/PPSA77700
+WAHL 7 | Testspiel Fünf (PPSA77700) - Update :: /mnt/ext1/user/patch/PPSA77700
+FEHLERZAHL 0

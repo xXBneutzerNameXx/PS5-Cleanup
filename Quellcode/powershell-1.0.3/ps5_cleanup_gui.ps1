@@ -678,7 +678,7 @@ if ($SelbstTest) {
         try {
             $script:tbLeer.Visibility = 'Collapsed'
             $script:tbInfo.Text = 'Modell: CFI-7021 B01Y   |   Reihe: PS5 Pro   |   Firmware: 12.00   |   Laufwerk ist mit DIESER Konsole gekoppelt.'
-            $script:tbIp.Text = '192.168.50.78'
+            $script:tbIp.Text = '192.168.1.50'
             Zeige-Bereiche
             Log 'Selbsttest: Fenster aufgebaut.'; Log 'Verbunden.'; Log '14 Einträge gefunden. Nichts wurde verändert.'
             & $schreib "Fenster aufgebaut: $($script:spBereiche.Children.Count) Bereiche, $($script:Kaestchen.Count) Einträge"

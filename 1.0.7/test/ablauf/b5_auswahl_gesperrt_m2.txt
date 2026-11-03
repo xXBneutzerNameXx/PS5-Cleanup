@@ -1,0 +1,8 @@
+# Gesperrtes Spiel (Game Compressor) nicht wählbar; ganzer Bereich 5 (1.0.6: mit den M.2-Resten, bis 1.0.5 Bereich 7); erste Frage sicher beantworten
+MODELL CFI-2016
+WAEHLE TEXT M.2 – Spiel PPSA11111
+WAEHLE BEREICH 5
+ZEIGE
+ABLAUF AUSWAHL
+ANTWORT N
+ZEIGE

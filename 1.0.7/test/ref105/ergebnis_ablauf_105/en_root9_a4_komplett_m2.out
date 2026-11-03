@@ -1,0 +1,166 @@
+[13:29:20] Connecting to PS5 (127.0.0.1, Port 2199) ...
+[13:29:20] Connected.
+[13:29:20] FTP server: Unknown (greeting: "mini"), port 2199
+[13:29:20] Data connection: EPSV
+[13:29:20] Model: CFI-2016  Series: PS5 Slim  Firmware: unknown
+[13:29:20] Disc drive: Pairing not queried (model query off or not possible).
+[13:29:20] Scanning what is on it ...
+[13:29:21] WARNING: The Game Compressor is working right now (or was interrupted):
+[13:29:21]    /mnt/ext1/homebrew/.Game A - PPSA11111.exfat.gc-compress.tmp
+[13:29:21] The affected game is LOCKED. Let the Game Compressor finish first.
+[13:29:21] 57 entries found. Nothing was changed.
+[13:29:21] === ABLAUF
+[13:29:21] > ABLAUF KOMPLETT
+[13:29:21] DIALOG Full cleanup
+[13:29:21]   | FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:
+[13:29:21]   |    - Games & apps (internal SSD): 14
+[13:29:21]   |    - Saved data: 1
+[13:29:21]   |    - Trophies: 4
+[13:29:21]   |    - Screenshots & videos: 5
+[13:29:21]   |    - Downloads, add-ons & leftovers: 9
+[13:29:21]   |    - Jailbreak tools & homebrew data: 8
+[13:29:21]   | 
+[13:29:21]   | This means:
+[13:29:21]   |  - Saved data without a cloud backup (PS Plus) is gone for good.
+[13:29:21]   |  - Trophies never synced with PSN are gone.
+[13:29:21]   |  - Jailbreak tools and their settings are gone - set up your jailbreak AGAIN afterwards.
+[13:29:21]   |  - A jailbreak page saved offline in the browser may be gone too.
+[13:29:21]   | 
+[13:29:21]   | Kept: system software, disc drive pairing, user account, real licenses, Sony system apps.
+[13:29:21]   KNOPF sicher: Cancel
+[13:29:21]   KNOPF gefährlich: Continue
+[13:29:21]   ANTWORT J
+[13:29:21] DIALOG M.2 SSD
+[13:29:21]   | The M.2 SSD holds 14 entries (games, folders, files).
+[13:29:21]   | 
+[13:29:21]   | KEEP M.2: the games stay. Only their tiles go - they come back once ShadowMount is set up again.
+[13:29:21]   | 
+[13:29:21]   | ALSO WIPE M.2: all games and files on the M.2 are deleted permanently.
+[13:29:21]   KNOPF sicher: Keep M.2 (recommended)
+[13:29:21]   KNOPF gefährlich: Also wipe M.2
+[13:29:21]   ANTWORT J
+[13:29:21] Selected: about 2 KB in 83 files and 87 folders.
+[13:29:21] DIALOG Delete permanently?
+[13:29:21]   | !!! WARNING: THE M.2 SSD WILL BE WIPED TOO - 14 entries, all games on it will be gone !!!
+[13:29:21]   | 
+[13:29:21]   | Will be deleted PERMANENTLY: 55 entries
+[13:29:21]   |    - Games & apps (internal SSD): 14
+[13:29:21]   |    - Saved data: 1
+[13:29:21]   |    - Trophies: 5
+[13:29:21]   |    - Screenshots & videos: 5
+[13:29:21]   |    - Downloads, add-ons & leftovers: 9
+[13:29:21]   |    - Jailbreak tools & homebrew data: 8
+[13:29:21]   |    - M.2 SSD contents: 13
+[13:29:21]   |    of these, ShadowMount games WITH game file: 1
+[13:29:21]   |    Kept (Game Compressor is working on it): 2
+[13:29:21]   | 
+[13:29:21]   | That is about 2 KB in 83 files and 87 folders.
+[13:29:21]   | 
+[13:29:21]   | Pairing not queried (model query off or not possible). The program never touches the pairing.
+[13:29:21]   | Use at your own risk - deleted data is gone for good.
+[13:29:21]   | 
+[13:29:21]   | Type DELETE to confirm (anything else = cancel):
+[13:29:21]   EINGABE
+[13:29:21]   ANTWORT DELETE
+[13:29:21] 
+[13:29:21] Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+[13:29:27]   ShadowMount has stopped.
+[13:29:27] 
+[13:29:27] Deleting ... (large games can take a while)
+[13:29:27]   deleted   Altes Spiel (CUSA12345) - game
+[13:29:27]   deleted   Altes Spiel (CUSA12345) - Update (Version 01.09)
+[13:29:27]   deleted   Altes Spiel (CUSA12345) - add-on: Die Erweiterung
+[13:29:27]   deleted   Spiel PPSA22222 (PPSA22222) - ShadowMount game on the M.2 - game + tile (via section 7)
+[13:29:27]   deleted   Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD - game + tile
+[13:29:27]   deleted   Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile
+[13:29:27]   deleted   Real Game (PPSA55555) - game
+[13:29:27]   deleted   Real Game (PPSA55555) - Update
+[13:29:27]   deleted   Real Game (PPSA55555) - add-on: dlc1
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - game
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - add-on: Bonus Cars
+[13:29:27]   deleted   Top Game (PPSA99999) - ShadowMount game on the M.2 - game + tile (via section 7)
+[13:29:27]   deleted   Saved data PPSA55555 (Real Game)
+[13:29:27]   deleted   Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console
+[13:29:27]   deleted   Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)
+[13:29:27]   deleted   Trophy progress: Real Game (NPWR30405_00)
+[13:29:27]   deleted   Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress)
+[13:29:27]   deleted   Trophy list: Real Game (NPWR30405_00) - game still installed, delete only with the game (names/images, not your progress)
+[13:29:27]   deleted   Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 Screenshot
+[13:29:27]   deleted   Captures of Real Game (PPSA55555): 3 Screenshots, 1 Video
+[13:29:27]   deleted   Thumbnails without capture (1) - leftovers
+[13:29:27]   deleted   Unfinished capture of Real Game (PPSA55555) (1 file)
+[13:29:27]   deleted   Empty capture temp folders (1) - leftovers
+[13:29:27]   deleted   Download: PPSA55555 (Real Game)
+[13:29:27]   deleted   Update without game: PPSA77777
+[13:29:27]   deleted   Leftovers: Altes Spiel (PPSA88888)
+[13:29:27]   deleted   Share settings of old games (2)
+[13:29:27]   deleted   Store image cache (1, re-downloaded by the PS5)
+[13:29:27]   deleted   Temporary files (2)
+[13:29:27]   deleted   Error reports (3)
+[13:29:27]   deleted   Info on games on USB drives (1, recreated by the PS5)
+[13:29:27]   deleted   Empty tile (lock icon): Geisterspiel (PPSA12121)
+[13:29:27]   deleted   Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1
+[13:29:27]   deleted   L.A. Noire (CUSA09172) - game
+[13:29:27]   deleted   L.A. Noire (CUSA09172) - Update (Version 01.04)
+[13:29:27]   deleted   L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster
+[13:29:27]   deleted   M2 Spiel (PPSA66666) - game
+[13:29:27]   deleted   M2 Spiel (PPSA66666) - Update
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - game
+[13:29:27]   deleted   Testspiel Fünf (PPSA77700) - Update
+[13:29:27]   deleted   Top Game - PPSA99999.exfat  [game: Top Game (PPSA99999), tile goes with it]
+[13:29:27]   deleted   games/x.iso
+[13:29:27]   deleted   homebrew/Game B - PPSA22222  [game: Spiel PPSA22222 (PPSA22222), tile goes with it]
+[13:29:27]   deleted   homebrew/anderes.txt
+[13:29:27]   deleted   homebrew/sub
+[13:29:27]   deleted   Tool tile: PS5Upload Minion (PSUP00001)
+[13:29:27]   deleted   Tool tile: Mein Tool (TOOL00001)
+[13:29:27]   deleted   .kstuff_noautomount
+[13:29:27]   already gone   homebrew/Game C - PPSA33333.exfat  [game: Spiel PPSA33333 (PPSA33333), tile goes with it]
+[13:29:27]   deleted   ps5upload
+[13:29:27]   deleted   shadowmount
+[13:29:27]   deleted   Fake license: UP0000-SLIB00001_00 (game no longer installed)
+[13:29:27]   deleted   Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)
+[13:29:27]   deleted   empty folder /user/data/homebrew
+[13:29:27]   deleted   empty folder /user/addcont/CUSA12345
+[13:29:27]   deleted   empty folder /user/addcont/PPSA55555
+[13:29:27]   deleted   empty folder /user/addcont/PPSA77700
+[13:29:27]   deleted   empty folder /mnt/ext1/user/addcont/CUSA09172
+[13:29:27]   deleted   empty folder /user/appmeta/addcont/CUSA09172
+[13:29:27] 
+[13:29:27] Done - everything selected has been deleted.
+[13:29:27] Freed: 2 KB in 83 files and 87 folders
+[13:29:27] Pairing not queried (model query off or not possible). The program never touches the pairing.
+[13:29:27] ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.
+[13:29:27] Last step on the PS5 so it re-reads everything cleanly:
+[13:29:27] 1. Turn off the PS5.
+[13:29:27] 2. Hold the power button until it beeps a second time.
+[13:29:27] 3. Connect the controller via USB and choose 'Rebuild Database'.
+[13:29:27] Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!
+[13:29:27] FERTIG Done - everything selected has been deleted.
+[13:29:27]   frei: Freed: 2 KB in 83 files and 87 folders
+[13:29:27]   sm:
+[13:29:27]   | ShadowMount was deleted too - set it up again and the games on the M.2 will show up as tiles again.
+[13:29:27]   schritt: Last step on the PS5 so it re-reads everything cleanly:
+[13:29:27]   1. Turn off the PS5.
+[13:29:27]   2. Hold the power button until it beeps a second time.
+[13:29:27]   3. Connect the controller via USB and choose 'Rebuild Database'.
+[13:29:27]   wichtig: Important: do NOT choose 'Reset PS5' or 'Reinstall System Software'!
+[13:29:27] > ABLAUF ENDE verbunden=True
+[13:29:27] > ZEIGE
+[13:29:28] KOPF [1] Games & apps (internal SSD)   (1 entries · 155 bytes)
+[13:29:28]   [ ] Spiel PPSA11111 (PPSA11111) - ShadowMount game on the M.2  [LOCKED: Game Compressor is working on it]   155 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+[13:29:28] KOPF [2] Saved data   (0 entries)  [nicht wählbar]
+[13:29:28] KOPF [3] Trophies   (0 entries)  [nicht wählbar]
+[13:29:28] KOPF [4] Screenshots & videos   (0 entries)  [nicht wählbar]
+[13:29:28] KOPF [5] Downloads, add-ons & leftovers   (2 entries · 196 bytes)
+[13:29:28]   [ ] Leftovers: Testspiel Fünf (PPSA77700)   66 bytes
+[13:29:28]   [ ] Add-on info: PPSA77700 (Testspiel Fünf)   130 bytes
+[13:29:28] KOPF [6] Jailbreak tools & homebrew data   (0 entries)  [nicht wählbar]
+[13:29:28] KOPF [7] M.2 SSD contents   (2 entries · 157 bytes)
+[13:29:28]   [ ] games  (empty folder)   0 bytes
+[13:29:28]   [ ] homebrew/Game A - PPSA11111.exfat  [game: Spiel PPSA11111 (PPSA11111), tile goes with it]  [LOCKED: Game Compressor is working on it]   157 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+[13:29:28] STAND Nothing selected.
+[13:29:28] ENDE fehler=0
+[13:29:28] End.

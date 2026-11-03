@@ -1,0 +1,181 @@
+PS5 CLEANUP – RÜCKMELDUNGS-SEITE EINRICHTEN
+===========================================
+
+Worum es geht
+-------------
+Die PS5-App zeigt am Fernseher einen QR-Code. Wer ihn mit dem Handy scannt, landet auf
+dieser Seite, sieht, welche Daten im Link stehen, tippt 👍 oder 👎 und kann einen kurzen
+Text schreiben. Erst beim Tippen auf „Senden“ wird etwas gespeichert. Die PS5 selbst
+schickt nie etwas ins Internet.
+
+Die Seite läuft bei Cloudflare. Du brauchst dafür nur einen Browser, nichts installieren.
+Alles wird im Cloudflare-Dashboard angeklickt: https://dash.cloudflare.com
+(Die Menünamen bei Cloudflare sind meistens englisch und ändern sich ab und zu ein bisschen.
+Wenn ein Knopf etwas anders heißt, such nach dem ähnlichsten Namen.)
+
+Was du am Ende hast
+-------------------
+Die Seite für die Handys:   https://ps5cleanup-feedback.<deine-unteradresse>.workers.dev/r
+Deine Übersicht:            https://ps5cleanup-feedback.<deine-unteradresse>.workers.dev/uebersicht
+                            (mit Passwort, siehe Schritt 7)
+
+<deine-unteradresse> ist ein Name, den du in Schritt 1 selbst festlegst.
+
+
+SCHRITT 1 – Unter-Adresse festlegen (WICHTIG, zuerst!)
+------------------------------------------------------
+Jedes Cloudflare-Konto hat eine eigene Unter-Adresse „xyz.workers.dev“. Die steht später
+in jedem QR-Code und ist für alle sichtbar, die den Link sehen.
+
+  -> Sie sollte KEINEN echten Namen und KEINEN Wohnort enthalten.
+     Gut wäre z. B. „ps5tools“ oder „cleanup-feedback“.
+
+So geht's:
+  1. Cloudflare-Konto öffnen (kostenlos; ein vorhandenes Konto kannst du nehmen).
+  2. Links auf „Workers & Pages“ (oder „Compute (Workers)“) klicken.
+  3. Rechts steht „Subdomain“ (manchmal unter „Account details“). Dort auf „Change“ und
+     den neutralen Namen eintragen.
+     Achtung: Hast du schon andere Worker, ändern sich deren Adressen mit.
+
+
+SCHRITT 2 – Datenbank anlegen
+-----------------------------
+  1. Links „Storage & Databases“ -> „D1 SQL Database“ -> „Create“ (Datenbank erstellen).
+  2. Name: ps5cleanup-feedback   -> „Create“.
+  3. In der neuen Datenbank den Reiter „Console“ öffnen.
+  4. Die Datei schema.sql mit einem Texteditor öffnen, ALLES markieren, kopieren,
+     in das Console-Feld einfügen und auf „Execute“ klicken.
+     (Meckert die Console, dann die zwei Blöcke einzeln einfügen: erst alles von
+     „CREATE TABLE IF NOT EXISTS meldungen“ bis zum ersten „);“ und danach den Block
+     „CREATE TABLE IF NOT EXISTS benachrichtigungen“.)
+  5. Prüfen: Unter „Tables“ stehen jetzt „meldungen“ und „benachrichtigungen“.
+
+
+SCHRITT 3 – Worker (die Seite) anlegen
+--------------------------------------
+  1. Links „Workers & Pages“ -> „Create“ -> „Create Worker“ bzw. „Start with Hello World“.
+  2. Name: ps5cleanup-feedback   -> „Deploy“.
+  3. Danach „Edit code“ klicken. Links im Editor steht eine Datei (worker.js o. ä.).
+     Darin alles löschen.
+  4. Die Datei src/index.js mit einem Texteditor öffnen, ALLES kopieren, in den Editor
+     einfügen und oben rechts „Deploy“ klicken.
+
+
+SCHRITT 4 – Datenbank mit der Seite verbinden
+---------------------------------------------
+  1. Im Worker „ps5cleanup-feedback“ auf „Settings“ (Einstellungen) gehen.
+  2. Bei „Bindings“ auf „Add“ -> „D1 database“.
+  3. Variable name:  DB      (genau so, zwei große Buchstaben)
+     D1 database:    ps5cleanup-feedback
+  4. Speichern („Add Binding“ / „Deploy“).
+
+
+SCHRITT 5 – Protokolle ausschalten
+----------------------------------
+Bei neuen Workern schreibt Cloudflare jeden Aufruf bis zu 3 Tage lang in ein Protokoll.
+Das wollen wir nicht (keine Daten über Besucher sammeln).
+  1. Im Worker unter „Settings“ den Bereich „Observability“ suchen.
+  2. „Workers Logs“ auf AUS stellen (Disable). Falls „Traces“ angeboten wird: auch AUS.
+  3. Unter „Settings“ -> „Domains & Routes“: „Preview URLs“ ausschalten (Disable).
+     (Nicht schlimm, wenn es fehlt – das sind nur zusätzliche Test-Adressen.)
+
+
+SCHRITT 6 – Spamschutz (Turnstile) anlegen
+------------------------------------------
+Turnstile ist ein kostenloser Spamschutz von Cloudflare. Er prüft auf dem Handy kurz,
+dass ein Mensch die Seite benutzt (meistens unsichtbar, manchmal ein Häkchen).
+  1. Links „Turnstile“ öffnen (steht evtl. unter „Application security“ / „Protect“).
+  2. „Add widget“.
+  3. Widget name:  PS5 Cleanup Rückmeldung
+     Hostname:     ps5cleanup-feedback.<deine-unteradresse>.workers.dev
+                   (ohne https:// und ohne /r)
+     Widget Mode:  Managed
+     Pre-clearance: Nein / No
+  4. „Create“. Jetzt zeigt Cloudflare zwei Schlüssel an:
+       Site Key    (der „öffentliche“)
+       Secret Key  (der geheime – niemandem zeigen)
+     Beide gleich in Schritt 7 eintragen.
+
+
+SCHRITT 7 – Geheimnisse eintragen
+---------------------------------
+  1. Im Worker „Settings“ -> „Variables and Secrets“ -> „Add“.
+  2. Bei jedem Eintrag als Typ „Secret“ wählen. Namen genau so schreiben:
+
+     TURNSTILE_SITEKEY     = der Site Key aus Schritt 6
+     TURNSTILE_SECRET      = der Secret Key aus Schritt 6
+     UEBERSICHT_PASSWORT   = ein langes eigenes Passwort für deine Übersicht,
+                             z. B. vier, fünf zufällige Wörter hintereinander.
+                             Gut aufheben (Passwort-Manager). Ohne dieses Passwort
+                             bleibt die Übersicht immer gesperrt.
+     HA_WEBHOOK_URL        = die Adresse für die Benachrichtigung an Home Assistant.
+                             Die Home-Assistant-Seite richtet Claude ein und gibt dir
+                             diese Adresse. Bis dahin einfach weglassen – dann wird
+                             nur gespeichert, ohne Benachrichtigung.
+
+  3. Speichern bzw. „Deploy“.
+
+Benachrichtigungen: höchstens 20 pro Tag (Tag nach UTC-Zeit, also ab 1 bzw. 2 Uhr nachts
+deutscher Zeit neu). Alle weiteren Meldungen werden trotzdem gespeichert.
+
+
+SCHRITT 8 – Ausprobieren
+------------------------
+  1. Im Handy-Browser öffnen:
+       https://ps5cleanup-feedback.<deine-unteradresse>.workers.dev/r
+     Es erscheint „PS5 Cleanup – Rückmeldung“ mit dem Hinweis „ohne Gerätedaten“.
+  2. 👍 antippen, „Senden“. Es kommt „Danke! … Meldungs-Nummer: 1“.
+  3. Übersicht öffnen:
+       https://ps5cleanup-feedback.<deine-unteradresse>.workers.dev/uebersicht
+     Benutzername: egal (irgendwas). Passwort: UEBERSICHT_PASSWORT.
+     Die Test-Meldung steht da. Oben ist der Knopf „Herunterladen (JSON)“.
+  4. Test-Meldungen wieder löschen: In der D1-Console (Schritt 2) eingeben
+       DELETE FROM meldungen;
+     und „Execute“. (Das löscht ALLE Meldungen – nur ganz am Anfang benutzen.
+     Einzelne Meldung löschen, z. B. Nummer 7:  DELETE FROM meldungen WHERE id = 7;)
+
+Was in die PS5-App kommt: der Anfang des Links
+  https://ps5cleanup-feedback.<deine-unteradresse>.workers.dev/r?
+Den Rest (v=…&b=…) hängt die App selbst an.
+
+
+WENN SICH DER PROGRAMMCODE ÄNDERT
+---------------------------------
+Neue src/index.js wieder wie in Schritt 3 in den Editor kopieren und „Deploy“.
+Die Meldungen in der Datenbank bleiben dabei erhalten.
+
+
+LÄUFT DAS ALLES KOSTENLOS?
+--------------------------
+Ja, im kostenlosen Cloudflare-Plan (keine Kreditkarte nötig). Die Grenzen dort:
+  - Worker: 100.000 Seitenaufrufe pro Tag, 10 Millisekunden Rechenzeit pro Aufruf.
+  - Datenbank (D1): 5 Millionen gelesene und 100.000 geschriebene Zeilen pro Tag, 5 GB Platz.
+  - Turnstile: kostenlos, ohne Begrenzung der Prüfungen.
+  - Die Adresse …workers.dev: kostenlos.
+Für eine Rückmeldungs-Seite ist das sehr viel Luft.
+
+Ehrlich gesagt gibt es eine Stelle, die eng werden kann: der Knopf „Herunterladen“.
+Bis etwa 1.000 Meldungen ist er sicher schnell genug. Bei mehreren tausend Meldungen kann
+Cloudflare den Download mit „Error 1102“ abbrechen, weil die 10 Millisekunden nicht reichen.
+Dann gibt es zwei Auswege: Claude holt die Daten per Befehl aus der Datenbank
+(„wrangler d1 export“), oder der bezahlte Plan (5 US-Dollar im Monat).
+Die Seite für die Handys und die Übersicht sind davon nicht betroffen.
+
+Wird ein Tageslimit doch einmal überschritten, zeigt Cloudflare bis Mitternacht (UTC) eine
+Fehlerseite – danach geht es von selbst wieder. Es entstehen dabei keine Kosten.
+
+
+ANHANG (für Claude) – Einrichtung per Befehl statt per Klick
+-------------------------------------------------------------
+Statt Schritt 2–7 im Dashboard geht es auch mit Wrangler (Node.js ab 22.13):
+  npx wrangler login
+  npx wrangler d1 create ps5cleanup-feedback        -> database_id in wrangler.toml eintragen
+  npx wrangler d1 execute ps5cleanup-feedback --remote --file=schema.sql
+  npx wrangler secret put TURNSTILE_SITEKEY
+  npx wrangler secret put TURNSTILE_SECRET
+  npx wrangler secret put UEBERSICHT_PASSWORT
+  npx wrangler secret put HA_WEBHOOK_URL            (freiwillig)
+  npx wrangler deploy
+Schritt 1 (Unter-Adresse) und Schritt 6 (Turnstile-Widget) bleiben Klick-Arbeit im Dashboard.
+Technische Einzelheiten und ein Beispiel für die Home-Assistant-Automation: README.md.
+Automatische Tests: npm test

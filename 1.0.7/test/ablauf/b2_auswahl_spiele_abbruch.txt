@@ -1,0 +1,11 @@
+# Nur Auswahl: wie b1, aber Spiele + Kacheln, M.2 weiter, Abschlussfrage "Abbrechen"
+MODELL CFI-2016
+WAEHLE BEREICH 2
+WAEHLE TEXT M.2 – Spiel PPSA22222
+WAEHLE TEXT M.2 – games/x.iso
+WAEHLE TEXT Echtes Spiel (PPSA55555) - Spiel|Real Game (PPSA55555) - game
+ABLAUF AUSWAHL
+ANTWORT J
+ANTWORT J
+ANTWORT N
+ZEIGE

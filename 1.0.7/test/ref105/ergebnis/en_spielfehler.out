@@ -1,0 +1,9 @@
+LOG: Deleting ... (large games can take a while)
+LOG:   SAFETY STOP: /user/app/PPSA77700 could not be deleted safely as a whole - the rest is kept.
+LOG:   ERROR      Testspiel Fünf (PPSA77700) - game (could not be deleted completely)
+LOG:   skipped   Testspiel Fünf (PPSA77700) - Update (Version 01.005.000) (the game itself could not be deleted)
+LOG:   skipped   Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1 (the game itself could not be deleted)
+LOG:   skipped   Testspiel Fünf (PPSA77700) - add-on: Bonus Cars (the game itself could not be deleted)
+ERG Fehler=4
+OK   Spiel-Fehler: Spiel + Update + 2 DLC nicht gelöscht
+FEHLERZAHL 0

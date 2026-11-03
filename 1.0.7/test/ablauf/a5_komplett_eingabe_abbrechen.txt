@@ -1,0 +1,8 @@
+# Vollständige Bereinigung - bei der Bestätigung "Abbrechen" gedrückt
+MODELL CFI-2016
+ABLAUF KOMPLETT
+ANTWORT J
+ANTWORT N
+ANTWORT N
+ANTWORT ABBRECHEN
+ZEIGE

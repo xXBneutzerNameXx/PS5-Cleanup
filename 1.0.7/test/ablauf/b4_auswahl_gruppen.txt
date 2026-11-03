@@ -1,0 +1,17 @@
+# Kästchen-Logik: Spiel nimmt Update/DLC mit (gesperrt), Abwählen, Bereich mit gelber Trophäen-Liste, dann löschen
+MODELL CFI-2016
+WAEHLE TEXT Testspiel Fünf (PPSA77700) - Spiel|Testspiel Fünf (PPSA77700) - game
+ZEIGE
+WAEHLE TEXT Testspiel Fünf (PPSA77700) - Update
+ABWAEHLEN TEXT Testspiel Fünf (PPSA77700) - Spiel|Testspiel Fünf (PPSA77700) - game
+ZEIGE
+WAEHLE TEXT Testspiel Fünf (PPSA77700) - Update
+WAEHLE BEREICH 3
+ZEIGE
+ABWAEHLEN BEREICH 3
+WAEHLE TEXT Trophäen-Liste: Echtes Spiel|Trophy list: Real Game
+WAEHLE TEXT Tool-Kachel: Mein Tool|Tool tile: Mein Tool
+ZEIGE
+ABLAUF AUSWAHL
+ANTWORT J
+ZEIGE

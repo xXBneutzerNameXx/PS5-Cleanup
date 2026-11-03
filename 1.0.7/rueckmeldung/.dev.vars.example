@@ -1,0 +1,8 @@
+# Nur für lokale Tests mit "npx wrangler dev" (Datei in .dev.vars umbenennen).
+# Das sind die offiziellen TEST-Schlüssel von Cloudflare Turnstile – sie lassen jede Prüfung durch
+# (Quelle: https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
+# NIEMALS für die echte Seite verwenden.
+TURNSTILE_SITEKEY=1x00000000000000000000AA
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+UEBERSICHT_PASSWORT=nur-lokal-zum-testen
+# HA_WEBHOOK_URL=https://beispiel.invalid/api/webhook/test   (weglassen = keine Benachrichtigung)

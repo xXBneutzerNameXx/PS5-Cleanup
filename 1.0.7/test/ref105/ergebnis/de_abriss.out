@@ -1,0 +1,12 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount ist beendet.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   Update ohne Spiel: PPSA77777
+LOG:     (/user/appmeta/PPSA88888 : FTP-Verbindung unterbrochen)
+LOG:   FEHLER      Reste: Altes Spiel (PPSA88888) (konnte nicht ganz gelöscht werden)
+LOG: FEHLER: Die Verbindung zur PS5 ist abgerissen - der Rest wurde nicht gelöscht. Bitte neu verbinden.
+ERG Fehler=9 Verloren=True Sekunden=6
+OK   Abriss erkannt und sofort beendet
+OK   Zeitlimit danach wieder normal
+FEHLERZAHL 0

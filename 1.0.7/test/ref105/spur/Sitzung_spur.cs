@@ -1,0 +1,199 @@
+// Lizenz: MIT - Copyright (c) 2026 da_Chris86 (siehe LICENSE)
+// =====================================================================
+// Sitzung.cs - Ordnerlisten, Existiert, Dateien lesen/schreiben über
+// eine FTP-Verbindung (1:1 nach ps5_kern.ps1: Liste, Namen, Existiert,
+// Datei-Text, Datei-Schreiben, Ftp-Gesund) + Hilfsfunktionen.
+// =====================================================================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+namespace PS5Cleanup
+{
+    // Vergleiche wie in PowerShell (-match, -like, -contains: ohne Groß/klein)
+    public static class H
+    {
+        const RegexOptions OPT = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+        public static bool M(string s, string muster) { bool r = Regex.IsMatch(s ?? "", muster, OPT); Spur.S("M", muster, s, r ? "1" : "0"); return r; }
+        public static Match Mt(string s, string muster) { var m = Regex.Match(s ?? "", muster, OPT); var g = new List<string>(); g.Add(m.Success ? "1" : "0"); for (int i = 0; i < m.Groups.Count; i++) g.Add(m.Groups[i].Value); Spur.S("MT", muster, s, string.Join("\u0001", g)); return m; }
+        public static string R(string s, string muster, string ersatz) { string r = Regex.Replace(s ?? "", muster, ersatz, OPT); Spur.S("R", muster + "\u0002" + ersatz, s, r); return r; }
+        public static bool Like(string s, string wild)
+        {
+            string re = "^" + Regex.Escape(wild).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+            bool r = Regex.IsMatch(s ?? "", re, OPT | RegexOptions.Singleline); Spur.S("LIKE", wild, s, r ? "1" : "0"); return r;
+        }
+        public static bool Hat(IEnumerable<string> liste, string s)
+        {
+            if (liste == null) return false;
+            foreach (var x in liste) { bool g = string.Equals(x, s, StringComparison.OrdinalIgnoreCase); Spur.S("GLEICH", x, s, g ? "1" : "0"); if (g) return true; }
+            return false;
+        }
+        public static bool Gleich(string a, string b) { bool r = string.Equals(a, b, StringComparison.OrdinalIgnoreCase); Spur.S("GLEICH", a, b, r ? "1" : "0"); return r; }
+        public static Dictionary<string, T> Tab<T>() { return new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase); }
+        public static readonly Regex Leer = new Regex(" +");
+        public static bool Steuerzeichen(string s) { return Regex.IsMatch(s ?? "", "[\\x00-\\x1f\\x7f]"); }
+        public static string Eltern(string p)
+        {
+            string e = p.Substring(0, p.LastIndexOf('/'));
+            return e == "" ? "/" : e;
+        }
+        public static string Blatt(string p) { return p.Substring(p.LastIndexOf('/') + 1); }
+    }
+
+    // NUR FÜR DEN TEST (PS5 Cleanup 1.1, Schritt 1): schreibt jeden Aufruf der
+    // Klasse H mit Ergebnis mit. Das Verhalten von H ist unverändert.
+    public static class Spur
+    {
+        static System.IO.StreamWriter w;
+        static HashSet<string> gesehen = new HashSet<string>();
+        static System.Web.Script.Serialization.JavaScriptSerializer js = new System.Web.Script.Serialization.JavaScriptSerializer();
+        public static void S(string f, string m, string s, string r)
+        {
+            string datei = Environment.GetEnvironmentVariable("SPUR");
+            if (string.IsNullOrEmpty(datei)) return;
+            string z = js.Serialize(new string[] { f, m, s ?? "", r });
+            if (!gesehen.Add(z)) return;
+            if (w == null) w = new System.IO.StreamWriter(datei, true, new System.Text.UTF8Encoding(false));
+            w.WriteLine(z); w.Flush();
+        }
+    }
+
+    public class Sitzung
+    {
+        public Ftp Ftp;
+        // Abbruch durch den Nutzer: wird vor jeder Ordnerliste geprüft
+        public Func<bool> Abbruch = delegate { return false; };
+
+        public Sitzung(Ftp f) { Ftp = f; }
+
+        public FtpAntwort Befehl(string c) { return Ftp.Befehl(c); }
+
+        bool Cwd(string pfad) { return Ftp.Befehl("CWD " + pfad).Code < 400; }
+
+        static List<Datei> Zerlege(byte[] bytes, bool nurName)
+        {
+            var erg = new List<Datei>();
+            foreach (string z in Regex.Split(Ftp.UTF8.GetString(bytes), "\r?\n"))
+            {
+                if (z.Trim() == "") continue;
+                string[] teile = H.Leer.Split(z, 9);
+                if (teile.Length < 9) continue;
+                string name = teile[8];
+                if (name == "." || name == "..") continue;
+                if (H.Steuerzeichen(name)) continue;          // Steuerzeichen im Namen: nie anfassen
+                long groesse = 0;
+                if (Regex.IsMatch(teile[4], "^\\d+$")) long.TryParse(teile[4], out groesse);
+                // 'l' = Verknüpfung (Symlink): nie als Ordner behandeln, nie hineinschauen.
+                // Manche Server hängen das Ziel an ("name -> ziel") - das gehört nicht zum Namen.
+                if (z.StartsWith("l", StringComparison.Ordinal) && name.Contains(" -> ")) name = name.Substring(0, name.IndexOf(" -> ", StringComparison.Ordinal));
+                erg.Add(new Datei { Name = name, IstOrdner = z.StartsWith("d", StringComparison.Ordinal), IstLink = z.StartsWith("l", StringComparison.Ordinal), Groesse = groesse });
+            }
+            return erg;
+        }
+
+        // 550 kann "gibt es nicht" heißen, aber auch "Zugriff verweigert". Darum im
+        // Ordner darüber nachsehen: Steht der Name dort als Ordner, ist er da und
+        // nur nicht lesbar. true = es gibt hier wirklich keinen Ordner.
+        bool KeinOrdner(string pfad)
+        {
+            if (pfad == "/" || pfad == "") return false;
+            string eltern = H.Eltern(pfad), name = H.Blatt(pfad);
+            var a = Ftp.Befehl("CWD " + eltern);
+            if (a.Code >= 400) return a.Code == 550 && KeinOrdner(eltern);
+            byte[] bytes = Ftp.Daten("LIST");
+            Cwd("/");
+            if (bytes == null) return false;                 // nicht lesbar: nicht "gibt es nicht" annehmen
+            var e = Zerlege(bytes, false).FirstOrDefault(x => x.Name == name);
+            return e == null || !e.IstOrdner;
+        }
+        Exception Verweigert(string pfad, FtpAntwort a)
+        {
+            return new Exception(Sp.T("PS5 verweigert den Zugriff auf ", "PS5 denies access to ") + pfad + " (" + a.Text + ")" +
+                Sp.T(" - zur Sicherheit wird abgebrochen.", " - stopping to be safe."));
+        }
+
+        // Ordnerinhalt; null wenn es den Ordner nicht gibt.
+        // streng: nur ein wirklich fehlender Ordner liefert null - ein vorhandener, aber
+        // nicht lesbarer Ordner (Zugriff verweigert) und jeder andere Fehler brechen ab.
+        public List<Datei> Liste(string pfad, bool streng = false)
+        {
+            if (Abbruch()) throw new AbbruchAusnahme();
+            var a = Ftp.Befehl("CWD " + pfad);
+            if (a.Code >= 400)
+            {
+                Ftp.LetzterFehler = "CWD " + pfad + ": " + a.Text;
+                if (streng && a.Code != 550) throw new Exception(Sp.T("PS5 meldet beim Lesen von ", "PS5 reports when reading ") + pfad + " : " + a.Text);
+                if (streng && !KeinOrdner(pfad)) throw Verweigert(pfad, a);
+                return null;
+            }
+            byte[] bytes = Ftp.Daten("LIST");
+            Cwd("/");
+            if (bytes == null)
+            {
+                if (streng) throw new System.IO.IOException(Sp.T("Ordner ", "Folder ") + pfad + Sp.T(" konnte nicht vollständig gelesen werden - bitte nochmal verbinden.", " could not be read completely - please connect again."));
+                return null;
+            }
+            return Zerlege(bytes, false);
+        }
+
+        public List<string> Namen(string pfad, bool streng = false)
+        {
+            var l = Liste(pfad, streng);
+            if (l == null) return new List<string>();
+            return l.Select(e => e.Name).ToList();
+        }
+
+        // Gibt es den Pfad? Nur ein klares "gibt es nicht" (550) zählt als nein -
+        // jeder andere Fehler bricht ab, statt fälschlich "schon weg" zu melden.
+        public bool Existiert(string pfad)
+        {
+            string eltern = H.Eltern(pfad);
+            string name = H.Blatt(pfad);
+            var a = Ftp.Befehl("CWD " + eltern);
+            if (a.Code == 550)
+            {
+                if (KeinOrdner(eltern)) return false;        // der Ordner darüber fehlt wirklich
+                throw Verweigert(eltern, a);
+            }
+            if (a.Code >= 400) throw new Exception(Sp.T("PS5 meldet beim Prüfen von ", "PS5 reports when checking ") + pfad + " : " + a.Text);
+            byte[] bytes = Ftp.Daten("LIST");
+            Cwd("/");
+            if (bytes == null) throw new Exception(Sp.T("Ordner ", "Folder ") + eltern + Sp.T(" konnte nicht gelesen werden", " could not be read"));
+            foreach (string z in Regex.Split(Ftp.UTF8.GetString(bytes), "\r?\n"))
+            {
+                string[] teile = H.Leer.Split(z, 9);
+                if (teile.Length < 9) continue;
+                string n = teile[8];
+                // Verknüpfung: manche Server hängen das Ziel an ("name -> ziel")
+                if (z.StartsWith("l", StringComparison.Ordinal) && n.Contains(" -> ")) n = n.Substring(0, n.IndexOf(" -> ", StringComparison.Ordinal));
+                if (n == name) return true;
+            }
+            return false;
+        }
+
+        public string Text(string pfad)
+        {
+            byte[] b = Ftp.Daten("RETR " + pfad);
+            if (b == null) return "";
+            return Ftp.UTF8.GetString(b);
+        }
+
+        public byte[] Bytes(string pfad) { return Ftp.Daten("RETR " + pfad); }
+
+        public bool Schreiben(string pfad, byte[] b) { return Ftp.Schreiben(pfad, b); }
+
+        // Antwortet die Steuerverbindung sauber (Befehl und Antwort passen zusammen)?
+        public bool Gesund()
+        {
+            try
+            {
+                if (Ftp.Befehl("NOOP").Code != 200) return false;
+                if (Ftp.Befehl("PWD").Code != 257) return false;
+                return Liste("/user") != null;
+            }
+            catch (AbbruchAusnahme) { throw; }
+            catch { return false; }
+        }
+    }
+}

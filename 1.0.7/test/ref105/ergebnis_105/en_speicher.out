@@ -1,0 +1,22 @@
+OK   DE: normale PS5 -> kein Hinweis
+  DE USB: HINWEIS: Eine USB-Platte als erweiterter Speicher ist angeschlossen. Spiele darauf sieht das Programm nicht als installiert - ihre Lizenzen und Kacheln können in der Liste als Reste stehen. Solche Einträge nicht auswählen; die vollständige Bereinigung würde sie mit löschen.
+OK   DE: USB-Platte als erweiterter Speicher -> Hinweis
+OK   DE: mit USB-Platte dieselbe Liste wie ohne (Suche unverändert)
+OK   DE: USB-Platte weg -> Hinweis weg
+  DE M2 ohne user: HINWEIS: Die M.2-SSD ist leer oder wird gerade nicht richtig erkannt. Liegen darauf Spiele: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.
+OK   DE: M.2 ohne user-Ordner -> Hinweis
+  DE ohne M2: HINWEIS: Keine M.2-SSD gefunden. Steckt eine M.2 mit Spielen drin, die gerade nicht erkannt wird: abbrechen und die PS5 neu starten - sonst werden Lizenzen und Kacheln dieser Spiele mit gelöscht.
+OK   DE: keine M.2 -> bisheriger Hinweis
+OK   DE: alles zurück -> gleiche Liste, kein Hinweis
+OK   EN: normale PS5 -> kein Hinweis
+  EN USB: NOTE: A USB drive is connected as extended storage. The program does not see games on it as installed - their licenses and tiles may show up in the list as leftovers. Do not select those entries; a full cleanup would delete them too.
+OK   EN: USB-Platte als erweiterter Speicher -> Hinweis
+OK   EN: mit USB-Platte dieselbe Liste wie ohne (Suche unverändert)
+OK   EN: USB-Platte weg -> Hinweis weg
+  EN M2 ohne user: NOTE: The M.2 SSD is empty or not detected properly right now. If it holds games: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.
+OK   EN: M.2 ohne user-Ordner -> Hinweis
+  EN ohne M2: NOTE: No M.2 SSD found. If an M.2 with games is installed but not detected right now: cancel and restart the PS5 - otherwise the licenses and tiles of those games will be deleted too.
+OK   EN: keine M.2 -> bisheriger Hinweis
+OK   EN: alles zurück -> gleiche Liste, kein Hinweis
+OK   EN: keine deutschen Wörter im Hinweis
+FEHLERZAHL 0

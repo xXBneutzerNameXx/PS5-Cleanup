@@ -18,21 +18,25 @@ namespace PS5Cleanup
     {
         public static string[] KatName { get { return new[] {
             "",
-            T("Spiele & Apps", "Games & apps"),
+            T("Spiele", "Games"),
             T("Spielstände", "Saved data"),
             T("Trophäen", "Trophies"),
             T("Bilder & Videos", "Screenshots & videos"),
-            T("Reste", "Leftovers"),
-            T("Jailbreak & Homebrew", "Jailbreak & homebrew") }; } }
+            T("Sonstiges", "Other"),
+            T("Apps", "Apps"),
+            T("Jailbreak", "Jailbreak") }; } }
         public static string[] KatInfo { get { return new[] {
             "",
-            T("Spiele und Apps auf interner SSD, M.2 und USB - der Ort steht vorne. Wer ein Spiel wählt, nimmt Update und DLCs mit.", "Games and apps on the internal SSD, M.2 and USB - the location comes first. Selecting a game takes its update and DLC with it."),
+            T("Spiele samt Update und Zusatzinhalten - intern, auf M.2 und USB. Der Ort steht vorne.", "Games with their update and add-ons - internal, on M.2 and USB. The location comes first."),
             T("Spielstände auf der Konsole. Ohne Cloud-Sicherung (PS Plus) endgültig weg.", "Saved data on the console. Without a cloud backup (PS Plus) it is gone for good."),
             T("Trophäen-Fortschritt und Trophäen-Listen. Nie mit dem PSN abgeglichene Trophäen sind endgültig weg.", "Trophy progress and trophy lists. Trophies never synced with PSN are gone for good."),
             T("Screenshots und Videoclips, je Spiel mit Anzahl.", "Screenshots and video clips, per game with count."),
-            T("Downloads, Zusatzinhalte und Updates ohne Spiel, Reste gelöschter Spiele, Fehlerberichte und übrige Dateien auf M.2 und USB.", "Downloads, add-ons and updates without a game, leftovers of deleted games, error reports and other files on M.2 and USB."),
-            T("Kacheln und Daten der Jailbreak-Tools, Homebrew-Daten und ELF-Dateien aller Speicher. Danach Jailbreak neu einrichten.", "Tiles and data of jailbreak tools, homebrew data and ELF files on all storage. Set up your jailbreak again afterwards.") }; } }
-        public static readonly int[] ALLE_KAT = { 1, 2, 3, 4, 5, 6 };   // NEU 1.0.6: 6 Bereiche (der M.2-Bereich ist aufgeteilt)
+            T("Was keinem Spiel und keiner App mehr gehört: Updates und Zusatzinhalte ohne Spiel, Reste gelöschter Spiele, Fehlerberichte, temporäre Dateien, unbekannte Ordner.", "Whatever no longer belongs to a game or app: updates and add-ons without a game, leftovers of deleted games, error reports, temporary files, unknown folders."),
+            T("Normale Apps und Homebrew-Tools - Kachel und Daten zusammen, dazu ELF-Dateien aller Speicher.", "Regular apps and homebrew tools - tile and data together, plus ELF files on all storage."),
+            T("Nur, was dein Jailbreak zum Starten braucht. Nur einzeln wählbar, nie bei der vollständigen Bereinigung.", "Only what your jailbreak needs to start. Single selection only, never part of the full cleanup.") }; } }
+        // NEU 1.0.7 (da_Chris86 31.10.2026): 7 Bereiche, Nummern intern fest: 1 Spiele, 2 Spielstände, 3 Trophäen, 4 Bilder & Videos, 5 Sonstiges, 6 Apps, 7 Jailbreak.
+        // Angezeigt in dieser Reihenfolge (Apps direkt nach Spielen, Jailbreak zuletzt) - gleich wie die PS5-App (kern_suche.c ALLE_KAT).
+        public static readonly int[] ALLE_KAT = { 1, 6, 2, 3, 4, 5, 7 };
 
         // NEU 1.0.6 (da_Chris86 28.10.2026): Speicherorte - steht vorne am Eintrag, die Bereiche sind danach sortiert
         public static int PfadOrt(string p)
@@ -137,33 +141,39 @@ namespace PS5Cleanup
             return "";
         }
 
-        class TitelInfo { public string T; public string Roh; }
+        class TitelInfo { public string T; public string Roh; public int Art; }
+        // NEU 1.0.7: Spiel oder App? PS5 param.json "applicationCategoryType": 0 = Spiel, 65536/65792 = Medien-App; PS4 param.sfo CATEGORY:
+        // "gd" = Spiel, "gdc"/"gde"/"gdk" = App (PS5/PS4 Dev Wiki, 31.10.2026). Alles andere: unbekannt -> bleibt Spiel. Gleich wie kern_suche.c.
+        int APP_ART = 0;
+        static int ArtJson(string t) { var m = H.Mt(t, "\"applicationCategoryType\"\\s*:\\s*(\\d+)"); if (!m.Success) return 0; long v; if (!long.TryParse(m.Groups[1].Value, out v)) return 0; return v == 0 ? 1 : (v == 65536 || v == 65792) ? 2 : 0; }
+        static int ArtSfo(Dictionary<string, object> h) { object o; if (!h.TryGetValue("CATEGORY", out o) || !(o is string)) return 0; string s = (string)o; if (s == "gd") return 1; return (s == "gdc" || s == "gde" || s == "gdk") ? 2 : 0; }
         Dictionary<string, TitelInfo> TITEL_CACHE = H.Tab<TitelInfo>();
         string APP_ROH = "";
         string AppTitel(string id)
         {
             TitelInfo c;
-            if (TITEL_CACHE.TryGetValue(id, out c)) { APP_ROH = c.Roh; return c.T; }
+            if (TITEL_CACHE.TryGetValue(id, out c)) { APP_ROH = c.Roh; APP_ART = c.Art; return c.T; }
             string t = AppTitelLesen(id);
-            TITEL_CACHE[id] = new TitelInfo { T = t, Roh = APP_ROH };
+            TITEL_CACHE[id] = new TitelInfo { T = t, Roh = APP_ROH, Art = APP_ART };
             return t;
         }
         string AppTitelLesen(string id)
         {
-            APP_ROH = "";
+            APP_ROH = ""; APP_ART = 0;
             foreach (var datei in new[] { "/user/appmeta/" + id + "/param.json", "/user/app/" + id + "/sce_sys/param.json", SYS_META + "/" + id + "/param.json" })
             {
                 string t = S.Text(datei).TrimStart('﻿');
                 if (!H.M(t, "titleName")) continue;
-                APP_ROH = t;
+                APP_ROH = t; APP_ART = ArtJson(t);
                 string n = JsonTitel(t);
                 if (n != "") return n;
             }
             // PS4-Spiele haben statt param.json eine param.sfo
             foreach (var datei in new[] { "/user/appmeta/" + id + "/param.sfo", "/user/app/" + id + "/sce_sys/param.sfo", SYS_META + "/" + id + "/param.sfo" })
             {
-                string n = SfoTitel(SfoLesen(S.Bytes(datei)));
-                if (n != "") { APP_ROH = n; return n; }
+                var h = SfoLesen(S.Bytes(datei));
+                string n = SfoTitel(h);
+                if (n != "") { APP_ROH = n; APP_ART = ArtSfo(h); return n; }
             }
             return "";
         }
@@ -376,7 +386,7 @@ namespace PS5Cleanup
             string w = gruppen.Count > 0 ? T("Nicht löschen, wenn du ihn behalten willst: ", "Do not delete if you want to keep it: ") + string.Join("; ", gruppen) + "." : null;
             if (browser)
             {
-                string bt = T("Ein offline gespeicherter WebKit-Jailbreak kann im „Browserspeicher“ liegen (unter „Jailbreak & Homebrew“).",
+                string bt = T("Ein offline gespeicherter WebKit-Jailbreak kann im „Browserspeicher“ liegen (unter „Jailbreak“).",
                               "An offline-saved WebKit jailbreak may be in the \"Browser storage\" (under \"Jailbreak & homebrew\").");
                 w = w != null ? w + " " + bt : bt;
             }
@@ -384,7 +394,7 @@ namespace PS5Cleanup
             warnung = w;
             return namen.Count > 0 ? string.Join(", ", namen) : null;
         }
-        List<string> DL_NAMEN;   // NEU 1.0.6: /user/download einmal je Suche lesen
+        internal List<string> DL_NAMEN;   // NEU 1.0.6: /user/download einmal je Suche lesen (1.0.7: internal - der Selbsttest hat keine PS5 und setzt die Liste leer)
         List<string> DL_USB;     // NEU 1.0.6: Apps auf der USB-Erweiterung (null = noch nicht gelesen)
         bool DL_USB_UNKLAR;
         // NEU 1.0.6: der App-Datenspeicher /user/download/<ID> geht mit der App - nur wenn es ihn gibt, keine Sony-App und
@@ -636,6 +646,53 @@ namespace PS5Cleanup
             if (tk.Length >= 5 && dk.Contains(tk)) return true;
             int p = 0; while (p < tk.Length && p < dk.Length && tk[p] == dk[p]) p++;
             return p >= 8;
+        }
+        // NEU 1.0.7: bekannte Homebrew-Tools - Daten-Ordner unter /user/data stehen auch ohne Kachel unter "Apps" (gleiche Liste wie kern_suche.c)
+        static readonly string[] BEKANNTE_TOOLS = { "pldmgr", "pkgmgr", "bfpilot", "orbitstore", "shadowmount", "ps5upload", "gamecompressor",
+                                                    "homebrew", "nanodns", "etahen", "spectrumlibrary", "playden", "zftpd", "blackbox", "blackboxv2",
+                                                    "ps5autoloader" };   // Autoloader-Einstellungen = Homebrew (da_Chris86 30.10.2026)
+        static bool DatenHatKachel(List<Eintrag> bau, string ordner)
+        {
+            string vor = T("Tool-Kachel: ", "Tool tile: ");
+            string dk = ToolSchluessel(ordner);
+            foreach (var g in bau)
+            {
+                if (g.Kat != 6 || !g.Kachel || !g.TextBasis.StartsWith(vor, StringComparison.Ordinal) || g.PfadeBasis.Count == 0) continue;
+                var mi = H.Mt(g.PfadeBasis[0], "^/user/app/([A-Z]{4}\\d{5})$");
+                if (!mi.Success) continue;
+                string titel = g.TextBasis.Substring(vor.Length);
+                int ende = titel.IndexOf(" (" + mi.Groups[1].Value + ")", StringComparison.Ordinal);
+                if (ToolPasst(ToolSchluessel(ende >= 0 ? titel.Substring(0, ende) : titel), ToolAlias(mi.Groups[1].Value), dk)) return true;
+            }
+            return false;
+        }
+        // NEU 1.0.7: Bereiche nach der Suche - Apps aus "Spiele" heraus (Sony sagt, ob Spiel oder App), Daten-Ordner ohne bekanntes Tool nach "Sonstiges"
+        void Bereiche107(List<Eintrag> bau)
+        {
+            foreach (var f in bau)
+            {
+                // jeder Jailbreak-Einstieg unter "Jailbreak" - auch die, die schon beim Merken markiert wurden (z. B. gemeinsame Spieldatei)
+                if (f.Jailbreak) { f.Kat = 7; continue; }
+                if (f.Gesperrt) continue;
+                if (f.Kat == 1 && string.IsNullOrEmpty(f.Quelle))
+                {
+                    foreach (var p in f.PfadeBasis)
+                    {
+                        var m = H.Mt(p, "/(app|patch|addcont)/([A-Z]{4}\\d{5})(/|$)");
+                        if (!m.Success) continue;
+                        AppTitel(m.Groups[2].Value);
+                        if (APP_ART == 2) f.Kat = 6;
+                        break;
+                    }
+                }
+                else if (f.Kat == 6 && f.Ort == ORT_INTERN && !f.Kachel && f.PfadeBasis.Count > 0)
+                {
+                    var m = H.Mt(f.PfadeBasis[0], "^/user/data/(homebrew/)?([^/]+)$");
+                    if (!m.Success || H.M(m.Groups[2].Value, "(?i)\\.elf$")) continue;   // ELF-Dateien bleiben unter Apps (Codex-Prüfung 39)
+                    if (BEKANNTE_TOOLS.Contains(ToolSchluessel(m.Groups[2].Value)) || DatenHatKachel(bau, m.Groups[2].Value)) continue;
+                    f.Kat = 5;
+                }
+            }
         }
         static List<Eintrag> ToolDatenOrdnen(List<Eintrag> liste)
         {
@@ -1190,7 +1247,8 @@ namespace PS5Cleanup
             MerkeOrdner("/user/data", dl, 6, "");
             var fakeLiz = new List<string>();
             // NEU 1.0.6 (Codex-Prüfung 31): nur Dateien, keine Ordner
-            foreach (var e in S.Liste("/user/license", true) ?? new List<Datei>())
+            var lizenzListe = S.Liste("/user/license", true) ?? new List<Datei>();   // NEU 1.0.7: auch für den PS4-Spieleschutz
+            foreach (var e in lizenzListe)
                 if (!e.IstOrdner && H.M(e.Name, "^fake.+\\.(rif|idx)$")) fakeLiz.Add(e.Name);
             var gruppen = new List<string>();
             foreach (var x in fakeLiz) { string g = H.R(x, "\\.(rif|idx)$", ""); if (!H.Hat(gruppen, g)) gruppen.Add(g); }
@@ -1210,7 +1268,7 @@ namespace PS5Cleanup
                 }
                 string n = H.R(g, "^fake", "");
                 if (tm.Success) { string mn = MitName(tm.Groups[1].Value); if (mn != tm.Groups[1].Value) n = n + " - " + H.R(mn, "^[A-Z]{4}\\d{5} ", ""); }
-                Merke(pf, 6, T("Fake-Lizenz: ", "Fake license: ") + n + T(" (Spiel nicht mehr installiert)", " (game no longer installed)"));
+                Merke(pf, 5, T("Fake-Lizenz: ", "Fake license: ") + n + T(" (Spiel nicht mehr installiert)", " (game no longer installed)"));
             }
             foreach (var u in homes)
                 if (S.Namen("/user/home/" + u + "/webkit/shell/local").Count > 0)
@@ -1219,7 +1277,7 @@ namespace PS5Cleanup
                     // da_Chris86 29.10.2026: kann einen offline gespeicherten WebKit-Jailbreak enthalten - Jailbreak-Einstieg (nur einzeln,
                     // die vollständige Bereinigung fragt; bis 29.10.2026 wie 1.0.5 auch in der vollständigen Bereinigung)
                     var b = MERKE_OK && bau.Count > 0 ? bau[bau.Count - 1] : null;
-                    if (b != null && !b.Gesperrt) { b.Jailbreak = true; b.NurEinzeln = true; b.Text = b.TextBasis = b.Text + T("  [Jailbreak-Einstieg - nur einzeln]", "  [jailbreak entry - individually only]"); }
+                    if (b != null && !b.Gesperrt) { b.Jailbreak = true; b.NurEinzeln = true; b.Kat = 7; b.Text = b.TextBasis = b.Text + T("  [Jailbreak-Einstieg - nur einzeln]", "  [jailbreak entry - individually only]"); }
                 }
             // NEU 1.0.6 (da_Chris86 29.10.2026 19:12): Blu-ray-Jailbreak-Disc im Laufwerk - nur lesen. Eine Jailbreak-Disc hat neben
             // BDMV eigene .jar/.elf-Dateien im obersten Ordner (BD-JB-Autoloader: poops.jar, autoloader.jar, ps5-unified-autoloader.elf)
@@ -1234,7 +1292,7 @@ namespace PS5Cleanup
             // NEU 1.0.6: zeigen mehrere Kacheln auf dieselbe Spieldatei, geht bei "Spiel + Kachel" nur die Kachel
             foreach (var f in bau)
             {
-                if (f.Kat != 1 || string.IsNullOrEmpty(f.Quelle) || !QuelleInfo.ContainsKey(f.Quelle) || !QuelleInfo[f.Quelle].Mehrfach) continue;
+                if (string.IsNullOrEmpty(f.Quelle) || !QuelleInfo.ContainsKey(f.Quelle) || !QuelleInfo[f.Quelle].Mehrfach) continue;
                 f.Quelle = "";
                 // NEU 1.0.6 (Codex-Prüfung 27): ohne Spieldatei zählt der Ort der übrigen Pfade (meist intern) - nicht der Ort des Abbilds
                 int alt = f.Ort, neu = ORT_INTERN;
@@ -1261,22 +1319,119 @@ namespace PS5Cleanup
                     var jbp = f.Pfade.Where(p => JbPfad(p)).ToList();
                     string ids = string.Join(", ", jbp.Select(p => H.Mt(p, "([A-Z]{4}\\d{5})").Groups[1].Value).Distinct());
                     string tx = T("Jailbreak-Einstieg ", "Jailbreak entry ") + ids + " (" + H.R(f.TextBasis, "\\s*\\(.*$", "") + ")" + T("  [Jailbreak-Einstieg - nur einzeln]", "  [jailbreak entry - individually only]");
-                    jbNeu.Add(new Eintrag { Pfade = jbp, PfadeBasis = new List<string>(jbp), Kat = 6, Text = tx, TextBasis = tx, Kachel = f.Kachel, Jailbreak = true, NurEinzeln = true, Ort = f.Ort });
+                    jbNeu.Add(new Eintrag { Pfade = jbp, PfadeBasis = new List<string>(jbp), Kat = 7, Text = tx, TextBasis = tx, Kachel = f.Kachel, Jailbreak = true, NurEinzeln = true, Ort = f.Ort });
                     f.Pfade = rest; f.PfadeBasis = new List<string>(rest); continue;
                 }
                 f.Jailbreak = true; f.NurEinzeln = true; f.Text = f.TextBasis = f.Text + T("  [Jailbreak-Einstieg - nur einzeln]", "  [jailbreak entry - individually only]");
                 // da_Chris86 28.10.2026 22:55: Jailbreak-Einstiege stehen unter "Jailbreak & Homebrew". da_Chris86 29.10.2026: ein ShadowMount-Spiel
                 // (mit Spieldatei) bleibt unter "Spiele" - dort ist das Löschen von Spieldatei und Kachel geregelt; geschützt und gewarnt wird es trotzdem
-                if (!(f.Kat == 1 && abbild)) f.Kat = 6;   // Codex-Prüfung 36: auch ein Spiel-Abbild ohne Kachel bleibt unter "Spiele"
+                // NEU 1.0.7 (da_Chris86 31.10.2026): alle Einstiege unter "Jailbreak", auch ein Jailbreak-Spiel als Spiel-Abbild (bis 1.0.6 unter "Spiele").
+                // Spieldatei/Kachel-Regeln hängen an Quelle, nicht am Bereich.
+                f.Kat = 7; if (abbild) { }
             }
             bau.AddRange(jbNeu);
+            Bereiche107(bau);
             // fest nach Bereich ordnen (innerhalb eines Bereichs bleibt die Fundreihenfolge)
             var sortiert = new List<Eintrag>();
             // fest nach Bereich ordnen, darin nach Ort (intern, M.2, USB, USB-Stick - NEU 1.0.6); sonst bleibt die Fundreihenfolge
             foreach (var k in ALLE_KAT) for (int o = ORT_INTERN; o <= ORT_STICK; o++) foreach (var f in bau) if (f.Kat == k && f.Ort == o) sortiert.Add(f);
             sortiert = ToolDatenOrdnen(sortiert);
+            KachelnSperren(sortiert);   // NEU 1.0.7 (da_Chris86 31.10.2026 23:32): Apps mit Kachel nur über die PS5-App
+            ListenSperren(sortiert);    // NEU 1.0.7 (da_Chris86 01.11.2026): Spielstände und Aufnahmen nur über die PS5-App (keine leeren Einträge)
+            // NEU 1.0.7 (da_Chris86 31.10.2026): installierte PS4-Spiele für den Schutz beim Löschen und den Schlusstext (nur lesen)
+            var ps4 = Ps4SpieleErmitteln(new[] { apps, m2Apps, usbApps }, new[] { patches, m2Patches, usbPatches }, new[] { addconts, m2Addconts, usbAddconts }, lizenzListe);
             Funde = sortiert;
+            PS4_SPIELE = ps4;
             FUNDE_IP = S.Ftp.Ip + ":" + S.Ftp.Port;
+        }
+
+        // NEU 1.0.7 (da_Chris86 31.10.2026 23:32: "ohne Geisterkacheln, damit überhaupt kein Datenbank-Neuaufbau notwendig wird"):
+        // Die Windows-Fassung kann eine Kachel nicht über Sonys Deinstallation austragen - sie löscht nur Dateien über FTP. Eine App oder
+        // ein Spiel mit eigenem App-Ordner (/user/app/<ID>, M.2 oder USB-Speicher) bliebe dabei als Geisterkachel im Menü stehen. Darum
+        // sind solche Einträge hier gesperrt (mit Grund); sauber entfernen kann sie die PS5-App (Sonys Deinstallation mit Kontrolle).
+        // Übrige Daten (Updates, Zusatzinhalte, Kachel-Reste ohne App ...) bleiben wählbar - sie hinterlassen keine Kachel. Spielstände und
+        // Aufnahmen sperrt seit 01.11.2026 ListenSperren (nur die Dateien zu löschen hinterließe leere Einträge, siehe unten).
+        public static string KACHEL_SPERRE { get { return T("  [nur mit der PS5-App - Windows kann die Kachel nicht austragen, es bliebe eine Geisterkachel]", "  [PS5 app only - Windows cannot remove the tile, a ghost tile would remain]"); } }
+        const string APP_ORDNER = "^(/user|/mnt/ext[01]/user)/app/[A-Z]{4}\\d{5}$";
+        public static bool HatAppOrdner(Eintrag f) { return f.Pfade.Any(p => H.M(p, APP_ORDNER)) || (f.Quelle != "" && f.PfadeBasis.Any(p => H.M(p, APP_ORDNER))); }
+        public static void KachelnSperren(List<Eintrag> l)
+        {
+            foreach (var f in l)
+            {
+                if (f.Gesperrt || !HatAppOrdner(f)) continue;
+                f.Gesperrt = true; f.Wahl = false;
+                f.SperrGrund = KACHEL_SPERRE.Trim().Trim('[', ']');
+            }
+        }
+
+        // NEU 1.0.7 (da_Chris86 01.11.2026: "ohne leere Einträge", "Neuaufbau der Datenbank ist inakzeptabel"): Spielstände und Aufnahmen
+        // (Screenshots/Videos) führt die PS5 in eigenen Listen (Spielstand-Liste, Mediengalerie). Die PS5-App trägt sie dort mit aus
+        // (Spielstand-Liste savedata.db bzw. Sonys Löschdienst für die Mediengalerie - PS5-Tests 01.11.2026). Über FTP geht das nicht:
+        // nur die Dateien zu löschen hinterließe leere Einträge bis zum Datenbank-Neuaufbau (und der löscht PS4-FPKG-Spiele). Darum sind
+        // diese Einträge in der Windows-Fassung gesperrt (mit Grund). Unfertige Aufnahmen, Vorschaubilder ohne Aufnahme und übrige
+        // Galerie-Reste stehen in keiner Liste und bleiben wählbar.
+        public static string SPIELSTAND_SPERRE { get { return T("nur mit der PS5-App - Windows kann Spielstände nicht aus der Spielstand-Liste austragen, es bliebe ein leerer Eintrag", "PS5 app only - Windows cannot remove saved data from the saved data list, an empty entry would remain"); } }
+        public static string AUFNAHMEN_SPERRE { get { return T("nur mit der PS5-App - Windows kann Bilder und Videos nicht aus der Mediengalerie austragen, es blieben leere Einträge", "PS5 app only - Windows cannot remove screenshots and videos from the Media Gallery, empty entries would remain"); } }
+        const string SPIELSTAND_ORDNER = "^/user/home/[^/]+/savedata(_prospero)?/[^/]+$";
+        public static void ListenSperren(List<Eintrag> l)
+        {
+            foreach (var f in l)
+            {
+                if (f.Gesperrt) continue;
+                // Prüfung 01.11.2026: auch Spielstand-Ordner in anderen Einträgen (z. B. Spielstand eines Jailbreak-Spiels)
+                if (f.Kat == 2 || f.Pfade.Any(p => H.M(p, SPIELSTAND_ORDNER)) || f.PfadeBasis.Any(p => H.M(p, SPIELSTAND_ORDNER))) { f.Gesperrt = true; f.Wahl = false; f.SperrGrund = SPIELSTAND_SPERRE; }
+                else if (f.Kat == 4 && (f.TextBasis.StartsWith("Aufnahmen von ", StringComparison.Ordinal) || f.TextBasis.StartsWith("Captures of ", StringComparison.Ordinal)))
+                { f.Gesperrt = true; f.Wahl = false; f.SperrGrund = AUFNAHMEN_SPERRE; }
+            }
+        }
+
+        // NEU 1.0.7 (da_Chris86 31.10.2026): alle installierten PS4-Spiele (Ordner CUSAxxxxx) in /user/app, /mnt/ext1/user/app (M.2) und
+        // /mnt/ext0/user/app (USB-Speicher) - je Spiel Ort, app.pkg (+ Größe), Update (patch.pkg), Zusatzinhalt-Ordner, Lizenzdateien
+        // (*<ID>*.rif/.idx unter /user/license, "fake..." = Fake-Lizenz, sonst echt) und Name. Nur Ordnerlisten und param-Dateien lesen.
+        // Ein nicht lesbarer App-/Update-Ordner bricht nichts ab - das Spiel gilt trotzdem als installiert (geschützt).
+        List<Ps4Spiel> Ps4SpieleErmitteln(List<string>[] appListen, List<string>[] patchListen, List<string>[] addcontListen, List<Datei> lizenzen)
+        {
+            var erg = new List<Ps4Spiel>();
+            var basen = new[] { "/user", M2 + "/user", USB_ERW + "/user" };
+            var orte = new[] { ORT_INTERN, ORT_M2, ORT_USB };
+            for (int w = 0; w < 3; w++)
+            {
+                foreach (var x in appListen[w] ?? new List<string>())
+                {
+                    if (!H.M(x, "^CUSA\\d{5}$")) continue;
+                    var g = new Ps4Spiel { Id = x, Basis = basen[w], Ort = orte[w] };
+                    string t = "";
+                    try { t = AppTitel(x); } catch (AbbruchAusnahme) { throw; } catch { t = ""; }
+                    g.Name = t != "" ? t : x;
+                    List<Datei> l = null;
+                    try { l = S.Liste(g.AppPfad); } catch (AbbruchAusnahme) { throw; } catch { l = null; }
+                    if (l != null)
+                    {
+                        g.AppGelesen = true;
+                        var a = l.FirstOrDefault(e => !e.IstOrdner && !e.IstLink && e.Name == "app.pkg");
+                        if (a != null) { g.AppPkg = true; g.AppPkgBytes = a.Groesse; }
+                        g.Abbild = l.Any(e => e.Name == "mount.lnk" || e.Name == "mount_img.lnk");
+                    }
+                    if (H.Hat(patchListen[w], x))
+                    {
+                        g.Patch = true;
+                        List<Datei> pl = null;
+                        try { pl = S.Liste(g.PatchPfad); } catch (AbbruchAusnahme) { throw; } catch { pl = null; }
+                        var pp = pl == null ? null : pl.FirstOrDefault(e => !e.IstOrdner && !e.IstLink && e.Name == "patch.pkg");
+                        if (pp != null) { g.PatchPkg = true; g.PatchPkgBytes = pp.Groesse; }
+                    }
+                    foreach (var d in addcontListen[w] ?? new List<string>())
+                        if (H.M(d, "^" + Regex.Escape(x) + "([^0-9]|$)")) g.Addcont.Add(basen[w] + "/addcont/" + d);
+                    foreach (var e in lizenzen ?? new List<Datei>())
+                    {
+                        if (e.IstOrdner || !H.M(e.Name, Regex.Escape(x) + "([^0-9]|$)") || !H.M(e.Name, "\\.(rif|idx)$")) continue;
+                        g.Lizenzen.Add("/user/license/" + e.Name);
+                        if (H.M(e.Name, "^fake")) g.FakeLizenzen++; else g.EchteLizenzen++;
+                    }
+                    erg.Add(g);
+                }
+            }
+            return erg;
         }
     }
 }
