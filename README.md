@@ -93,17 +93,6 @@ Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gel
 - **Am Ende:** ✕ Neu starten (empfohlen) oder ○ Beenden
 - **Deutsch und Englisch** – richtet sich nach der Systemsprache der PS5, Quadrat schaltet vor dem ersten Nachschauen um
 
-<details>
-<summary><b>🖼️ So sieht die App aus</b> (zum Aufklappen)</summary>
-
-<br>
-
-<img src="bilder/1.0.7/auswahl_de.png" width="100%" alt="PS5 Cleanup – Auswahl am Fernseher">
-
-<sub>Bild aus der Test-Fassung – sie zeigt alles an wie die echte App, löscht aber nichts.</sub>
-
-</details>
-
 ## Was das Programm nicht anfasst
 
 Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen und die Sony-Systemanwendungen. Es wird nichts installiert und nichts zurückgesetzt. Sonys Datenbanken ändert die PS5-App nur gezielt: die Einträge gelöschter Spielstände und kaputte Zusatzinhalt-Angaben eines Spiels, das du löschst. Jede dieser Änderungen wird vorher geprüft und ganz oder gar nicht gemacht.
@@ -254,17 +243,6 @@ Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2. Other models and firmw
 - Scanning and ticking deletes nothing – nothing is deleted until you confirm
 - Log any time with Options, saved as a file when deleting
 - At the end: restart (recommended) or quit
-
-<details>
-<summary><b>🖼️ What the app looks like</b> (click to expand)</summary>
-
-<br>
-
-<img src="bilder/1.0.7/auswahl_en.png" width="100%" alt="PS5 Cleanup – selection on the TV">
-
-<sub>Picture from the test version – it shows everything like the real app but deletes nothing.</sub>
-
-</details>
 
 **Not touched by the program:** system software, disc drive pairing, user account, activation and real licenses, Sony system apps. Nothing is installed or reset. The PS5 app changes Sony's databases only selectively: the entries of deleted saved data and broken add-on information of a game you delete. Each of these changes is checked first and made completely or not at all.
 
