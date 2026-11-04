@@ -20,6 +20,31 @@
 | **📦 Ein Block pro App** | **🧪 Test-Fassung** | **📱 Rückmeldung per QR-Code** |
 | Kachel oben, darunter alles, was dazugehört – zugeordnet nur mit Beleg, geraten wird nie | `PS5-Cleanup-Test_v1.0.7.elf` zeigt alles an wie die echte App und kann technisch nichts löschen | Mit dem Handy scannen, ohne Konto, ohne persönliche Daten |
 
+<details>
+<summary><b>📸 So sieht's aus</b> (Bilder von der PS5, zum Aufklappen)</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%"><img src="bilder/1.0.7/ablauf-1-start.jpg" alt="Startseite von PS5 Cleanup"></td>
+<td width="50%"><img src="bilder/1.0.7/ablauf-2-auswahl.jpg" alt="Auswahl der Einträge"></td>
+</tr>
+<tr>
+<td><b>1. Start:</b> Konsole, Firmware, Jailbreak und Laufwerks-Kopplung auf einen Blick. Nachschauen ändert nichts.</td>
+<td><b>2. Auswahl:</b> Links die Bereiche, rechts jeder Eintrag mit Größe und einer Farbe dafür, was danach passiert.</td>
+</tr>
+<tr>
+<td width="50%"><img src="bilder/1.0.7/ablauf-3-vollstaendig.jpg" alt="Übersicht der vollständigen Bereinigung"></td>
+<td width="50%"><img src="bilder/1.0.7/ablauf-4-fertig.jpg" alt="Fertig-Seite mit Rückmeldung"></td>
+</tr>
+<tr>
+<td><b>3. Vollständige Bereinigung:</b> Vorher steht genau da, was gelöscht wird und was auf jeden Fall bleibt.</td>
+<td><b>4. Fertig:</b> Freigeräumter Platz, Protokoll auf dem USB-Stick und QR-Code für die Rückmeldung.</td>
+</tr>
+</table>
+
+</details>
+
 <a name="community"></a>
 ### 🗳️ PS5 Cleanup Community – Deine Meinung zählt!
 
@@ -179,6 +204,33 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 | Tiles, apps and games are removed by Sony itself – no empty tiles, no database rebuild | Jailbreak entry points and PS4 games are protected. Nothing is deleted until you confirm | Own home-screen tile, controlled with the controller – no PC, no FTP, no USB drive needed |
 | **📦 One block per app** | **🧪 Test version** | **📱 Feedback via QR code** |
 | The tile at the top, everything that belongs to it below – assigned only with evidence, nothing is ever guessed | `PS5-Cleanup-Test_v1.0.7.elf` shows everything like the real app and technically cannot delete anything | Scan with your phone, no account, no personal data |
+
+<details>
+<summary><b>📸 What it looks like</b> (screenshots from the PS5, click to expand)</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%"><img src="bilder/1.0.7/ablauf-1-start.jpg" alt="PS5 Cleanup start screen"></td>
+<td width="50%"><img src="bilder/1.0.7/ablauf-2-auswahl.jpg" alt="Selecting entries"></td>
+</tr>
+<tr>
+<td><b>1. Start:</b> Console, firmware, jailbreak and drive pairing at a glance. Scanning changes nothing.</td>
+<td><b>2. Selection:</b> Areas on the left, every entry on the right with its size and a color for what happens afterwards.</td>
+</tr>
+<tr>
+<td width="50%"><img src="bilder/1.0.7/ablauf-3-vollstaendig.jpg" alt="Full cleanup overview"></td>
+<td width="50%"><img src="bilder/1.0.7/ablauf-4-fertig.jpg" alt="Done screen with feedback"></td>
+</tr>
+<tr>
+<td><b>3. Full cleanup:</b> Before anything happens, it lists exactly what will be deleted and what always stays.</td>
+<td><b>4. Done:</b> Space freed, log on the USB drive and a QR code for feedback.</td>
+</tr>
+</table>
+
+<sub>The screenshots show the German interface. The app also runs in English (switch it on the start screen).</sub>
+
+</details>
 
 ### 🗳️ PS5 Cleanup Community – Your Feedback Matters!
 
