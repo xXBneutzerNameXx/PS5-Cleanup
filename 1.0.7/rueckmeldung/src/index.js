@@ -25,6 +25,7 @@ const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverif
 const TURNSTILE_JS = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
 const GITHUB_ISSUES = 'https://github.com/xXBneutzerNameXx/PS5-Cleanup/issues';
+const RELEASES_SEITE = 'https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest'; // Ziel des Hinweises „neuere Version“
 const CF_DATENSCHUTZ = { de: 'https://www.cloudflare.com/de-de/privacypolicy/', en: 'https://www.cloudflare.com/privacypolicy/' };
 const CF_TURNSTILE_DATENSCHUTZ = 'https://www.cloudflare.com/turnstile-privacy-policy/';
 const ENTFERNT = '[entfernt]';
@@ -123,6 +124,30 @@ const SPEICHER = [
   ['usb', 'USB-Laufwerk', 'USB drive'],
 ];
 
+// NEU 1.0.8 (06.11.2026): Laufwerks-Kopplung in Worten wie in der App (kern/kern_konsole.c), die Zahl in Klammern dahinter.
+// Sonys Namen der Werte: 0 PAIRED, 1 PAIRED_TO_ANOTHER, 2 NOT_PAIRED, 3 REGISTER_INCOMPLETE, 4 DELETE_INCOMPLETE, 5 FACTORY_PAIRED,
+// 6 FACTORY_PAIRED_TO_ANOTHER (earthonion/ddd_status). Die App fragt ohne die Kennung des Laufwerks - dann meldet eine online gekoppelte
+// Slim/Pro 1 und eine ab Werk gekoppelte Slim 6; "TO_ANOTHER" heißt nicht "mit einer anderen Konsole".
+// Erste PS5 (CFI-10xx bis 12xx): fest eingebautes Laufwerk bzw. Digital Edition, der Wert sagt dort nichts (auch die Digital Edition meldet 0).
+const KOPPLUNG = {
+  0: ['gekoppelt', 'paired'],
+  1: ['online gekoppelt', 'paired online'],
+  2: ['nicht gekoppelt', 'not paired'],
+  3: ['Koppeln nicht fertig', 'pairing not finished'],
+  4: ['Entkoppeln nicht fertig', 'unpairing not finished'],
+  5: ['ab Werk gekoppelt', 'factory paired'],
+  6: ['ab Werk gekoppelt', 'factory paired'],
+};
+function kopplungText(x, m, i) {
+  if (x === -1) return ['nicht abgefragt', 'not queried'][i];
+  const zahl = [`Wert ${x}`, `value ${x}`][i];
+  if (m && /^CFI-1[012]/.test(m)) {
+    const art = /^CFI-[0-9]{4}B/.test(m) ? ['erste PS5, Digital Edition', 'original PS5, Digital Edition'] : ['erste PS5, Laufwerk fest eingebaut', 'original PS5, built-in drive'];
+    return `${art[i]} (${zahl})`;
+  }
+  return hat(KOPPLUNG, x) ? `${KOPPLUNG[x][i]} (${zahl})` : zahl;
+}
+
 const idx = (l) => (l === 'en' ? 1 : 0);
 const hat = (liste, schluessel) => Object.hasOwn(liste, schluessel);
 
@@ -140,6 +165,22 @@ const RE_SPEICHER = /^[01]{3}$/;
 const RE_BEREICHE = /^[0-9]{1,6}(?:\.[0-9]{1,6}){6}$/;
 const RE_CODE = /^(?:0x[0-9a-f]{8}|E[A-Z0-9]{2,15}|-?[0-9]{1,6}|-)$/;
 const RE_FID = /^[A-Za-z0-9_-]{22}$/;
+
+// Neueste veröffentlichte Version aus der Einstellung NEUESTE_VERSION (wrangler.toml [vars]).
+// Fehlt sie oder ist sie ungültig: '' (dann zeigt die Seite keinen Hinweis).
+function neuesteVersion(env) {
+  const x = env && typeof env.NEUESTE_VERSION === 'string' ? env.NEUESTE_VERSION.trim() : '';
+  return RE_VERSION.test(x) ? x : '';
+}
+
+// true, wenn Version v älter ist als neueste (Teile als Zahlen: 1.0.9 < 1.0.10). Ungültig: false.
+function istAelter(v, neueste) {
+  if (typeof v !== 'string' || typeof neueste !== 'string' || !RE_VERSION.test(v) || !RE_VERSION.test(neueste)) return false;
+  const a = v.split('.').map(Number);
+  const b = neueste.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i];
+  return false;
+}
 
 // Alle Link-Parameter in der Reihenfolge, in der die App sie schreibt.
 const PARAMETER = ['v', 'b', 'bd', 's', 'm', 'fw', 'l', 'dd', 'jb', 'sp', 'sm', 'a', 'n', 'g', 'f', 'p', 'ps', 'u', 'sb', 'mb', 't', 'ab', 'ok', 'e'];
@@ -355,6 +396,7 @@ function seiteRueckmeldung(url, env) {
     wertung: null,
     text: '',
     meldung: bereit ? null : T[daten.l].nichtEingerichtet,
+    neueste: neuesteVersion(env),
   });
   return htmlAntwort(html, bereit ? 200 : 503, { nonce, turnstile: bereit });
 }
@@ -408,6 +450,7 @@ async function senden(request, env, ctx, url) {
       wertung,
       text,
       meldung,
+      neueste: neuesteVersion(env),
     });
     return htmlAntwort(html, status, { nonce, turnstile: bereit });
   };
@@ -640,7 +683,7 @@ const EXPORT_HINWEIS =
   's Zeitpunkt (0 vor, 1 nach dem Nachschauen, 2 am Ende), m Modell, fw Firmware, l Sprache, dd Laufwerks-Kopplung (-1 nicht abgefragt), ' +
   'jb Jailbreak-Einstiege, sp Speicher, sm ShadowMount (0 keine Spiele, 1 Spiele vorhanden, 2 vor dem Löschen angehalten, 3 unklar), ' +
   'a Einträge je Bereich, n gefunden, g ausgewählt, f Fehler, p teilweise entfernt, ps vom PS4-Schutz zurückgehalten, ' +
-  'u nicht lesbare Ordner, sb Speicherbremse, mb höchster Speicherverbrauch MB, t Dauer s, ab abgebrochen, ok Ergebnis laut App, ' +
+  'u nicht geprüfte Ordner (nicht lesbar oder zu tief, geschützt), sb Speicherbremse, mb höchster Speicherverbrauch MB, t Dauer s, ab abgebrochen, ok Ergebnis laut App, ' +
   'e Fehlerliste (schritt, art, ort, code).';
 
 async function exportJson(request, env) {
@@ -791,7 +834,7 @@ const T = {
       f: 'Fehler',
       p: 'Nur teilweise entfernt',
       ps: 'Vom PS4-Schutz zurückgehalten',
-      u: 'Nicht lesbare Ordner',
+      u: 'Nicht geprüfte Ordner',
       sb: 'Speicherbremse',
       mb: 'Höchster Speicherverbrauch',
       t: 'Dauer des Nachschauens',
@@ -802,7 +845,7 @@ const T = {
     s: { 0: 'vor dem Nachschauen', 1: 'nach dem Nachschauen', 2: 'am Ende, nach dem Löschen' },
     s2Test: 'am Ende, nach der Simulation',
     sm: { 0: 'keine ShadowMount-Spiele', 1: 'ShadowMount-Spiele vorhanden', 2: 'vor dem Löschen angehalten', 3: 'Zustand unklar' },
-    dd: (x) => (x === -1 ? 'nicht abgefragt' : `Statuswert ${x}`),
+    dd: (x, m) => kopplungText(x, m, 0),
     bau: (x) => `${x.slice(4, 6)}.${x.slice(2, 4)}.${x.slice(0, 2)} ${x.slice(6, 8)}:${x.slice(8, 10)}`,
     jbLeer: 'keine angegeben',
     ok: { 1: 'alles geklappt', 0: 'nicht alles geklappt' },
@@ -844,6 +887,9 @@ const T = {
     dankeNummer: (id) => `Deine Meldungs-Nummer: ${id}`,
     dankeLoeschen: 'Falls du deine Meldung später löschen lassen willst, nenne diese Nummer in einem GitHub-Issue.',
     dankeSchliessen: 'Du kannst diese Seite jetzt schließen.',
+    neuTitel: (x) => `Es gibt eine neuere Version: ${x}`,
+    neuText: (x) => `Du nutzt ${x}. Deine Rückmeldung kannst du trotzdem schicken.`,
+    neuLink: 'Zur neuen Version (GitHub)',
   },
   en: {
     lang: 'en',
@@ -872,7 +918,7 @@ const T = {
       f: 'Errors',
       p: 'Only partly removed',
       ps: 'Held back by PS4 protection',
-      u: 'Unreadable folders',
+      u: 'Folders not checked',
       sb: 'Memory brake',
       mb: 'Highest memory use',
       t: 'Scan duration',
@@ -883,7 +929,7 @@ const T = {
     s: { 0: 'before scanning', 1: 'after scanning', 2: 'at the end, after deleting' },
     s2Test: 'at the end, after the simulation',
     sm: { 0: 'no ShadowMount games', 1: 'ShadowMount games present', 2: 'paused before deleting', 3: 'state unclear' },
-    dd: (x) => (x === -1 ? 'not queried' : `status value ${x}`),
+    dd: (x, m) => kopplungText(x, m, 1),
     bau: (x) => `20${x.slice(0, 2)}-${x.slice(2, 4)}-${x.slice(4, 6)} ${x.slice(6, 8)}:${x.slice(8, 10)}`,
     jbLeer: 'none given',
     ok: { 1: 'everything worked', 0: 'not everything worked' },
@@ -925,6 +971,9 @@ const T = {
     dankeNummer: (id) => `Your report number: ${id}`,
     dankeLoeschen: 'If you want your report deleted later, mention this number in a GitHub issue.',
     dankeSchliessen: 'You can close this page now.',
+    neuTitel: (x) => `A newer version is available: ${x}`,
+    neuText: (x) => `You are using ${x}. You can still send your feedback.`,
+    neuLink: 'Get the new version (GitHub)',
   },
 };
 
@@ -967,7 +1016,7 @@ function gruppen(d, l) {
     [F.m, d.m !== null ? d.m : t.unbekannt],
     [F.fw, d.fw !== null ? d.fw : t.unbekannt],
   ];
-  wennDa(konsole, 'dd', t.dd);
+  wennDa(konsole, 'dd', (x) => t.dd(x, d.m));
 
   const umgebung = [];
   wennDa(umgebung, 'jb', (x) => (x.length ? x.map((k) => JB[k][i]).join(', ') : t.jbLeer));
@@ -1016,6 +1065,10 @@ a{color:#8fb6ff}
 .hinweis{background:#13243f;border:1px solid #2c4a7a;border-radius:14px;padding:14px 16px;margin:16px 0 18px}
 .hinweis p:last-child{margin:0}
 .meldung{background:var(--warn);color:var(--warn-text);border-radius:14px;padding:14px 16px;margin:0 0 14px;font-weight:600}
+.neu{background:#12301d;border:1px solid var(--gut-hell);border-radius:14px;padding:14px 16px;margin:0 0 14px}
+.neu p{margin:0 0 4px}
+.neu strong{font-size:1.08rem}
+.knopf.zweit{background:transparent;border:2px solid var(--gut-hell);color:var(--text);min-height:52px;margin-top:12px;font-size:1.05rem}
 table.werte{border-collapse:collapse;width:100%;font-size:.95rem}
 table.werte th,table.werte td{text-align:left;padding:5px 4px;border-top:1px solid var(--rand);vertical-align:top;overflow-wrap:anywhere}
 table.werte tr:first-child th,table.werte tr:first-child td{border-top:0}
@@ -1154,9 +1207,19 @@ ${versteckt}
     ? `<p class="klein">${esc(t.imLink)}</p>\n${gruppenHtml(daten, daten.l)}`
     : `<section class="karte"><p style="margin:0">${esc(t.ohneDaten)}</p></section>`;
 
+  // Hinweis „Es gibt eine neuere Version“, wenn die Version im Link älter ist als NEUESTE_VERSION.
+  const neu = istAelter(daten.v, opt.neueste)
+    ? `<section class="neu">
+<p><strong>${esc(t.neuTitel(opt.neueste))}</strong></p>
+<p class="klein">${esc(t.neuText(daten.v))}</p>
+<a class="knopf zweit" href="${esc(RELEASES_SEITE)}" target="_blank" rel="noopener noreferrer">${esc(t.neuLink)}</a>
+</section>`
+    : '';
+
   const inhalt = `
 <h1>${esc(t.titel)}</h1>
 ${opt.meldung ? `<p class="meldung" role="alert">${esc(opt.meldung)}</p>` : ''}
+${neu}
 ${daten_}
 <section class="hinweis">
 <p>${esc(t.hinweis)}</p>

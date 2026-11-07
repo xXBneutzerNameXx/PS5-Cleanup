@@ -250,3 +250,33 @@ int db_appinfo_zeilen(const unsigned char *bild, size_t n, void (*zeile)(void *c
     sqlite3_close(db);
     return anz;
 }
+
+/* NEU 1.0.8 (PS5-Test 07.11.2026): Sonys Spielstand-Liste savedata.db (Tabelle savedata) - je Spielstand Kennung und Titel. Nur lesen. */
+int db_spielstand_zeilen(const unsigned char *bild, size_t n, void (*zeile)(void *ctx, const char *titel, const char *feld, const char *wert),
+                         void *ctx, char *grund, size_t gl)
+{
+    grund[0] = 0;
+    if (!bild || !n || !zeile) { snprintf(grund, gl, "keine Daten"); return -1; }
+    unsigned char *b = sqlite3_malloc64(n);
+    if (!b) { snprintf(grund, gl, "kein Speicher"); return -1; }
+    memcpy(b, bild, n);
+    sqlite3 *db = oeffne_speicher(b, n, grund, gl);
+    if (!db) return -1;
+    sqlite3_stmt *s = NULL;
+    if (sqlite3_prepare_v2(db, "SELECT CAST(title_id AS TEXT), CAST(main_title AS TEXT), CAST(sub_title AS TEXT) FROM savedata", -1, &s, NULL) != SQLITE_OK) {
+        snprintf(grund, gl, "savedata.db: %s", sqlite3_errmsg(db)); sqlite3_close(db); return -1;
+    }
+    int anz = 0, rc;
+    while ((rc = sqlite3_step(s)) == SQLITE_ROW) {
+        const char *t = (const char *)sqlite3_column_text(s, 0), *h = (const char *)sqlite3_column_text(s, 1), *u = (const char *)sqlite3_column_text(s, 2);
+        if (!t || !h || !h[0]) continue;
+        /* Titel gleich Untertitel (L.A. Noire: zweimal "Benutzereinstellungen & Freischaltobjekte"): der Spielstand beschreibt nur sich selbst */
+        if (u && !strcmp(h, u)) continue;
+        zeile(ctx, t, "SPIELSTAND_TITEL", h);
+        anz++;
+    }
+    if (rc != SQLITE_DONE) { snprintf(grund, gl, "savedata.db: %s", sqlite3_errmsg(db)); anz = -1; }
+    sqlite3_finalize(s);
+    sqlite3_close(db);
+    return anz;
+}

@@ -42,6 +42,9 @@ void plattform_melden(const char *text);
 /* NEU 1.0.7 (Infoleiste "Speicher frei"): freier und gesamter Platz eines Speicherorts (ORT_* aus kern.h).
  * false = nicht angeschlossen oder nicht lesbar. Nur lesen. */
 bool plattform_speicher(int ort, long long *frei, long long *gesamt);
+/* Codex-Prüfung 91: beim USB-Laufwerk (ORT_STICK) zählen alle angeschlossenen zusammen (/mnt/usb0 bis /mnt/usb7) - wie die Funde;
+ * plattform_usb_anzahl sagt, wie viele es sind (für "USB-Laufwerke (2)") */
+int plattform_usb_anzahl(void);
 /* NEU 1.0.7 (da_Chris86 31.10.2026 19:27/19:28): Protokoll als Datei.
  * protokoll_ordner(nr): Ordner für das Protokoll, wenn der USB-Stick fehlt, voll oder nicht beschreibbar ist (da_Chris86 02.11.2026
  *   16:57/17:23): nr 0 = interne Platte /data/PS5-Cleanup-Protokolle, nr 1 = M.2 /mnt/ext1/PS5-Cleanup-Protokolle (nur wenn die
@@ -57,11 +60,15 @@ long long plattform_frei_bytes(const char *pfad);
 const char *plattform_stick_ordner(void);
 void plattform_protokoll_zeile(const char *t);
 void plattform_protokoll_stick_setzen(const char *pfad);
+/* NEU 1.0.8 (Arbeitsplan 2.7): nur die Test-Fassung (MITSCHNITT) - Ordner PS5-Cleanup-Test auf dem USB-Laufwerk (sonst /data/PS5-Cleanup-Test)
+ * für Mitschnitt und Bildschirmbilder, wird bei Bedarf angelegt. NULL = geht nicht. In den anderen Fassungen gibt es die Funktion nicht. */
+const char *plattform_test_ordner(void);
 /* NEU 1.0.7 (Punkt 2): Ordner mit app.db/appinfo.db (PS5: /system_data/priv/mms), NULL = keiner (nur lesen) */
 const char *plattform_db_ordner(void);
 /* NEU 1.0.7 (PS5-Test 02.11.2026, GTA V / Red Dead Redemption 2): Sonys appinfo.db NUR LESEN und dem Kern jede Zeile
  * INSTALL_DIR_SAVEDATA / SERVICE_ID_ADDCONT_ADD_<n> melden (Zuordnung von Resten, kaputte Zusatzinhalt-Angaben). Setzt app.c als
- * K->appinfo_lesen. */
+ * K->appinfo_lesen. NEU 1.0.8 (PS5-Test 07.11.2026): dazu Sonys Spielstand-Liste (savedata.db je Benutzer, PC: VORSCHAU_SAVEDATA) -
+ * je Spielstand eine Zeile mit dem Feld SPIELSTAND_TITEL (siehe kern.h). Über denselben Weg landen die Zeilen auch im Mitschnitt. */
 struct kern;
 void plattform_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert));
 /* NEU 1.0.7 (Punkt 3): Zeilen der Plattform (z. B. jeder Schritt einer Sony-Deinstallation) ins Protokoll der Oberfläche.

@@ -199,30 +199,8 @@ const char *kern_ps4_zeile(arena *a, const ps4_spiel *s)
     return z;
 }
 
-/* Folgen eines Datenbank-Neuaufbaus für die erkannten Spiele - belegt: intern gelöscht (31.10.2026 auf FW 12.00 beobachtet,
- * dazu elf-arsenal README und ps5-db-backup README); USB-Speicher nur, wenn angesteckt; M.2 bleibt laut elf-arsenal (nicht von uns geprüft). */
-const char *kern_ps4_neuaufbau_text(kern *k, arena *a)
-{
-    const char *gef = "", *m2 = "";
-    for (int i = 0; i < k->PS4.n; i++) {
-        const ps4_spiel *s = k->PS4.e[i];
-        if (!kern_ps4_installiert(s)) continue;
-        if (s->ort == ORT_M2) m2 = VERB(a, m2, "\n   ", kern_ps4_zeile(a, s));
-        else gef = VERB(a, gef, "\n   ", kern_ps4_zeile(a, s));
-    }
-    if (!gef[0] && !m2[0]) return "";
-    const char *t = "";
-    if (gef[0]) t = VERB(a, kern_bereiche_106() ? T("ACHTUNG: Ein Datenbank-Neuaufbau löscht installierte PS4-Spiele (Fake-PKG) auf der internen SSD und auf angestecktem USB-Speicher. Betroffen wären:",
-                                                    "WARNING: a database rebuild deletes installed PS4 games (fake PKG) on the internal SSD and on connected USB storage. Affected would be:")
-                                                : T("ACHTUNG: Ein Datenbank-Neuaufbau löscht installierte PS4-Spiele (Fake-PKG) auf der internen SSD und auf dem erweiterten Speicher (USB-Festplatte). Betroffen wären:",
-                                                    "WARNING: a database rebuild deletes installed PS4 games (fake PKG) on the internal SSD and on the extended storage (USB drive). Affected would be:"), gef,
-                         T("\nDeine PKG-Dateien bleiben, die Spiele müssten aber neu installiert werden.", "\nYour PKG files stay, but the games would have to be installed again."));
-    if (m2[0]) t = VERB(a, t, t[0] ? "\n" : "", T("Auf der M.2-SSD (bleiben laut Szene beim Neuaufbau erhalten - von PS5 Cleanup nicht geprüft):", "On the M.2 SSD (stay during a rebuild according to the scene - not verified by PS5 Cleanup):"), m2);
-    return t;
-}
-
 /* NEU 1.0.7 (da_Chris86 31.10.2026 19:56, Punkt 4): Ende ohne Empfehlung zum Datenbank-Neuaufbau. Was im Menü stehen bleibt, wird
- * benannt und bleibt unverändert; die Folgen eines Neuaufbaus für die erkannten PS4-Spiele stehen dabei. "" = nichts zu sagen. */
+ * benannt und bleibt unverändert, dazu die Bitte ums Protokoll (seit 02.11.2026 kein Wort mehr zum Neuaufbau). "" = nichts zu sagen. */
 const char *kern_rest_text(kern *k, arena *a)
 {
     const char *t = "";
@@ -232,8 +210,11 @@ const char *kern_rest_text(kern *k, arena *a)
     else if (!k->SONY)
         t = T("Kacheln gelöschter Einträge können im PS5-Menü sichtbar bleiben. PS5 Cleanup lässt sie unverändert.",
               "Tiles of deleted entries can stay visible in the PS5 menu. PS5 Cleanup leaves them unchanged.");
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 15:55: Sony lehnte drei PS4-Spiele ab, hier stand trotzdem "Einbindung ... nicht eindeutig"): in
+     * UNVERAENDERT landet alles, was unverändert blieb, aus jedem Grund (Sony lehnt ab, unklare Einbindung, Spielstand, Kachel bleibt) -
+     * den Grund nennt die Zeile des Eintrags im Protokoll */
     if (k->UNVERAENDERT.n > 0)
-        t = VERB(a, t, t[0] ? " " : "", T("Unverändert gelassen (Einbindung im Systemordner nicht eindeutig zuzuordnen): ", "Left unchanged (mount in the system folder cannot be assigned for certain): "),
+        t = VERB(a, t, t[0] ? " " : "", T("Unverändert gelassen (den Grund nennt das Protokoll beim Eintrag): ", "Left unchanged (the log gives the reason at each entry): "),
                  sl_join(a, &k->UNVERAENDERT, ", "), ".");
     if (!t[0]) return "";
     /* da_Chris86 02.11.2026 15:54: "Den Risikoweg mit der Datenbank gehen wir nie wieder" - kein Wort mehr zum Neuaufbau (er löscht

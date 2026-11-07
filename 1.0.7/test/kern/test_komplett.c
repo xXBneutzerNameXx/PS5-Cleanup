@@ -63,7 +63,17 @@ static const char *bkey(const eintrag *f)
     return a_fmt(TA, "%p", (const void *)f);
 }
 static int bloecke_ist;   /* Summe der Blöcke im zuletzt gelesenen Abschnitt */
-/* Abschnitt im ersten Fenster: Zeilen "   - Name: N" bzw. "... B (zusammen mit Daten und Updates M Einträge)" -> Summe der Zeilen */
+/* NEU 1.0.8 (F3): die Klammer hängt vom Bereich ab ("(mit Daten und Updates 14 Einträge)", "(14 Einträge)") - die Zahl vor "Einträge)" */
+static int klammer_zeilen(const char *z)
+{
+    const char *k = strrchr(z, '(');
+    if (!k) return -1;
+    const char *e = strstr(k, " Einträge)"); if (!e) e = strstr(k, " Eintrag)");
+    if (!e) return -1;
+    const char *d = e; while (d > k && d[-1] >= '0' && d[-1] <= '9') d--;
+    return d < e ? atoi(d) : -1;
+}
+/* Abschnitt im ersten Fenster: Zeilen "   - Name: N" bzw. "... B (mit Daten und Updates M Einträge)" -> Summe der Zeilen */
 static int abschnitt(const char *text, const char *kopf, bool *da, bool intern, int *pakete)
 {
     *da = false; if (pakete) *pakete = -1; bloecke_ist = 0;
@@ -78,8 +88,8 @@ static int abschnitt(const char *text, const char *kopf, bool *da, bool intern, 
         const char *dp = strstr(z, ": ");
         if (strstr(z, "Trophäen-Listen installierter Spiele: ") == z + 5) { if (pakete) *pakete = atoi(dp + 2); }
         else if (dp) {
-            const char *zm = strstr(z, "(zusammen mit Daten und Updates ");
-            summe += zm ? atoi(zm + strlen("(zusammen mit Daten und Updates ")) : atoi(dp + 2);
+            int kz = klammer_zeilen(z);
+            summe += kz >= 0 ? kz : atoi(dp + 2);
             bloecke_ist += atoi(dp + 2);
         }
         p = *e ? e : NULL;
@@ -182,13 +192,22 @@ int main(int argc, char **argv)
                 const char *g = lauf == 0 ? strstr(s, gross) : NULL;
                 if (g) {
                     g = strstr(g, " - ") + 3; int b = atoi(g), z = b;
-                    const char *zm = strstr(g, "(zusammen mit Daten und Updates "), *ko = strchr(g, ',');
-                    if (zm && ko && zm < ko) z = atoi(zm + strlen("(zusammen mit Daten und Updates "));
+                    const char *ko = strchr(g, ',');
+                    if (ko) { int kz = klammer_zeilen(a_kopie_n(TA, g, (size_t)(ko - g))); if (kz >= 0) z = kz; }
                     if (z != soll[w] || b != sollBlAlle[w]) fail(a_fmt(TA, "%s: Warnung %s nennt %d Spiele/Apps, %d Zeilen - die Auswahl nimmt %d / %d", wie, ftitel[w], b, z, sollBlAlle[w], soll[w]));
                 }
             }
         }
         if (D[nd - 1].wahl) fail(a_fmt(TA, "%s: letztes Fenster ist keine LÖSCHEN-Eingabe", wie));
+        /* NEU 1.0.8 (F3, da_Chris86s Bilder vom 04.11.2026): die Trophäen-Listen installierter Spiele stehen im Schluss-Fenster getrennt wie
+         * im ersten Fenster (bis 1.0.7: dort 8 + 6, am Ende 14 unter "Trophäen"), und "mit Daten und Updates" nur bei Spielen */
+        if (lauf == 0 && pak > 0 && !strstr(D[nd - 1].text, a_fmt(TA, "   - Trophäen-Listen installierter Spiele: %d\n", pak)))
+            fail(a_fmt(TA, "%s: Schluss-Fenster nennt die %d Trophäen-Listen installierter Spiele nicht getrennt", wie, pak));
+        for (int i = 0; i < nd; i++) {
+            const char *tz = strstr(D[i].text, "   - Trophäen: ");
+            const char *te = tz ? strchr(tz, '\n') : NULL;
+            if (tz && te && strstr(a_kopie_n(TA, tz, (size_t)(te - tz)), "Daten und Updates")) fail(a_fmt(TA, "%s: Fenster %d sagt bei Trophäen \"mit Daten und Updates\"", wie, i + 1));
+        }
         if (nd != 2 + fragen) fail(a_fmt(TA, "%s: %d Fenster, erwartet %d", wie, nd, 2 + fragen));
         for (int i = 0; i < nd; i++) {
             if (strstr(D[i].text, "USB-Speicher") || strstr(D[i].titel, "USB-Speicher")) fail(a_fmt(TA, "%s: Fenster %d sagt \"USB-Speicher\"", wie, i + 1));

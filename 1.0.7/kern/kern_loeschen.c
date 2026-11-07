@@ -20,7 +20,6 @@
 
 #define A (k->a)
 static bool sl_enthaelt(const sliste *l, const char *s) { for (int i = 0; i < l->n; i++) if (strcmp(l->e[i], s) == 0) return true; return false; }  /* NEU 1.0.6: wie in kern_suche.c */
-static sliste L1(arena *a, const char *x) { sliste l = {0}; sl_add(a, &l, x); return l; }
 /* NEU 1.0.7 (03.11.2026): freiwillige QR-Rückmeldung - aus einer Protokollzeile nur den Fehlercode (0x8XXXXXXX bzw. den errno-Namen
  * zur Systemmeldung) und den Schritt als Kürzel merken. Der Text selbst wird nie übernommen (er kann Namen und Pfade enthalten). */
 static void rm_zeile_mit(kern *k, const char *t, const char *hinweis);
@@ -73,6 +72,7 @@ void kern_rm_fehler_dazu(kern *k, const char *schritt, const char *art)
 /* NEU 1.0.7: einen Fehler für die QR-Rückmeldung festhalten (höchstens 5) - Art und Ort nur als Kürzel */
 static void rm_fehler(kern *k, const eintrag *f)
 {
+    k->FEHLER_ZAHL++;   /* NEU 1.0.8 (Codex-Prüfung 76): ohne Grenze, für die Anzeige */
     if (k->RM_FEHLER_N < 0 || k->RM_FEHLER_N >= 5) return;
     const char *id = f->KachelId ? f->KachelId : f->Gruppe ? f->Gruppe : "";
     bool ps4 = !strncmp(id, "CUSA", 4) || (!id[0] && f->Text && strstr(f->Text, "(CUSA"));
@@ -163,7 +163,8 @@ static const char *stopp_text(void) { return T("  SICHERHEITSSTOPP: ", "  SAFETY
 static bool selbst_gesperrt(kern *k, const char *p, bool melden)
 {
     if (!kern_selbstschutz_gesperrt(k, p)) return false;
-    if (melden) melde(k, VERB(A, stopp_text(), p, T(" gehört zu PS5 Cleanup und wird erst ganz zum Schluss entfernt - jetzt nichts gelöscht.", " belongs to PS5 Cleanup and is only removed at the very end - nothing deleted now.")));
+    if (melden) melde(k, VERB(A, stopp_text(), p, kern_bereiche_106() ? T(" gehört zu PS5 Cleanup und wird erst ganz zum Schluss entfernt - jetzt nichts gelöscht.", " belongs to PS5 Cleanup and is only removed at the very end - nothing deleted now.")
+                                                                     : T(" gehört zu PS5 Cleanup selbst - jetzt nichts gelöscht (PS5 Cleanup selbst kommt erst ganz am Ende dran).", " belongs to PS5 Cleanup itself - nothing deleted now (PS5 Cleanup itself only comes at the very end).")));   /* NEU 1.0.8 (F1) */
     return true;
 }
 
@@ -265,6 +266,7 @@ static const char *baum_jb(kern *k, const char *d, int tiefe)   /* 1.0.7: je Ord
     return r;
 }
 
+static bool loeschen_ausfuehren(kern *k, const char *p);
 static bool loeschen(kern *k, const char *p)
 {
     if (selbst_gesperrt(k, p, true)) return false;
@@ -280,6 +282,18 @@ static bool loeschen(kern *k, const char *p)
     if (beschaedigt(k, p, true)) return false;
     if (!kern_erlaubt(k, p)) { melde(k, VERB(A, stopp_text(), p, T(" ist gesperrt - nichts gelöscht.", " is protected - nothing deleted."))); return false; }
     if (!kern_ohne_verknuepfung(k, p)) { melde(k, VERB(A, stopp_text(), p, T(" liegt hinter einer Verknüpfung - nichts gelöscht.", " is behind a symlink - nothing deleted."))); return false; }
+    /* Codex-Prüfung 98/100 (P2): ab hier jede Ordnerliste (Existenzprüfungen, Liste des Ordners darüber) in eigenem Speicher, der gleich
+     * danach wieder frei wird - bisher blieben sie je Datei im Speicher des Kerns liegen; beim Löschen tausender Dateien aus EINEM Ordner
+     * wuchs er quadratisch, bis die Speicherbremse den Lauf anhielt. Erst NACH kern_ohne_verknuepfung: dessen LINK_CACHE muss im
+     * bleibenden Speicher liegen. Meldungen gehen weiter über VERB(A, ...) in den bleibenden Speicher. */
+    volatile bool r = false;
+    LISTE_AUF(k->S);
+    VERSUCHE { r = loeschen_ausfuehren(k, p); } FANGE { LISTE_ZU(); WEITERWERFEN(); } ENDE_VERSUCHE;
+    LISTE_ZU();
+    return r;
+}
+static bool loeschen_ausfuehren(kern *k, const char *p)
+{
     if (!s_existiert(k->S, p)) { k->WAR_SCHON_WEG++; return true; }
     /* Ist der Eintrag selbst eine Verknüpfung: nur sie entfernen, nie ihr Ziel */
     dliste *el = s_liste(k->S, h_eltern(A, p), true);
@@ -504,18 +518,21 @@ typedef void (*lauf_fn)(void *ctx, long long b, int n);
 static groesse baum_groesse(sitzung *s, arena *a, const char *p, double deadline, lauf_fn lauf, void *lctx)
 {
     groesse erg = {0};
-    dliste *volatile l = NULL;
     volatile int fall = 0;
-    VERSUCHE { l = s_liste(s, h_eltern(a, p), true); }       /* streng: nur "gibt es nicht" ist null */
-    FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); fall = ausn_art == AUSN_IO ? 1 : 2; } ENDE_VERSUCHE;
+    volatile bool gefunden = false, ordner = false; volatile long long dgr = 0;
+    {   /* Codex-Prüfung 75: auch die Liste des Ordners darüber nur in eigenem Speicher (sie kann groß sein und wird oft gebraucht) */
+        const char *b = h_blatt(a, p), *el = h_eltern(a, p);
+        LISTE_AUF(s);
+        dliste *volatile l = NULL;
+        VERSUCHE { l = s_liste(s, el, true); }               /* streng: nur "gibt es nicht" ist null */
+        FANGE { if (ausn_art == AUSN_ABBRUCH) { LISTE_ZU(); WEITERWERFEN(); } fall = ausn_art == AUSN_IO ? 1 : 2; } ENDE_VERSUCHE;
+        if (fall == 0 && l) for (int i = 0; i < l->n; i++) if (strcmp(l->e[i].name, b) == 0) { gefunden = true; ordner = l->e[i].ist_ordner; dgr = l->e[i].groesse; break; }
+        LISTE_ZU();
+    }
     if (fall == 1) { erg.Gekappt = true; erg.Lesefehler = true; return erg; }   /* Verbindung evtl. aus dem Takt */
     if (fall == 2) { erg.Gekappt = true; return erg; }                            /* saubere Fehlerantwort */
-    if (l == NULL) return erg;
-    const char *b = h_blatt(a, p);
-    datei *e = NULL;
-    for (int i = 0; i < l->n; i++) if (strcmp(l->e[i].name, b) == 0) { e = &l->e[i]; break; }
-    if (e == NULL) return erg;
-    if (!e->ist_ordner) { erg.Bytes = e->groesse; erg.Dateien = 1; if (lauf) lauf(lctx, e->groesse, 1); return erg; }
+    if (!gefunden) return erg;
+    if (!ordner) { erg.Bytes = dgr; erg.Dateien = 1; if (lauf) lauf(lctx, dgr, 1); return erg; }
     erg.Ordner = 1;
     sliste stapel = {0}; sl_add(a, &stapel, p);
     while (stapel.n > 0) {
@@ -545,6 +562,31 @@ static groesse baum_groesse(sitzung *s, arena *a, const char *p, double deadline
 /* EintragGroesse: aus den gemerkten Pfad-Größen (NULL = noch nicht alles gezählt) */
 groesse *kern_eintrag_groesse(kern *k, const eintrag *f, bool wieGefunden) { return kern_eintrag_groesse_in(k, A, f, wieGefunden); }
 /* NEU 1.1: dasselbe mit eigenem Speicher (für die Anzeige aus dem Oberflächen-Faden) */
+/* NEU 1.0.8 (Arbeitsplan 4.2): was die Suche gefunden hat, je Speicherort (jeder Pfad nur einmal) - für die Balken der Startseite.
+ * false = noch nicht alles gezählt (die Summen sind dann zu klein). */
+bool kern_bytes_je_ort(kern *k, long long aus[4])
+{
+    for (int o = 0; o < 4; o++) aus[o] = 0;
+    arena *a = arena_neu();
+    mtab gesehen = mt_neu(false);
+    bool alle = true;
+    sperren(k);
+    for (int i = 0; i < k->Funde.n; i++) {
+        const eintrag *f = k->Funde.e[i];
+        for (int j = 0; j < f->PfadeBasis.n; j++) {
+            const char *p = f->PfadeBasis.e[j];
+            if (mt_hat(&gesehen, p)) continue;
+            mt_setze(a, &gesehen, p, (void *)1);
+            groesse *x = mt_hole(&k->PFAD_GROESSE, p);
+            if (!x) { alle = false; continue; }
+            int o = kern_pfad_ort(p);
+            if (o >= 0 && o < 4) aus[o] += x->Bytes;
+        }
+    }
+    entsperren(k);
+    arena_frei(a);
+    return alle;
+}
 groesse *kern_eintrag_groesse_in(kern *k, arena *ar, const eintrag *f, bool wieGefunden)
 {
     groesse *g = a_hole(ar, sizeof *g);
@@ -685,7 +727,9 @@ const char *kern_zahl_n0(arena *a, long long v) { return zahl_n(a, (double)v, 0)
 
 const char *kern_groesse_text(arena *a, long long bytes)
 {
-    const double KB = 1024, MB = KB * 1024, GB = MB * 1024;
+    const double KB = 1024, MB = KB * 1024, GB = MB * 1024, TB = GB * 1024;
+    /* NEU 1.0.8 (K4, da_Chris86s Bilder vom 04.11.2026): "2,01 TB" statt "2.062,6 GB" (Texte bis 1.0.6 für die Vergleichstests unverändert) */
+    if (bytes >= TB && !kern_bereiche_106()) return VERB(a, zahl_n(a, (double)bytes / TB, (double)bytes / TB < 10 ? 2 : 1), " TB");
     if (bytes >= GB) return VERB(a, zahl_n(a, (double)bytes / GB, 1), " GB");
     if (bytes >= MB) return VERB(a, zahl_n(a, (double)bytes / MB, 1), " MB");
     if (bytes >= KB) return VERB(a, zahl_n(a, (double)bytes / KB, 0), " KB");
@@ -813,8 +857,13 @@ static void kachel_bleibt(kern *k, const eintrag *f, const char *grund, mtab *sp
 {
     if (ist_teil(f, "Spiel") && f->Gruppe) mt_setze(A, spielBleibt, f->Gruppe, (void *)1);   /* Update/Zusatzinhalt bleiben dann auch */
     const char *g = grund && grund[0] ? grund : T("die Kachel ließ sich nicht sicher über Sony austragen", "the tile could not be removed safely via Sony");
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 17:40, PS5Upload Minion): hat Sony den Auftrag angenommen, kann Sony die App noch im Hintergrund
+     * entfernen (die Dateien waren Minuten später weg, die Kachel blieb) - dann stimmt "bleibt vollständig erhalten" nicht */
+    bool angenommen = strstr(g, "angenommen") != NULL || strstr(g, "accepted") != NULL;
     melde(k, VERB(A, T("  unverändert   ", "  unchanged   "), f->Text, "   (", g,
-                  T(" - die App bleibt vollständig erhalten, es wurde nichts gelöscht)", " - the app stays complete, nothing was deleted)")));
+                  angenommen ? T(" - PS5 Cleanup hat selbst nichts gelöscht; Sony kann die App aber noch im Hintergrund entfernen - nach einem Neustart nochmal nachschauen)",
+                                 " - PS5 Cleanup deleted nothing itself; Sony may still remove the app in the background - check again after a restart)")
+                             : T(" - die App bleibt vollständig erhalten, es wurde nichts gelöscht)", " - the app stays complete, nothing was deleted)")));
     sl_add(A, &k->UNVERAENDERT, f->Text);
 }
 static void teilweise_melden(kern *k, const eintrag *f, const sliste *geloescht, const char *uebrig, const char *grund)
@@ -967,6 +1016,31 @@ static int spielstand_ordner_austragen_innen(kern *k, const char *p, const char 
     return 1;
 }
 
+/* NEU 1.0.8 (Arbeitsplan 3.5, aus PLAN Punkt 3): bei einem nur teilweise gelöschten Eintrag zählt das wirklich Gelöschte zum
+ * "Freigeräumt" - bis 1.0.7 gar nichts (ein halb gelöschter großer Ordner ergab "Freigeräumt: 0 Byte"). Was noch da ist, wird nachgezählt
+ * (höchstens 5 s je Eintrag); ist das nicht sicher möglich (Lesefehler, Zeit um), kommt nichts dazu - lieber zu wenig als zu viel. */
+static long long frei_teilweise(kern *k, const eintrag *f, ergebnis *erg)
+{
+    if (!f->HatGroesse || k->simulation) return 0;
+    groesse rest = {0};
+    volatile bool sicher = true;
+    /* Codex-Prüfung 75: eigener Speicher (wird gleich wieder frei) und höchstens 5 s für den ganzen Eintrag, nicht je Pfad */
+    arena *volatile ta = arena_neu();
+    const double bis = jetzt() + 5;
+    for (int j = 0; j < f->Pfade.n && sicher; j++) {
+        const char *p = f->Pfade.e[j];
+        if (jetzt() > bis) { sicher = false; break; }
+        VERSUCHE { groesse g = baum_groesse(k->S, ta, p, bis, NULL, NULL); if (g.Gekappt || g.Lesefehler) sicher = false; else plus(&rest, &g); }
+        FANGE { if (ausn_art == AUSN_ABBRUCH) { arena_frei(ta); WEITERWERFEN(); } sicher = false; } ENDE_VERSUCHE;
+    }
+    arena_frei(ta);
+    if (!sicher || f->Bytes <= rest.Bytes) return 0;
+    erg->Frei.Bytes += f->Bytes - rest.Bytes;
+    if (f->Dateien > rest.Dateien) erg->Frei.Dateien += f->Dateien - rest.Dateien;
+    if (f->Ordner > rest.Ordner) erg->Frei.Ordner += f->Ordner - rest.Ordner;
+    return f->Bytes - rest.Bytes;
+}
+static bool tool_eintrag(const eintrag *f) { return f->Art == ART_TOOL_DATEN || f->Art == ART_TOOL_DATEN_WICHTIG || f->Art == ART_TOOL_KACHEL; }
 ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
 {
     ergebnis erg = {0}; erg.SmText = "";
@@ -1049,10 +1123,13 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
     else melde(k, T("Lösche ... (große Spiele können etwas dauern)", "Deleting ... (large games can take a while)"));
     mtab spielFehlt = mt_neu(true);
     mtab spielBleibt = mt_neu(true);     /* NEU 1.0.7: Spiele, deren Kachel Sony nicht ausgetragen hat - sie bleiben ganz, samt Update/Zusatzinhalt */
+    mtab spielGeschuetzt = mt_neu(true); /* NEU 1.0.8 (Codex-Prüfung 81): Spiele, die der PS4-Schutz beim Löschen stehen ließ - nur für den Nachlauf */
     mtab kachelWeg = mt_neu(true);       /* NEU 1.0.7 (PS5-Test 01.11.2026): Kacheln, die in diesem Lauf wirklich entfernt wurden - für die Daten darunter */
     mtab sonyGruppe = mt_neu(true);      /* NEU 1.0.6: Spiele, die Sony entfernt hat -> ihre Updates/Zusatzinhalte nimmt Sony evtl. mit */
     mtab sonyLaeuft = mt_neu(true);      /* NEU 1.0.6 (Codex-Prüfung 33): Sony nach 60 s nicht fertig -> Teile dieses Spiels nicht selbst anfassen */
     volatile bool verloren = false;
+    pliste tool_weg = {0};               /* NEU 1.0.8 (3.5): gelöschte Daten-Ordner von Tools - am Ende: legt das Tool sie gleich wieder an? */
+    pliste bearbeitet = {0};             /* NEU 1.0.8 (Codex-Prüfung 79): Einträge, die an der Reihe waren - nach "Anhalten" räumt der Nachlauf nur bei ihnen auf */
     static const int REIHE[KAT_ANZ] = { 1, 2, 3, 4, 5, 6, 7 };   /* 1.0.7: 6 = Apps (Homebrew weiter fast zuletzt), 7 = Jailbreak ganz zuletzt */
     int nr = 0, anzahl = 0;
     for (int i = 0; i < gewaehlt.n; i++) { int kt = ((eintrag *)gewaehlt.e[i])->Kat; for (int r = 0; r < KAT_ANZ; r++) if (kt == REIHE[r]) { anzahl++; break; } }
@@ -1060,8 +1137,40 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
         for (int i = 0; i < gewaehlt.n; i++) {
             eintrag *f = gewaehlt.e[i];
             if (f->Kat != REIHE[r]) continue;
+            /* NEU 1.0.8 (Arbeitsplan 3.4): auf Wunsch nach dem laufenden Eintrag anhalten - nur hier, zwischen zwei Einträgen. Ein Eintrag
+             * (Sony-Deinstallation, Spielstand-Liste, Dateien) läuft immer ganz zu Ende; alle übrigen bleiben unverändert. Was zu einem schon
+             * gelöschten Eintrag gehört und nach ihm käme (Update, Daten einer Tool-Kachel), bleibt als Rest stehen - wie bei einem Fehler. */
+            if (k->anhalten && !verloren) {
+                if (!erg.Angehalten) {
+                    erg.Angehalten = true;
+                    melde(k, "");
+                    melde(k, nr == 0 ? T("Angehalten auf deinen Wunsch, bevor etwas gelöscht wurde. Diese Einträge bleiben unverändert:",
+                                         "Stopped at your request before anything was deleted. These entries stay unchanged:")
+                                     : VERB(A, T("Angehalten auf deinen Wunsch nach Eintrag ", "Stopped at your request after entry "), a_fmt(A, "%d", nr),
+                                            T(" von ", " of "), a_fmt(A, "%d", anzahl), T(". Diese Einträge bleiben unverändert:", ". These entries stay unchanged:")));
+                }
+                /* Codex-Prüfung 89: Update/Zusatzinhalt eines Spiels, das Sony schon entfernt hat - Sony nimmt sie mit dem Spiel mit. Sind sie
+                 * schon weg, ist das kein "unverändert" (und ihr Platz ist frei geräumt) */
+                if (f->Gruppe != NULL && !ist_teil(f, "Spiel") && (mt_hat(&sonyGruppe, f->Gruppe) || mt_hat(&sonyLaeuft, f->Gruppe))) {   /* Codex-Prüfung 93: auch nach 60 s */
+                    volatile bool da = false;
+                    for (int j = 0; j < f->Pfade.n && !da; j++) { VERSUCHE { da = s_existiert(k->S, f->Pfade.e[j]); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); da = true; } ENDE_VERSUCHE; }
+                    if (!da) {
+                        melde(k, VERB(A, k->simulation ? T("  würde gelöscht   ", "  would be deleted   ") : T("  gelöscht   ", "  deleted   "), f->Text, T("   (mit dem Spiel über Sony)", "   (with the game via Sony)")));
+                        if (f->HatGroesse) { erg.Frei.Bytes += f->Bytes; erg.Frei.Dateien += f->Dateien; erg.Frei.Ordner += f->Ordner; }
+                        continue;
+                    }
+                    erg.Rest++;
+                    melde(k, VERB(A, T("  unverändert   ", "  unchanged   "), f->Text, T("   (angehalten - Sony entfernt es eventuell noch mit dem Spiel)", "   (stopped - Sony may still remove it with the game)")));
+                    continue;
+                }
+                erg.Rest++;
+                melde(k, VERB(A, T("  unverändert   ", "  unchanged   "), f->Text, T("   (angehalten)", "   (stopped)")));
+                continue;
+            }
             nr++;
+            pl_add(A, &bearbeitet, f);   /* Codex-Prüfung 79 */
             k->RM_SCHRITT[0] = 0; k->RM_CODE[0] = 0; k->RM_HINWEIS = NULL;   /* NEU 1.0.7: QR-Rückmeldung - Fehlercode je Eintrag */
+            k->FREI_BISHER = erg.Frei.Bytes;   /* NEU 1.0.8 (Codex-Prüfung 76): "Bisher frei geräumt" - nur, was wirklich weg ist */
             if (k->Fortschritt) k->Fortschritt(k->fortschritt_ctx, nr, anzahl, f);
             if (verloren) { erg.Fehler++; rm_fehler(k, f); continue; }
             /* NEU 1.0.7: Update/Zusatzinhalt eines Spiels, das unverändert bleibt (Kachel nicht über Sony ausgetragen) - bleiben auch */
@@ -1091,6 +1200,7 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
                 if (pg) {
                     melde(k, VERB(A, T("  geschützt   ", "  protected   "), f->Text, "   (", pg, ")"));
                     k->PS4_GESCHUETZT++; erg.Geschuetzt++;
+                    if (ist_teil(f, "Spiel") && f->Gruppe) mt_setze(A, &spielGeschuetzt, f->Gruppe, (void *)1);   /* Codex-Prüfung 81 */
                     continue;
                 }
             }
@@ -1128,6 +1238,7 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
                 if (sr == 2) {
                     sliste nichts = {0};
                     teilweise_melden(k, f, &nichts, sl_join(A, &f->Pfade, ", "), VERB(A, a_fmt(A, T("Sony hat %d Aufnahme(n) gelöscht - ", "Sony deleted %d capture(s) - "), (int)sn), sg));
+                    frei_teilweise(k, f, &erg);   /* NEU 1.0.8 (3.5): die gelöschten Aufnahmen zählen zum Freigeräumt */
                     erg.Teilweise++; rm_fehler(k, f);
                     continue;
                 }
@@ -1375,6 +1486,7 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
             if (ok && k->WAR_SCHON_WEG >= f->Pfade.n) { if (f->KachelId) mt_setze(A, &kachelWeg, f->KachelId, (void *)1); melde(k, VERB(A, T("  war schon weg   ", "  already gone   "), f->Text)); continue; }
             if (ok) {
                 melde(k, VERB(A, k->simulation ? T("  würde gelöscht   ", "  would be deleted   ") : T("  gelöscht   ", "  deleted   "), f->Text));
+                if (f->Art == ART_TOOL_DATEN || f->Art == ART_TOOL_DATEN_WICHTIG) pl_add(A, &tool_weg, f);   /* NEU 1.0.8 (3.5) */
                 if (f->KachelId) mt_setze(A, &kachelWeg, f->KachelId, (void *)1);
                 sm_einhaengeordner_weg(k, f, &geloescht, false);   /* NEU 03.11.2026 */
                 if (f->HatGroesse) { erg.Frei.Bytes += f->Bytes; erg.Frei.Dateien += f->Dateien; erg.Frei.Ordner += f->Ordner; }
@@ -1393,35 +1505,61 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
                 }
             } else {
                 melde(k, VERB(A, T("  FEHLER      ", "  ERROR      "), f->Text, T(" (konnte nicht ganz gelöscht werden)", " (could not be deleted completely)"))); erg.Fehler++; rm_fehler(k, f);
+                /* NEU 1.0.8 (Arbeitsplan 3.5): was davon doch gelöscht ist, zählt zum Freigeräumt; bei einem Tool der Hinweis, dass es laufen könnte */
+                long long teil = frei_teilweise(k, f, &erg);
+                if (teil > 0) melde(k, VERB(A, T("    davon gelöscht: ", "    of which deleted: "), kern_groesse_text(A, teil)));
+                if (tool_eintrag(f)) melde(k, T("    Läuft dieses Tool gerade? Dann zuerst beenden - am einfachsten die PS5 neu starten und das Tool nicht laden - und danach nochmal löschen.",
+                                                "    Is this tool running right now? Then stop it first - easiest: restart the PS5 without loading the tool - and delete again afterwards."));
                 if (sauber == 2) melde(k, T("    (die Einträge in der Spielstand-Liste sind schon ausgetragen - die übrigen Dateien zeigt die PS5 nirgends an)",
                                             "    (the entries in the saved data list are already removed - the PS5 does not show the remaining files anywhere)"));
                 if (ist_teil(f, "Spiel")) mt_setze(A, &spielFehlt, f->Gruppe, (void *)1);
             }
         }
     }
+    /* NEU 1.0.8 (Arbeitsplan 3.5, Hinweis "Tool läuft gerade"): ist ein gelöschter Daten-Ordner eines Tools kurz darauf wieder da, läuft das
+     * Tool vermutlich und legt ihn neu an - dann sagen, was zu tun ist (nur ein Hinweis, nichts wird nochmal gelöscht) */
+    if (!verloren && tool_weg.n > 0 && !k->simulation) {
+        warte(k, 1500);
+        for (int i = 0; i < tool_weg.n; i++) {
+            eintrag *f = tool_weg.e[i];
+            volatile bool wieder = false;
+            for (int j = 0; j < f->Pfade.n && !wieder; j++) {
+                VERSUCHE { wieder = s_existiert(k->S, f->Pfade.e[j]); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); } ENDE_VERSUCHE;
+            }
+            if (wieder) melde(k, VERB(A, T("  HINWEIS     ", "  NOTE        "), f->Text,
+                                     T(" ist gleich wieder da - das Tool läuft vermutlich gerade und legt seinen Ordner neu an. Beende es (am einfachsten: PS5 neu starten und das Tool nicht laden) und lösche dann nochmal.",
+                                       " is back right away - the tool is probably running and recreates its folder. Stop it (easiest: restart the PS5 without loading the tool) and delete again.")));
+        }
+    }
     if (verloren)
         melde(k, T("FEHLER: Die Verbindung zur PS5 ist abgerissen - der Rest wurde nicht gelöscht. Bitte neu verbinden.", "ERROR: The connection to the PS5 dropped - the rest was not deleted. Please connect again."));
     else {
+        /* Codex-Prüfung 79: nach "Anhalten" nur für Einträge, die an der Reihe waren - die übrigen bleiben ganz unverändert, auch ein
+         * leerer Ordner ihres Spiels (z. B. /user/addcont/<Spiel>). Ohne Anhalten wie bisher alle gewählten. */
+        const pliste *nachlauf = erg.Angehalten ? &bearbeitet : &gewaehlt;
         /* Ordner, die nur wegen ShadowMount-Spielen einzeln gelistet waren und
          * jetzt leer sind, auch entfernen (innerste zuerst). */
         for (int i = k->AUFGEKLAPPT.n - 1; i >= 0; i--) {
             const char *o = k->AUFGEKLAPPT.e[i];
             const char *oz = VERB(A, o, "/");
             bool betroffen = false;
-            for (int g = 0; g < gewaehlt.n && !betroffen; g++) { eintrag *f = gewaehlt.e[g]; for (int j = 0; j < f->Pfade.n; j++) if (txt_beginnt(f->Pfade.e[j], oz)) { betroffen = true; break; } }
+            for (int g = 0; g < nachlauf->n && !betroffen; g++) { eintrag *f = nachlauf->e[g]; for (int j = 0; j < f->Pfade.n; j++) if (txt_beginnt(f->Pfade.e[j], oz)) { betroffen = true; break; } }
             if (betroffen) leeren_ordner_entfernen(k, o);
         }
         /* Ordner von Spielen, deren Teile gelöscht wurden und die jetzt leer sind */
         for (int g = 0; g < k->LEER_DANACH.n; g++) {
             const char *gr = k->LEER_DANACH.e[g].k;
             bool dabei = false;
-            for (int i = 0; i < gewaehlt.n; i++) { eintrag *f = gewaehlt.e[i]; if (f->Gruppe != NULL && h_gleich(f->Gruppe, gr)) { dabei = true; break; } }
+            for (int i = 0; i < nachlauf->n; i++) { eintrag *f = nachlauf->e[i]; if (f->Gruppe != NULL && h_gleich(f->Gruppe, gr)) { dabei = true; break; } }
             if (!dabei) continue;
+            /* Codex-Prüfungen 80/81: das Spiel bleibt (Sony hat abgelehnt, unklare Einbindung, PS4-Schutz) oder ließ sich nicht löschen -
+             * dann bleiben auch seine Ordner */
+            if (mt_hat(&spielBleibt, gr) || mt_hat(&spielFehlt, gr) || mt_hat(&spielGeschuetzt, gr)) continue;
             sliste *os = k->LEER_DANACH.e[g].v;
             for (int i = 0; i < os->n; i++) leeren_ordner_entfernen(k, os->e[i]);
         }
     }
-    erg.SmText = sm_schlusstext(k, &gewaehlt);
+    erg.SmText = sm_schlusstext(k, erg.Angehalten ? &bearbeitet : &gewaehlt);   /* Codex-Prüfung 89: nach "Anhalten" nur, was an der Reihe war */
     erg.Verloren = verloren;
     return erg;
 }

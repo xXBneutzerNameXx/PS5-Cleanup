@@ -122,7 +122,7 @@ describe('GET /r – echter Link aus der App', () => {
       ['Seitensprache', 'Deutsch'],
       ['Modell', 'CFI-7021'],
       ['Firmware', '12.00'],
-      ['Laufwerks-Kopplung', 'Statuswert 1'],
+      ['Laufwerks-Kopplung', 'online gekoppelt (Wert 1)'],
       ['Jailbreak-Einstiege', 'YouTube (Y2JB), Browserspeicher'],
       ['Speicher', 'M.2 ja, erweiterter Speicher ja, USB-Laufwerk nein'],
       ['ShadowMount', 'ShadowMount-Spiele vorhanden'],
@@ -132,7 +132,7 @@ describe('GET /r – echter Link aus der App', () => {
       ['Fehler', '1'],
       ['Nur teilweise entfernt', '0'],
       ['Vom PS4-Schutz zurückgehalten', '0'],
-      ['Nicht lesbare Ordner', '0'],
+      ['Nicht geprüfte Ordner', '0'],
       ['Speicherbremse', 'nein'],
       ['Höchster Speicherverbrauch', '38 MB'],
       ['Dauer des Nachschauens', '12 s'],
@@ -192,6 +192,37 @@ describe('GET /r – echter Link aus der App', () => {
     const neu = Object.fromEntries(new URL(BASIS + href).searchParams);
     const alt = Object.fromEntries(new URLSearchParams(ECHTER_LINK.slice(3)));
     assert.deepEqual(neu, { ...alt, l: 'en' });
+  });
+
+  // NEU 1.0.8 (06.11.2026): Kopplung in Worten wie in der App, Zahl in Klammern; erste PS5 nach der Modellnummer
+  it('Laufwerks-Kopplung in Worten (alle Werte, erste PS5, Englisch)', async () => {
+    const env = neueUmgebung();
+    for (const [dd, m, wort] of [
+      ['0', 'CFI-2016', 'gekoppelt (Wert 0)'],
+      ['1', 'CFI-7021', 'online gekoppelt (Wert 1)'],
+      ['2', 'CFI-2116B', 'nicht gekoppelt (Wert 2)'],
+      ['3', 'CFI-7021', 'Koppeln nicht fertig (Wert 3)'],
+      ['4', 'CFI-2116', 'Entkoppeln nicht fertig (Wert 4)'],
+      ['5', 'CFI-2016', 'ab Werk gekoppelt (Wert 5)'],
+      ['6', 'CFI-2016', 'ab Werk gekoppelt (Wert 6)'],
+      ['7', 'CFI-2016', 'Wert 7'],
+      ['0', 'CFI-1216A', 'erste PS5, Laufwerk fest eingebaut (Wert 0)'],
+      ['0', 'CFI-1016B', 'erste PS5, Digital Edition (Wert 0)'],
+      ['-1', 'CFI-7021', 'nicht abgefragt'],
+    ]) {
+      const { text } = await hole(env, `/r?v=1.0.8&m=${m}&dd=${dd}`);
+      assert.ok(text.includes(zeile('Laufwerks-Kopplung', wort)), `dd=${dd} m=${m}`);
+    }
+    let { text } = await hole(env, '/r?v=1.0.8&m=CFI-2016&dd=6&l=en');
+    assert.ok(text.includes(zeile('Drive pairing', 'factory paired (value 6)')));
+    ({ text } = await hole(env, '/r?v=1.0.8&m=CFI-7021&dd=1&l=en'));
+    assert.ok(text.includes(zeile('Drive pairing', 'paired online (value 1)')));
+    ({ text } = await hole(env, '/r?v=1.0.8&m=CFI-7021&dd=4&l=en'));
+    assert.ok(text.includes(zeile('Drive pairing', 'unpairing not finished (value 4)')));
+    ({ text } = await hole(env, '/r?v=1.0.8&m=CFI-1016A&dd=0&l=en'));
+    assert.ok(text.includes(zeile('Drive pairing', 'original PS5, built-in drive (value 0)')));
+    ({ text } = await hole(env, '/r?v=1.0.8&dd=1'));
+    assert.ok(text.includes(zeile('Laufwerks-Kopplung', 'online gekoppelt (Wert 1)')), 'ohne Modell: nach dem Wert');
   });
 
   it('weitere Werte: normale Fassung, ShadowMount-Zustände, Kopplung nicht abgefragt, Jailbreak leer', async () => {
@@ -850,7 +881,7 @@ describe('GET /uebersicht – Passwortschutz und Inhalt', () => {
     // Meldungen: Anker, Klartext, neueste zuerst, Text escaped
     for (const id of [1, 2, 3, 4]) assert.ok(text.includes(`id="m${id}"`), `Anker m${id}`);
     assert.ok(text.indexOf('id="m4"') < text.indexOf('id="m1"'));
-    assert.ok(text.includes('<b>Konsole:</b> Modell: CFI-7021 · Firmware: 12.00 · Laufwerks-Kopplung: Statuswert 1'));
+    assert.ok(text.includes('<b>Konsole:</b> Modell: CFI-7021 · Firmware: 12.00 · Laufwerks-Kopplung: online gekoppelt (Wert 1)'));
     assert.ok(text.includes('<b>Umgebung:</b> Jailbreak-Einstiege: YouTube (Y2JB), Browserspeicher · Speicher: M.2 ja, erweiterter Speicher ja, USB-Laufwerk nein · ShadowMount: ShadowMount-Spiele vorhanden'));
     assert.ok(text.includes('<b>Fehler:</b> 1. Sony-Deinstallation · PS4-Spiel · intern · 0x80990001 · 2. Datei/Ordner löschen · Reste · M.2 · EACCES'));
     assert.ok(text.includes('Bau: 03.11.26 19:46'));
@@ -1035,5 +1066,87 @@ describe('Alles andere → 404, Einrichtung unvollständig → 503', () => {
       console.error = alt;
     }
     assert.deepEqual(log, ['Interner Fehler im Rueckmeldungs-Worker']);
+  });
+});
+
+describe('GET /r – Hinweis auf neuere Version', () => {
+  const RELEASES = 'https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest';
+  const mitVersion = (v) => ECHTER_LINK.replace('v=1.0.7', `v=${v}`);
+  const hatHinweis = (text) => text.includes('<section class="neu">');
+
+  it('ältere Version im Link: Hinweis mit Link zu GitHub, Formular bleibt', async () => {
+    const { status, text } = await hole(neueUmgebung({ NEUESTE_VERSION: '1.0.8' }), ECHTER_LINK);
+    assert.equal(status, 200);
+    assert.ok(hatHinweis(text));
+    assert.ok(text.includes('<strong>Es gibt eine neuere Version: 1.0.8</strong>'));
+    assert.ok(text.includes('Du nutzt 1.0.7. Deine Rückmeldung kannst du trotzdem schicken.'));
+    assert.ok(text.includes(`<a class="knopf zweit" href="${RELEASES}" target="_blank" rel="noopener noreferrer">Zur neuen Version (GitHub)</a>`));
+    assert.ok(text.indexOf('<section class="neu">') < text.indexOf('<section class="karte">'));
+    assert.ok(text.includes('<form id="formular"'));
+  });
+
+  it('gleiche oder neuere Version im Link: kein Hinweis', async () => {
+    const faelle = [[ECHTER_LINK, '1.0.7'], [mitVersion('1.0.8'), '1.0.7'], [mitVersion('1.1.0'), '1.0.9'], [mitVersion('2.0.0'), '1.9.9']];
+    for (const [link, neueste] of faelle) {
+      const { status, text } = await hole(neueUmgebung({ NEUESTE_VERSION: neueste }), link);
+      assert.equal(status, 200);
+      assert.ok(!hatHinweis(text), `${link} gegen ${neueste}`);
+    }
+  });
+
+  it('Teile werden als Zahlen verglichen (1.0.9 ist älter als 1.0.10)', async () => {
+    const alt = await hole(neueUmgebung({ NEUESTE_VERSION: '1.0.10' }), mitVersion('1.0.9'));
+    assert.ok(alt.text.includes('Es gibt eine neuere Version: 1.0.10'));
+    const neu = await hole(neueUmgebung({ NEUESTE_VERSION: '1.0.9' }), mitVersion('1.0.10'));
+    assert.ok(!hatHinweis(neu.text));
+  });
+
+  it('Einstellung fehlt oder ist ungültig: kein Hinweis, Seite geht trotzdem', async () => {
+    for (const neueste of [undefined, '', ' ', '1.0', '1.0.8.1', 'v1.0.8', 'abc', '1.0.8<b>', 108, null]) {
+      const env = neueUmgebung();
+      if (neueste !== undefined) env.NEUESTE_VERSION = neueste;
+      const { status, text } = await hole(env, mitVersion('1.0.6'));
+      assert.equal(status, 200, String(neueste));
+      assert.ok(!hatHinweis(text), String(neueste));
+    }
+  });
+
+  it('Leerzeichen um die Einstellung stören nicht', async () => {
+    const { text } = await hole(neueUmgebung({ NEUESTE_VERSION: ' 1.0.8\n' }), ECHTER_LINK);
+    assert.ok(text.includes('Es gibt eine neuere Version: 1.0.8'));
+  });
+
+  it('keine oder ungültige Version im Link: kein Hinweis', async () => {
+    const env = neueUmgebung({ NEUESTE_VERSION: '1.0.8' });
+    const links = ['/r', '/r?l=en', ECHTER_LINK.replace('v=1.0.7&', ''), mitVersion('1.0'), mitVersion('abc'), mitVersion('1.0.6%3Cb%3E')];
+    for (const link of links) {
+      const { status, text } = await hole(env, link);
+      assert.equal(status, 200, link);
+      assert.ok(!hatHinweis(text), link);
+    }
+  });
+
+  it('Englisch mit l=en', async () => {
+    const { text } = await hole(neueUmgebung({ NEUESTE_VERSION: '1.0.8' }), ECHTER_LINK.replace('l=de', 'l=en'));
+    assert.ok(text.includes('<strong>A newer version is available: 1.0.8</strong>'));
+    assert.ok(text.includes('You are using 1.0.7. You can still send your feedback.'));
+    assert.ok(text.includes('>Get the new version (GitHub)</a>'));
+  });
+
+  it('bleibt da, wenn das Formular nach einem Fehler neu gezeigt wird', async () => {
+    const env = neueUmgebung({ NEUESTE_VERSION: '1.0.8' });
+    const seite = await hole(env, ECHTER_LINK);
+    const { status, text } = await sende(env, { ...versteckteFelder(seite.text) });
+    assert.equal(status, 400);
+    assert.ok(text.includes('Es gibt eine neuere Version: 1.0.8'));
+    assert.equal(env.DB.alleZeilen().length, 0);
+  });
+
+  it('Seite ohne fertige Einrichtung (503) zeigt den Hinweis trotzdem', async () => {
+    const env = neueUmgebung({ NEUESTE_VERSION: '1.0.8' });
+    delete env.TURNSTILE_SECRET;
+    const { status, text } = await hole(env, ECHTER_LINK);
+    assert.equal(status, 503);
+    assert.ok(hatHinweis(text));
   });
 });

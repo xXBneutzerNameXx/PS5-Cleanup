@@ -94,10 +94,32 @@ static bool alte_sicherung(const eintrag *f)   /* ps5cleanup_db_… (kern_suche.
     for (int j = 0; j < f->PfadeBasis.n; j++) if (!h_m(f->PfadeBasis.e[j], "/ps5cleanup_db_[^/]*$")) return false;
     return true;
 }
+static bool protokoll_datei(const eintrag *f)   /* NEU 1.0.8: ps5cleanup_protokoll_2026-11-07_120028.txt (bis hier "neu herunterladen") */
+{
+    if (f->PfadeBasis.n == 0) return false;
+    for (int j = 0; j < f->PfadeBasis.n; j++) if (!h_m(f->PfadeBasis.e[j], "/ps5cleanup_protokoll_[^/]*\\.txt$")) return false;
+    return true;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): was in einem Ordner liegt, den die Konsole auf ein USB-Laufwerk kopiert hat (kern_suche.c
+ * usb_kopie_markieren) - "Screenshots und Videos", "Spielstände und Datensicherung" ... */
+static const char *usb_kopie_was(arena *a, const eintrag *f)
+{
+    const char *w[4]; int n = 0;
+    if (f->UsbKopie & USB_KOPIE_AUFNAHMEN) { w[n++] = T("Screenshots", "screenshots"); w[n++] = T("Videos", "videos"); }
+    if (f->UsbKopie & USB_KOPIE_SPIELSTAENDE) w[n++] = T("Spielstände", "saved data");
+    if (f->UsbKopie & USB_KOPIE_SICHERUNG) w[n++] = T("Datensicherung", "backup");
+    if (n == 0) return T("Kopien von der Konsole", "copies from the console");
+    const char *s = w[0];
+    for (int i = 1; i < n; i++) s = VERB(a, s, i == n - 1 ? T(" und ", " and ") : ", ", w[i]);
+    return s;
+}
 static int art_von_kat(kern *k, const eintrag *f, int kat)
 {
     if (f->SmDatei) return f->Jailbreak ? ART_JAILBREAK : ART_SM_DATEI;
-    if (f->Jailbreak || (f->Kat == 7 && !kern_bereiche_106())) return ART_JAILBREAK;
+    /* NEU 1.0.8 (Befund 14): "kat" statt f->Kat - eine Programmdatei, die unter die Kachel eines Jailbreak-Einstiegs gezogen wurde
+     * (webkit-autoloader-installer.elf unter WebKit Autoloader), ist selbst kein Einstieg */
+    if (f->Jailbreak || (kat == 7 && !kern_bereiche_106())) return ART_JAILBREAK;
+    if (f->PkgArt && !kern_bereiche_106()) return ART_PAKET_DATEI;   /* NEU 1.0.8 (Befund 12): PKG-Datei, egal unter welchem Spiel */
     const char *t = ohne_ort(f);
     if (f->Teil) {
         if (!strcmp(f->Teil, "Spiel")) return f->Kat == 6 ? ART_APP : ART_SPIEL;
@@ -107,6 +129,8 @@ static int art_von_kat(kern *k, const eintrag *f, int kat)
     if (spiel_sicherung(f)) return ART_SPIEL_SICHERUNG;
     if (gepacktes_spiel(f)) return ART_ABBILD;
     if (!kern_bereiche_106() && alte_sicherung(f)) return ART_ALTE_SICHERUNG;
+    if (!kern_bereiche_106() && f->UsbKopie) return ART_USB_KOPIE;   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53) */
+    if (!kern_bereiche_106() && protokoll_datei(f)) return ART_PROTOKOLL;   /* NEU 1.0.8 (07.11.2026) */
     switch (kat) {
     case 1:
         if (f->Quelle && f->Quelle[0]) return ART_SM_KACHEL;
@@ -145,7 +169,7 @@ static int art_von_kat(kern *k, const eintrag *f, int kat)
             || hat(t, "  (leerer Ordner)", "  (empty folder)") || hat(t, "  (Verknüpfung, nur sie wird gelöscht)", "  (symlink, only the link is deleted)"))
             return ART_REST;
         if (f->PfadeBasis.n > 0 && h_m(f->PfadeBasis.e[0], "(?i)\\.pkg$")) return ART_PAKET_DATEI;
-        if (f->PfadeBasis.n > 0 && h_m(f->PfadeBasis.e[0], "^/user/data/[^/]+$")) return ART_UNBEKANNT;
+        if (f->PfadeBasis.n > 0 && h_m(f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.e[0], "^/user/data/[^/]+$")) return ART_UNBEKANNT;   /* Codex-Prüfung 85: auch der Rest ohne PKG-Dateien */
         return ART_DATEI;
     }
     }
@@ -155,12 +179,16 @@ static int art_von_kat(kern *k, const eintrag *f, int kat)
 
 int kern_ampel(const eintrag *f)
 {
+    if (f->PkgOffen && !kern_bereiche_106()) return AMPEL_ROT;   /* Codex-Prüfung 90: Ordner kann PKG-Dateien enthalten - wie eine PKG-Datei */
     switch (f->Art) {
     case ART_SM_KACHEL: case ART_SM_TOT: case ART_TR_LISTE_REST: case ART_GALERIE_REST: case ART_REST:
         return AMPEL_GRUEN;
     case ART_SM_DATEI: case ART_ABBILD: case ART_SPIELSTAND: case ART_TR_FORTSCHRITT: case ART_TR_DATEN: case ART_AUFNAHMEN:
     case ART_GALERIE_SONST: case ART_TOOL_DATEN_WICHTIG: case ART_SPIEL_SICHERUNG: case ART_JAILBREAK:
+    case ART_USB_KOPIE:   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): eigene Daten auf dem USB-Laufwerk */
         return AMPEL_ROT;
+    case ART_PAKET_DATEI:   /* NEU 1.0.8 (Befund 12, Entscheidung da_Chris86 06.11.2026): eine PKG-Datei ist danach endgültig weg */
+        return kern_bereiche_106() ? AMPEL_GELB : AMPEL_ROT;
     default:
         return AMPEL_GELB;
     }
@@ -201,11 +229,38 @@ static void wichtiger_inhalt(kern *k, eintrag *f)
     f->WichtigWas = T("vermutlich eigene Spiele, Spielstände oder Sicherungen", "probably own games, saves or backups");
     f->WichtigFund = sl_join(a, &fund, ", ");
 }
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 2): /data/etaHEN stand mit 0 Byte rot da ("deine eigenen Cheats, Plugins und Spiel-Dumps
+ * endgültig weg"), obwohl nichts darin liegt. Ein Ordner, der als wichtig gilt, in dem aber nachweislich keine Datei mit Inhalt liegt,
+ * ist nur ein Einstellungs-Ordner (gelb, "startet mit Grundeinstellungen"). Nur lesen, höchstens 3 Ebenen tief und 200 Einträge; nicht
+ * lesbar, eine Verknüpfung, eine unbekannte Größe oder die Grenze erreicht = bleibt rot. */
+#define LEER_TIEFE 3
+#define LEER_MAX 200
+static bool ohne_inhalt(kern *k, const char *p, int tiefe, int *rest)
+{
+    if (tiefe > LEER_TIEFE) return false;
+    dliste *volatile dl = NULL;
+    VERSUCHE { dl = s_liste(k->S, p, false); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); dl = NULL; } ENDE_VERSUCHE;
+    if (!dl) return false;
+    for (int i = 0; i < dl->n; i++) {
+        if (--*rest < 0 || dl->e[i].ist_link) return false;
+        if (!dl->e[i].ist_ordner) { if (dl->e[i].groesse != 0) return false; continue; }
+        if (!ohne_inhalt(k, VERB(k->a, p, "/", dl->e[i].name), tiefe + 1, rest)) return false;
+    }
+    return true;
+}
+static void wichtig_leer(kern *k, eintrag *f)
+{
+    if (kern_bereiche_106() || f->Art != ART_TOOL_DATEN_WICHTIG || f->ToolOrdner || f->PfadeBasis.n == 0) return;
+    int rest = LEER_MAX;
+    for (int j = 0; j < f->PfadeBasis.n; j++) if (!ohne_inhalt(k, f->PfadeBasis.e[j], 1, &rest)) return;
+    f->Art = ART_TOOL_DATEN; f->WichtigLeer = true;
+}
 void kern_arten_setzen(kern *k)
 {
     FUER_ALLE(f) {
         f->Art = art_von(k, f);
         wichtiger_inhalt(k, f);
+        wichtig_leer(k, f);   /* NEU 1.0.8 (Befund 2) */
         f->Rot = !kern_bereiche_106() && kern_ampel(f) == AMPEL_ROT;
     }
 }
@@ -213,6 +268,7 @@ void kern_arten_setzen(kern *k)
 /* kurzer Satz neben der Zeile (Textliste "So steht es in der Zeile", Spalte "Daneben") */
 const char *kern_folge(const eintrag *f)
 {
+    if (f->PkgOffen && !kern_bereiche_106()) return T("kann PKG-Dateien enthalten – endgültig weg", "may contain PKG files – gone for good");   /* Codex-Prüfung 90 */
     switch (f->Art) {
     case ART_SPIEL:              return T("neu installieren nötig", "reinstall needed");
     case ART_APP:                return T("neu laden und neu anmelden", "download and sign in again");
@@ -236,7 +292,7 @@ const char *kern_folge(const eintrag *f)
     case ART_TOOL_DATEN:         return T("startet mit Grundeinstellungen", "starts with default settings");
     case ART_TOOL_DATEN_WICHTIG: return T("eigene Sicherungen endgültig weg", "own backups gone for good");
     case ART_DATEI:              return T("neu herunterladen", "download again");
-    case ART_PAKET_DATEI:        return T("neu besorgen", "get it again");
+    case ART_PAKET_DATEI:        return kern_bereiche_106() ? T("neu besorgen", "get it again") : T("endgültig weg", "gone for good");
     case ART_REST:               return T("es geht nichts verloren", "nothing is lost");
     case ART_FAKE_LIZENZ:        return T("kommt mit dem Spiel wieder", "comes back with the game");
     case ART_APP_DATEN:
@@ -244,10 +300,37 @@ const char *kern_folge(const eintrag *f)
     case ART_SPIEL_SICHERUNG:    return T("deine Original-Spiele – endgültig weg", "your original games – gone for good");
     case ART_JAILBREAK:          return T("Jailbreak danach neu einrichten", "set up the jailbreak again afterwards");
     case ART_ALTE_SICHERUNG:     return T("wird nicht mehr gebraucht", "no longer needed");
+    case ART_USB_KOPIE:          return T("deine Daten – endgültig weg", "your data – gone for good");   /* NEU 1.0.8 */
+    case ART_PROTOKOLL:          return T("Protokoll – nur zum Nachlesen", "log – for reference only");   /* NEU 1.0.8 */
     default:                     return T("neu einrichten oder neu laden", "set up or download again");
     }
 }
 
+/* NEU 1.0.8 (Arbeitsplan 4.3, K5): kurze Fassung für das Schildchen in der Zeile der neuen Auswahl - der ganze Satz steht rechts im
+ * Kasten ("Was passiert danach?", kern_art_info). Bis 1.0.7 brach z. B. "endgültig weg, außer du hast eine Sicherung" in jeder Zeile um. */
+const char *kern_folge_kurz(const eintrag *f)
+{
+    switch (f->Art) {
+    case ART_SPIEL: case ART_TOOL_KACHEL:            return T("neu installieren", "reinstall");
+    case ART_APP:                                    return T("neu laden", "download again");
+    case ART_UPDATE: case ART_DLC:                   return T("nur mit dem Spiel", "only with the game");
+    case ART_SM_KACHEL: case ART_TR_LISTE: case ART_FAKE_LIZENZ: return T("kommt wieder", "comes back");
+    case ART_SM_TOT: case ART_TR_LISTE_REST: case ART_GALERIE_REST: case ART_REST: return T("nichts geht verloren", "nothing is lost");
+    case ART_SM_DATEI: case ART_ABBILD: case ART_SPIELSTAND: case ART_TR_FORTSCHRITT: case ART_AUFNAHMEN: case ART_TOOL_DATEN_WICHTIG:
+    case ART_SPIEL_SICHERUNG:                        return T("endgültig weg", "gone for good");
+    case ART_TR_ZAEHLER:                             return T("Anzeige ändert sich", "display changes");
+    case ART_TR_DATEN: case ART_GALERIE_SONST: case ART_APP_DATEN: case ART_UNBEKANNT: return T("Inhalt unklar", "content unclear");
+    case ART_AUFNAHME_UNFERTIG:                      return T("war unbrauchbar", "was unusable");
+    case ART_TOOL_DATEN:                             return T("neu einrichten", "set up again");
+    case ART_DATEI:                                  return T("neu herunterladen", "download again");
+    case ART_PAKET_DATEI:                            return T("endgültig weg", "gone for good");   /* NEU 1.0.8 (Befund 12) */
+    case ART_JAILBREAK:                              return T("Jailbreak neu einrichten", "set up jailbreak again");
+    case ART_ALTE_SICHERUNG:                         return T("nicht mehr gebraucht", "no longer needed");
+    case ART_USB_KOPIE:                              return T("endgültig weg", "gone for good");   /* NEU 1.0.8 */
+    case ART_PROTOKOLL:                              return T("nur zum Nachlesen", "for reference only");   /* NEU 1.0.8 */
+    default:                                         return T("neu einrichten", "set up again");
+    }
+}
 /* Name aus "Name (PPSA12345) - Art" bzw. "Vorsatz: Name ..." - ohne Kennung, ohne Marken "  [...]" */
 static const char *name_von(arena *a, const char *t, const char *vorsatz)
 {
@@ -264,10 +347,59 @@ static const char *name_von(arena *a, const char *t, const char *vorsatz)
     t = r_r(a, t, " \\((PS4-Spiel|PS4 game)\\).*$", "");
     return h_trim(a, t);
 }
+/* NEU 1.0.8 (Codex-Prüfung 73): Inhalt eines Zusatzes "  [<vorsatz>...]" im Text (Spielname aus dem Abbild "  [Spiel: …]" - 2.1 - oder
+ * aus dem PKG "  [PKG: …]" - 2.2). Bis hierher schnitt die Zeile alles ab "  [" ab, die gelesenen Namen kamen nie auf den Bildschirm.
+ * Ende: das letzte "]" vor dem nächsten "  [" oder dem Textende. NULL = kein solcher Zusatz. */
+static const char *zusatz_von(arena *a, const char *t, const char *vorsatz)
+{
+    const char *v = VERB(a, "  [", vorsatz), *p = strstr(t, v);
+    if (!p) return NULL;
+    p += strlen(v);
+    const char *naechst = strstr(p, "  ["), *ende = naechst ? naechst : p + strlen(p), *z = NULL;
+    for (const char *q = p; q < ende; q++) if (*q == ']') z = q;
+    return z && z > p ? a_kopie_n(a, p, (size_t)(z - p)) : NULL;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Spielname einer Spieldatei oder eines Spiel-Ordners ohne Kachel - ohne die Kennung, die die Suche
+ * anhängt ("[Spiel: Marvel's Spider-Man 2 (PPSA03016)]": die Kennung braucht nur die Oberfläche für das Bild) */
+static const char *spiel_von(arena *a, const char *t)
+{
+    const char *sp = zusatz_von(a, t, T("Spiel: ", "game: "));
+    return sp ? r_r(a, sp, " \\([A-Z]{4}\\d{5}\\)$", "") : NULL;
+}
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12): was eine PKG-Zeile ist ("Installationsdatei", "Update-Datei 01.04", "Zusatzinhalt-Datei:
+ * Bonus", "Zusatzinhalte (120 PKG-Dateien)") und unter welchem Namen sie steht (installiertes Spiel bzw. "<Spiel> · nicht installiert") */
+static const char *pkg_was(arena *a, const eintrag *f)
+{
+    if (f->PkgAnzahl > 1)
+        return a_fmt(a, f->PkgArt == PKG_UPDATE ? T("Updates (%d PKG-Dateien)", "Updates (%d PKG files)") : f->PkgArt == PKG_DLC ? T("Zusatzinhalte (%d PKG-Dateien)", "Add-ons (%d PKG files)")
+                                                : T("Installationsdateien (%d PKG-Dateien)", "Install files (%d PKG files)"), f->PkgAnzahl);
+    const char *v = f->PkgVer ? f->PkgVer : "";
+    if (f->PkgArt == PKG_UPDATE) return VERB(a, T("Update-Datei", "Update file"), v[0] ? " " : "", v);
+    if (f->PkgArt == PKG_DLC) return VERB(a, T("Zusatzinhalt-Datei", "Add-on file"), v[0] ? ": " : "", v);
+    return T("Installationsdatei", "Install file");
+}
+static const char *pkg_block(arena *a, const eintrag *f)
+{
+    if (f->ToolKachel) return kern_name(a, f->ToolKachel);
+    const eintrag *k = f->PkgOhneSpiel ? f : (f->Begleit && f->Begleit->PkgOhneSpiel) ? f->Begleit : NULL;
+    return k && k->BlockName ? k->BlockName : NULL;
+}
 static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
 {
     const char *o = kern_ort_vorsatz(f->Ort), *t = ohne_ort(f);
     switch (f->Art) {
+    case ART_PAKET_DATEI: {  /* NEU 1.0.8 (Befund 12): unter seinem Spiel "<Spiel> – Update-Datei 01.04", sonst wie bisher mit dem Dateinamen */
+        if (f->PkgArt && !kern_bereiche_106()) {
+            const char *b = pkg_block(a, f);
+            /* NEU 1.0.8 (PS5-Test 07.11.2026): Nummer nicht lesbar (steht nur wegen ihres Ordners hier) - der Dateiname sagt mehr als "Installationsdatei" */
+            if (b && b[0] && !f->PkgId && f->PfadeBasis.n == 1) return VERB(a, o, b, " – ", h_blatt(a, f->PfadeBasis.e[0]));
+            if (b && b[0]) return VERB(a, o, b, " – ", pkg_was(a, f));
+            if (f->PkgAnzahl > 1) return VERB(a, o, f->PkgTitel && f->PkgTitel[0] ? f->PkgTitel : f->PkgId, " – ", pkg_was(a, f));
+        }
+        const char *m = strstr(t, "  [");
+        const char *pk = zusatz_von(a, t, "PKG: ");   /* NEU 1.0.8: Spielname aus dem PKG (2.2) */
+        return VERB(a, o, m ? a_kopie_n(a, t, (size_t)(m - t)) : t, pk ? VERB(a, " – PKG: ", pk) : "");
+    }
     case ART_SPIEL:          return VERB(a, o, name_von(a, t, NULL), T(" – Spiel", " – game"));
     case ART_APP:            return VERB(a, o, name_von(a, t, NULL), T(" – App", " – app"));
     case ART_UPDATE:         return VERB(a, o, name_von(a, t, NULL), " – Update");
@@ -278,10 +410,15 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
     case ART_SM_KACHEL:      return VERB(a, o, name_von(a, t, NULL), T(" – ShadowMount-Kachel", " – ShadowMount tile"));
     case ART_SM_DATEI:       return VERB(a, o, name_von(a, t, NULL), T(" – Spieldatei", " – game file"));
     case ART_SM_TOT:         return VERB(a, T("Kachel ohne Spiel: ", "Tile without game: "), name_von(a, t, NULL));
-    case ART_ABBILD:         return VERB(a, o, T("Spieldatei ohne Kachel: ", "Game file without tile: "), name_von(a, t, NULL));
+    case ART_ABBILD: {       /* NEU 1.0.8: Spielname aus dem Abbild (2.1) vorne, der Dateiname dahinter */
+        const char *sp = spiel_von(a, t);
+        return sp ? VERB(a, o, T("Spieldatei ohne Kachel: ", "Game file without tile: "), sp, " (", name_von(a, t, NULL), ")")
+                  : VERB(a, o, T("Spieldatei ohne Kachel: ", "Game file without tile: "), name_von(a, t, NULL));
+    }
     case ART_SPIELSTAND:     return VERB(a, name_von(a, t, T("Spielstand ", "Saved data ")), T(" – Spielstände", " – saved data"));
     case ART_TR_FORTSCHRITT: return VERB(a, name_von(a, t, T("Trophäen-Fortschritt: ", "Trophy progress: ")), T(" – dein Trophäen-Fortschritt", " – your trophy progress"),
-                                         f->ListeNr > 0 ? a_fmt(a, T(" (Liste %d)", " (list %d)"), f->ListeNr) : "");
+                                         f->ListeNr > 0 ? a_fmt(a, T(" (Liste %d)", " (list %d)"), f->ListeNr) : "",
+                                         zusatz_von(a, t, T("Kopie: ", "copy: ")) ? T(" (Kopie)", " (copy)") : "");   /* NEU 1.0.8: "<Liste>_BK" */
     case ART_TR_ZAEHLER:     return T("Trophäen-Gesamtzähler", "Trophy totals");
     case ART_TR_LISTE:
     case ART_TR_LISTE_REST:  return VERB(a, name_von(a, t, T("Trophäen-Liste: ", "Trophy list: ")), T(" – Trophäen-Liste", " – trophy list"),
@@ -292,6 +429,9 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
         const char *w = kern_jb_weg_eintrag(f);
         const char *n = txt_beginnt(t, T("Spielstand ", "Saved data ")) ? VERB(a, name_von(a, t, T("Spielstand ", "Saved data ")), T(" – Spielstand", " – saved data"))
                       : txt_beginnt(t, T("Browserspeicher", "Browser storage")) ? T("Browserspeicher", "Browser storage")
+                      /* NEU 1.0.8 (Befund 14): die Kachel eines Jailbreak-Tools wie jede Tool-Kachel ("WebKit Autoloader v0.4.0 – Kachel") - sie ist
+                       * jetzt Kopf eines Blocks mit ihren ELF-Dateien, bis hier stand "Tool-Kachel: " im Namen */
+                      : (!kern_bereiche_106() && txt_beginnt(t, T("Tool-Kachel: ", "Tool tile: "))) ? VERB(a, name_von(a, t, T("Tool-Kachel: ", "Tool tile: ")), T(" – Kachel", " – tile"))
                       : txt_beginnt(t, T("App-Daten eines Jailbreak-Einstiegs: ", "App data of a jailbreak entry: ")) ? VERB(a, name_von(a, t, T("App-Daten eines Jailbreak-Einstiegs: ", "App data of a jailbreak entry: ")), T(" – App-Daten", " – app data"))
                       : f->SmDatei ? VERB(a, name_von(a, t, NULL), T(" – Spieldatei", " – game file"))
                       : (f->Quelle && f->Quelle[0]) ? VERB(a, name_von(a, t, NULL), T(" – ShadowMount-Kachel", " – ShadowMount tile"))
@@ -300,7 +440,7 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
     }
     case ART_TOOL_DATEN: case ART_TOOL_DATEN_WICHTIG: {
         arena *b = arena_neu();
-        const char *dn = daten_ordner(b, f), *w = wichtig_von(f, dn);
+        const char *dn = daten_ordner(b, f), *w = f->WichtigLeer ? NULL : wichtig_von(f, dn);   /* NEU 1.0.8 (Befund 2): leer - nur "Einstellungen" */
         /* NEU 1.0.7 (03.11.2026): eine einzelne Datei des Tools (whitelist.txt, ps5upload_startup.log) heißt einfach wie sie heißt */
         bool datei = dn && h_m(dn, "\\.[A-Za-z0-9]{1,8}$");
         const char *r = datei ? (w ? VERB(a, a_kopie(a, dn), " – ", a_kopie(a, w)) : a_kopie(a, dn))
@@ -309,9 +449,14 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
         arena_frei(b);
         return r;
     }
+    case ART_USB_KOPIE: {    /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): was darin liegt ("USB-Laufwerk – PS5 – deine Screenshots und Videos") */
+        const char *m = strstr(t, "  [");
+        return VERB(a, o, m ? a_kopie_n(a, t, (size_t)(m - t)) : t, T(" – deine ", " – your "), usb_kopie_was(a, f));
+    }
     default: {
         const char *m = strstr(t, "  [");
-        return VERB(a, o, m ? a_kopie_n(a, t, (size_t)(m - t)) : t);
+        const char *pk = f->Art == ART_PAKET_DATEI ? zusatz_von(a, t, "PKG: ") : NULL;   /* NEU 1.0.8: Spielname aus dem PKG (2.2) */
+        return VERB(a, o, m ? a_kopie_n(a, t, (size_t)(m - t)) : t, pk ? VERB(a, " – PKG: ", pk) : "");
     }
     }
 }
@@ -319,15 +464,83 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
 /* Kasten unter der Liste: "Was passiert danach?" mit den Recherche-Ergebnissen (Textliste, Abschnitt "Was die Recherche
  * zusätzlich ergeben hat"). Belege: doku/recherche_*_2026-10-31.md */
 /* NEU 1.0.7 (PS5-Test 02.11.2026, Red Dead Redemption 2): kaputte Zusatzinhalt-Angaben deutlich in Zeile und Erklärung */
+/* NEU 1.0.8 (Arbeitsplan 2.4): dasselbe Spiel mehr als einmal auf der Konsole (kern_suche.c doppelte_spiele) - kurz, wo die anderen Kopien liegen */
+static const char *ort_dativ(int ort)
+{
+    switch (ort) { case ORT_M2: return T("auf der M.2-SSD", "on the M.2 SSD"); case ORT_USB: return T("auf dem erweiterten Speicher", "on the extended storage");
+                   case ORT_STICK: return T("auf dem USB-Laufwerk", "on the USB drive"); }
+    return T("auf der internen SSD", "on the internal SSD");
+}
+const char *kern_doppelt_text(arena *a, const eintrag *f)
+{
+    if (f->Doppelt.n == 0 || kern_bereiche_106()) return "";
+    const char *t = "", *w[8]; int nw = 0;
+    for (int i = 0; i < f->Doppelt.n && nw < 8; i++) {
+        const eintrag *o = f->Doppelt.e[i];
+        bool inst = ist_teil(o, "Spiel") && !(o->Quelle && o->Quelle[0]);
+        const char *x = o->PkgArt && o->Ort == f->Ort ? T("auch auf einem anderen USB-Laufwerk", "also on another USB drive")   /* Codex-Prüfung 83: zwei USB-Laufwerke */
+                      : o->PkgArt ? VERB(a, T("auch ", "also "), ort_dativ(o->Ort))   /* NEU 1.0.8 (Befund 12): dieselbe PKG-Datei auf einem anderen Speicher */
+                      : VERB(a, inst ? T("auch installiert ", "also installed ") : T("auch als Spieldatei ", "also as game file "), ort_dativ(o->Ort));
+        bool schon = false; for (int j = 0; j < nw; j++) if (!strcmp(w[j], x)) schon = true;
+        if (!schon) { w[nw++] = x; t = VERB(a, t, t[0] ? ", " : "", x); }
+    }
+    return VERB(a, T(" – doppelt: ", " – duplicate: "), t);
+}
 const char *kern_zeile(arena *a, const eintrag *f)
 {
-    const char *z = zeile_ohne_warnung(a, f);
+    const char *z = VERB(a, zeile_ohne_warnung(a, f), kern_doppelt_text(a, f));
     return f->SidKaputt > 0 ? VERB(a, z, T(" – ACHTUNG: kaputte Zusatzinhalt-Angaben", " – WARNING: broken add-on entries")) : z;
+}
+/* NEU 1.0.8 (Arbeitsplan 2.6): nur der Name des Spiels, der App oder des Tools - für A–Z und die zugeklappte Zeile einer App in der neuen
+ * Auswahl ("Orbit Store", nicht "Orbit Store – Kachel"). Ohne Ort vorne; was keinen eigenen Namen hat, heißt wie seine Zeile. */
+const char *kern_name(arena *a, const eintrag *f)
+{
+    const char *t = ohne_ort(f);
+    switch (f->Art) {
+    case ART_ABBILD: { const char *sp = spiel_von(a, t); return sp ? sp : name_von(a, t, NULL); }
+    case ART_PAKET_DATEI: {  /* der Name aus dem PKG ohne Nummer und Art ("Spiel Eins (CUSA30001), Update 01.05" -> "Spiel Eins") */
+        if (f->PkgArt && !kern_bereiche_106()) {   /* NEU 1.0.8 (Befund 12): der Name des Blocks, in dem die Datei steht */
+            const char *b = pkg_block(a, f);
+            if (b && b[0]) return b;
+            if (f->PkgAnzahl > 1) return f->PkgTitel && f->PkgTitel[0] ? f->PkgTitel : f->PkgId;
+        }
+        const char *pk = zusatz_von(a, t, "PKG: ");
+        if (pk) { const char *k = r_r(a, pk, " \\([A-Z]{4}\\d{5}\\)(, .*)?$", ""); k = r_r(a, k, ", (Update|update|Zusatzinhalt|add-on).*$", ""); if (k[0]) return h_trim(a, k); }
+        break;
+    }
+    case ART_SPIEL: case ART_APP: case ART_UPDATE: case ART_DLC: case ART_SM_KACHEL: case ART_SM_DATEI: case ART_SM_TOT:
+        return name_von(a, t, NULL);
+    case ART_SPIELSTAND:     return name_von(a, t, T("Spielstand ", "Saved data "));
+    case ART_TR_FORTSCHRITT: return name_von(a, t, T("Trophäen-Fortschritt: ", "Trophy progress: "));
+    case ART_TR_LISTE:
+    case ART_TR_LISTE_REST:  return name_von(a, t, T("Trophäen-Liste: ", "Trophy list: "));
+    case ART_TOOL_KACHEL:    return name_von(a, t, T("Tool-Kachel: ", "Tool tile: "));
+    case ART_JAILBREAK:      /* NEU 1.0.8 (4.3): ohne " – Spielstand" und " – Jailbreak-Start: …" - das steht in der Zeile */
+        if (txt_beginnt(t, T("Spielstand ", "Saved data "))) return name_von(a, t, T("Spielstand ", "Saved data "));
+        if (txt_beginnt(t, T("Browserspeicher", "Browser storage"))) return T("Browserspeicher", "Browser storage");
+        if (!kern_bereiche_106() && txt_beginnt(t, T("Tool-Kachel: ", "Tool tile: "))) return name_von(a, t, T("Tool-Kachel: ", "Tool tile: "));   /* NEU 1.0.8 (Befund 14) */
+        if (txt_beginnt(t, T("App-Daten eines Jailbreak-Einstiegs: ", "App data of a jailbreak entry: "))) return name_von(a, t, T("App-Daten eines Jailbreak-Einstiegs: ", "App data of a jailbreak entry: "));
+        if (f->SmDatei || (f->Quelle && f->Quelle[0])) return name_von(a, t, NULL);
+        return name_von(a, r_r(a, t, " - (Spiel|game)(  \\[.*)?$", ""), NULL);
+    default: break;
+    }
+    const char *z = zeile_ohne_warnung(a, f), *o = kern_ort_vorsatz(f->Ort);
+    return (o[0] && txt_beginnt(z, o)) ? z + strlen(o) : z;
 }
 static const char *art_info_basis(arena *a, const eintrag *f);
 const char *kern_art_info(arena *a, const eintrag *f)
 {
     const char *i = art_info_basis(a, f);
+    if (f->PkgOffen && !kern_bereiche_106())   /* Codex-Prüfung 90 */
+        i = VERB(a, i ? i : "", i && i[0] ? "\n\n" : "",
+                 T("In diesem Ordner konnte PS5 Cleanup nicht nach PKG-Dateien suchen (zu viele Dateien, zu tief verschachtelt oder nicht lesbar). Er kann PKG-Dateien enthalten - darum nur einzeln wählbar, wie eine PKG-Datei. Gelöscht ist alles darin endgültig weg.",
+                   "PS5 Cleanup could not look for PKG files in this folder (too many files, nested too deep or not readable). It may contain PKG files - so it can only be selected individually, like a PKG file. Once deleted, everything in it is gone for good."));
+    if (f->Doppelt.n > 0 && !kern_bereiche_106())   /* NEU 1.0.8 (Arbeitsplan 2.4) */
+        i = VERB(a, i ? i : "", i && i[0] ? "\n\n" : "", f->PkgArt
+                 ? T("Doppelt: Dieselbe Datei (gleicher Name, gleiche Größe) liegt auch auf einem anderen Speicher (wo, steht in der Zeile). Löschst du nur eine davon, bleibt die andere.",
+                     "Duplicate: the same file (same name, same size) is also on another storage (where is shown in the row). If you delete only one of them, the other one stays.")
+                 : T("Doppelt: Dieses Spiel liegt mehr als einmal auf der Konsole und belegt den Platz mehrfach (wo, steht in der Zeile). Löschst du nur eine Kopie, bleibt die andere.",
+                     "Duplicate: this game is on the console more than once and takes up the space several times (where is shown in the row). If you delete only one copy, the other one stays."));
     if (f->SidKaputt <= 0) return i;
     return VERB(a, i ? i : "", T("\n\nACHTUNG: Dieses Spiel hat kaputte Angaben zu Zusatzinhalten. Daran kann die PS5 abstürzen und sich ausschalten, wenn sie im Hintergrund die Spiele durchgeht - auch wenn das Spiel gar nicht läuft. Abhilfe: das Spiel mit PS5 Cleanup löschen (die kaputten Angaben werden vorher repariert, sonst bricht Sonys Deinstallation ab) und mit einem unveränderten Update neu installieren.",
                                  "\n\nWARNING: This game has broken add-on entries. This can make the PS5 crash and switch off when it goes through the games in the background - even if the game is not running. Fix: delete the game with PS5 Cleanup (the broken entries are repaired first, otherwise Sony's uninstall aborts) and reinstall it with an unmodified update."));
@@ -361,8 +574,12 @@ static const char *art_info_basis(arena *a, const eintrag *f)
                                  "All screenshots and videos of this game with thumbnails. Gone for good unless you saved them to PC, phone or USB.");
     case ART_AUFNAHME_UNFERTIG: return T("Das Speichern wurde abgebrochen. Normale Player können solche Videos nicht abspielen; retten ginge höchstens mit Spezialprogrammen.",
                                          "Saving was interrupted. Normal players cannot play such videos; rescuing would only be possible with special tools.");
-    case ART_TOOL_DATEN: return T("Einstellungen, Listen und Protokolle des Tools. Das Tool legt den Ordner beim nächsten Start neu an, mit Grundeinstellungen.",
-                                  "Settings, lists and logs of the tool. The tool recreates the folder on its next start, with default settings.");
+    case ART_TOOL_DATEN:
+        if (f->WichtigLeer)   /* NEU 1.0.8 (Befund 2) */
+            return T("Einstellungen des Tools. Geprüft: Darin liegt keine Datei mit Inhalt - es geht also nichts Eigenes verloren. Das Tool legt den Ordner beim nächsten Start neu an.",
+                     "Settings of the tool. Checked: there is no file with content in it - so nothing of your own is lost. The tool recreates the folder on its next start.");
+        return T("Einstellungen, Listen und Protokolle des Tools. Das Tool legt den Ordner beim nächsten Start neu an, mit Grundeinstellungen.",
+                 "Settings, lists and logs of the tool. The tool recreates the folder on its next start, with default settings.");
     case ART_TOOL_DATEN_WICHTIG: {
         arena *b = arena_neu();
         const char *dn = daten_ordner(b, f), *w = wichtig_von(f, dn);
@@ -382,6 +599,42 @@ static const char *art_info_basis(arena *a, const eintrag *f)
                                        "The originals of your games that LZ4-Game-Compressor backed up before packing. Gone for good afterwards.");
     case ART_JAILBREAK: return T("Darüber startet dein Jailbreak. Danach startet er über diesen Weg nicht mehr - du musst ihn neu einrichten, mit PC und der passenden App-Version.",
                                  "Your jailbreak starts through this. Afterwards it no longer starts this way - you have to set it up again, with a PC and the matching app version.");
+    case ART_USB_KOPIE:   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53, da_Chris86s USB-Laufwerk: PS5/CREATE stand als "neu herunterladen" da) */
+        return VERB(a, T("Diesen Ordner legt die PlayStation an, wenn du etwas auf ein USB-Laufwerk kopierst. Darin: deine ", "The PlayStation creates this folder when you copy something to a USB drive. It holds your "),
+                    usb_kopie_was(a, f), T(". Gelöscht ist das endgültig weg, außer es liegt noch auf der Konsole oder woanders.", ". Once deleted, it is gone for good unless it is still on the console or somewhere else."));
+    case ART_PROTOKOLL:   /* NEU 1.0.8 (07.11.2026) */
+        return T("Ein Protokoll von PS5 Cleanup aus einem früheren Lauf. Das Programm braucht es nicht mehr. Gelöscht ist es weg - brauchst du es noch, um einen Fehler zu melden, lass es stehen.",
+                 "A log of PS5 Cleanup from an earlier run. The program does not need it anymore. Once deleted, it is gone - if you still need it to report a problem, keep it.");
+    case ART_PAKET_DATEI: {   /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12) */
+        if (kern_bereiche_106() || !f->PkgArt) return "";
+        const char *n = f->PkgAnzahl > 1 ? a_fmt(a, T("Das sind %d PKG-Dateien auf diesem Speicher. ", "These are %d PKG files on this storage. "), f->PkgAnzahl) : "";
+        if (f->ToolKachel) {
+            const char *sp = kern_name(a, f->ToolKachel);
+            const char *was = f->PkgArt == PKG_UPDATE ? T("Update-Datei", "update file") : f->PkgArt == PKG_DLC ? T("Zusatzinhalt-Datei", "add-on file") : T("Installationsdatei", "install file");
+            if (!f->PkgId)   /* NEU 1.0.8 (PS5-Test 07.11.2026): Nummer nicht lesbar - sie steht nur wegen ihres Ordners hier (kachel_bloecke) */
+                return VERB(a, n, T("Eine Installationsdatei (PKG) im Ordner von ", "An install file (PKG) in the folder of "), sp,
+                            T(". Was genau darin steckt, ließ sich nicht lesen. Was installiert ist, bleibt - gelöscht ist die Datei endgültig weg.",
+                              ". What exactly it contains could not be read. What is installed stays - once deleted, the file is gone for good."));
+            if (f->PkgSpielFehlt) {   /* NEU 1.0.8 (PS5-Test 07.11.2026): davon ist nur ein Rest da - die Datei ist das Einzige zum Neuinstallieren */
+                if (f->PkgAnzahl > 1)
+                    return VERB(a, n, T("Von ", "Only leftovers of "), sp,
+                                T(" ist gerade nur ein Rest installiert (Kachel ohne Daten). Zum Neuinstallieren bräuchtest du diese Dateien - gelöscht sind sie endgültig weg.",
+                                  " are installed right now (a tile without data). To reinstall you would need these files - once deleted, they are gone for good."));
+                return VERB(a, T("Eine ", "An "), was, T(" von ", " of "), sp, ". ",
+                            T("Installiert ist davon gerade nur ein Rest (Kachel ohne Daten). Zum Neuinstallieren bräuchtest du diese Datei - gelöscht ist sie endgültig weg.",
+                              "Only leftovers of it are installed right now (a tile without data). To reinstall you would need this file - once deleted, it is gone for good."));
+            }
+            return VERB(a, n, f->PkgAnzahl > 1 ? "" : VERB(a, T("Eine ", "An "), was, T(" von ", " of "), sp, ". "),
+                        T("Was installiert ist, bleibt - die Datei braucht nur, wer neu installieren will. Gelöscht ist sie endgültig weg.",
+                          "What is installed stays - the file is only needed to reinstall. Once deleted, it is gone for good."));
+        }
+        const eintrag *kk = f->PkgOhneSpiel ? f : f->Begleit;
+        if (kk && kk->PkgOhneSpiel)
+            return VERB(a, n, T("Dieses Spiel ist gerade nicht installiert. Seine PKG-Dateien sind alles, was davon auf der Konsole liegt - gelöscht ist es ganz weg von der Konsole. Zum Spielen bräuchtest du die Dateien wieder.",
+                                "This game is not installed right now. Its PKG files are all there is of it on the console - once deleted, it is gone from the console completely. To play you would need the files again."));
+        return VERB(a, n, T("Eine Installationsdatei (PKG). Zu welchem Spiel sie gehört, ließ sich nicht lesen. Gelöscht ist sie endgültig weg - zum Installieren bräuchtest du sie wieder.",
+                            "An install file (PKG). Which game it belongs to could not be read. Once deleted, it is gone for good - to install you would need it again."));
+    }
     default: return "";
     }
 }
@@ -397,17 +650,19 @@ bool kern_nur_mit_spiel(kern *k, const eintrag *f)
 /* "Danach endgültig weg: 12 Spielstände, 3 Spieldateien, ..." - nur was gewählt UND rot ist */
 const char *kern_endgueltig_satz(kern *k, arena *a)
 {
-    int spst = 0, datei = 0, trf = 0, trd = 0, aufn = 0, gal = 0, sich = 0, jb = 0;
+    int spst = 0, datei = 0, trf = 0, trd = 0, aufn = 0, gal = 0, sich = 0, jb = 0, pkg = 0, kopie = 0;
     sliste wichtig = {0};
     FUER_ALLE(f) {
         if (!f->Wahl || f->Gesperrt) continue;
         switch (f->Art) {
+        case ART_PAKET_DATEI: if (!kern_bereiche_106()) pkg += f->PkgAnzahl > 0 ? f->PkgAnzahl : 1; break;   /* NEU 1.0.8 (Befund 12) */
         case ART_SPIELSTAND: spst++; break;
         case ART_SM_DATEI: case ART_ABBILD: datei++; break;
         case ART_TR_FORTSCHRITT: trf++; break;
         case ART_TR_DATEN: trd++; break;
         case ART_AUFNAHMEN: aufn++; break;
         case ART_GALERIE_SONST: gal++; break;
+        case ART_USB_KOPIE: kopie++; break;   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53) */
         case ART_SPIEL_SICHERUNG: sich++; break;
         case ART_JAILBREAK: jb++; break;
         case ART_TOOL_DATEN_WICHTIG: {
@@ -432,6 +687,8 @@ const char *kern_endgueltig_satz(kern *k, arena *a)
     TEIL(trd, "Trophäen-Datei", "Trophäen-Dateien", "trophy data item", "trophy data items");
     TEIL(aufn, "Spiel mit Aufnahmen", "Spiele mit Aufnahmen", "game with captures", "games with captures");
     TEIL(gal, "Galerie-Eintrag", "Galerie-Einträge", "gallery item", "gallery items");
+    TEIL(pkg, "Installationsdatei (PKG)", "Installationsdateien (PKG)", "install file (PKG)", "install files (PKG)");
+    TEIL(kopie, "Ordner mit deinen Daten auf dem USB-Laufwerk", "Ordner mit deinen Daten auf dem USB-Laufwerk", "folder with your data on the USB drive", "folders with your data on the USB drive");
     #undef TEIL
     if (sich > 0) sl_add(a, &t, T("deine Spiel-Sicherungen (LZ4-Game-Compressor)", "your game backups (LZ4-Game-Compressor)"));
     for (int i = 0; i < wichtig.n; i++) sl_add(a, &t, wichtig.e[i]);

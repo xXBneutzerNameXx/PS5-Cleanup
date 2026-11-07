@@ -47,5 +47,9 @@ int db_titel_suchen(const unsigned char *bild, size_t n, const char *id, char *g
  * nur lesen. Rückgabe: Anzahl Zeilen, -1 = Fehler (grund). */
 int db_appinfo_zeilen(const unsigned char *bild, size_t n, void (*zeile)(void *ctx, const char *titel, const char *feld, const char *wert),
                       void *ctx, char *grund, size_t gl);
+/* NEU 1.0.8 (PS5-Test 07.11.2026): aus Sonys savedata.db (bild = geprüfte Kopie) je Spielstand eine Zeile (Kennung, "SPIELSTAND_TITEL",
+ * Titel) - ohne Spielstände, deren Titel gleich dem Untertitel ist. Ganz im Speicher, nur lesen. Anzahl Zeilen, -1 = Fehler (grund). */
+int db_spielstand_zeilen(const unsigned char *bild, size_t n, void (*zeile)(void *ctx, const char *titel, const char *feld, const char *wert),
+                         void *ctx, char *grund, size_t gl);
 
 #endif

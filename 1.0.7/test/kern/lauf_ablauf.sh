@@ -72,5 +72,28 @@ for name in a3_komplett a4_komplett_m2 b1_auswahl_kacheln; do
     [ $ok = 1 ] && echo "OK   $name $sp: Platte unverändert, SIMULATION in Frage/Statuszeile/Fertig, kein 'gelöscht' ($(grep -c -E '^  (würde gelöscht|would be deleted)' $E/sim_${sp}_${name}.out) x 'würde gelöscht')" || f=$((f+1))
   done
 done
+# NEU 1.0.8 (Arbeitsplan 5.1a, Codex-Prüfung 76): die Frage "Außerhalb der internen SSD" mit den Bereichen von 1.0.8 (F2) - die Vergleiche
+# oben laufen mit den Bereichen von 1.0.6 (PS5C_BEREICHE_106) und kommen an dieser Stelle nie vorbei. Szenarien in test/ablauf_108: nur eine
+# Datei, ein Ordner, ohne gezählte Größen, eine ShadowMount-Spieldatei. Was in der Frage stehen muss (und was nicht), steht im Szenario
+# (# ERWARTET_DE/_EN, # NICHT_DE/_EN). Jedes Szenario bricht an der Frage ab - die Platte muss danach unverändert sein.
+echo "== Frage außerhalb der internen SSD (1.0.8)"
+for s in $KK/test/ablauf_108/*.txt; do
+  name=$(basename $s .txt)
+  for sp in de en; do
+    SP=$(echo $sp | tr a-z A-Z)
+    (echo "SPRACHE $sp"; cat $s) > $T/sz.txt
+    rm -rf $T/w; cp -r $RF/root9 $T/w
+    (cd $T/w && find . -printf '%y %s %P\n' | LC_ALL=C sort) > $T/vorher.baum
+    (cd $T; env -u PS5C_BEREICHE_106 RMDA=1 FAKESM=1 timeout 600 $B/test_ablauf $T/sz.txt $T > $E/f2_${sp}_${name}.out 2>&1)
+    (cd $T/w && find . -printf '%y %s %P\n' | LC_ALL=C sort) > $T/nachher.baum
+    ok=1; ne=0
+    while IFS= read -r z; do ne=$((ne+1)); grep -q -F -- "$z" $E/f2_${sp}_${name}.out || { echo "FAIL f2 $name $sp: fehlt: $z"; ok=0; }; done < <(sed -n "s/^# ERWARTET_$SP: //p" $s)
+    while IFS= read -r z; do grep -q -F -- "$z" $E/f2_${sp}_${name}.out && { echo "FAIL f2 $name $sp: steht da: $z"; ok=0; }; done < <(sed -n "s/^# NICHT_$SP: //p" $s)
+    [ $ne -gt 0 ] || { echo "FAIL f2 $name $sp: keine erwarteten Sätze im Szenario"; ok=0; }
+    cmp -s $T/vorher.baum $T/nachher.baum || { echo "FAIL f2 $name $sp: Platte verändert (abgebrochen - darf nichts löschen)"; ok=0; }
+    grep -q "^ENDE fehler=0" $E/f2_${sp}_${name}.out || { echo "FAIL f2 $name $sp: $(grep -E '^ENDE|^FEHLT|^NICHT WÄHLBAR|^UNBENUTZTE' $E/f2_${sp}_${name}.out | head -3 | tr '\n' ' ')"; ok=0; }
+    [ $ok = 1 ] && echo "OK   f2 $name $sp ($ne erwartete Sätze, Platte unverändert)" || f=$((f+1))
+  done
+done
 echo "FEHLERZAHL $f"
 date "+%Y-%m-%d %H:%M:%S FERTIG"

@@ -152,8 +152,28 @@ bool s_bytes(sitzung *s, const char *pfad, const unsigned char **d, size_t *n)
 }
 
 /* NEU 1.1 (Selbstschutz S2): nur den Anfang einer Datei lesen - false bei Fehler oder wenn es das nicht gibt */
+/* NEU 1.0.8 (Arbeitsplan 2.1): n Bytes ab Stelle ab nach ziel lesen; false = nicht lesbar (oder nicht möglich) */
+bool s_lies_ab(sitzung *s, const char *pfad, long long ab, size_t n, unsigned char *ziel, size_t *len)
+{
+    *len = 0;
+    if (s->abbruch && s->abbruch(s->abbruch_ctx)) wirf(AUSN_ABBRUCH, "");
+    if (!s->z->lies_ab) return false;
+    antwort a = verbindung(s->z->lies_ab(s->z, s->a, pfad, ab, n, ziel, len));
+    if (a.code >= 400) { s->letzter_fehler = VERB(s->a, "RETR ", pfad, ": ", a.text); *len = 0; return false; }
+    return true;
+}
+/* NEU 1.0.8 (Codex-Prüfung 77): Sicherheitsbremse auch beim Dateikopf und bei der Inhaltsprüfung - so greift sie in der
+ * Selbstschutz-Suche bei jeder geprüften Datei, nicht nur bei Ordnerlisten */
+static void bremse_pruefen(void)
+{
+    if (zugriff_speicher_knapp && zugriff_bremse_hier) {
+        const char *g = "";
+        if (zugriff_speicher_knapp(&g)) { zugriff_speicher_grund = g ? g : ""; zugriff_speicher_gebremst = 1; wirf(AUSN_ABBRUCH, ""); }
+    }
+}
 bool s_kopf(sitzung *s, const char *pfad, size_t n, const unsigned char **d, size_t *len)
 {
+    bremse_pruefen();
     *d = NULL; *len = 0;
     if (!s->z->kopf) return false;
     antwort a = verbindung(s->z->kopf(s->z, s->a, pfad, n, d, len));
@@ -188,6 +208,7 @@ int s_stuecke(sitzung *s, const char *pfad, size_t stueck, bool (*weiter)(void *
 /* NEU 1.0.6 Fix (30.10.2026): enthält die Datei die Byte-Folge m? Ohne eigene Suche im Zugriff: ganz lesen, Speicher sofort frei */
 int s_enthaelt(sitzung *s, const char *pfad, const void *m, size_t ml)
 {
+    bremse_pruefen();   /* NEU 1.0.8 (Codex-Prüfung 76/77) */
     if (s->z->enthaelt) {
         bool ja = false;
         pruefe_zeile(s, VERB(s->a, "RETR ", pfad));

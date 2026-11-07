@@ -266,6 +266,18 @@ static const char *app_titel(kern *k, const char *id)            /* AppTitel */
  * installiert - Name aus verbliebenen Angaben, 3 unbekannt. */
 static const char *name_belegt(kern *k, const char *id, int *art);
 static const char *name_belegt_spst(kern *k, const char *id, int *art);
+/* NEU 1.0.8 (PS5-Test 07.11.2026, L.A. Noire): name_belegt/name_belegt_spst sagen hier, ob "unbekannt" von einem Widerspruch kommt (dann
+ * bleibt es dabei) oder nur daher, dass beim Anlegen des Eintrags noch kein Beleg da war. Nur solche Kennungen kommen nach NAMEN_OFFEN -
+ * namen_nachtragen trägt nach der Suche den Namen ein, wenn eine PKG-Datei ihn belegt (die PKG-Dateien werden erst später gefunden). */
+static bool nb_widerspruch;
+static void offen_merken(kern *k, const char *id)
+{
+    if (kern_bereiche_106() || !id || !id[0]) return;
+    /* Codex-Prüfung 108 (P2): Widerspruch bei EINEM Eintrag (z. B. Spielstand mit zwei INSTALL_DIR_SAVEDATA-Belegen) - dann wird für diese
+     * Kennung nirgends nachgetragen (2), auch nicht bei einer Aufnahme derselben Kennung ohne Beleg */
+    if (nb_widerspruch) { mt_setze(A, &k->NAMEN_OFFEN, a_kopie(A, id), (void *)2); return; }
+    if (!mt_hat(&k->NAMEN_OFFEN, id)) mt_setze(A, &k->NAMEN_OFFEN, a_kopie(A, id), (void *)1);
+}
 static const char *mit_name_art(kern *k, const char *x, bool spst)
 {
     htreffer m = h_mt(A, x, "^([A-Z]{4}\\d{5})");
@@ -275,6 +287,7 @@ static const char *mit_name_art(kern *k, const char *x, bool spst)
     if (art <= 1) return VERB(A, x, " (", t, ")");
     if (kern_bereiche_106()) return x;   /* Vergleichstests mit 1.0.5/1.0.6 unverändert */
     if (art == 2) return VERB(A, x, " (", t, T(", nicht mehr auf der Konsole)", ", no longer on the console)"));
+    offen_merken(k, m.gr[1]);
     return VERB(A, x, " (", T("Spiel/App unbekannt", "game/app unknown"), ")");
 }
 static const char *mit_name(kern *k, const char *x) { return mit_name_art(k, x, false); }
@@ -286,7 +299,71 @@ static const char *mit_name_kurz(kern *k, const char *x)
     if (!m.ok || kern_bereiche_106()) return mit_name(k, x);
     int art = 3;
     const char *t = name_belegt(k, m.gr[1], &art);
-    return art <= 2 ? VERB(A, x, " (", t, ")") : VERB(A, x, " (", T("Spiel/App unbekannt", "game/app unknown"), ")");
+    if (art <= 2) return VERB(A, x, " (", t, ")");
+    offen_merken(k, m.gr[1]);
+    return VERB(A, x, " (", T("Spiel/App unbekannt", "game/app unknown"), ")");
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31, da_Chris86: "bei den PS4-Spielen sind die Bilder und die Beschriftung da, bei den PS5-Spielen
+ * nicht"): Eine PS5-Trophäen-Liste (/user/trophy2/nobackup/conf/<NPWR>/TROPHY.UCP) trägt den Namen des Spiels selbst, offen lesbar.
+ * Aufbau wie TROPHY.TRP: Kopf 0x60 Byte (Kennung B2 28 C6 0A, Gesamtlänge, Zahl der Einträge, Eintragsgröße 0x40), dann je Eintrag
+ * Name (32 Byte), Anfang, Länge; darin tropmeta_<Sprache>.json mit "trophyNpCommId" und "metadata":{"titleMetadata":{"name":...}}
+ * (auf da_Chris86s PS5 nachgesehen: NPWR23378_00 "Marvel's Spider-Man 2", NPWR21647_00 "Grand Theft Auto V"). Das ist Sonys eigene Angabe
+ * zu genau dieser Liste - ein Beleg, kein Raten. Nur lesen: Kopf, Tabelle (höchstens 4096 Einträge = 256 KB) und eine JSON-Datei
+ * (höchstens 256 KB); passt etwas nicht (andere Kennung, kaputt, zu groß, nicht lesbar), gibt es keinen Namen - wie bisher. */
+#define UCP_EINTRAEGE_MAX 4096
+#define UCP_JSON_MAX (256 * 1024)
+static int net_laenge(const char *s);   /* steht weiter unten */
+static uint32_t ucp_be32(const unsigned char *p) { return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | (uint32_t)p[3]; }
+static unsigned long long ucp_be64(const unsigned char *p) { return (unsigned long long)ucp_be32(p) << 32 | ucp_be32(p + 4); }
+static const char *ucp_lesen(kern *k, arena *t, const char *npwr)
+{
+    const char *p = VERB(t, "/user/trophy2/nobackup/conf/", npwr, "/TROPHY.UCP");
+    unsigned char kopf[0x60]; size_t len = 0;
+    if (!s_lies_ab(k->S, p, 0, sizeof kopf, kopf, &len) || len != sizeof kopf) return "";
+    if (memcmp(kopf, "\xB2\x28\xC6\x0A", 4) != 0 || ucp_be32(kopf + 0x14) != 0x40) return "";
+    unsigned long long gesamt = ucp_be64(kopf + 0x08);
+    uint32_t anz = ucp_be32(kopf + 0x10);
+    if (anz == 0 || anz > UCP_EINTRAEGE_MAX || gesamt < 0x60 + (unsigned long long)anz * 0x40) return "";
+    size_t tl = (size_t)anz * 0x40;
+    unsigned char *tab = a_hole(t, tl);
+    if (!s_lies_ab(k->S, p, 0x60, tl, tab, &len) || len != tl) return "";
+    const char *wunsch[3] = { T("tropmeta_de-DE.json", "tropmeta_en-US.json"), "tropmeta_en-US.json", "tropmeta_en-GB.json" };
+    int beste = 99; unsigned long long ab = 0, lg = 0;
+    for (uint32_t i = 0; i < anz; i++) {
+        const unsigned char *e = tab + (size_t)i * 0x40;
+        char name[33]; memcpy(name, e, 32); name[32] = 0;
+        int rang = -1;
+        for (int w = 0; w < 3; w++) if (!strcmp(name, wunsch[w])) { rang = w; break; }
+        if (rang < 0 && !strncmp(name, "tropmeta_", 9) && h_m(name, "\\.json$")) rang = 3;
+        if (rang < 0 || rang >= beste) continue;
+        beste = rang; ab = ucp_be64(e + 32); lg = ucp_be64(e + 40);
+    }
+    if (beste == 99 || lg < 2 || lg > UCP_JSON_MAX || ab < 0x60 || ab > gesamt || lg > gesamt - ab || ab > (unsigned long long)INT64_MAX) return "";
+    unsigned char *j = a_hole(t, (size_t)lg + 1);
+    if (!s_lies_ab(k->S, p, (long long)ab, (size_t)lg, j, &len) || len != (size_t)lg || memchr(j, 0, (size_t)lg)) return "";
+    j[lg] = 0;
+    cJSON *o = cJSON_ParseWithOpts(h_ohne_bom((const char *)j), NULL, true);
+    if (!o) return "";
+    const char *r = "";
+    cJSON *id = hole_ci(o, "trophyNpCommId"), *md = hole_ci(o, "metadata"), *tm = md ? hole_ci(md, "titleMetadata") : NULL, *nm = tm ? hole_ci(tm, "name") : NULL;
+    if (cJSON_IsString(id) && id->valuestring && h_gleich(id->valuestring, npwr) && cJSON_IsString(nm) && nm->valuestring) {
+        const char *n = h_trim(t, nm->valuestring);
+        if (net_laenge(n) >= 1 && net_laenge(n) <= 100 && !h_m(n, "[\\x00-\\x1f]")) r = a_kopie(A, n);
+    }
+    cJSON_Delete(o);
+    return r;
+}
+static const char *ucp_titel(kern *k, const char *npwr)
+{
+    if (kern_bereiche_106() || !h_m(npwr, "^NPWR\\d{5}_\\d{2}$")) return "";
+    if (mt_hat(&k->NPWR_UCP, npwr)) return (const char *)mt_hole(&k->NPWR_UCP, npwr);
+    arena *volatile t = arena_neu();
+    const char *volatile r = "";
+    VERSUCHE { r = ucp_lesen(k, t, npwr); }
+    FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = ""; } ENDE_VERSUCHE;
+    if (t) arena_frei(t);
+    mt_setze(A, &k->NPWR_UCP, a_kopie(A, npwr), (void *)r);
+    return r;
 }
 static const char *trophaen_name(kern *k, const char *npwr)
 {
@@ -294,9 +371,24 @@ static const char *trophaen_name(kern *k, const char *npwr)
     if (mt_hat(&k->NPWR_NAMEN, npwr) && n && n[0]) return VERB(A, n, " (", npwr, ")");
     if (mt_hat(&k->NPWR_GALERIE, npwr)) return VERB(A, (const char *)mt_hole(&k->NPWR_GALERIE, npwr), " (", npwr, ")");
     if (kern_bereiche_106()) return npwr;
+    const char *u = ucp_titel(k, npwr);   /* NEU 1.0.8: Name aus der PS5-Trophäen-Liste selbst */
+    if (u[0]) return VERB(A, u, " (", npwr, ")");
+    if (mt_hat(&k->PROT_NPWR, npwr)) return VERB(A, (const char *)mt_hole(&k->PROT_NPWR, npwr), " (", npwr, ")");   /* NEU 1.0.8: früheres Protokoll */
+    if (!mt_hat(&k->NPWR_OFFEN, npwr)) mt_setze(A, &k->NPWR_OFFEN, a_kopie(A, npwr), (void *)1);   /* NEU 1.0.8: namen_nachtragen */
     return VERB(A, npwr, " (", T("Spiel/App unbekannt", "game/app unknown"), ")");   /* NEU 1.0.7: unbekannte Zuordnung ausdrücklich nennen */
 }
 static const char *trophaen_weg(kern *k, const char *npwr) { return mt_hat(&k->NPWR_NAMEN, npwr) ? "" : T(" - Spiel nicht mehr auf der Konsole", " - game no longer on the console"); }
+/* NEU 1.0.8 (PS5-Test 07.11.2026 17:31, NPWR09412_00_BK): eine Kopie des Trophäen-Fortschritts - der Ordner heißt wie die Liste, mit einer
+ * Endung (auf da_Chris86s PS5 entstanden um 15:46, in derselben Minute wie der neue Ordner NPWR09412_00, als Red Dead Redemption 2 wieder
+ * installiert wurde - vermutlich legt die PS5 dabei den alten Fortschritt beiseite). Name, Zuordnung und Zustand kommen von der Liste
+ * ohne Endung; die Zeile sagt "Kopie" (kern_art.c). */
+static const char *npwr_basis(kern *k, const char *x)
+{
+    if (kern_bereiche_106()) return x;
+    htreffer m = h_mt(A, x, "(?-i)^(NPWR\\d{5}_\\d{2})_[A-Za-z0-9]{1,16}$");
+    return m.ok ? m.gr[1] : x;
+}
+static const char *npwr_kopie(kern *k, const char *x, const char *xb) { return strcmp(x, xb) ? VERB(A, T("  [Kopie: ", "  [copy: "), x, "]") : ""; }
 
 #define MEDIEN "\\.(jxr|jpe?g|png|mp4|webm|mov)$"
 static int zaehle_medien(kern *k, const char *p)
@@ -366,11 +458,15 @@ static const char *galerie_dat_name(kern *k, const char *id, const sliste *ordne
 static const char *galerie_name(kern *k, const char *id, const sliste *ordner)
 {
     if (h_like(id, "NPXS*")) return VERB(A, T("Systemmenü (", "System menu ("), id, ")");
+    /* NEU 1.0.8 (F4, da_Chris86s Bilder vom 04.11.2026): Aufnahmen, die während PS5 Cleanup lief, gehören zu dessen Startordner PSCL00002
+     * (bis 1.0.7: "Aufnahmen von 20261104175554 (PSCL00002, Spiel nicht mehr auf der Konsole)") */
+    if (!kern_bereiche_106() && (!strcmp(id, "PSCL00002") || !strcmp(id, "PSCL00001"))) return VERB(A, "PS5 Cleanup (", id, ")");
     if (!kern_bereiche_106()) {   /* NEU 1.0.7 (PS5-Test 02.11.2026): Name und Zuordnung nur aus Metadaten (name_belegt) */
         int art = 3;
         const char *t = name_belegt(k, id, &art);
         if (art <= 1) return VERB(A, t, " (", id, ")");
         if (art == 2) return VERB(A, t, " (", id, T(", Spiel nicht mehr auf der Konsole)", ", game no longer on the console)"));
+        offen_merken(k, id);   /* NEU 1.0.8: namen_nachtragen */
         return VERB(A, id, T(" (Spiel nicht mehr auf der Konsole, Spiel/App unbekannt)", " (game no longer on the console, game/app unknown)"));
     }
     const char *m = mit_name(k, id);
@@ -435,9 +531,32 @@ static void sid_angabe(kern *k, const char *besitzer, const char *feld, const ch
     besitzer = a_kopie(A, besitzer);
     mt_setze(A, &k->SID_KAPUTT, besitzer, (void *)((intptr_t)mt_hole(&k->SID_KAPUTT, besitzer) + 1));
 }
+/* NEU 1.0.8 (Protokoll 174343 vom PS5-Test 07.11.2026: "Spielstand PPSA03420 (Gespeicherte Daten, nicht mehr auf der Konsole)" - der
+ * Spielstand von GTA V): manche Spiele geben ihren Spielständen statt ihres Namens einen allgemeinen Titel ("Gespeicherte Daten", "Saved
+ * Data", "Spielstand 2" ...). Das ist kein Spielname und belegt nichts - dann bleibt es "Spiel/App unbekannt" (mit dem Bild des Spielstands).
+ * Nur der ganze Titel zählt (Groß-/Kleinschreibung egal), höchstens mit einer kleinen Nummer dahinter. */
+static bool titel_allgemein(const char *t)
+{
+    return t && h_m(t, "^\\s*(gespeicherte daten|spielst(and|ände)|spieldaten|speicherdaten|systemdaten|benutzerdaten|saved? ?data|saves?|save ?game|saved game|"
+                       "auto ?saves?|game ?data|system ?data|user ?data|données sauvegardées|sauvegardes?|datos guardados|partida guardada|"
+                       "dati salvati|salvataggio|dados salvos|dados guardados|opgeslagen gegevens|zapisane dane|сохран[её]нные данные|"
+                       "セーブデータ|存档|存檔|保存数据|저장 데이터|세이브 데이터)(\\s*[#.:-]?\\s*\\d{1,3})?\\s*$");
+}
 static void appinfo_zeile(kern *k, const char *titel, const char *feld, const char *wert)
 {
-    if (!titel || !feld || !mt_hat(&k->INSTALLIERT, titel)) return;
+    if (!titel || !feld) return;
+    /* NEU 1.0.8 (PS5-Test 07.11.2026): Titel aus Sonys Spielstand-Liste (savedata.db) - für jede Kennung, auch nicht installierte. Wie
+     * MAINTITLE in rest_name: tragen die Spielstände einer Kennung verschiedene Titel, ist der Name nicht belegt ("") */
+    if (!strcmp(feld, "SPIELSTAND_TITEL")) {
+        if (!kennung_ok(titel)) return;
+        const char *w = h_trim(A, wert ? wert : "");
+        if (net_laenge(w) < 2 || net_laenge(w) > 100) return;
+        if (!kern_bereiche_106() && titel_allgemein(w)) return;   /* NEU 1.0.8: "Gespeicherte Daten" ist kein Spielname */
+        if (!mt_hat(&k->SPST_TITEL, titel)) mt_setze(A, &k->SPST_TITEL, a_kopie(A, titel), (void *)a_kopie(A, w));
+        else { const char *alt = mt_hole(&k->SPST_TITEL, titel); if (alt && alt[0] && strcmp(alt, w) != 0) mt_setze(A, &k->SPST_TITEL, a_kopie(A, titel), (void *)""); }
+        return;
+    }
+    if (!mt_hat(&k->INSTALLIERT, titel)) return;
     titel = a_kopie(A, titel);
     if (!strcmp(feld, "INSTALL_DIR_SAVEDATA")) { if (kennung_ok(wert)) verknuepfen(k, &k->VERK_SPST, a_kopie(A, wert), titel, "INSTALL_DIR_SAVEDATA (appinfo.db)"); }
     else if (r_m(feld, "^SERVICE_ID_ADDCONT_ADD_\\d+$")) sid_angabe(k, titel, a_kopie(A, feld), wert ? a_kopie(A, wert) : "");
@@ -454,8 +573,13 @@ static const char *verk_inst(kern *k, const char *id)
 }
 /* Name eines nicht (mehr) installierten Spiels aus verbliebenen Metadaten:
  *  1. Begleitdatei einer Aufnahme (Sony schreibt den Spielnamen hinein)
- *  2. Beschreibung der Spielstände (<savedata>_meta/user/<Kennung>/<Datei>.sfo, Feld MAINTITLE) - nur wenn ALLE denselben Namen tragen
- *     (ein Spiel kann seinen Spielständen eigene Titel geben - dann ist der Name nicht belegt). "" = kein Beleg. */
+ *  2. NEU 1.0.8: ein früheres Protokoll von PS5 Cleanup (dort steht der Name so, wie PS5 Cleanup ihn damals aus den Angaben des
+ *     installierten Spiels gelesen hat - protokoll_namen_lesen)
+ *  3. Beschreibung der Spielstände (<savedata>_meta/user/<Kennung>/<Datei>.sfo, Feld MAINTITLE) - nur wenn ALLE denselben Namen tragen
+ *     (ein Spiel kann seinen Spielständen eigene Titel geben - dann ist der Name nicht belegt). NEU 1.0.8: ein Spielstand, dessen Titel
+ *     gleich seinem Untertitel ist, zählt nicht (L.A. Noire: "Benutzereinstellungen & Freischaltobjekte" - kein Spielname)
+ *  4. NEU 1.0.8: derselbe Titel aus Sonys Spielstand-Liste (savedata.db, SPST_TITEL) - die .sfo liegt nur bei manchen Spielständen
+ * "" = kein Beleg. */
 static const char *rest_name(kern *k, const char *id)
 {
     if (mt_hat(&k->REST_NAMEN, id)) return mt_hole(&k->REST_NAMEN, id);
@@ -471,6 +595,7 @@ static const char *rest_name(kern *k, const char *id)
         }
         if (ordner.n > 0) n = galerie_dat_name(k, id, &ordner);
     }
+    if (!n[0] && mt_hat(&k->PROT_NAMEN, id)) { const char *p = mt_hole(&k->PROT_NAMEN, id); if (p && p[0]) n = p; }
     if (!n[0]) {
         sliste homes = s_namen(k->S, "/user/home", false);
         const char *sds[2] = { "savedata_meta", "savedata_prospero_meta" }, *unter[2] = { "/user/", "/" };
@@ -485,11 +610,14 @@ static const char *rest_name(kern *k, const char *id)
                 mtab sf = sfo_von(k, VERB(A, o, "/", d->name));
                 const char *mt = h_trim(A, kern_sfo_wert(A, &sf, "MAINTITLE"));
                 if (!mt[0]) continue;
+                if (!kern_bereiche_106() && !strcmp(mt, h_trim(A, kern_sfo_wert(A, &sf, "SUBTITLE")))) continue;   /* NEU 1.0.8: Titel = Untertitel */
+                if (!kern_bereiche_106() && titel_allgemein(mt)) continue;   /* NEU 1.0.8: "Gespeicherte Daten" ist kein Spielname */
                 if (!einer) einer = mt; else if (strcmp(einer, mt) != 0) gleich = false;
             }
         }
         if (einer && gleich && net_laenge(einer) >= 2 && net_laenge(einer) <= 100) n = einer;
     }
+    if (!n[0] && mt_hat(&k->SPST_TITEL, id)) { const char *s = mt_hole(&k->SPST_TITEL, id); if (s && s[0]) n = s; }
     mt_setze(A, &k->REST_NAMEN, id, (void *)n);
     return n;
 }
@@ -501,8 +629,9 @@ static const char *name_belegt(kern *k, const char *id, int *art)
     /* Codex-Prüfung 44: nennen mehrere installierte Spiele diese Kennung, ist die Zuordnung unbekannt - dann auch kein Name aus Resten
      * oder verbliebenen eigenen Angaben (außer die Kennung ist selbst installiert) */
     bool widerspruch = !kern_bereiche_106() && mt_hat(&k->VERKNUEPFT, id) && !verk_inst(k, id);
+    nb_widerspruch = false;
     if (t && t[0] && (!widerspruch || mt_hat(&k->INSTALLIERT, id))) { *art = 0; return t; }
-    if (kern_bereiche_106() || widerspruch) { *art = 3; return ""; }
+    if (kern_bereiche_106() || widerspruch) { nb_widerspruch = true; *art = 3; return ""; }
     const char *o = verk_inst(k, id);
     if (o) { *art = 1; return besitzer_name(k, o); }
     const char *r = rest_name(k, id);
@@ -518,16 +647,131 @@ static const char *name_belegt_spst(kern *k, const char *id, int *art)
     const char *o = mt_hole(&k->VERK_SPST, id), *g = verk_inst(k, id);
     bool widerspruch = !o || !o[0] || (g && !h_gleich(g, o)) || (!g && mt_hat(&k->VERKNUEPFT, id));
     if (*art == 0 && (mt_hat(&k->INSTALLIERT, id) || !widerspruch)) return t;   /* eigene Angaben - außer bei Widerspruch und nicht installiert (Codex 43 (4)) */
-    if (widerspruch) { *art = 3; return ""; }
+    if (widerspruch) { nb_widerspruch = true; *art = 3; return ""; }
     *art = 1;
     return besitzer_name(k, o);
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 13:32: "keine Daten speichern auf der PS5, außer die Logs"): Namen aus den Protokollen, die
+ * PS5 Cleanup früher geschrieben hat (USB-Laufwerk, sonst /data/PS5-Cleanup-Protokolle bzw. dasselbe auf der M.2). Es zählen nur zwei
+ * Arten von Zeilen - beide nennen den Namen so, wie PS5 Cleanup ihn damals aus den Angaben des installierten Spiels gelesen hat:
+ *  - die Liste der PS4-Spiele beim Nachschauen   ("   L.A. Noire (CUSA09172) – intern – ...")
+ *  - gelöschte oder unveränderte Spiele           ("  gelöscht   L.A. Noire (CUSA09172) - Spiel   (...)", auch "M.2 – X (ID) - ShadowMount-Spiel")
+ * Platzhalter wie "unbekannter Name" zählen nicht. Neueste Datei zuerst (der Dateiname enthält Datum und Uhrzeit), der erste Fund gilt.
+ * Nur lesen; höchstens PROT_DATEIEN_MAX Dateien zu je höchstens PROT_GROESSE_MAX, jede mit eigenem Speicher, der danach frei wird. */
+#define PROT_DATEIEN_MAX 40
+#define PROT_GROESSE_MAX (2LL * 1024 * 1024)
+static const char *prot_ohne_ort(const char *b)
+{
+    static const char *const V[] = { "M.2 – ", "USB – ", "Erweiterter Speicher – ", "Extended storage – ", "USB-Stick – ", "USB stick – ", "USB-Laufwerk – ", "USB drive – " };
+    for (size_t i = 0; i < sizeof V / sizeof V[0]; i++) if (!strncmp(b, V[i], strlen(V[i]))) return b + strlen(V[i]);
+    return b;
+}
+/* Codex-Prüfung 109 (P2): Teile eines Blocks stehen eingerückt im Protokoll ("gelöscht      – M.2 – X (ID) - ShadowMount-Spiel", seit 1.0.8
+ * auch die ShadowMount-Kachel im Block ihrer gleichnamigen Tool-Kachel) - die Einrückung gehört nicht zum Namen */
+static const char *prot_ohne_block(const char *b)
+{
+    while (*b == ' ') b++;
+    if (!strncmp(b, "– ", strlen("– "))) b += strlen("– ");
+    return b;
+}
+static void prot_zeile(kern *k, arena *t, const char *z, bool *ps4)
+{
+    htreffer zt = h_mt(t, z, "^\\d\\d:\\d\\d:\\d\\d (.*)$");
+    if (!zt.ok) { *ps4 = false; return; }
+    const char *r = zt.gr[1], *body = NULL;
+    bool liste = false;
+    if (!strncmp(r, "   ", 3) && r[3] != ' ') { if (*ps4) { body = r + 3; liste = true; } }
+    else {
+        *ps4 = !strncmp(r, "PS4-Spiele (", 12) || !strncmp(r, "PS4 games (", 11);
+        htreffer s = h_mt(t, r, "^  (?:gelöscht|deleted|unverändert|unchanged)   (.*)$");
+        if (s.ok) body = prot_ohne_block(s.gr[1]);
+    }
+    if (!body) return;
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 17:43: der Fortschritt NPWR13863_00 blieb "unbekannt", weil seine Liste "L.A. Noire (NPWR13863_00)"
+     * vier Minuten vorher gelöscht worden war): auch gelöschte oder unveränderte Trophäen-Listen und Fortschritte nennen ihren Namen */
+    if (!liste) {
+        htreffer mt = h_mt(t, body, "(?-i)^(?:Trophäen-Liste|Trophy list|Trophäen-Fortschritt|Trophy progress): (.+?) \\((NPWR\\d{5}_\\d{2})\\)(?: |$)");
+        if (mt.ok) {
+            const char *n = h_trim(t, mt.gr[1]);
+            if (!mt_hat(&k->PROT_NPWR, mt.gr[2]) && net_laenge(n) >= 1 && net_laenge(n) <= 100 && !h_m(n, "^NPWR\\d{5}_\\d{2}") && !strstr(n, "Spiel/App unbekannt")
+                && !strstr(n, "game/app unknown")) mt_setze(A, &k->PROT_NPWR, a_kopie(A, mt.gr[2]), (void *)a_kopie(A, n));
+            return;
+        }
+    }
+    htreffer m = h_mt(t, prot_ohne_ort(body), liste ? "^(.+?) \\(([A-Z]{4}\\d{5})\\) – "
+                                                    : "^(.+?) \\(([A-Z]{4}\\d{5})\\) - (?:Spiel|game|ShadowMount-Spiel|ShadowMount game)(?: |$)");
+    if (!m.ok || mt_hat(&k->PROT_NAMEN, m.gr[2])) return;
+    const char *n = h_trim(t, m.gr[1]);
+    if (net_laenge(n) < 2 || net_laenge(n) > 100 || strchr(n, '(') == n) return;
+    if (h_m(n, "^[A-Z]{4}\\d{5}$")) return;   /* Codex-Prüfung 109 (P3): ohne lesbaren Namen steht dort die Kennung selbst ("CUSA09172 (CUSA09172)") */
+    static const char *const PLATZ[] = { "unbekannter Name", "unknown name", "entferntes Spiel", "removed game" };
+    for (size_t i = 0; i < sizeof PLATZ / sizeof PLATZ[0]; i++) if (!strcmp(n, PLATZ[i])) return;
+    if (strstr(n, "Spiel/App unbekannt") || strstr(n, "game/app unknown")) return;
+    mt_setze(A, &k->PROT_NAMEN, a_kopie(A, m.gr[2]), (void *)a_kopie(A, n));
+}
+/* Codex-Prüfung 108 (P2): gelesen werden höchstens so viele Bytes, wie die Ordnerliste nannte (bis PROT_GROESSE_MAX) - wächst die Datei
+ * inzwischen, bleibt es dabei; zwischen den Dateien und alle 256 Zeilen wird das Abbrechen geprüft */
+static void prot_datei(kern *k, arena *tf, const char *pfad, long long groesse)
+{
+    sitzung *ts = sitzung_neu(k->S->z, tf); ts->abbruch = k->S->abbruch; ts->abbruch_ctx = k->S->abbruch_ctx;
+    if (groesse <= 0 || groesse > PROT_GROESSE_MAX) return;
+    unsigned char *b = a_hole(tf, (size_t)groesse + 1);
+    size_t len = 0;
+    if (!s_lies_ab(ts, pfad, 0, (size_t)groesse, b, &len) || len > (size_t)groesse) return;
+    bool ps4 = false;
+    size_t q = 0; int z = 0;
+    while (q < len) {
+        if ((++z & 255) == 0 && k->abbruch) wirf(AUSN_ABBRUCH, "");
+        size_t e = q;
+        while (e < len && b[e] != '\n') e++;
+        size_t l = e - q;
+        if (l > 0 && b[q + l - 1] == '\r') l--;
+        if (l > 0 && l < 1000 && !memchr(b + q, 0, l)) prot_zeile(k, tf, a_kopie_n(tf, (const char *)b + q, l), &ps4); else ps4 = false;
+        q = e + 1;
+    }
+}
+typedef struct { const char *name, *pfad; long long gr; } prot_dat;
+static int prot_vgl_dat(const void *x, const void *y) { return -strcmp(((const prot_dat *)x)->name, ((const prot_dat *)y)->name); }
+static void prot_dateien(kern *k, arena *t)
+{
+    sitzung *ts = sitzung_neu(k->S->z, t); ts->abbruch = k->S->abbruch; ts->abbruch_ctx = k->S->abbruch_ctx;
+    prot_dat *da = NULL; int nd = 0, cap = 0;   /* sortiert nach dem Dateinamen (Datum und Uhrzeit), neueste zuerst */
+    const char *orte[10]; int no = 0;
+    for (int u = 0; u < 8; u++) orte[no++] = a_fmt(t, "/mnt/usb%d", u);
+    orte[no++] = "/user/data/PS5-Cleanup-Protokolle"; orte[no++] = "/mnt/ext1/PS5-Cleanup-Protokolle";
+    for (int o = 0; o < no; o++) {
+        dliste *l = s_liste(ts, orte[o], false);
+        for (int i = 0; l && i < l->n; i++) {
+            const datei *d = &l->e[i];
+            if (d->ist_ordner || d->ist_link || d->groesse <= 0 || d->groesse > PROT_GROESSE_MAX || !h_m(d->name, "(?i)^ps5cleanup_protokoll_.*\\.txt$")) continue;
+            if (nd == cap) { cap = cap ? cap * 2 : 16; prot_dat *nn = a_hole(t, sizeof(prot_dat) * (size_t)cap); if (nd) memcpy(nn, da, sizeof(prot_dat) * (size_t)nd); da = nn; }
+            da[nd++] = (prot_dat){ d->name, a_fmt(t, "%s/%s", orte[o], d->name), d->groesse };
+        }
+    }
+    if (nd > 1) qsort(da, (size_t)nd, sizeof(prot_dat), prot_vgl_dat);
+    for (int i = 0; i < nd && i < PROT_DATEIEN_MAX; i++) {
+        if (k->abbruch) wirf(AUSN_ABBRUCH, "");
+        arena *tf = arena_neu();
+        VERSUCHE { prot_datei(k, tf, da[i].pfad, da[i].gr); }
+        FANGE { arena_frei(tf); if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); continue; } ENDE_VERSUCHE;   /* nicht lesbar: nächste Datei */
+        arena_frei(tf);
+    }
+}
+static void protokoll_namen_lesen(kern *k)
+{
+    arena *t = arena_neu();
+    VERSUCHE { prot_dateien(k, t); }
+    FANGE { arena_frei(t); if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); return; } ENDE_VERSUCHE;   /* Namen sind ein Zusatz - kein Abbruch der Suche */
+    arena_frei(t);
 }
 /* Zuordnungen und kaputte Zusatzinhalt-Angaben ermitteln - einmal je Suche, nach dem Lesen der Kachel-Namen */
 static void verknuepfungen_ermitteln(kern *k, const sliste *const *quellen, int nq)
 {
     k->VERKNUEPFT = mt_neu(true); k->VERK_SPST = mt_neu(true); k->VERK_BELEG = mt_neu(true); k->INSTALLIERT = mt_neu(true);
     k->SID_KAPUTT = mt_neu(true); k->SID_GEZAEHLT = mt_neu(true); k->SID_WARNUNG = (sliste){0}; k->REST_NAMEN = mt_neu(true);
+    k->PROT_NAMEN = mt_neu(true); k->SPST_TITEL = mt_neu(true); k->PROT_NPWR = mt_neu(true);   /* NEU 1.0.8 */
     if (kern_bereiche_106()) return;
+    protokoll_namen_lesen(k);   /* NEU 1.0.8 (PS5-Test 07.11.2026) */
     /* installiert ist installiert - auch ohne lesbaren Namen (Codex-Prüfung 42 (4)) */
     for (int q = 0; q < nq; q++) for (int i = 0; i < quellen[q]->n; i++) {
         const char *id = quellen[q]->e[i];
@@ -721,7 +965,11 @@ const char *kern_jailbreak_erkannt(kern *k, arena *a, const char **warnung)
                               bk, T("“).", "\")."));
         w = w ? VERB(a, w, " ", bt) : bt;
     }
-    if (k->BD_DISC) sl_add(a, &namen, T("Blu-ray-Jailbreak (Disc im Laufwerk)", "Blu-ray jailbreak (disc in the drive)"));   /* NEU 1.0.6 */
+    /* NEU 1.0.8 (F7, da_Chris86s Bilder vom 04.11.2026): die Karte passt zur Liste - der Browserspeicher steht unter "Jailbreak", also auch
+     * hier (als "möglich", sicher erkennen lässt es sich nicht); die Disc hat keinen Eintrag, darum "nichts zu löschen" */
+    if (browser && !kern_bereiche_106()) sl_add(a, &namen, T("WebKit im Browser (möglich)", "WebKit in the browser (possible)"));
+    if (k->BD_DISC) sl_add(a, &namen, kern_bereiche_106() ? T("Blu-ray-Jailbreak (Disc im Laufwerk)", "Blu-ray jailbreak (disc in the drive)")
+                                                          : T("Blu-ray-Disc im Laufwerk (nichts zu löschen)", "Blu-ray disc in the drive (nothing to delete)"));   /* NEU 1.0.6 */
     *warnung = w;
     return namen.n > 0 ? sl_join(a, &namen, ", ") : NULL;
 }
@@ -764,6 +1012,8 @@ static void merke_o(kern *k, const sliste *pfade, int kat, const char *text, mer
             if (einhaengeordner(pfade->e[i])) continue;
             /* NEU 1.0.7 (02.11.2026): die Protokoll-Datei, in die gerade geschrieben wird, nie anbieten */
             if (!kern_bereiche_106() && k->EIGENES_PROTOKOLL && k->EIGENES_PROTOKOLL[0] && !strcmp(pfade->e[i], k->EIGENES_PROTOKOLL)) continue;
+            /* NEU 1.0.8 (Arbeitsplan 2.7): Mitschnitt und Bilder der Test-Fassung nie anbieten */
+            if (kern_test_ordner(k, pfade->e[i])) continue;
             sl_add(A, &ohne, pfade->e[i]);
         }
         if (ohne.n == 0) { k->MERKE_OK = false; return; }
@@ -802,7 +1052,10 @@ static void merke_o(kern *k, const sliste *pfade, int kat, const char *text, mer
         }
         if (betroffen && !o.gesperrt) {
             o.gesperrt = true;
-            o.sperrtext = nur_eigen ? T("  [PS5 Cleanup - wird zum Schluss entfernt]", "  [PS5 Cleanup - removed at the end]") : T("  [GESPERRT: nicht sicher prüfbar]", "  [LOCKED: cannot be checked safely]");
+            /* NEU 1.0.8 (F1): "wird entfernt" stimmt nur bei der vollständigen Bereinigung - nach einer Auswahl fragt PS5 Cleanup am Ende */
+            o.sperrtext = nur_eigen ? (kern_bereiche_106() ? T("  [PS5 Cleanup - wird zum Schluss entfernt]", "  [PS5 Cleanup - removed at the end]")
+                                                           : T("  [PS5 Cleanup selbst - kommt erst ganz am Ende dran]", "  [PS5 Cleanup itself - only at the very end]"))
+                                    : T("  [GESPERRT: nicht sicher prüfbar]", "  [LOCKED: cannot be checked safely]");
             o.sperrgrund = nur_eigen ? selbst_grund() : T("Gesperrt - ließ sich nicht sicher prüfen (Lesefehler oder Ort von PS5 Cleanup unklar).", "Locked - could not be checked safely (read error or location of PS5 Cleanup unclear).");
         }
     }
@@ -1065,15 +1318,16 @@ static const char *zweite_spieldatei(kern *k, const char *p, const char *name)
 }
 /* NEU 1.0.6: alles unter p einsammeln, was nicht zu PS5 Cleanup gehört (frei), und die Teile von PS5 Cleanup (eig).
  * Ordner, die PS5 Cleanup enthalten, werden weiter durchsucht und nie als Ganzes in "frei" aufgenommen. */
-static void sammle_ohne_schutz(kern *k, const char *p, sliste *frei, sliste *eig)
+/* Codex-Prüfung 93: frei_d bekommt zu jedem freien Pfad seinen Eintrag aus der Ordnerliste (Ordner? Größe? - für die PKG-Dateien) */
+static void sammle_ohne_schutz(kern *k, const char *p, sliste *frei, pliste *frei_d, sliste *eig)
 {
     sl_add(A, &k->AUFGEKLAPPT, p);
     dliste *l = s_liste(k->S, p, true);
     for (int i = 0; l && i < l->n; i++) {
         const char *q = VERB(A, p, "/", l->e[i].name);
-        if (!l->e[i].ist_link && l->e[i].ist_ordner && kern_selbstschutz_enthaelt(k, q)) sammle_ohne_schutz(k, q, frei, eig);
+        if (!l->e[i].ist_link && l->e[i].ist_ordner && kern_selbstschutz_enthaelt(k, q)) sammle_ohne_schutz(k, q, frei, frei_d, eig);
         else if (!kern_selbstschutz_anbieten(k, q)) sl_add(A, eig, q);
-        else sl_add(A, frei, q);
+        else { sl_add(A, frei, q); pl_add(A, frei_d, &l->e[i]); }
     }
 }
 /* NEU 1.0.6: entpacktes Spiel? (nur lesen; ein Lesefehler zählt als "nein" - dann bleibt der Ordner, wo er war) */
@@ -1104,12 +1358,634 @@ static bool enthaelt_spiel(kern *k, const char *p)
     FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); ja = false; } ENDE_VERSUCHE;
     return ja;
 }
+/* NEU 1.0.8 (Arbeitsplan 2.2): Spielname und Spielnummer aus einer PS4-PKG-Datei. Kopf "\x7FCNT" (Werte big-endian), in der
+ * Eintragstabelle steht param.sfo unter der Kennung 0x1000 (nicht verschlüsselt). Anderes Format, Lesefehler, kein param.sfo: "" - dann
+ * bleibt es beim Dateinamen wie bisher.
+ * Geändert 05.11.2026 (Prüfung an da_Chris86s echten PKG-Dateien: 2 von 3 bekamen keinen Namen): Bei großen PKGs liegt param.sfo weit
+ * hinten, hinter den Bildern, oft nach mehr als 1 MB. Statt vom Anfang an zu lesen, werden jetzt nur drei kleine Stücke an festen Stellen
+ * gelesen: der Kopf (96 Byte), die Eintragstabelle (höchstens 8192 Einträge zu 32 Byte) und param.sfo selbst (höchstens 64 KB). */
+#define PKG_KOPF 0x60
+#define PKG_EINTRAEGE_MAX 8192
+#define PKG_SFO_MAX 65536
+static uint32_t pkg_be32(const unsigned char *p) { return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | (uint32_t)p[3]; }
+/* Codex-Prüfung 71 (P2): aus param.sfo (Werte little-endian) nur EIN Textfeld holen - direkt aus dem Puffer, höchstens max-1 Byte,
+ * ohne die ganze Datei in den Kern-Speicher zu lesen (eine manipulierte Datei konnte sonst viele MB belegen). false = nicht da. */
+static uint32_t pkg_le32(const unsigned char *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
+static bool pkg_sfo_feld(const unsigned char *b, size_t n, const char *schl, char *aus, size_t max)
+{
+    aus[0] = 0;
+    if (n < 20 || memcmp(b, "\0PSF", 4) != 0) return false;
+    size_t kt = pkg_le32(b + 8), dt = pkg_le32(b + 12), anz = pkg_le32(b + 16), sl = strlen(schl);
+    if (anz > 1000 || 20 + anz * 16 > n || kt > n || dt > n) return false;
+    for (size_t i = 0; i < anz; i++) {
+        const unsigned char *e = b + 20 + i * 16;
+        size_t ko = kt + ((size_t)e[0] | (size_t)e[1] << 8), art = (size_t)e[2] | (size_t)e[3] << 8, dl = pkg_le32(e + 4), dof = dt + pkg_le32(e + 12);
+        if (ko > n || n - ko < sl + 1 || memcmp(b + ko, schl, sl + 1) != 0) continue;
+        if ((art != 0x0204 && art != 0x0004) || dof > n || dl > n - dof) return false;   /* nur Text */
+        size_t m = dl < max ? dl : max - 1;
+        memcpy(aus, b + dof, m); aus[m] = 0;
+        return true;
+    }
+    return false;
+}
+/* Anzeige-Text aus einer fremden Datei: Steuerzeichen werden Leerzeichen, ungültiges UTF-8 wird "?", ein am Ende
+ * abgeschnittenes Zeichen fällt weg */
+static const char *pkg_text(arena *a, const char *t)
+{
+    char *c = a_kopie(a, t ? t : "");
+    unsigned char *q = (unsigned char *)c;
+    while (*q) {
+        int l = *q < 0x80 ? 1 : (*q & 0xE0) == 0xC0 ? 2 : (*q & 0xF0) == 0xE0 ? 3 : (*q & 0xF8) == 0xF0 ? 4 : 0, i = 1;
+        while (i < l && (q[i] & 0xC0) == 0x80) i++;
+        if (l == 0 || i < l) {                                   /* ungültig oder unvollständig */
+            if (l > 1 && q[i] == 0) { *q = 0; break; }           /* am Ende abgeschnitten: das halbe Zeichen fällt weg */
+            *q++ = '?'; continue;
+        }
+        if (l == 1 && *q < 0x20) *q = ' ';
+        q += l;
+    }
+    return c;
+}
+static size_t pkg_zuletzt;   /* nur für die PC-Tests: so viele Bytes las der letzte Aufruf */
+static bool pkg_lies(kern *k, const char *p, unsigned long long ab, size_t n, unsigned char *ziel, size_t *gelesen)
+{
+    size_t len = 0;
+    if (!s_lies_ab(k->S, p, (long long)ab, n, ziel, &len) || len != n) return false;
+    *gelesen += n;
+    return true;
+}
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12): die gelesenen Angaben auch einzeln - Spielnummer, Name, Art (Spiel, Update, Zusatzinhalt,
+ * App) und Version. Art aus CATEGORY: gd = Spiel (auch gdO, PS2-Klassiker), gp... = Update, ac = Zusatzinhalt, andere gd... = App. */
+/* NEU 1.0.8 (PS5-Test 07.11.2026): dazu der Anfang der Trophäen-Datei (Eintrag 0x1400, trophy/trophy00.trp, nicht verschlüsselt). Sony
+ * legt genau diese Datei beim Installieren als /user/trophy/conf/<NPWR>/TROPHY.TRP ab - der Kopf (96 Byte mit Größe und Prüfsumme) ist
+ * gleich (geprüft an L.A. Noire und Red Dead Redemption 2). So bekommt eine Trophäen-Liste ihren Namen, auch wenn das Spiel weg ist. */
+/* NEU 1.0.8 (PS5-Test 07.11.2026 17:32, DRIVECLUB BIKES NPWR09396_00): ein PKG kann mehrere Trophäen-Dateien tragen (0x1400 trophy00.trp,
+ * 0x1401 trophy01.trp, ...) - im Update von DRIVECLUB steckt die Liste von DRIVECLUB BIKES als 0x1401. Gelesen werden die ersten 8. */
+#define PKG_TRP_MAX 8
+typedef struct { const char *id, *titel, *ver; int art; int trp_n; unsigned char trp[PKG_TRP_MAX][96]; } pkginfo;
+static const char *pkg_zusatz_info(kern *k, const char *p, pkginfo *pi);
+static const char *pkg_zusatz(kern *k, const char *p) { return pkg_zusatz_info(k, p, NULL); }
+static const char *pkg_zusatz_info(kern *k, const char *p, pkginfo *pi)
+{
+    if (pi) *pi = (pkginfo){ NULL, "", "", PKG_KEINE, 0, {{0}} };
+    unsigned char kopf[PKG_KOPF], trp[PKG_TRP_MAX][96];
+    unsigned char *volatile tab = NULL, *volatile sb = NULL;
+    volatile size_t sn = 0, g = 0;
+    volatile int trp_n = 0;
+    pkg_zuletzt = 0;
+    VERSUCHE {
+        size_t gl = 0;
+        if (pkg_lies(k, p, 0, sizeof kopf, kopf, &gl) && memcmp(kopf, "\x7F" "CNT", 4) == 0) {
+            uint32_t anz = pkg_be32(kopf + 0x10), to = pkg_be32(kopf + 0x18);
+            if (anz > 0 && anz <= PKG_EINTRAEGE_MAX && to >= PKG_KOPF && (tab = malloc((size_t)anz * 32)) != NULL && pkg_lies(k, p, to, (size_t)anz * 32, tab, &gl)) {
+                int i_sfo = -1, i_trp[PKG_TRP_MAX], n_trp = 0;
+                for (uint32_t i = 0; i < anz; i++) {
+                    uint32_t eid = pkg_be32(tab + (size_t)i * 32);
+                    if (eid == 0x1000 && i_sfo < 0) i_sfo = (int)i;
+                    else if (eid >= 0x1400 && eid <= 0x1463 && n_trp < PKG_TRP_MAX) i_trp[n_trp++] = (int)i;   /* trophy00.trp bis trophy99.trp */
+                }
+                if (i_sfo >= 0) {
+                    const unsigned char *e = tab + (size_t)i_sfo * 32;
+                    uint32_t o = pkg_be32(e + 16), s = pkg_be32(e + 20);
+                    if (s >= 20 && s <= PKG_SFO_MAX && (sb = malloc(s)) != NULL && pkg_lies(k, p, o, s, sb, &gl)) sn = s;
+                }
+                for (int j = 0; j < n_trp && !kern_bereiche_106(); j++) {   /* NEU 1.0.8: nur wenn nicht verschlüsselt (Bit 31 der ersten Kennzeichen) */
+                    const unsigned char *e = tab + (size_t)i_trp[j] * 32;
+                    uint32_t o = pkg_be32(e + 16), s = pkg_be32(e + 20);
+                    unsigned char *z = trp[trp_n];
+                    if (!(pkg_be32(e + 8) & 0x80000000u) && s >= 96 && pkg_lies(k, p, o, 96, z, &gl)
+                        && z[0] == 0xDC && z[1] == 0xA2 && z[2] == 0x4D && z[3] == 0x00) trp_n++;
+                }
+            }
+        }
+        g = gl;
+    } FANGE { free(tab); free(sb); if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); tab = sb = NULL; sn = 0; trp_n = 0; } ENDE_VERSUCHE;
+    if (pi && trp_n > 0) { pi->trp_n = trp_n; memcpy(pi->trp, trp, sizeof trp[0] * (size_t)trp_n); }
+    const char *z = "";
+    if (sn > 0) {
+        char f_ti[128], f_id[16], f_kat[8], f_ver[16];   /* Titel wie kern_sfo_titel: TITLE_04, TITLE_01, TITLE */
+        const unsigned char *b = sb;
+        if (!pkg_sfo_feld(b, sn, "TITLE_04", f_ti, sizeof f_ti) || !f_ti[0])
+            if (!pkg_sfo_feld(b, sn, "TITLE_01", f_ti, sizeof f_ti) || !f_ti[0]) pkg_sfo_feld(b, sn, "TITLE", f_ti, sizeof f_ti);
+        pkg_sfo_feld(b, sn, "TITLE_ID", f_id, sizeof f_id); pkg_sfo_feld(b, sn, "CATEGORY", f_kat, sizeof f_kat); pkg_sfo_feld(b, sn, "APP_VER", f_ver, sizeof f_ver);
+        const char *ti = pkg_text(A, f_ti), *id = pkg_text(A, f_id), *kat = f_kat, *ver = pkg_text(A, f_ver);
+        if (!id[0] && kopf[0x46] == '-') {   /* sonst die Spielnummer aus der Inhaltskennung im Kopf (UP0001-CUSA12345_00-...) */
+            char t[10]; memcpy(t, kopf + 0x47, 9); t[9] = 0;
+            if (h_m(t, "(?-i)^[A-Z]{4}\\d{5}$")) id = a_kopie(A, t);
+        }
+        if (ti[0] || id[0]) {
+            const char *art = !strncmp(kat, "gp", 2) ? VERB(A, T(", Update", ", update"), ver[0] ? " " : "", ver) : !strncmp(kat, "ac", 2) ? T(", Zusatzinhalt", ", add-on") : "";
+            z = ti[0] && id[0] ? VERB(A, "  [PKG: ", ti, " (", id, ")", art, "]") : VERB(A, "  [PKG: ", ti[0] ? ti : id, art, "]");
+            if (pi) {
+                pi->id = id[0] && h_m(id, "(?-i)^[A-Z]{4}\\d{5}$") ? id : NULL; pi->titel = h_trim(A, ti); pi->ver = ver;
+                pi->art = !strncmp(kat, "gp", 2) ? PKG_UPDATE : !strncmp(kat, "ac", 2) ? PKG_DLC
+                        : (!strcmp(kat, "gd") || !strcmp(kat, "gdO") || !kat[0]) ? PKG_SPIEL : !strncmp(kat, "gd", 2) ? PKG_APP : PKG_SPIEL;
+            }
+        }
+    }
+    pkg_zuletzt = g;
+    free(tab); free(sb);
+    return z;
+}
+/* NEU 1.0.8 (Codex-Prüfung 72): nur für die PC-Tests - wie pkg_zusatz, dazu wie viele Bytes gelesen wurden */
+const char *kern_pkg_zusatz_test(kern *k, const char *p, size_t *gelesen) { const char *z = pkg_zusatz(k, p); *gelesen = pkg_zuletzt; return z; }
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12): eine PKG-Datei als eigener Eintrag. Was der Kopf nicht hergibt, kommt aus dem Dateinamen
+ * ("L.A. Noire - CUSA09172 - v1.04 - EU - Update.pkg": Spielnummer, Name davor, Update). Ohne Spielnummer bleibt sie unter "Sonstiges". */
+static void merke_pkg(kern *k, const char *p, const char *anzeige, long long gr)
+{
+    pkginfo pi;
+    const char *z = pkg_zusatz_info(k, p, &pi), *bl = h_blatt(A, p);
+    /* NEU 1.0.8 (PS5-Test 07.11.2026, L.A. Noire): Name und Trophäen-Datei aus dem KOPF (nie aus dem Dateinamen) für Spielstände,
+     * Trophäen-Listen und Reste des Spiels, die schon "unbekannt" angelegt sind (namen_nachtragen). Ein Zusatzinhalt trägt seinen
+     * eigenen Namen, nicht den des Spiels - zählt darum nicht. Der erste Fund gilt. */
+    if (!kern_bereiche_106() && pi.id && pi.titel[0] && pi.art != PKG_DLC && pi.art != PKG_KEINE && net_laenge(pi.titel) >= 2 && net_laenge(pi.titel) <= 100) {
+        if (!mt_hat(&k->PKG_NAMEN, pi.id)) mt_setze(A, &k->PKG_NAMEN, a_kopie(A, pi.id), (void *)a_kopie(A, pi.titel));
+        for (int j = 0; j < pi.trp_n; j++) {
+            char hex[sizeof pi.trp[0] * 2 + 1];
+            for (size_t i = 0; i < sizeof pi.trp[0]; i++) snprintf(hex + 2 * i, 3, "%02x", pi.trp[j][i]);
+            if (!mt_hat(&k->PKG_TRP, hex)) {
+                mt_setze(A, &k->PKG_TRP, a_kopie(A, hex), (void *)a_kopie(A, pi.titel));
+                if (pi.trp_n > 1) mt_setze(A, &k->PKG_TRP_NR, a_kopie(A, hex), (void *)(intptr_t)(j + 1));   /* "Trophäen-Liste 2" wie bei installierten Spielen */
+            }
+        }
+    }
+    sliste l = L1(A, p);
+    MERKE(k, &l, 5, VERB(A, anzeige, z), 0);
+    if (!k->MERKE_OK || k->bau.n == 0) return;
+    eintrag *f = k->bau.e[k->bau.n - 1];
+    htreffer m = h_mt(A, bl, "(?-i)^(.*?)[\\s_\\-\\[\\(]*(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
+    if (!pi.id && m.ok) pi.id = m.gr[2];
+    if (!pi.titel[0] && m.ok && !h_m(m.gr[1], "(?-i)^[A-Z]{2}\\d{4}$")) pi.titel = h_trim(A, h_r(A, m.gr[1], "[\\s_\\-\\[\\(]+$", ""));   /* nicht "EP0001" aus EP0001-CUSA... */
+    if (!pi.art) pi.art = h_m(bl, "(?i)(^|[^a-z])(update|patch)([^a-z]|$)") ? PKG_UPDATE : h_m(bl, "(?i)(^|[^a-z])(dlc|add-?ons?|zusatz\\w*)([^a-z]|$)") ? PKG_DLC : PKG_SPIEL;
+    if (!pi.ver[0] && pi.art == PKG_UPDATE) { htreffer v = h_mt(A, bl, "(?i)(?:^|[^a-z0-9])v(\\d+(?:\\.\\d+)+)"); if (v.ok) pi.ver = v.gr[1]; }
+    if (pi.art == PKG_DLC) {   /* im Kopf eines Zusatzinhalts steht SEIN Name - der Name des Spiels kommt dann aus dem Dateinamen */
+        const char *dn = m.ok && !h_m(m.gr[1], "(?-i)^[A-Z]{2}\\d{4}$") ? h_trim(A, h_r(A, m.gr[1], "[\\s_\\-\\[\\(]+$", "")) : "";
+        if (pi.titel[0] && strcmp(pi.titel, dn) != 0) pi.ver = pi.titel;
+        pi.titel = dn;
+    }
+    f->PkgArt = pi.art; f->PkgId = pi.id; f->PkgTitel = pi.titel; f->PkgVer = pi.ver; f->PkgAnzahl = 1; f->PkgBytes = gr;
+}
+/* NEU 1.0.8 (Befund 12): PKG-Dateien in Ordnern (da_Chris86s USB-Laufwerk: "PS4" mit den PKG-Dateien von Heavy Rain, Red Dead Redemption
+ * und L.A. Noire stand als EIN Eintrag unter "Sonstiges"). Sammelt die PKG-Dateien unter p (höchstens PKG_TIEFE Ebenen tief, höchstens
+ * PKG_LISTE_MAX gelistete Einträge); rest bekommt alles andere, so grob wie möglich (ein Ordner ohne PKG-Datei als Ganzes).
+ * Rückgabe: Anzahl PKG-Dateien, -1 = nicht lesbar oder Grenze erreicht (dann bleibt der Ordner, wie er war). Verknüpfungen nie folgen.
+ * Codex-Prüfung 83: Ein Unterordner unter der Tiefengrenze ist ungeprüft - auch er heißt -1 (bis dahin kam er als Ganzes in den Rest,
+ * "(ohne PKG-Dateien)" hätte dann doch PKG-Dateien mitgelöscht). Dafür 8 statt 3 Ebenen. Zusätzlich eine Grenze für die ganze Suche
+ * (PKG_GESAMT_MAX gelistete Einträge): jede Liste bleibt im Speicher des Kerns, viele große Ordner hätten sonst viel Speicher gekostet.
+ * 06.11.2026 abends: Die Listen liegen inzwischen nur noch kurz in eigenem Speicher (Codex-Prüfung 83) - die Grenze der ganzen Suche ist
+ * darum 100000 statt 20000. Seit Codex-Prüfung 90 steht jeder Ordner rot da, in dem nicht gesucht werden konnte; bei 20000 wären auf
+ * einer vollen Konsole sonst ab einem Punkt alle weiteren Ordner rot geworden (da_Chris86s Frage 21:19 "Sicher, dass alles fertig ist?"). */
+#define PKG_TIEFE 8
+#define PKG_LISTE_MAX 10000
+#define PKG_GESAMT_MAX 100000
+/* Codex-Prüfung 96: höchstens so viele PKG-Dateien aus Ordnern je Suche - jede wird gelesen (Kopf im Speicher des Kerns) und auf "doppelt"
+ * verglichen; mit 100000 gelisteten Einträgen allein wären bis zu 100000 möglich (Speicherbremse). Ein Ordner, dessen PKG-Dateien nicht mehr
+ * hineinpassen, bleibt EIN Eintrag, rot (PkgOffen) - Ordner ohne PKG-Datei betrifft das nicht. Für Tests kleiner einstellbar. */
+#ifndef PKG_DATEIEN_MAX
+#define PKG_DATEIEN_MAX 20000
+#endif
+static int pkg_sammeln(kern *k, sitzung *ts, arena *t, const char *p, int tiefe, sliste *pk, sliste *gr, sliste *rest, sliste *auf, int *budget)
+{
+    dliste *volatile dl = NULL;
+    VERSUCHE { dl = s_liste(ts, p, false); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); dl = NULL; } ENDE_VERSUCHE;
+    if (!dl || (*budget -= dl->n) < 0) return -1;
+    int n = 0; sliste r = {0};
+    for (int i = 0; i < dl->n; i++) {
+        const datei *e = &dl->e[i];
+        const char *cp = VERB(t, p, "/", e->name);
+        if (e->ist_link || ist_zwischendatei(e->name)) { sl_add(t, &r, cp); continue; }
+        if (!e->ist_ordner) {
+            if (h_m(e->name, "(?i)\\.pkg$")) { sl_add(t, pk, cp); sl_add(t, gr, a_fmt(t, "%lld", e->groesse)); n++; } else sl_add(t, &r, cp);
+            continue;
+        }
+        if (tiefe + 1 > PKG_TIEFE) return -1;          /* Codex-Prüfung 83: ungeprüft - nie als "ohne PKG-Dateien" in den Rest */
+        sliste unter = {0};
+        int m = pkg_sammeln(k, ts, t, cp, tiefe + 1, pk, gr, &unter, auf, budget);
+        if (m < 0) return -1;
+        if (m == 0) sl_add(t, &r, cp); else { n += m; sl_add_alle(t, &r, &unter); sl_add(t, auf, cp); }   /* Codex-Prüfung 94: aufgeteilt (innere zuerst) */
+    }
+    sl_add_alle(t, rest, &r);
+    return n;
+}
+/* Ordner p (Anzeige "anzeige") mit PKG-Dateien: jede PKG-Datei ein eigener Eintrag, der übrige Inhalt EIN Eintrag "(ohne PKG-Dateien)".
+ * 1 = aufgeteilt; 0 = keine PKG-Datei darin - dann bleibt der Ordner ein Eintrag wie bisher; -1 = nicht prüfbar (Grenze, zu tief, nicht
+ * lesbar) - Codex-Prüfung 90: dann bleibt er auch EIN Eintrag, kann aber PKG-Dateien enthalten (der Aufrufer setzt PkgOffen).
+ * Codex-Prüfung 83 (P2): gelistet wird mit eigener Sitzung in eigenem Speicher (wie das Zählen der Größen, kern_groessen_im_hintergrund);
+ * in den Speicher des Kerns kommen nur die Pfade, die als Einträge bleiben. */
+static int merke_pkg_ordner(kern *k, const char *p, const char *anzeige, int kat, const char *werkzeug)
+{
+    int frei = PKG_GESAMT_MAX - k->PKG_GELISTET;
+    if (frei <= 0) return -1;                           /* Grenze der ganzen Suche erreicht: der Ordner bleibt ein Eintrag, ungeprüft */
+    int budget = frei < PKG_LISTE_MAX ? frei : PKG_LISTE_MAX, start = budget;
+    arena *t = arena_neu();
+    sitzung *ts = sitzung_neu(k->S->z, t); ts->abbruch = k->S->abbruch; ts->abbruch_ctx = k->S->abbruch_ctx;
+    sliste pk = {0}, pg = {0}, rest = {0}, auf = {0};
+    volatile int r = -1;
+    VERSUCHE { r = pkg_sammeln(k, ts, t, p, 0, &pk, &pg, &rest, &auf, &budget); }
+    FANGE { arena_frei(t); WEITERWERFEN(); } ENDE_VERSUCHE;   /* ausn_text ist ein eigener Puffer - frei geben ist hier sicher */
+    k->PKG_GELISTET += start - budget;
+    if (r > 0 && k->PKG_GEFUNDEN + r > PKG_DATEIEN_MAX) r = -1;   /* Codex-Prüfung 96: passt nicht mehr - ungeprüft wie bei einer Grenze */
+    if (r <= 0) { arena_frei(t); return r < 0 ? -1 : 0; }
+    k->PKG_GEFUNDEN += r;
+    /* nur die Ergebnisse in den Speicher des Kerns, dann den eigenen Speicher frei geben (auch bevor etwas abbrechen kann) */
+    sliste rk = {0}, pkk = {0}; long long *grk = a_hole(A, sizeof(long long) * (size_t)pk.n);
+    for (int j = 0; j < rest.n; j++) sl_add(A, &rk, a_kopie(A, rest.e[j]));
+    for (int j = 0; j < pk.n; j++) { sl_add(A, &pkk, a_kopie(A, pk.e[j])); grk[j] = atoll(pg.e[j]); }
+    /* Codex-Prüfung 94: der aufgeteilte Ordner und seine aufgeteilten Unterordner kommen zu AUFGEKLAPPT (äußere zuerst - der Nachlauf geht
+     * von hinten): sind sie nach dem Löschen leer, werden sie mit entfernt (wie bei "alles außer PS5 Cleanup" und Ordnern mit Spielen) */
+    sl_add(A, &k->AUFGEKLAPPT, p);
+    for (int j = auf.n - 1; j >= 0; j--) sl_add(A, &k->AUFGEKLAPPT, a_kopie(A, auf.e[j]));
+    arena_frei(t);
+    if (rk.n > 0) {
+        MERKE(k, &rk, kat, VERB(A, anzeige, T("  (ohne PKG-Dateien)", "  (without PKG files)")), 0);
+        /* Codex-Prüfung 83 (P1): der Rest eines Tool-Ordners (/data/garlic mit einer PKG-Datei und backups/) bleibt, was der Ordner war -
+         * Name und Art kommen weiter vom Tool-Ordner (wie bei folder-source), sonst wären z. B. Spielstand-Sicherungen nicht mehr rot */
+        /* Codex-Prüfung 98 (P1): ein aufgeteilter Unterordner in "alles außer PS5 Cleanup" gehört ebenso zu seinem Tool-Ordner (werkzeug) */
+        const char *to = werkzeug ? werkzeug : h_m(p, "^/user/data/(homebrew/)?[^/]+$") ? p : NULL;
+        if (k->MERKE_OK && k->bau.n > 0 && to) { eintrag *f = k->bau.e[k->bau.n - 1]; if (!f->ToolOrdner) f->ToolOrdner = to; }
+    }
+    for (int j = 0; j < pkk.n; j++) merke_pkg(k, pkk.e[j], VERB(A, anzeige, pkk.e[j] + strlen(p)), grk[j]);
+    return 1;
+}
+/* Gruppen gleicher Schlüssel ohne Hashtabelle: Indizes nach Schlüssel sortieren (bei 2000 PKG-Dateien sonst quadratisch) */
+static const char **pkg_sort_sch;
+static int pkg_sort_vgl(const void *x, const void *y)
+{
+    int a = *(const int *)x, b = *(const int *)y, c = strcmp(pkg_sort_sch[a], pkg_sort_sch[b]);
+    return c ? c : (a < b ? -1 : a > b);
+}
+static int *pkg_sortiert(kern *k, const char **sch, int n, int *m)
+{
+    int *ix = a_hole(A, sizeof(int) * (size_t)(n > 0 ? n : 1)); *m = 0;
+    for (int i = 0; i < n; i++) if (sch[i]) ix[(*m)++] = i;
+    pkg_sort_sch = sch; qsort(ix, (size_t)*m, sizeof(int), pkg_sort_vgl); pkg_sort_sch = NULL;
+    return ix;
+}
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12, da_Chris86: "was machen wir, wenn ein User das alles auf den USB-Stick, auf die Interne
+ * oder auf den M.2-Speicher ballert?"): bis 5 PKG-Dateien gleicher Art eines Spiels auf einem Speicher stehen einzeln da, ab 6 als EINE
+ * Zeile ("Zusatzinhalte (120 PKG-Dateien)"). Gelöscht wird dann jede Datei dieser Zeile. Gesperrtes bleibt einzeln. */
+#define PKG_EINZELN_MAX 5
+static const char *pkg_art_mehrzahl(int art)
+{
+    return art == PKG_UPDATE ? T("Updates", "Updates") : art == PKG_DLC ? T("Zusatzinhalte", "Add-ons") : T("Installationsdateien", "Install files");
+}
+/* Codex-Prüfung 83 (P2): der Speicher selbst, nicht nur seine Art - zwei USB-Laufwerke (/mnt/usb0, /mnt/usb1) sind zwei Speicher */
+static const char *pkg_speicher(kern *k, const char *p)
+{
+    htreffer m = h_mt(A, p, "^(/mnt/[^/]+)/");
+    return m.ok ? m.gr[1] : "intern";
+}
+static void pkg_zusammenfassen(kern *k)
+{
+    int n = k->bau.n, m;
+    if (n == 0) return;
+    const char **sch = a_hole(A, sizeof(char *) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        eintrag *f = k->bau.e[i]; sch[i] = NULL;
+        if (f->PkgArt && f->PkgId && !f->Gesperrt && f->PfadeBasis.n == 1)
+            sch[i] = a_fmt(A, "%s|%d|%s|%d", f->PkgId, f->PkgArt, pkg_speicher(k, f->PfadeBasis.e[0]), f->NurEinzeln ? 1 : 0);
+    }
+    int *ix = pkg_sortiert(k, sch, n, &m);
+    eintrag **zu = a_hole(A, sizeof(eintrag *) * (size_t)n);   /* Zeile, in der ein Eintrag aufgeht (NULL = bleibt) */
+    bool *neu_z = a_hole(A, sizeof(bool) * (size_t)n);
+    for (int i = 0; i < n; i++) { zu[i] = NULL; neu_z[i] = false; }
+    for (int a = 0; a < m; ) {
+        int b = a; while (b < m && !strcmp(sch[ix[a]], sch[ix[b]])) b++;
+        if (b - a > PKG_EINZELN_MAX) {
+            eintrag *f = k->bau.e[ix[a]], *z = a_hole(A, sizeof *z);
+            *z = *f; z->Pfade = (sliste){0}; z->PfadeBasis = (sliste){0}; z->PkgAnzahl = 0; z->PkgBytes = 0; z->Doppelt = (pliste){0};
+            z->PkgGroessen = a_hole(A, sizeof(long long) * (size_t)(b - a));
+            for (int j = a; j < b; j++) {
+                eintrag *g = k->bau.e[ix[j]];
+                z->PkgGroessen[z->PfadeBasis.n] = g->PkgBytes;   /* je eine Datei (PfadeBasis.n == 1, siehe oben) */
+                sl_add_alle(A, &z->Pfade, &g->Pfade); sl_add_alle(A, &z->PfadeBasis, &g->PfadeBasis); z->PkgAnzahl++;
+                if ((!z->PkgTitel || !z->PkgTitel[0]) && g->PkgTitel && g->PkgTitel[0]) z->PkgTitel = g->PkgTitel;
+                zu[ix[j]] = z;
+            }
+            z->Text = z->TextBasis = VERB(A, kern_ort_vorsatz(z->Ort), z->PkgTitel && z->PkgTitel[0] ? z->PkgTitel : z->PkgId, " (", z->PkgId, ") – ",
+                                          pkg_art_mehrzahl(z->PkgArt), a_fmt(A, T(" (%d PKG-Dateien)", " (%d PKG files)"), z->PkgAnzahl));
+            neu_z[ix[a]] = true;
+        }
+        a = b;
+    }
+    pliste neu = {0};
+    for (int i = 0; i < n; i++) {
+        if (!zu[i]) pl_add(A, &neu, k->bau.e[i]);
+        else if (neu_z[i]) pl_add(A, &neu, zu[i]);
+    }
+    k->bau = neu;
+}
+/* NEU 1.0.8 (Befund 12): dieselbe PKG-Datei (gleicher Name, gleiche Größe) auf zwei Speichern - beide Zeilen sagen "doppelt" und wo die
+ * andere liegt (kern_doppelt_text). Nur Anzeige. */
+static void pkg_doppelt(kern *k)
+{
+    /* Codex-Prüfung 83 (P3): je DATEI vergleichen, auch die Dateien einer zusammengefassten Zeile (PkgGroessen) - sonst bekam eine einzelne
+     * Kopie auf der M.2 keinen Hinweis, wenn ihr Gegenstück in einer Zeile "Zusatzinhalte (8 PKG-Dateien)" steckte */
+    /* Codex-Prüfung 85 (P2): eine zusammengefasste Zeile heißt nur "doppelt", wenn JEDE ihrer Dateien auch woanders liegt - sonst wären
+     * beim Löschen der Zeile Dateien ohne Kopie weg, obwohl "doppelt" dasteht. Die einzelne Kopie woanders sagt es trotzdem. */
+    int ne = k->bau.n, nz = 0;
+    for (int i = 0; i < ne; i++) { eintrag *f = k->bau.e[i]; if (f->PkgArt && (f->PkgGroessen || f->PfadeBasis.n == 1)) nz += f->PfadeBasis.n; }
+    if (nz == 0) return;
+    const char **sch = a_hole(A, sizeof(char *) * (size_t)nz);
+    eintrag **wer = a_hole(A, sizeof(eintrag *) * (size_t)nz);
+    const char **sp = a_hole(A, sizeof(char *) * (size_t)nz);
+    int *wi = a_hole(A, sizeof(int) * (size_t)nz), *nd = a_hole(A, sizeof(int) * (size_t)ne);
+    bool *dup = a_hole(A, sizeof(bool) * (size_t)nz);
+    int n = 0, m;
+    for (int i = 0; i < ne; i++) {
+        eintrag *f = k->bau.e[i];
+        if (!f->PkgArt || !(f->PkgGroessen || f->PfadeBasis.n == 1)) continue;
+        for (int j = 0; j < f->PfadeBasis.n; j++) {
+            long long gr = f->PkgGroessen ? f->PkgGroessen[j] : f->PkgBytes;
+            sch[n] = NULL; wer[n] = f; wi[n] = i; sp[n] = pkg_speicher(k, f->PfadeBasis.e[j]);
+            if (gr > 0) {
+                char *b = a_kopie(A, h_blatt(A, f->PfadeBasis.e[j]));
+                for (char *c = b; *c; c++) if (*c >= 'A' && *c <= 'Z') *c = (char)(*c - 'A' + 'a');
+                sch[n] = a_fmt(A, "%s|%lld", b, gr);
+            }
+            n++;
+        }
+    }
+    int *ix = pkg_sortiert(k, sch, n, &m);
+    for (int a = 0; a < m; ) {   /* 1. welche Dateien liegen auch auf einem anderen Speicher? */
+        int b = a; while (b < m && !strcmp(sch[ix[a]], sch[ix[b]])) b++;
+        for (int i = a; i < b; i++) for (int j = a; j < b; j++)
+            if (wer[ix[i]] != wer[ix[j]] && strcmp(sp[ix[i]], sp[ix[j]]) != 0) dup[ix[i]] = true;
+        a = b;
+    }
+    for (int x = 0; x < n; x++) if (dup[x]) nd[wi[x]]++;
+    for (int a = 0; a < m; ) {   /* 2. Hinweis - eine zusammengefasste Zeile nur, wenn alle ihre Dateien doppelt sind */
+        int b = a; while (b < m && !strcmp(sch[ix[a]], sch[ix[b]])) b++;
+        for (int i = a; i < b; i++) for (int j = a; j < b; j++) {
+            eintrag *f = wer[ix[i]], *g = wer[ix[j]];
+            if (f == g || !strcmp(sp[ix[i]], sp[ix[j]])) continue;
+            if (f->PkgGroessen && nd[wi[ix[i]]] < f->PfadeBasis.n) continue;
+            bool schon = false; for (int x = 0; x < f->Doppelt.n && !schon; x++) if (f->Doppelt.e[x] == g) schon = true;
+            if (!schon) pl_add(A, &f->Doppelt, g);
+        }
+        a = b;
+    }
+}
+/* NEU 1.0.8 (Arbeitsplan 2.1): Spielname aus einem exFAT-Spiel-Abbild (z. B. PPSA03530.exfat), wenn der Dateiname nur die
+ * Spielnummer hat. Gelesen werden nur kleine Stücke an festen Stellen: der Kopf (512 Byte), die nötigen Verzeichnisse (je höchstens
+ * 256 KB) und param.json bzw. param.sfo (höchstens 64 KB), nie das ganze Abbild. sce_sys wird im Hauptverzeichnis gesucht, sonst in
+ * einem einzigen Unterordner. Jeder Wert aus der Datei wird geprüft; passt etwas nicht (kein exFAT, kaputt, nicht lesbar), gibt es
+ * keinen Namen und es bleibt beim Dateinamen wie bisher. Andere Abbild-Arten (z. B. ffpkg) erkennt der Kopf nicht, sie bleiben beim Dateinamen. */
+#define EXF_VERZ_MAX (256 * 1024)
+#define EXF_DATEI_MAX (64 * 1024)
+#define ABBILD_NUR_NUMMER "(?i)^[a-z]{4}\\d{5}([-_ .]*(app|v?\\d[\\d._-]*))?\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$"
+typedef struct { kern *k; const char *p; arena *t; unsigned long long fat, heap, cl, groesse; uint32_t anz; size_t gelesen; } exf;
+typedef struct { bool ordner, am_stueck; uint32_t c; unsigned long long laenge; char name[64]; } exf_eintrag;
+static unsigned long long exf_le64(const unsigned char *b) { return (unsigned long long)pkg_le32(b) | (unsigned long long)pkg_le32(b + 4) << 32; }
+static bool exf_gleich(const char *a, const char *b)   /* ASCII, ohne Groß/Klein */
+{
+    for (; *a && *b; a++, b++) {
+        char x = *a >= 'A' && *a <= 'Z' ? (char)(*a + 32) : *a, y = *b >= 'A' && *b <= 'Z' ? (char)(*b + 32) : *b;
+        if (x != y) return false;
+    }
+    return *a == *b;
+}
+static bool exf_lies(exf *x, unsigned long long ab, size_t n, unsigned char *ziel)
+{
+    size_t len = 0;
+    if (x->groesse && (ab > x->groesse || n > x->groesse - ab)) return false;
+    if (ab > (unsigned long long)INT64_MAX - n) return false;
+    if (!s_lies_ab(x->k->S, x->p, (long long)ab, n, ziel, &len) || len != n) return false;
+    x->gelesen += n;
+    return true;
+}
+static uint32_t exf_fat(exf *x, uint32_t c)   /* nächster Cluster der Kette; 0 = Ende oder ungültig */
+{
+    unsigned char b[4];
+    if (!exf_lies(x, x->fat + (unsigned long long)c * 4, 4, b)) return 0;
+    uint32_t n = pkg_le32(b);
+    return n >= 2 && n - 2 < x->anz ? n : 0;
+}
+/* Daten ab Cluster c lesen (Kette über die FAT oder am Stück), höchstens max Byte, mit 0 am Ende; NULL = ein Stück nicht lesbar */
+static unsigned char *exf_daten(exf *x, uint32_t c, unsigned long long laenge, bool am_stueck, size_t max, size_t *n)
+{
+    *n = 0;
+    if (laenge > max) laenge = max;
+    unsigned char *b = a_hole(x->t, (size_t)laenge + 1);
+    size_t got = 0;
+    while (got < laenge) {
+        if (c < 2 || c - 2 >= x->anz) return NULL;
+        size_t m = laenge - got < x->cl ? (size_t)(laenge - got) : (size_t)x->cl;
+        if (!exf_lies(x, x->heap + (unsigned long long)(c - 2) * x->cl, m, b + got)) return NULL;
+        got += m;
+        if (got < laenge && !(c = am_stueck ? c + 1 : exf_fat(x, c))) break;
+    }
+    *n = got;
+    return b;
+}
+/* nächsten Datei- oder Ordner-Eintrag ab Stelle i lesen; liefert die Stelle danach, 0 = keiner mehr */
+static size_t exf_naechster(const unsigned char *v, size_t n, size_t i, exf_eintrag *e)
+{
+    while (i + 32 <= n) {
+        if (v[i] == 0x00) return 0;                           /* Ende des Verzeichnisses */
+        unsigned sek = v[i + 1];
+        size_t weiter = i + 32 * ((size_t)sek + 1);
+        if (v[i] != 0x85 || sek < 2 || sek > 18 || weiter > n || v[i + 32] != 0xC0) { i += 32; continue; }
+        const unsigned char *st = v + i + 32;
+        unsigned nl = st[3], z = 0; size_t o = 0; bool ascii = true;
+        for (unsigned j = 2; j <= sek && z < nl; j++) {
+            const unsigned char *f = v + i + 32 * j;
+            if (f[0] != 0xC1) break;
+            for (int q = 0; q < 15 && z < nl; q++, z++) {
+                unsigned u = f[2 + 2 * q] | (unsigned)f[3 + 2 * q] << 8;
+                if (u == 0 || u >= 0x80) ascii = false;
+                else if (o < sizeof e->name - 1) e->name[o++] = (char)u;
+            }
+        }
+        e->name[o] = 0;
+        if (z != nl || !ascii || o != nl) e->name[0] = 0;     /* unvollständig, nicht ASCII oder zu lang: passt zu keinem gesuchten Namen */
+        e->ordner = (v[i + 4] & 0x10) != 0;
+        e->am_stueck = (st[1] & 0x02) != 0;
+        e->c = pkg_le32(st + 20);
+        e->laenge = exf_le64(st + 24);
+        return weiter;
+    }
+    return 0;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): dazu die Kennung aus param.json/param.sfo (*tid) und, wenn icon0.png am Stück liegt, wo
+ * (*bild = "Pfad\nAnfang\nLänge" für die Oberfläche - sie liest das Bild selbst, die Suche nicht) */
+static const char *exf_innen(exf *x, const char **tid, const char **bild)
+{
+    kern *k = x->k;   /* für A */
+    *tid = ""; *bild = "";
+    unsigned char kopf[512];
+    if (!exf_lies(x, 0, sizeof kopf, kopf) || memcmp(kopf + 3, "EXFAT   ", 8) != 0 || kopf[510] != 0x55 || kopf[511] != 0xAA) return "";
+    unsigned bps = kopf[108], spc = kopf[109];
+    if (bps < 9 || bps > 12 || spc > 25 - bps) return "";
+    unsigned long long sek = 1ULL << bps;
+    x->cl = 1ULL << (bps + spc);
+    x->fat = pkg_le32(kopf + 80) * sek;
+    x->heap = pkg_le32(kopf + 88) * sek;
+    x->anz = pkg_le32(kopf + 92);
+    uint32_t wurzel = pkg_le32(kopf + 96);
+    if (x->fat < 24 * sek || x->heap <= x->fat || x->anz == 0 || x->anz > 0xFFFFFFF5u || wurzel < 2 || wurzel - 2 >= x->anz) return "";
+    size_t n; exf_eintrag e = {0}, sys = {0}, einzig = {0}; int ordner = 0; bool sys_da = false;
+    unsigned char *v = exf_daten(x, wurzel, EXF_VERZ_MAX, false, EXF_VERZ_MAX, &n);
+    if (!v) return "";
+    for (size_t i = 0; (i = exf_naechster(v, n, i, &e)) != 0; ) {
+        if (!e.ordner) continue;
+        ordner++; einzig = e;
+        if (exf_gleich(e.name, "sce_sys")) { sys = e; sys_da = true; }
+    }
+    if (!sys_da && ordner == 1) {                             /* Spiel in einem einzigen Unterordner, z. B. PPSA03530-app/sce_sys */
+        unsigned char *u = exf_daten(x, einzig.c, einzig.laenge, einzig.am_stueck, EXF_VERZ_MAX, &n);
+        if (!u) return "";
+        for (size_t i = 0; (i = exf_naechster(u, n, i, &e)) != 0; ) if (e.ordner && exf_gleich(e.name, "sce_sys")) { sys = e; sys_da = true; break; }
+    }
+    if (!sys_da) return "";
+    unsigned char *s = exf_daten(x, sys.c, sys.laenge, sys.am_stueck, EXF_VERZ_MAX, &n);
+    if (!s) return "";
+    exf_eintrag pj = {0}, ps = {0}, ic = {0}; bool pj_da = false, ps_da = false, ic_da = false;
+    for (size_t i = 0; (i = exf_naechster(s, n, i, &e)) != 0; ) {
+        if (e.ordner) continue;
+        if (exf_gleich(e.name, "param.json")) { pj = e; pj_da = true; }
+        else if (exf_gleich(e.name, "param.sfo")) { ps = e; ps_da = true; }
+        else if (exf_gleich(e.name, "icon0.png")) { ic = e; ic_da = true; }
+    }
+    const char *titel = "";
+    if (pj_da && pj.laenge > 0 && pj.laenge <= EXF_DATEI_MAX) {
+        unsigned char *j = exf_daten(x, pj.c, pj.laenge, pj.am_stueck, EXF_DATEI_MAX, &n);
+        if (j && n == pj.laenge && !memchr(j, 0, n)) {
+            titel = kern_json_titel(A, (const char *)j);
+            htreffer m = h_mt(x->t, (const char *)j, "(?-i)\"titleId\"\\s*:\\s*\"([A-Z]{4}\\d{5})\"");
+            if (titel[0] && m.ok) *tid = a_kopie(A, m.gr[1]);
+        }
+    }
+    if (!titel[0] && ps_da && ps.laenge >= 20 && ps.laenge <= EXF_DATEI_MAX) {   /* PS4-Spiel im Abbild: Titel wie kern_sfo_titel */
+        unsigned char *f = exf_daten(x, ps.c, ps.laenge, ps.am_stueck, EXF_DATEI_MAX, &n);
+        char t[128], ti[16];
+        if (f && n == ps.laenge && ((pkg_sfo_feld(f, n, "TITLE_04", t, sizeof t) && t[0]) || (pkg_sfo_feld(f, n, "TITLE_01", t, sizeof t) && t[0])
+                                    || (pkg_sfo_feld(f, n, "TITLE", t, sizeof t) && t[0]))) {
+            titel = a_kopie(A, t);
+            if (pkg_sfo_feld(f, n, "TITLE_ID", ti, sizeof ti) && r_m(ti, "^[A-Z]{4}\\d{5}$")) *tid = a_kopie(A, ti);
+        }
+    }
+    /* icon0.png nur, wenn es am Stück liegt (ohne FAT-Kette oder Cluster für Cluster hintereinander) - dann liest die Oberfläche es direkt */
+    if (titel[0] && ic_da && ic.laenge >= 8 && ic.laenge <= 4u * 1024 * 1024 && ic.c >= 2 && ic.c - 2 < x->anz) {
+        unsigned long long cls = (ic.laenge + x->cl - 1) / x->cl;
+        bool stueck = cls <= (unsigned long long)(x->anz - (ic.c - 2));
+        if (stueck && !ic.am_stueck && cls > 1) {         /* die FAT-Einträge der Cluster liegen hintereinander: ein Stück lesen (höchstens 32 KB) */
+            size_t fl = (size_t)(cls - 1) * 4;
+            unsigned char *fb = a_hole(x->t, fl);
+            if (!exf_lies(x, x->fat + (unsigned long long)ic.c * 4, fl, fb)) stueck = false;
+            for (unsigned long long i = 0; stueck && i + 1 < cls; i++) stueck = pkg_le32(fb + 4 * i) == ic.c + i + 1;
+        }
+        unsigned long long ab = x->heap + (unsigned long long)(ic.c - 2) * x->cl;
+        if (stueck && (!x->groesse || (ab <= x->groesse && ic.laenge <= x->groesse - ab)))
+            *bild = a_fmt(A, "%s\n%llu\n%llu", x->p, ab, ic.laenge);
+    }
+    return titel;
+}
+static size_t exf_zuletzt;   /* nur für die PC-Tests: so viele Bytes las der letzte Aufruf */
+static const char *abbild_titel_mit(kern *k, const char *p, long long groesse, const char **tid, const char **bild)
+{
+    arena *volatile t = arena_neu();
+    exf x = { k, p, t, 0, 0, 0, groesse > 0 ? (unsigned long long)groesse : 0, 0, 0 };
+    const char *volatile r = "";
+    const char *ti = "", *bi = "";
+    exf_zuletzt = 0;
+    VERSUCHE { r = exf_innen(&x, &ti, &bi); exf_zuletzt = x.gelesen; }
+    FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = ""; ti = ""; bi = ""; } ENDE_VERSUCHE;
+    if (t) arena_frei(t);
+    *tid = r[0] ? ti : ""; *bild = r[0] ? bi : "";
+    return r;
+}
+static const char *abbild_titel(kern *k, const char *p, long long groesse) { const char *ti, *bi; return abbild_titel_mit(k, p, groesse, &ti, &bi); }
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Name, Kennung und Bild eines entpackten Spiels (Ordner mit sce_sys/param.json bzw. param.sfo) -
+ * wie bei installierten Spielen (app_titel_lesen), aber höchstens 256 KB (param.json) bzw. 64 KB (param.sfo) - der Ordner kann alles
+ * Mögliche enthalten. Nur lesen, mit eigenem Speicher, der danach frei wird; ein Lesefehler heißt: kein Name. */
+#define ORDNER_JSON_MAX (256 * 1024)
+#define ORDNER_SFO_MAX (64 * 1024)
+static const unsigned char *datei_bis(kern *k, arena *t, const char *p, size_t max, size_t *n)   /* NULL = fehlt, nicht lesbar, leer oder größer */
+{
+    unsigned char *b = a_hole(t, max + 2); size_t len = 0;
+    if (!s_lies_ab(k->S, p, 0, max + 1, b, &len) || len == 0 || len > max) return NULL;
+    b[len] = 0; *n = len;
+    return b;
+}
+static const char *ordner_innen(kern *k, arena *t, const char *p, const char **tid)
+{
+    size_t n = 0; const char *titel = "", *ti = "";
+    const unsigned char *j = datei_bis(k, t, VERB(t, p, "/sce_sys/param.json"), ORDNER_JSON_MAX, &n);
+    if (j && !memchr(j, 0, n)) {
+        const char *s = h_ohne_bom((const char *)j);
+        if (h_m(s, "titleName")) {
+            titel = kern_json_titel(t, s);
+            htreffer m = h_mt(t, s, "(?-i)\"titleId\"\\s*:\\s*\"([A-Z]{4}\\d{5})\"");
+            if (titel[0] && m.ok) ti = m.gr[1];
+        }
+    }
+    if (!titel[0]) {                                           /* PS4-Spiel als Ordner: param.sfo */
+        const unsigned char *f = datei_bis(k, t, VERB(t, p, "/sce_sys/param.sfo"), ORDNER_SFO_MAX, &n);
+        if (f) {
+            mtab h = kern_sfo_lesen(t, f, n);
+            titel = kern_sfo_titel(t, &h);
+            const char *s = kern_sfo_wert(t, &h, "TITLE_ID");
+            if (titel[0] && r_m(s, "^[A-Z]{4}\\d{5}$")) ti = s;
+        }
+    }
+    if (!titel[0]) return "";
+    *tid = a_kopie(A, ti);
+    return a_kopie(A, titel);
+}
+static const char *ordner_titel(kern *k, const char *p, const char **tid, const char **bild)
+{
+    *tid = ""; *bild = "";
+    arena *volatile t = arena_neu();
+    const char *volatile r = "", *volatile ti = "";
+    VERSUCHE { const char *x = ""; r = ordner_innen(k, t, p, &x); ti = x; }
+    FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = ""; ti = ""; } ENDE_VERSUCHE;
+    if (t) arena_frei(t);
+    if (!r[0]) return "";
+    *tid = ti;
+    volatile bool da = false;
+    VERSUCHE { da = ti[0] && s_existiert(k->S, VERB(A, p, "/sce_sys/icon0.png")); }
+    FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); da = false; } ENDE_VERSUCHE;
+    if (da) *bild = VERB(A, p, "/sce_sys/icon0.png\n0\n0");
+    return r;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31, da_Chris86: "bei den PS4-Spielen sind die Bilder und die Beschriftung da, bei den PS5-Spielen
+ * nicht"): Anzeige-Zusatz "  [Spiel: <Name>]" für eine Spieldatei oder einen Spiel-Ordner ohne Kachel. Der Name kommt aus dem Spiel selbst
+ * (Abbild: sce_sys im exFAT; Ordner: sce_sys/param.json bzw. param.sfo), sonst aus den Belegen zur Spielnummer im Namen (Aufnahmen, frühere
+ * Protokolle, Spielstände - rest_name, wie bei Resten). Bis hier wurde nur ein Abbild gelesen, dessen Dateiname nichts als die Spielnummer
+ * hatte. Die Kennung, zu der der Name gehört, steht immer im Zusatz ("[Spiel: Marvel's Spider-Man 2 (PPSA03016)]") - daran findet die
+ * Oberfläche das Bild, auch wenn im Dateinamen keine oder eine andere Nummer steht (Codex-Prüfung 111); Zeile und Name zeigen sie nicht
+ * (kern_art.c spiel_von). Wo icon0.png liegt, merkt sich BILD_ORT (lesen tut es nur die Oberfläche). "" = kein Name. */
+static const char *spiel_zusatz(kern *k, const char *p, const char *name, long long groesse, bool ordner)
+{
+    const char *t = "", *tid = "", *bild = "";
+    if (kern_bereiche_106()) {                               /* Vergleichstests: wie bisher nur ein Abbild mit der Nummer als Namen */
+        if (ordner || !h_m(name, ABBILD_NUR_NUMMER)) return "";
+        t = abbild_titel(k, p, groesse);
+    }
+    else if (ordner) t = ordner_titel(k, p, &tid, &bild);
+    else t = abbild_titel_mit(k, p, groesse, &tid, &bild);
+    const char *kid = tid;                                   /* Kennung, zu der Name und Bild gehören */
+    if (!t[0] && !kern_bereiche_106()) {
+        htreffer m = h_mt(A, name, "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
+        if (m.ok) { t = rest_name(k, m.gr[1]); kid = m.gr[1]; }
+    }
+    if (strlen(t) > 100) { char b[101]; memcpy(b, t, 100); b[100] = 0; t = pkg_text(A, b); } else t = pkg_text(A, t);
+    if (!kern_bereiche_106()) t = h_trim(A, r_r(A, t, "\\s{2,}", " "));   /* Codex-Prüfung 113: im Namen nie "  [" - so beginnt der nächste Zusatz */
+    while (*t == ' ') t++;
+    if (!t[0]) return "";
+    if (tid[0] && bild[0] && !mt_hat(&k->BILD_ORT, tid)) mt_setze(A, &k->BILD_ORT, a_kopie(A, tid), (void *)a_kopie(A, bild));
+    return VERB(A, T("  [Spiel: ", "  [game: "), t, kid[0] ? VERB(A, " (", kid, ")") : "", "]");
+}
+/* NEU 1.0.8: nur für die PC-Tests - Name aus dem Abbild (ohne Prüfung des Dateinamens) und wie viele Bytes gelesen wurden */
+const char *kern_abbild_titel_test(kern *k, const char *p, size_t *gelesen) { const char *t = abbild_titel(k, p, 0); *gelesen = exf_zuletzt; return t; }
 static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int anz, int kat, const char *vorsatz)
 {
     for (int i = 0; i < anz; i++) {
         const datei *e = &eintraege[i];
         const char *x = e->name; bool link = e->ist_link;
         const char *p = VERB(A, basis, "/", x);
+        int pr = 0;   /* Codex-Prüfung 90: Ergebnis von merke_pkg_ordner (-1 = PKG-Dateien darin nicht prüfbar) */
         if (ist_zwischendatei(x)) { sl_add(A, &k->KOMPRIMIERUNG, p); continue; }
         if (sl_enthaelt(&k->SpielQuellen, p)) {
             qinfo *qi = mt_hole(&k->QuelleInfo, p);
@@ -1141,14 +2017,33 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
          * PS5 Cleanup" angeboten; PS5 Cleanup selbst steht gesperrt daneben. Ausnahme: Ordner "homebrew" - dort bleibt jede
          * App ein eigener Eintrag. */
         if (!drin && !link && e->ist_ordner && kern_selbstschutz_enthaelt(k, p) && !h_gleich(x, "homebrew")) {
-            sliste frei = {0}, eig = {0};
-            sammle_ohne_schutz(k, p, &frei, &eig);
+            sliste frei = {0}, eig = {0}; pliste frei_d = {0};
+            sammle_ohne_schutz(k, p, &frei, &frei_d, &eig);
             bool echt_eigen = false;   /* 1.0.6 Fix: nur private, nicht lesbare Ordner geschützt (Playden) -> ohne Zusatz */
             /* NEU 1.0.7 (PS5-Test 02.11.2026, prosperoeden): "(alles außer PS5 Cleanup)" nur, wenn wirklich PS5 Cleanup darin liegt - einzelne
              * Dateien, die sich nicht lesen ließen und darum geschützt sind, machen den Ordner nicht zu "unserem". Sie bleiben still stehen
              * und werden nicht einzeln aufgelistet (wie private Ordner, da_Chris86 30.10.2026: "keinen Hinweis"). */
             for (int j = 0; j < eig.n; j++) if (kern_bereiche_106() ? !kern_selbstschutz_unlesbar(k, eig.e[j]) : kern_selbst_eigen(k, eig.e[j])) echt_eigen = true;
-            if (frei.n > 0) MERKE(k, &frei, kat, echt_eigen ? VERB(A, vorsatz, x, T("  (alles außer PS5 Cleanup)", "  (everything except PS5 Cleanup)")) : VERB(A, vorsatz, x), 0);
+            /* Codex-Prüfung 93: auch neben PS5 Cleanup steht jede PKG-Datei bei ihrem Spiel, ein Ordner mit PKG-Dateien wird aufgeteilt
+             * (wie überall); ließ sich ein Ordner nicht prüfen, kann die Sammelzeile PKG-Dateien enthalten (PkgOffen: rot, nur einzeln) */
+            sliste frei2 = {0}; bool offen = false;
+            const char *wz = h_m(p, "^/user/data/(homebrew/)?[^/]+$") ? p : NULL;   /* Codex-Prüfung 98 (P1): Tool-Ordner dieser Sammelzeile */
+            for (int j = 0; j < frei.n; j++) {
+                const char *q = frei.e[j]; const datei *d = frei_d.e[j];
+                if (!kern_bereiche_106() && !d->ist_link && !ist_zwischendatei(d->name)) {
+                    const char *an = VERB(A, vorsatz, x, q + strlen(p));
+                    if (!d->ist_ordner && h_m(d->name, "(?i)\\.pkg$")) { merke_pkg(k, q, an, d->groesse); continue; }
+                    if (d->ist_ordner) { int r = merke_pkg_ordner(k, q, an, kat, wz); if (r > 0) continue; if (r < 0) offen = true; }
+                }
+                sl_add(A, &frei2, q);
+            }
+            if (frei2.n > 0) {
+                MERKE(k, &frei2, kat, echt_eigen ? VERB(A, vorsatz, x, T("  (alles außer PS5 Cleanup)", "  (everything except PS5 Cleanup)")) : VERB(A, vorsatz, x), 0);
+                if (offen && k->MERKE_OK && k->bau.n > 0) ((eintrag *)k->bau.e[k->bau.n - 1])->PkgOffen = true;
+                /* Codex-Prüfung 98 (P1): die Sammelzeile eines Tool-Ordners bleibt Daten dieses Ordners (wie der Rest "(ohne PKG-Dateien)",
+                 * Codex-Prüfung 83) - Name und Art kommen vom Tool-Ordner, sonst wären z. B. Spielstand-Sicherungen "neu herunterladen" */
+                if (wz && k->MERKE_OK && k->bau.n > 0) { eintrag *f = k->bau.e[k->bau.n - 1]; if (!f->ToolOrdner) f->ToolOrdner = wz; }
+            }
             for (int j = 0; j < eig.n; j++) {
                 if (!kern_bereiche_106() && !k->SCHUTZ.unsicher && !kern_selbst_eigen(k, eig.e[j])) continue;
                 sliste l = L1(A, eig.e[j]); MERKE(k, &l, kat, VERB(A, vorsatz, x, eig.e[j] + strlen(p)), 0);
@@ -1174,11 +2069,13 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
          * oder param.sfo darin, z. B. "F1® 25 - PPSA24662 - v1.26.0 - US") ist ein Spiel wie ein Spiel-Abbild - Bereich 1 */
         else if (e->ist_ordner && kat != 1 && h_m(x, "(^|[^A-Z0-9])[A-Z]{4}\\d{5}([^0-9]|$)")
                  && spiel_ordner(k, p)) {
-            sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, T("  [Spiel-Ordner ohne Kachel]", "  [game folder, no tile]")), 0);
+            const char *nm = spiel_zusatz(k, p, x, 0, true);   /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Name und Bild aus dem Spiel */
+            sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, nm, T("  [Spiel-Ordner ohne Kachel]", "  [game folder, no tile]")), 0);
         }
         else if (!e->ist_ordner && h_m(x, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")) {   /* 28.10.2026: Spiel-Abbild ohne Kachel - ein Spiel (Bereich 1) */
             const char *zw = zweite_spieldatei(k, p, x);
-            sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, zw ? zw : T("  [ohne Kachel]", "  [no tile]")), 0);
+            const char *nm = spiel_zusatz(k, p, x, e->groesse, false);   /* NEU 1.0.8 (Arbeitsplan 2.1, PS5-Test 07.11.2026 16:31): Spielname aus dem Abbild */
+            sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, nm, zw ? zw : T("  [ohne Kachel]", "  [no tile]")), 0);
         }
         else if (!e->ist_ordner && h_m(x, "(?i)\\.iso$") && h_m(x, "(?i)(^|[^a-z])[a-z]{4}[-_]?\\d{5}")) {
             /* NEU 1.0.6 (PS5-Test 28.10.2026): ISO mit Spielnummer im Namen (z. B. PS3 BLES01969, PS2 SLES-12345) = Spiel-Abbild;
@@ -1188,7 +2085,15 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
         else if (!e->ist_ordner && h_m(x, "(?i)\\.elf$")) {   /* NEU 1.0.6: ELF-Dateien aller Speicher -> Jailbreak & Homebrew */
             sliste l = L1(A, p); MERKE(k, &l, 6, VERB(A, vorsatz, x), 0);
         }
-        else { sliste l = L1(A, p); MERKE(k, &l, kat, VERB(A, vorsatz, x), 0); }
+        else if (!e->ist_ordner && !kern_bereiche_106() && h_m(x, "(?i)\\.pkg$")) {   /* NEU 1.0.8 (Arbeitsplan 2.2): Spielname aus dem PKG */
+            merke_pkg(k, p, VERB(A, vorsatz, x), e->groesse);   /* NEU 1.0.8 (Befund 12): mit Spielnummer und Art, zuerst unter "Sonstiges" */
+        }
+        else if (e->ist_ordner && !kern_bereiche_106() && (pr = merke_pkg_ordner(k, p, VERB(A, vorsatz, x), kat, NULL)) > 0) {}   /* NEU 1.0.8 (Befund 12) */
+        else {
+            sliste l = L1(A, p); MERKE(k, &l, kat, VERB(A, vorsatz, x), 0);
+            /* Codex-Prüfung 90: PKG-Dateien darin nicht prüfbar - der Ordner kann welche enthalten, also wie eine PKG-Datei nur einzeln */
+            if (pr < 0 && k->MERKE_OK && k->bau.n > 0) ((eintrag *)k->bau.e[k->bau.n - 1])->PkgOffen = true;
+        }
     }
 }
 
@@ -1200,6 +2105,43 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
 /* NEU 1.0.6 (Codex-Prüfung 27): Homebrew-Ordner (homebrew, etaHEN, payloads) auf M.2, USB-Speicher und USB-Stick
  * gehören zu "Jailbreak & Homebrew" (Bereich 6), alles andere zu den Resten (Bereich 5) */
 static int ext_kat(const char *name) { return h_m(name, "(?i)^(homebrew|etahen|payloads?)$") ? 6 : 5; }
+/* NEU 1.0.8 (PS5-Test 07.11.2026 22:53, da_Chris86s USB-Laufwerk: der Ordner "PS5" mit seinen Screenshots stand als "neu herunterladen"
+ * unter "Sonstiges"): den Ordner "PS5" bzw. "PS4" legt die Konsole selbst an, wenn man etwas auf ein USB-Laufwerk kopiert - CREATE (PS5)
+ * bzw. SHARE (PS4): Screenshots und Videos aus der Mediengalerie, SAVEDATA: Spielstände (psdevwiki.com/ps4/Save_Data: PS4/SAVEDATA/
+ * <user Id>/<title Id>), EXPORT: Datensicherung der Konsole. Das sind eigene Daten (rot, "endgültig weg"). Erkannt nur an einem dieser
+ * Unterordner - ein eigener Ordner "PS4" mit PKG-Dateien (wie bei da_Chris86) ist keiner. Gilt für das, was die Suche daraus unter
+ * "Sonstiges" anbietet (den Ordner als Ganzes oder, aufgeklappt, seine Sony-Unterordner); PKG-Dateien, Spiele und ELF-Dateien behalten
+ * ihre Art. Nur lesen, nur die oberste Ebene des Ordners. */
+static int usb_kopie_teil(const char *rest)   /* rest = Weg hinter dem Ordner, z. B. "/CREATE/Screenshots" */
+{
+    if (h_m(rest, "(?i)^/(CREATE|SHARE)(/|$)")) return USB_KOPIE_AUFNAHMEN;
+    if (h_m(rest, "(?i)^/SAVEDATA(/|$)")) return USB_KOPIE_SPIELSTAENDE;
+    if (h_m(rest, "(?i)^/EXPORT(/|$)")) return USB_KOPIE_SICHERUNG;
+    return 0;
+}
+static void usb_kopie_markieren(kern *k, const char *b, const datei *e, int vor)
+{
+    if (kern_bereiche_106() || k->bau.n <= vor || !e->ist_ordner || e->ist_link || !h_m(e->name, "(?i)^PS[45]$")) return;
+    const char *p = VERB(A, b, "/", e->name);
+    dliste *volatile l = NULL;
+    VERSUCHE { l = s_liste(k->S, p, false); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); l = NULL; } ENDE_VERSUCHE;
+    int alle = 0;
+    for (int i = 0; l && i < l->n; i++)
+        if (l->e[i].ist_ordner && !l->e[i].ist_link) alle |= usb_kopie_teil(VERB(A, "/", l->e[i].name));
+    if (!alle) return;
+    size_t lp = strlen(p);
+    for (int j = vor; j < k->bau.n; j++) {
+        eintrag *f = k->bau.e[j];
+        if (f->Kat != 5 || f->PkgArt || f->Gesperrt) continue;
+        int was = 0;
+        for (int q = 0; q < f->PfadeBasis.n; q++) {
+            const char *x = f->PfadeBasis.e[q];
+            if (strncmp(x, p, lp) || (x[lp] && x[lp] != '/')) continue;
+            was |= x[lp] ? usb_kopie_teil(x + lp) : alle;
+        }
+        if (was) f->UsbKopie = (unsigned char)was;
+    }
+}
 static void merke_ext_ordner(kern *k, const char *basis, const datei *e)
 {
     const char *p = VERB(A, basis, "/", e->name);
@@ -1268,8 +2210,10 @@ static const char *tool_alias(const char *id)
 {
     /* NEU 1.0.7 (da_Chris86 01.11.2026 23:22): Game Compressor = PSGC50001 (/data/GameCompressor), LZ4-Game-Compressor = LZGC50001
      * (/data/AMPRStudio) - Belege doku/recherche_tools_B_2026-10-31.md */
+    /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 14): WebKit Autoloader (itsPLK, WKAL00001) liest autoload.txt und die Payloads aus dem Ordner
+     * ps5_autoloader (oben auf dem USB-Laufwerk, sonst /data/ps5_autoloader) - README github.com/itsPLK/ps5-webkit-autoloader */
     static const char *const T2[][2] = { { "PLDM00001", "pldmgr" }, { "PKGM00001", "pkgmgr" }, { "APDU00001", "ps5appdumper" },
-                                         { "PSGC50001", "gamecompressor" }, { "LZGC50001", "amprstudio" }, { NULL, NULL } };
+                                         { "PSGC50001", "gamecompressor" }, { "LZGC50001", "amprstudio" }, { "WKAL00001", "ps5autoloader" }, { NULL, NULL } };
     for (int i = 0; T2[i][0]; i++) if (!strcmp(T2[i][0], id)) return T2[i][1];
     return "";
 }
@@ -1407,6 +2351,21 @@ static bool ist_block_kopf(const eintrag *g)
     if (g->Teil && strcmp(g->Teil, "Spiel") != 0) return false;
     return kopf_kennung(g) != NULL;
 }
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 14): Kachel eines Jailbreak-Einstiegs als Kopf (nur für Programmdateien, siehe kopf_zaehlt) */
+static bool ist_jb_kopf(const eintrag *g)
+{
+    if (kern_bereiche_106() || !g->Jailbreak || g->SmDatei || g->Kat != 7 || g->PfadeBasis.n == 0) return false;
+    if (g->Teil && strcmp(g->Teil, "Spiel") != 0) return false;
+    return kopf_kennung(g) != NULL;
+}
+/* NEU 1.0.8 (Befund 14): eine Versionsangabe am Ende eines Titels zählt beim Namensvergleich nicht ("WebKit Autoloader v0.4.0" ->
+ * "WebKit Autoloader", "Web File Manager 1.13-rc2" -> "Web File Manager"). Nur eindeutige Versionen ("v" mit Ziffer oder eine Zahl mit
+ * Punkt) - "Train Sim World 6" bleibt, wie er ist. */
+static const char *titel_ohne_version(kern *k, const char *t)
+{
+    const char *r = h_trim(A, h_r(A, t, "(?i)[\\s_\\-]*[\\(\\[]?(v\\d[\\w.+\\-]*|\\d+\\.\\d+[\\w.+\\-]*)[\\)\\]]?\\s*$", ""));
+    return r[0] ? r : t;
+}
 static const char *kopf_titel(kern *k, const eintrag *g, const char *id)
 {
     const char *t = app_titel(k, id);
@@ -1474,11 +2433,23 @@ static int name_stufe(const char *tk, const char *titel, const char *ak, const c
  * Programm orbit_store.elf und dessen TV-App PPSA99177), ist es dasselbe Programm: der Eintrag steht unter der Kachel im passenden
  * Bereich (Daten und Dateien unter der App/Tool-Kachel, Spiele unter dem Spiel) - nur, wenn es dort genau EINE davon gibt. Gelöscht wird er trotzdem nur,
  * wenn er selbst angehakt ist und seine Kachel wirklich entfernt wurde (kern_loeschen.c). */
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 14): auch Kacheln eines Jailbreak-Einstiegs (WebKit-Autoloader WKAL00001) sind Köpfe - aber nur
+ * für Programmdateien (ELF/BIN, z. B. webkit-autoloader-installer_v0.6.2.elf) und feste Zuordnungen (tool_alias: ps5_autoloader). Andere
+ * Daten kommen nie per Namensvergleich in den Bereich Jailbreak. kjb[t]: Kopf t ist so eine Kachel; payload: der Eintrag ist eine
+ * Programmdatei. */
+static const bool *kopf_jb; static bool kopf_payload;
+static bool kopf_zaehlt(const char **kid, int t, const char *dk)
+{
+    if (!kid[t]) return false;
+    if (!kopf_jb || !kopf_jb[t] || kopf_payload) return true;
+    const char *ak = tool_alias(kid[t]);
+    return ak[0] && !strcmp(ak, dk);
+}
 static int kopf_fuer_namen(pliste *liste, int n, const char **kid, const char **ktk, const char **ktt, const char *dk, const char *stamm, int kat)
 {
     int beste = 4, tr = -1, anz = 0;
     for (int t = 0; t < n; t++) {
-        if (!kid[t]) continue;
+        if (!kopf_zaehlt(kid, t, dk)) continue;
         int st = name_stufe(ktk[t], ktt[t], tool_alias(kid[t]), dk, stamm);
         if (!st) continue;
         if (st < beste) { beste = st; tr = t; anz = 1; }
@@ -1488,12 +2459,28 @@ static int kopf_fuer_namen(pliste *liste, int n, const char **kid, const char **
     /* Codex-Prüfung 56: zwei verschiedene Apps mit gleichem Namen im selben Bereich ("FTP Server") - nicht raten */
     int erst = -1, passend = -1, np = 0, will = kat == 1 ? 1 : 6;
     for (int t = 0; t < n; t++) {
-        if (!kid[t] || name_stufe(ktk[t], ktt[t], tool_alias(kid[t]), dk, stamm) != beste) continue;
+        if (!kopf_zaehlt(kid, t, dk) || name_stufe(ktk[t], ktt[t], tool_alias(kid[t]), dk, stamm) != beste) continue;
         if (erst < 0) erst = t;
         else if (strcmp(ktt[t], ktt[erst]) != 0) return -2;
         if (((eintrag *)liste->e[t])->Kat == will) { passend = t; np++; }
     }
     return np == 1 ? passend : -2;
+}
+/* Regel 2 (Name) der Zuordnung für den Besitzer-Teil oc eines Pfads: eine Programmdatei ohne Version und Endung, eine Datei ohne Endung, sonst
+ * der Name. NEU 1.0.7 (PS5-Test 03.11.2026): "ps5-" vorne sagt nur, für welche Konsole es ist (ps5-web-file-manager_v1.11b.elf -> Kachel
+ * "Web File Manager") - zählt nur, wenn mit dem vollen Namen gar nichts passt. Codex-Prüfung 103 (P2): als eigene Funktion, damit eine
+ * PKG-Datei ohne lesbare Nummer (kachel_bloecke) genau dieselbe Regel bekommt wie ihr Ordner. Setzt kopf_payload. */
+static int kopf_fuer_besitzer_namen(kern *k, pliste *liste, int n, const char **kid, const char **ktk, const char **ktt, const char *oc, int kat)
+{
+    bool datei = name_ist_datei(oc);
+    htreffer pm = h_mt(A, oc, "^(.+?)(?:[-_ ]v?\\d[\\w.\\-]*)?\\.(?:elf|bin)$");
+    bool payload = pm.ok;
+    const char *stamm = payload ? pm.gr[1] : (datei ? h_r(A, oc, "\\.[A-Za-z][A-Za-z0-9]{0,7}$", "") : oc);
+    const char *dk = tool_schluessel(k, stamm);
+    kopf_payload = payload;
+    int t1 = kopf_fuer_namen(liste, n, kid, ktk, ktt, dk, stamm, kat);
+    if (t1 == -1) { htreffer mp = h_mt(A, stamm, "^ps5[-_ ](.+)$"); if (mp.ok) t1 = kopf_fuer_namen(liste, n, kid, ktk, ktt, tool_schluessel(k, mp.gr[1]), mp.gr[1], kat); }
+    return t1;
 }
 static bool gleich_ci_n(const char *a, const char *b, size_t n)
 {
@@ -1682,9 +2669,9 @@ static void beleg_aus_programmen(kern *k, pliste *liste, int n, int *zu, const c
     bool *punkt = a_hole(A, sizeof(bool) * BELEG_KANDIDATEN);
     for (int d = 0; d < n && nk < BELEG_KANDIDATEN; d++) {
         eintrag *f = liste->e[d];
-        if (zu[d] >= 0 || kid[d] || f->Jailbreak || f->SmDatei || f->Teil || f->Kachel || f->Gesperrt || f->PfadeBasis.n != 1) continue;
+        if (zu[d] >= 0 || kid[d] || f->Jailbreak || f->SmDatei || f->Teil || f->Kachel || f->Gesperrt || (f->PfadeBasis.n != 1 && !f->ToolOrdner)) continue;
         if (f->Kat != 5 && f->Kat != 6) continue;
-        const char *p = f->PfadeBasis.e[0], *x = NULL;
+        const char *p = f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.e[0], *x = NULL;   /* Codex-Prüfung 85: Rest ohne PKG-Dateien wie der Ordner */
         bool pk = false;
         htreffer md = h_mt(A, p, "^/user/data/(homebrew/)?([^/]+)$");
         htreffer mr = h_mt(A, p, "^/mnt/(?:ext\\d+|usb\\d+)/(\\.[^/]+)$");
@@ -1760,25 +2747,124 @@ static void beleg_aus_programmen(kern *k, pliste *liste, int n, int *zu, const c
         if (sicher) zu[kand[c]] = beste;
     }
 }
+static bool kopie_echt(kern *k, const eintrag *f, const char *id);
+/* Codex-Prüfung 83/85: eine PKG-Datei hängt nur an einem Spiel, das wirklich installiert ist - nicht an einem leeren Rest /user/app/<Nummer>
+ * und nicht an einer toten ShadowMount-Kachel (Spieldatei fehlt, Zeile "… - ShadowMount: …") */
+static bool pkg_kopf_installiert(kern *k, const eintrag *g, const char *id)
+{
+    if (g->Quelle && g->Quelle[0]) return true;                                            /* ShadowMount mit Spieldatei */
+    if (!g->Teil && g->TextBasis && strstr(g->TextBasis, " - ShadowMount: ")) return false;   /* tote ShadowMount-Kachel */
+    if (!ist_teil(g, "Spiel")) {   /* Codex-Prüfung 90: eine Tool-/App-Kachel mit LEEREM App-Ordner ist kein installiertes Programm */
+        for (int j = 0; j < g->PfadeBasis.n; j++) {
+            const char *p = g->PfadeBasis.e[j], *b = strrchr(p, '/');
+            if (!b || strcmp(b + 1, id) != 0 || !h_m(p, "(^|/)user/app/[^/]+$")) continue;
+            dliste *l = s_liste(k->S, p, false);
+            return !l || l->n > 0;                         /* nicht lesbar: wie bisher installiert */
+        }
+        return true;
+    }
+    return kopie_echt(k, g, id);
+}
+/* Die Teile des Kopfs i hinter ihm: nach Ort (intern, M.2, USB-Speicher, USB-Stick), darin in Fundreihenfolge - sonst stünde z. B. eine ELF
+ * vom Stick (vorher "Apps") vor den Daten auf der internen SSD (vorher "Sonstiges"), weil die Liste vorher nach Bereichen sortiert war.
+ * NEU 1.0.7 (03.11.2026): unter einer Trophäen-Liste zuerst die weiteren Listen, dann der Fortschritt (Durchgang 0 = Listen).
+ * NEU 1.0.8 (Orbit Store, Codex-Prüfung 108): eine zusammengeführte ShadowMount-Kachel (sm_mit) hängt nur zur Anzeige am Block (Begleit),
+ * direkt hinter ihr ihre Spieldatei-Zeile (zu = -2) und ihre eigenen Teile - die hängen weiter an IHR (ToolKachel), wie bisher. */
+static void bloecke_teile(kern *k, pliste *neu, pliste *liste, int n, int *zu, const bool *tr_liste, const bool *sm_mit, int i)
+{
+    for (int dg = 0; dg < 2; dg++)
+    for (int o = -1; o <= ORT_STICK; o++)
+    for (int d = 0; d < n; d++) if (zu[d] == i) {
+        eintrag *f = liste->e[d], *h = liste->e[i];
+        bool ort_ok = (f->Ort >= ORT_INTERN && f->Ort <= ORT_STICK) ? f->Ort == o : o == -1;
+        if (!ort_ok) continue;
+        if ((dg == 0) != tr_liste[d]) continue;
+        f->Text = VERB(A, "   – ", f->Text); f->TextBasis = VERB(A, "   – ", f->TextBasis);
+        if (sm_mit[d]) f->Begleit = h; else f->ToolKachel = h;
+        /* unter ihre Kachel - Trophäen bleiben, wo sie sind; NEU 1.0.8: eine PKG-Datei immer zu ihrem Spiel (auch zur zweiten Kopie ohne Kachel).
+         * Codex-Prüfung 108 (P3): wurde der Eintrag schon vorher verschoben (bereiche_107), bleibt seine Herkunft */
+        if (h->KachelId || (f->PkgArt && f->Kat != h->Kat)) { if (!f->KatHer) f->KatHer = f->Kat; f->Kat = h->Kat; }
+        pl_add(A, neu, f);
+        if (!sm_mit[d]) continue;
+        for (int s = 0; s < n; s++) {
+            eintrag *sd = liste->e[s];
+            if (zu[s] != -2 || sd->SmKachel != f) continue;
+            if (sd->Kat != f->Kat) { if (!sd->KatHer) sd->KatHer = sd->Kat; sd->Kat = f->Kat; }
+            pl_add(A, neu, sd);
+        }
+        bloecke_teile(k, neu, liste, n, zu, tr_liste, sm_mit, d);   /* ihre eigenen Teile (eine Ebene tiefer gibt es nicht) */
+    }
+}
 static void kachel_bloecke(kern *k, pliste *liste)
 {
     int n = liste->n;
     int *zu = a_hole(A, sizeof(int) * (size_t)(n > 0 ? n : 1));
     for (int i = 0; i < n; i++) zu[i] = -1;
+    signed char *echt = a_hole(A, (size_t)(n > 0 ? n : 1));   /* Codex-Prüfung 83: Kopf wirklich installiert? 0 = noch nicht geprüft, 1 ja, 2 nein */
     /* Köpfe: Kennung, Name, Alias */
     const char **kid = a_hole(A, sizeof(char *) * (size_t)(n > 0 ? n : 1)), **ktk = a_hole(A, sizeof(char *) * (size_t)(n > 0 ? n : 1));
-    const char **ktt = a_hole(A, sizeof(char *) * (size_t)(n > 0 ? n : 1));
+    const char **ktt = a_hole(A, sizeof(char *) * (size_t)(n > 0 ? n : 1)), **kid_ohne_jb = a_hole(A, sizeof(char *) * (size_t)(n > 0 ? n : 1));
+    bool *kjb = a_hole(A, sizeof(bool) * (size_t)(n > 0 ? n : 1));
     for (int i = 0; i < n; i++) {
-        eintrag *g = liste->e[i]; kid[i] = NULL; ktk[i] = ""; ktt[i] = "";
-        if (!ist_block_kopf(g)) continue;
+        eintrag *g = liste->e[i]; kid[i] = kid_ohne_jb[i] = NULL; ktk[i] = ""; ktt[i] = ""; kjb[i] = false;
+        if (!ist_block_kopf(g) && !(kjb[i] = ist_jb_kopf(g))) continue;
         kid[i] = kopf_kennung(g);
-        ktt[i] = kopf_titel(k, g, kid[i]);
+        if (!kjb[i]) kid_ohne_jb[i] = kid[i];
+        ktt[i] = kern_bereiche_106() ? kopf_titel(k, g, kid[i]) : titel_ohne_version(k, kopf_titel(k, g, kid[i]));   /* NEU 1.0.8 (Befund 14) */
         ktk[i] = tool_schluessel(k, ktt[i]);
     }
+    kopf_jb = kjb;
     for (int d = 0; d < n; d++) {
         eintrag *f = liste->e[d];
         if (kid[d] || f->Jailbreak || f->SmDatei || f->Teil || f->Kachel || f->PfadeBasis.n == 0) continue;
         if (f->Kat != 1 && f->Kat != 5 && f->Kat != 6) continue;
+        /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12): eine PKG-Datei gehört zu dem Spiel bzw. der App mit ihrer Spielnummer (aus dem Kopf
+         * der Datei, sonst aus dem Namen) - egal in welchem Ordner und auf welchem Speicher sie liegt. Ist es zweimal installiert (intern
+         * und M.2), zur ersten Kopie. Nicht installiert: eigener Block (pkg_ohne_spiel). */
+        if (f->PkgArt) {
+            /* Codex-Prüfung 83 (P2): zuerst zu einem Spiel, das wirklich installiert ist (App-Ordner mit app.pkg bzw. eboot.bin, ShadowMount
+             * mit Spieldatei). NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46: "bei Spiele sind jetzt wieder Doppelteinträge ... einen
+             * Reiter mit der PKG und weiter unten die Spieledateien und die Kachel"): ist von dem Spiel nur noch ein Rest da (Kachel mit leerem
+             * App-Ordner wie L.A. Noire, tote ShadowMount-Kachel, Tool-Kachel mit leerem App-Ordner), steht die PKG-Datei trotzdem in SEINEM
+             * Block - mit eigenem Text (PkgSpielFehlt). Einen Block "· nicht installiert" gibt es nur noch, wenn von dem Spiel gar nichts da ist. */
+            if (f->PkgId) {
+                int rest = -1;
+                for (int t = 0; t < n; t++) if (kid[t] && !strcmp(kid[t], f->PkgId)) {
+                    if (!echt[t]) echt[t] = pkg_kopf_installiert(k, liste->e[t], kid[t]) ? 1 : 2;
+                    if (echt[t] == 1) { zu[d] = t; break; }
+                    if (rest < 0) rest = t;
+                }
+                if (zu[d] < 0 && rest >= 0) { zu[d] = rest; f->PkgSpielFehlt = true; }
+            }
+            continue;
+        }
+        /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46: "unter Apps gibt es Orbit ... da sind auch zwei Reiter"): der Entpack-Ordner von
+         * Orbit Store (".orbit-extract-<Zahl>", auf da_Chris86s M.2 51,3 GB) enthält den Ordner des Spiels, das Orbit gerade entpackt
+         * ("LIZARD Marvel's Spider-Man 2 01.004.003 PPSA03016"). Tragen alle Einträge darin dieselbe Spielnummer, gehört der Entpack-Ordner
+         * zu diesem Spiel - wie die halb geladene .rar.part daneben - statt als eigene Zeile unter Apps zu stehen. Nur bei genau einem
+         * passenden Spiel; ist der Ordner nicht lesbar, leer oder gemischt, bleibt er, wo er war (nicht raten).
+         * Codex-Prüfung 102 (P3): nur ein echter Ordner - bei einer Verknüpfung entschiede sonst der Inhalt ihres Ziels. */
+        if (f->PfadeBasis.n == 1 && h_m(h_blatt(A, f->PfadeBasis.e[0]), "^\\.orbit-extract-[0-9A-Za-z]+$")) {
+            const char *op = f->PfadeBasis.e[0], *ob = h_blatt(A, op);
+            dliste *el = NULL, *ol = NULL;
+            VERSUCHE { el = s_liste(k->S, h_eltern(A, op), false); ol = s_liste(k->S, op, false); }
+            FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); el = ol = NULL; } ENDE_VERSUCHE;
+            bool echt_ordner = false;
+            for (int j = 0; el && j < el->n; j++) if (!strcmp(el->e[j].name, ob)) { echt_ordner = el->e[j].ist_ordner && !el->e[j].ist_link; break; }
+            const char *oid = NULL; bool eins = echt_ordner && ol != NULL;
+            for (int j = 0; ol && j < ol->n && eins; j++) {
+                if (!strcmp(ol->e[j].name, ".") || !strcmp(ol->e[j].name, "..")) continue;
+                htreffer mo = h_mt(A, ol->e[j].name, "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
+                if (!mo.ok || ol->e[j].ist_link) eins = false;
+                else if (!oid) oid = mo.gr[1];
+                else if (strcmp(oid, mo.gr[1]) != 0) eins = false;
+            }
+            if (eins && oid) {
+                int t1 = -1, a1 = 0;
+                for (int t = 0; t < n; t++) if (kid_ohne_jb[t] && !strcmp(kid_ohne_jb[t], oid)) { t1 = t; a1++; }
+                if (a1 == 1) { zu[d] = t1; continue; }
+            }
+        }
         /* alle Pfade müssen demselben gehören */
         const char *oc = NULL; bool gleich = true;
         for (int j = 0; j < f->PfadeBasis.n && gleich; j++) {
@@ -1789,8 +2875,10 @@ static void kachel_bloecke(kern *k, pliste *liste)
         /* 0. Codex-Prüfung 40 (1) / 41 (2): eine SPIELDATEI (PKG, Spiel-Abbild - oder ein Eintrag unter "Spiele") mit Spielnummer im
          * eigenen Namen gehört zu dem Spiel mit dieser Nummer, egal in welchem Ordner sie liegt (.../OrbitStore/Spiel-CUSA31001.pkg).
          * Gibt es dieses Spiel nicht (genau einmal), bleibt sie für sich - nie unter der App, nach der ihr Ordner heißt. Gewöhnliche
-         * App-Ordner mit einer Nummer im Namen (z. B. playden/cache-CUSA31001) gehen den normalen Weg über ihren Besitzer. */
-        {
+         * App-Ordner mit einer Nummer im Namen (z. B. playden/cache-CUSA31001) gehen den normalen Weg über ihren Besitzer.
+         * Codex-Prüfung 86: der Rest eines Tool-Ordners (ToolOrdner) steht für den Ordner selbst - nie nach dem Namen einer Datei oder eines
+         * Unterordners darin (Schritte 0 und 0b), sondern über seinen Besitzer (/user/data/<Tool>) wie der ganze Ordner. */
+        if (!f->ToolOrdner) {
             const char *bid = NULL; bool alle = true;
             for (int j = 0; j < f->PfadeBasis.n && alle; j++) {
                 const char *bl = h_blatt(A, f->PfadeBasis.e[j]);
@@ -1807,14 +2895,15 @@ static void kachel_bloecke(kern *k, pliste *liste)
         }
         /* 0b. Codex-Prüfung 41 (1): liegt der Eintrag IN seinem Besitzer-Ordner (z. B. /mnt/ext1/OrbitStore/pldmgr_v0.6.3.elf) und heißt er
          * selbst GENAU wie eine Kachel (gleicher Name oder feste Zuordnung), gehört er zu dieser Kachel - nicht zu der, nach der der Ordner heißt */
-        if (f->PfadeBasis.n == 1 && f->Kat != 1) {
+        if (f->PfadeBasis.n == 1 && f->Kat != 1 && !f->ToolOrdner) {
             const char *bl = h_blatt(A, f->PfadeBasis.e[0]);
             if (strcmp(bl, oc) != 0) {
                 htreffer pb = h_mt(A, bl, "^(.+?)(?:[-_ ]v?\\d[\\w.\\-]*)?\\.(?:elf|bin)$");
                 const char *sb = pb.ok ? pb.gr[1] : (name_ist_datei(bl) ? h_r(A, bl, "\\.[A-Za-z][A-Za-z0-9]{0,7}$", "") : bl);
                 const char *kb = tool_schluessel(k, sb);
                 int t1 = -1, a1 = 0;
-                for (int t = 0; t < n; t++) if (kid[t] && name_stufe(ktk[t], ktt[t], tool_alias(kid[t]), kb, sb) == 1) { t1 = t; a1++; }
+                kopf_payload = pb.ok;
+                for (int t = 0; t < n; t++) if (kopf_zaehlt(kid, t, kb) && name_stufe(ktk[t], ktt[t], tool_alias(kid[t]), kb, sb) == 1) { t1 = t; a1++; }
                 if (a1 == 1) { zu[d] = t1; continue; }
             }
         }
@@ -1822,21 +2911,14 @@ static void kachel_bloecke(kern *k, pliste *liste)
         htreffer mi = h_mt(A, oc, "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
         if (mi.ok) {
             int t1 = -1, a1 = 0;
-            for (int t = 0; t < n; t++) if (kid[t] && !strcmp(kid[t], mi.gr[1])) { t1 = t; a1++; }
+            const char **kk = h_m(oc, "(?i)\\.(elf|bin)$") ? kid : kid_ohne_jb;   /* NEU 1.0.8: Jailbreak-Kachel nur für Programmdateien */
+            for (int t = 0; t < n; t++) if (kk[t] && !strcmp(kk[t], mi.gr[1])) { t1 = t; a1++; }
             if (a1 == 1) zu[d] = t1;
             continue;                              /* eine Spielnummer, die zu keiner (oder mehreren) Kachel(n) passt: nicht raten */
         }
         if (f->Kat == 1) continue;                 /* Spiele nur über die Kennung */
-        /* 2. Name */
-        bool datei = name_ist_datei(oc);
-        htreffer pm = h_mt(A, oc, "^(.+?)(?:[-_ ]v?\\d[\\w.\\-]*)?\\.(?:elf|bin)$");
-        bool payload = pm.ok;
-        const char *stamm = payload ? pm.gr[1] : (datei ? h_r(A, oc, "\\.[A-Za-z][A-Za-z0-9]{0,7}$", "") : oc);
-        const char *dk = tool_schluessel(k, stamm);
-        int t1 = kopf_fuer_namen(liste, n, kid, ktk, ktt, dk, stamm, f->Kat);
-        /* NEU 1.0.7 (PS5-Test 03.11.2026): "ps5-" vorne sagt nur, für welche Konsole es ist (ps5-web-file-manager_v1.11b.elf -> Kachel
-         * "Web File Manager") - zählt nur, wenn mit dem vollen Namen gar nichts passt */
-        if (t1 == -1) { htreffer mp = h_mt(A, stamm, "^ps5[-_ ](.+)$"); if (mp.ok) t1 = kopf_fuer_namen(liste, n, kid, ktk, ktt, tool_schluessel(k, mp.gr[1]), mp.gr[1], f->Kat); }
+        /* 2. Name (kopf_fuer_besitzer_namen, auch "ps5-" vorne) */
+        int t1 = kopf_fuer_besitzer_namen(k, liste, n, kid, ktk, ktt, oc, f->Kat);
         if (t1 >= 0) zu[d] = t1;
     }
     /* NEU 1.0.7 (PS5-Test 03.11.2026: ps5upload_startup.log stand unter Sonstiges, der Ordner ps5upload unter "PS5Upload Minion"): eine
@@ -1863,7 +2945,69 @@ static void kachel_bloecke(kern *k, pliste *liste)
         }
         if (best >= 0 && !zwei) zu[d] = best;
     }
-    beleg_aus_programmen(k, liste, n, zu, kid);
+    kopf_jb = NULL; kopf_payload = false;
+    beleg_aus_programmen(k, liste, n, zu, kid_ohne_jb);   /* NEU 1.0.8: Belege nur aus den Programmen von App- und Tool-Kacheln (wie bisher) */
+    /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46: "Spectrum Library ist unter Sonstiges auch ein Eintrag drin, der eigentlich unter Apps
+     * gehört"): eine PKG-Datei, deren Spielnummer sich nicht lesen ließ (SpectrumLibrary_1.4.8.pkg ist im PS5-Format), steht bei dem Tool, in
+     * dessen Daten-Ordner sie liegt (/user/data/SpectrumLibrary/...) - der Rest dieses Ordners ("ohne PKG-Dateien", ToolOrdner) steht schon
+     * dort. Nur wenn genau ein Ordner am tiefsten passt (nicht raten).
+     * Codex-Prüfung 102 (P2): liegt im Ordner außer PKG-Dateien nichts, gibt es keinen Rest mit ToolOrdner - dann gilt der Ordner, dem der Pfad
+     * gehört (/user/data/<Tool>, /mnt/<Speicher>/<Ordner>, besitzer_teil), wie der ganze Ordner: Spielnummer im Namen, sonst der Name (nur
+     * bei genau einem passenden Kopf; Jailbreak-Köpfe wie im Hauptdurchlauf nur über feste Zuordnungen). */
+    kopf_jb = kjb; kopf_payload = false;
+    for (int d = 0; d < n; d++) {
+        eintrag *f = liste->e[d];
+        if (zu[d] >= 0 || kid[d] || !f->PkgArt || f->PkgId || f->Gesperrt || f->Jailbreak || f->SmDatei || f->Teil || f->Kachel || f->PfadeBasis.n != 1) continue;
+        if (f->Kat != 1 && f->Kat != 5 && f->Kat != 6) continue;
+        const char *p = f->PfadeBasis.e[0];
+        int best = -1; size_t bl = 0; bool zwei = false;
+        for (int e = 0; e < n; e++) {
+            eintrag *g = liste->e[e];
+            int ziel = zu[e] >= 0 ? zu[e] : kid[e] ? e : -1;
+            if (e == d || ziel < 0 || !g->ToolOrdner) continue;
+            size_t lo = strlen(g->ToolOrdner);
+            if (strncmp(p, g->ToolOrdner, lo) != 0 || p[lo] != '/') continue;
+            if (lo > bl) { best = ziel; bl = lo; zwei = false; } else if (lo == bl && ziel != best) zwei = true;
+        }
+        if (best >= 0 && !zwei) { zu[d] = best; continue; }
+        if (zwei) continue;
+        const char *oc = besitzer_teil(k, p);
+        if (!oc || !strstr(p, VERB(A, "/", oc, "/"))) continue;   /* nur IN einem Ordner, nie die Datei selbst */
+        htreffer mi = h_mt(A, oc, "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
+        int t1 = -1, a1 = 0;
+        if (mi.ok) {
+            for (int t = 0; t < n; t++) if (kid_ohne_jb[t] && !strcmp(kid_ohne_jb[t], mi.gr[1])) { t1 = t; a1++; }
+            if (a1 != 1) t1 = -1;
+        } else if (f->Kat != 1) t1 = kopf_fuer_besitzer_namen(k, liste, n, kid, ktk, ktt, oc, f->Kat);   /* Codex-Prüfung 103: dieselbe Regel 2 */
+        if (t1 >= 0) zu[d] = t1;
+    }
+    kopf_jb = NULL; kopf_payload = false;
+    /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86: Orbit Store "in einem Block unter Apps" - "es soll ja für alle zukünftigen Apps und Spiele
+     * genauso laufen"): DASSELBE Programm mit zwei Kacheln - einer App- oder Tool-Kachel unter Apps (Orbit Store: ORBT00001 von
+     * orbit_store.elf) und einer über ShadowMount eingetragenen App (PPSA99177 aus PPSA99177.ffpkg, stand unter Spiele) - steht als EIN Block
+     * unter der Kachel unter Apps. Dasselbe Programm heißt: GENAU derselbe Name (ohne Versionsangabe, wie bei der Zuordnung von Daten), unter
+     * Apps genau EINE Kachel und über ShadowMount genau EINE Kachel dieses Namens - sonst nicht raten. Die ShadowMount-Kachel steht im Block
+     * mit ihrer Spieldatei-Zeile und allem, was unter ihr stand (bloecke_teile). Codex-Prüfung 108 (P1): nur Anzeige - die ShadowMount-
+     * Kachel hängt über Begleit am Block, nicht über ToolKachel; ihre Teile hängen weiter an IHR. Beim Löschen ändert sich nichts. */
+    bool *sm_mit = a_hole(A, sizeof(bool) * (size_t)(n > 0 ? n : 1));
+    for (int p = 0; p < n; p++) sm_mit[p] = false;
+    for (int p = 0; p < n; p++) {
+        eintrag *gp = liste->e[p];
+        if (kern_bereiche_106() || !kid[p] || kjb[p] || zu[p] >= 0 || !gp->Kachel || !ktt[p][0] || !strstr(gp->TextBasis ? gp->TextBasis : "", "ShadowMount")) continue;
+        int o = -1, ao = 0, ap = 0;
+        for (int t = 0; t < n; t++) {
+            if (!kid[t] || kjb[t] || strcmp(ktt[t], ktt[p]) != 0) continue;
+            eintrag *gt = liste->e[t];
+            if (strstr(gt->TextBasis ? gt->TextBasis : "", "ShadowMount")) ap++;
+            else if ((gt->Kat == 6 || gt->KatHer == 6) && gt->KachelId && gt->KachelId[0]) { o = t; ao++; }   /* 1.0.8: KatHer 6 = Tool-Kachel unter Spiele (bereiche_107) */
+        }
+        if (ao != 1 || ap != 1 || zu[o] >= 0) continue;
+        zu[p] = o; sm_mit[p] = true;
+        for (int d = 0; d < n; d++) {
+            eintrag *f = liste->e[d];
+            if (f->SmDatei && f->SmKachel == gp && zu[d] < 0) zu[d] = -2;   /* kommt direkt hinter ihre Kachel (bloecke_teile) */
+        }
+    }
     /* NEU 1.0.7 (da_Chris86 03.11.2026 17:12: "das mit den Trophys genauso machen, dass die Liste und der Fortschritt untereinander ist"):
      * je Spiel EIN Block unter "Trophäen" - oben die (erste) Trophäen-Liste, darunter weitere Listen und der Fortschritt aller Konten.
      * Zusammen gehört, was dieselbe Trophäen-Nummer (NPWR...) hat oder laut npbind.dat zum selben Spiel gehört. Beides sind getrennte
@@ -1879,10 +3023,13 @@ static void kachel_bloecke(kern *k, pliste *liste)
             if (f->Kat != 3 || f->PfadeBasis.n == 0 || zu[d] >= 0) continue;
             bool la = txt_beginnt(f->TextBasis, T("Trophäen-Liste: ", "Trophy list: "));
             if (!la && !txt_beginnt(f->TextBasis, T("Trophäen-Fortschritt: ", "Trophy progress: "))) continue;
-            /* Codex-Prüfung 62: eine Liste kann an mehreren Orten liegen (trophy/conf, trophy2/nobackup/conf, np_uds) - alle Pfade dieselbe Nummer */
-            htreffer mn = h_mt(A, f->PfadeBasis.e[0], "(?-i)/(NPWR\\d{5}_\\d{2})$");
+            /* Codex-Prüfung 62: eine Liste kann an mehreren Orten liegen (trophy/conf, trophy2/nobackup/conf, np_uds) - alle Pfade dieselbe Nummer.
+             * Codex-Prüfung 120 (P3): eine Kopie mit Endung (NPWR09412_00_BK, von der PS5 beim Neuinstallieren angelegt) gehört in den Block
+             * ihrer Liste - Schlüssel ist die Nummer ohne Endung, wie bei Name und Listennummer (npwr_basis) */
+            const char *npm = kern_bereiche_106() ? "(?-i)/(NPWR\\d{5}_\\d{2})$" : "(?-i)/(NPWR\\d{5}_\\d{2})(?:_[A-Za-z0-9]{1,16})?$";
+            htreffer mn = h_mt(A, f->PfadeBasis.e[0], npm);
             bool eine = mn.ok;
-            for (int j = 1; j < f->PfadeBasis.n && eine; j++) { htreffer mj = h_mt(A, f->PfadeBasis.e[j], "(?-i)/(NPWR\\d{5}_\\d{2})$"); eine = mj.ok && !strcmp(mj.gr[1], mn.gr[1]); }
+            for (int j = 1; j < f->PfadeBasis.n && eine; j++) { htreffer mj = h_mt(A, f->PfadeBasis.e[j], npm); eine = mj.ok && !strcmp(mj.gr[1], mn.gr[1]); }
             if (!eine || (!la && f->PfadeBasis.n != 1)) continue;
             tk[d] = mt_hat(&k->NPWR_KACHEL, mn.gr[1]) ? VERB(A, "S|", (const char *)mt_hole(&k->NPWR_KACHEL, mn.gr[1])) : VERB(A, "N|", mn.gr[1]);
             tl[d] = la;
@@ -1912,25 +3059,241 @@ static void kachel_bloecke(kern *k, pliste *liste)
     for (int d = 0; d < n; d++) { eintrag *f = liste->e[d]; tr_liste[d] = f->Kat == 3 && txt_beginnt(f->TextBasis, T("Trophäen-Liste: ", "Trophy list: ")); }
     pliste neu = {0};
     for (int i = 0; i < n; i++) {
-        if (zu[i] >= 0) continue;
+        if (zu[i] >= 0 || zu[i] == -2) continue;   /* -2: Spieldatei-Zeile einer zusammengeführten ShadowMount-Kachel (kommt mit ihr) */
         pl_add(A, &neu, liste->e[i]);
-        /* Teile nach Ort (intern, M.2, USB-Speicher, USB-Stick), darin in Fundreihenfolge - sonst stünde z. B. eine ELF vom Stick
-         * (vorher "Apps") vor den Daten auf der internen SSD (vorher "Sonstiges"), weil die Liste vorher nach Bereichen sortiert war */
-        /* NEU 1.0.7 (03.11.2026): unter einer Trophäen-Liste zuerst die weiteren Listen, dann der Fortschritt (Durchgang 0 = Listen) */
-        for (int dg = 0; dg < 2; dg++)
-        for (int o = -1; o <= ORT_STICK; o++)
-        for (int d = 0; d < n; d++) if (zu[d] == i) {
-            eintrag *f = liste->e[d], *h = liste->e[i];
+        bloecke_teile(k, &neu, liste, n, zu, tr_liste, sm_mit, i);
+    }
+    *liste = neu;
+}
+/* NEU 1.0.8 (Arbeitsplan 2.3, Vorschlag aus PLAN_1.0.7, da_Chris86 04.11.2026 14:30): Tools ohne Kachel. Auf da_Chris86s PS5 liegen
+ * nanoDNS_0.4.elf und zftpd-ps5-v1.6.0.elf auf dem USB-Stick (bis 1.0.7 unter "Sonstiges"), ihre Daten unter /data/nanodns und /data/zftpd
+ * ("Apps"). Jetzt steht die Payload-Datei (ELF/BIN) unter dem Daten-Ordner desselben Tools, beide unter "Apps" - ein Block "nanoDNS",
+ * "ohne Kachel". Zugeordnet wird über den Namen wie bei den Kacheln (name_stufe): gleich (nanoDNS = nanodns), oder die Datei beginnt an
+ * einer Grenze mit dem Ordnernamen (ab 5 Zeichen: zftpd-ps5 zu zftpd). Nur wenn in der besten Stufe genau EIN Daten-Ordner passt (nicht
+ * raten). Ein Daten-Ordner unter "Sonstiges" kommt mit, wenn eine Payload-Datei genau zu ihm passt - dann ist er die Ablage dieses Tools.
+ * Nur Anzeige (Begleit): anders als unter einer Kachel hängt beim Löschen nichts daran, jede Zeile behält ihren eigenen Haken. */
+/* Codex-Prüfung 73: nur in einer Richtung - die Datei heißt wie der Ordner oder beginnt (an einer Grenze) mit seinem Namen
+ * (zftpd-ps5-v1.6.0.elf zu zftpd), nie umgekehrt (Werkbank.elf nicht zu Werkbank-Archiv). Ein Ordner unter "Sonstiges" (kein bekanntes
+ * Tool) nur bei GLEICHEM Namen - sonst käme fremder Inhalt als "Einstellungen" nach "Apps". */
+static int ohne_kachel_ordner(kern *k, int n, const char **dk, const char **dn, const bool *bekannt, const char *stamm)
+{
+    const char *ek = tool_schluessel(k, stamm);
+    int beste = 3, tr = -1, anz = 0;
+    for (int t = 0; t < n; t++) {
+        if (!dk[t]) continue;
+        int st = !strcmp(dk[t], ek) ? 1 : (bekannt[t] && strlen(ek) > strlen(dk[t]) && strlen(dk[t]) >= 5 && beginnt_mit_schluessel(stamm, dk[t], false)) ? 2 : 0;
+        if (!st) continue;
+        if (st < beste) { beste = st; tr = t; anz = 1; }
+        else if (st == beste) anz++;
+    }
+    return anz == 1 ? tr : anz > 1 ? -2 : -1;
+}
+static void tools_ohne_kachel(kern *k, pliste *liste)
+{
+    int n = liste->n;
+    if (n == 0) return;
+    const char **dk = a_hole(A, sizeof(char *) * (size_t)n), **dn = a_hole(A, sizeof(char *) * (size_t)n), **st = a_hole(A, sizeof(char *) * (size_t)n);
+    bool *bekannt = a_hole(A, sizeof(bool) * (size_t)n);
+    int *zu = a_hole(A, sizeof(int) * (size_t)n);
+    for (int i = 0; i < n; i++) {   /* Daten-Ordner direkt unter /user/data, die zu keiner Kachel gehören */
+        eintrag *f = liste->e[i];
+        dk[i] = dn[i] = st[i] = NULL; zu[i] = -1;
+        if ((f->Kat != 5 && f->Kat != 6) || f->ToolKachel || f->KachelId || f->Kachel || f->Jailbreak || f->Gesperrt || f->Teil || f->SmDatei || (f->PfadeBasis.n != 1 && !f->ToolOrdner)) continue;
+        htreffer m = h_mt(A, f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.e[0], "^/user/data/([^/]+)$");   /* Codex-Prüfung 85: Rest wie der Ordner */
+        if (!m.ok || name_ist_datei(m.gr[1])) continue;
+        const char *s = tool_schluessel(k, m.gr[1]);
+        if (strlen(s) < 4) continue;                   /* zu kurz, um es einem Programm sicher zuzuordnen */
+        dn[i] = m.gr[1]; dk[i] = s; bekannt[i] = f->Kat == 6;
+    }
+    bool je = false;
+    for (int d = 0; d < n; d++) {   /* Payload-Dateien (ELF/BIN), die zu keiner Kachel gehören */
+        eintrag *f = liste->e[d];
+        if (dk[d] || (f->Kat != 5 && f->Kat != 6) || f->ToolKachel || f->KachelId || f->Kachel || f->Jailbreak || f->Gesperrt || f->Teil || f->SmDatei || f->PfadeBasis.n != 1) continue;
+        const char *bl = h_blatt(A, f->PfadeBasis.e[0]);
+        htreffer pm = h_mt(A, bl, "^(.+?)(?:[-_ ]v?\\d[\\w.\\-]*)?\\.(?:elf|bin)$");
+        if (!pm.ok) continue;
+        const char *stamm = pm.gr[1];
+        int t = ohne_kachel_ordner(k, n, dk, dn, bekannt, stamm);
+        if (t == -1) { htreffer mp = h_mt(A, stamm, "^ps5[-_ ](.+)$"); if (mp.ok) { stamm = mp.gr[1]; t = ohne_kachel_ordner(k, n, dk, dn, bekannt, stamm); } }
+        if (t >= 0) { zu[d] = t; st[d] = stamm; je = true; }
+    }
+    if (!je) return;
+    pliste neu = {0};
+    for (int i = 0; i < n; i++) {
+        if (zu[i] >= 0) continue;
+        eintrag *h = liste->e[i];
+        pl_add(A, &neu, h);
+        bool kopf = false;
+        for (int o = -1; o <= ORT_STICK; o++)              /* wie kachel_bloecke: nach Ort, darin in Fundreihenfolge */
+            for (int d = 0; d < n; d++) if (zu[d] == i) {
+                eintrag *f = liste->e[d];
+                bool ort_ok = (f->Ort >= ORT_INTERN && f->Ort <= ORT_STICK) ? f->Ort == o : o == -1;
+                if (!ort_ok) continue;
+                if (!kopf) {
+                    kopf = true;
+                    h->OhneKachel = true;
+                    /* Name des Blocks: heißt die Datei genau wie der Ordner, ihre Schreibweise ("nanoDNS" statt "nanodns"), sonst der Ordner */
+                    h->BlockName = !strcmp(tool_schluessel(k, st[d]), dk[i]) ? a_kopie(A, st[d]) : dn[i];
+                    if (h->Kat != 6) { h->KatHer = h->Kat; h->Kat = 6; }
+                }
+                f->Text = VERB(A, "   – ", f->Text); f->TextBasis = VERB(A, "   – ", f->TextBasis);
+                f->Begleit = h;
+                if (f->Kat != 6) { f->KatHer = f->Kat; f->Kat = 6; }
+                pl_add(A, &neu, f);
+            }
+    }
+    *liste = neu;
+}
+/* Begleit-Blöcke (pkg_ohne_spiel, payload_gruppen): Kopf zuerst, darunter seine Teile nach Rang (rang(), 0 zuerst), darin nach Ort und
+ * in Fundreihenfolge. zu[d] = Index des Kopfs von d (-1 = selbst Kopf oder für sich). */
+static void begleit_ordnen(kern *k, pliste *liste, const int *zu, int (*rang)(const eintrag *), int kat_fest)
+{
+    int n = liste->n;
+    pliste neu = {0};
+    for (int i = 0; i < n; i++) {
+        if (zu[i] >= 0) continue;
+        eintrag *h = liste->e[i];
+        pl_add(A, &neu, h);
+        for (int r = 0; r < 3; r++) for (int o = -1; o <= ORT_STICK; o++) for (int d = 0; d < n; d++) if (zu[d] == i) {
+            eintrag *f = liste->e[d];
             bool ort_ok = (f->Ort >= ORT_INTERN && f->Ort <= ORT_STICK) ? f->Ort == o : o == -1;
-            if (!ort_ok) continue;
-            if ((dg == 0) != tr_liste[d]) continue;
+            if (!ort_ok || (rang ? rang(f) : 0) != r) continue;
             f->Text = VERB(A, "   – ", f->Text); f->TextBasis = VERB(A, "   – ", f->TextBasis);
-            f->ToolKachel = h;
-            if (h->KachelId) { f->KatHer = f->Kat; f->Kat = h->Kat; }   /* unter ihre Kachel - Trophäen bleiben, wo sie sind */
+            f->Begleit = h;
+            int kat = kat_fest ? kat_fest : h->Kat;
+            if (f->Kat != kat) { f->KatHer = f->Kat; f->Kat = kat; }
             pl_add(A, &neu, f);
         }
     }
     *liste = neu;
+}
+/* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12, da_Chris86: "Spiel nicht installiert und halt auch zum Aufklappen unten drunter Update und
+ * DLCs"): die PKG-Dateien eines Spiels, das gerade nicht installiert ist, stehen als EIN Block "<Spiel> · nicht installiert" unter
+ * "Spiele" (eine App unter "Apps"): oben die Installationsdatei, darunter Updates, dann Zusatzinhalte, je nach Speicher. Nur Anzeige
+ * (Begleit) - jede Zeile behält ihren eigenen Haken. Ohne Spielnummer bleibt die Datei unter "Sonstiges". */
+static int pkg_rang(const eintrag *f) { return f->PkgArt == PKG_SPIEL || f->PkgArt == PKG_APP ? 0 : f->PkgArt == PKG_UPDATE ? 1 : 2; }
+static void pkg_ohne_spiel(kern *k, pliste *liste)
+{
+    int n = liste->n, m;
+    if (n == 0) return;
+    const char **sch = a_hole(A, sizeof(char *) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        eintrag *f = liste->e[i]; sch[i] = NULL;
+        if (f->PkgArt && f->PkgId && !f->ToolKachel && !f->Begleit && !f->Gesperrt) sch[i] = f->PkgId;
+    }
+    int *ix = pkg_sortiert(k, sch, n, &m), *zu = a_hole(A, sizeof(int) * (size_t)n);
+    for (int i = 0; i < n; i++) zu[i] = -1;
+    if (m == 0) return;
+    for (int a = 0; a < m; ) {
+        int b = a; while (b < m && !strcmp(sch[ix[a]], sch[ix[b]])) b++;
+        int h = ix[a];   /* Kopf: die Installationsdatei (bzw. das erste Update), bei mehreren die zuerst gefundene */
+        for (int j = a; j < b; j++) { eintrag *g = liste->e[ix[j]], *x = liste->e[h]; if (pkg_rang(g) < pkg_rang(x) || (pkg_rang(g) == pkg_rang(x) && ix[j] < h)) h = ix[j]; }
+        const char *titel = NULL; bool app = false;
+        for (int j = a; j < b; j++) { eintrag *g = liste->e[ix[j]]; if (g->PkgArt == PKG_APP) app = true; if (!titel && pkg_rang(g) == 0 && g->PkgTitel && g->PkgTitel[0]) titel = g->PkgTitel; }
+        for (int j = a; j < b && !titel; j++) { eintrag *g = liste->e[ix[j]]; if (g->PkgTitel && g->PkgTitel[0]) titel = g->PkgTitel; }
+        if (!titel) { int art = 3; const char *t = name_belegt(k, sch[ix[a]], &art); if (art <= 2 && t && t[0]) titel = t; }   /* bekannter Name zur Nummer */
+        eintrag *kf = liste->e[h];
+        kf->PkgOhneSpiel = true;
+        kf->BlockName = VERB(A, titel ? titel : kf->PkgId, T(" · nicht installiert", " · not installed"));
+        int kat = app ? 6 : 1;
+        if (kf->Kat != kat) { kf->KatHer = kf->Kat; kf->Kat = kat; }
+        for (int j = a; j < b; j++) if (ix[j] != h) zu[ix[j]] = h;
+        a = b;
+    }
+    begleit_ordnen(k, liste, zu, pkg_rang, 0);
+}
+/* NEU 1.0.8 (PS5-Test 06.11.2026, da_Chris86 17:47: "das soll schon sauber geordnet sein, unabhängig, ob es installiert ist oder nicht"):
+ * mehrere Programmdateien (ELF/BIN) desselben Tools, das weder eine Kachel noch einen Daten-Ordner hat (z. B. BFpilot_v0.4.4.elf und
+ * BFpilot_v0.4.9-pre.elf auf dem USB-Laufwerk), stehen als EIN Block mit dem Namen des Tools unter "Apps". Derselbe heißt: gleicher Name
+ * ohne Version, ohne "ps5-" vorne und "-ps5" hinten. Nur Anzeige (Begleit), jede Datei behält ihren eigenen Haken. */
+static const char *payload_stamm(kern *k, const eintrag *f)
+{
+    if (f->PfadeBasis.n != 1) return NULL;
+    htreffer pm = h_mt(A, h_blatt(A, f->PfadeBasis.e[0]), "^(.+?)(?:[-_ ]v?\\d[\\w.\\-]*)?\\.(?i:elf|bin)$");
+    return pm.ok ? pm.gr[1] : NULL;
+}
+static void payload_gruppen(kern *k, pliste *liste)
+{
+    int n = liste->n, m;
+    if (n == 0) return;
+    const char **sch = a_hole(A, sizeof(char *) * (size_t)n), **stn = a_hole(A, sizeof(char *) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        eintrag *f = liste->e[i]; sch[i] = stn[i] = NULL;
+        if ((f->Kat != 5 && f->Kat != 6) || f->ToolKachel || f->Begleit || f->OhneKachel || f->KachelId || f->Kachel || f->Jailbreak || f->Gesperrt
+            || f->Teil || f->SmDatei || f->PkgArt) continue;
+        const char *st = payload_stamm(k, f);
+        if (!st) continue;
+        st = h_r(A, h_r(A, st, "(?i)^ps5[-_ ]", ""), "(?i)[-_ ]ps5$", "");
+        const char *s = tool_schluessel(k, st);
+        if (strlen(s) >= 3) { sch[i] = s; stn[i] = st; }
+    }
+    int *ix = pkg_sortiert(k, sch, n, &m), *zu = a_hole(A, sizeof(int) * (size_t)n);
+    for (int i = 0; i < n; i++) zu[i] = -1;
+    bool je = false;
+    for (int a = 0; a < m; ) {
+        int b = a; while (b < m && !strcmp(sch[ix[a]], sch[ix[b]])) b++;
+        if (b - a >= 2) {
+            int h = ix[a];   /* der Kopf: die zuerst gefundene Datei (ix ist in Fundreihenfolge sortiert) */
+            eintrag *kf = liste->e[h];
+            kf->OhneKachel = true; kf->BlockName = stn[h];   /* Name ohne Version, ohne "ps5-" ("web-file-manager", "BFpilot") */
+            if (kf->Kat != 6) { kf->KatHer = kf->Kat; kf->Kat = 6; }
+            for (int j = a + 1; j < b; j++) zu[ix[j]] = h;
+            je = true;
+        }
+        a = b;
+    }
+    if (je) begleit_ordnen(k, liste, zu, NULL, 6);
+}
+/* NEU 1.0.8 (Arbeitsplan 2.4, PLAN_1.0.8 Punkt 9, Anlass Nutzerfrage 04.11.2026): dasselbe Spiel mehr als einmal auf der Konsole -
+ * installiert an zwei Orten (z. B. intern und auf der M.2, ein PS4-Spiel nach einer Neuinstallation), installiert und zusätzlich als
+ * Spieldatei (Abbild), oder zwei Spieldateien. Bis 1.0.7 standen die Kopien als getrennte Zeilen da, ohne Hinweis. Jetzt kennt jede Kopie
+ * die anderen (Doppelt), die Zeile sagt z. B. "doppelt: auch installiert auf der M.2-SSD" (kern_art.c kern_doppelt_text). Nur Anzeige:
+ * was gelöscht wird, ändert sich nicht (gemeinsame Lizenz und Kachel-Infos bleiben geschützt, solange eine Kopie bleibt - kern_ps4.c).
+ * Installationsdateien (PKG) zählen nicht als Kopie, sie stehen schon unter ihrem Spiel. Jailbreak-Einstiege bleiben außen vor. */
+static const char *kopie_kennung(kern *k, const eintrag *f)
+{
+    if (f->Jailbreak || f->PfadeBasis.n == 0) return NULL;
+    if (ist_teil(f, "Spiel") && !(f->Quelle && f->Quelle[0])) return kopf_kennung(f);              /* installiert */
+    if (f->SmDatei) return f->SmKachel && f->SmKachel->KachelId && f->SmKachel->KachelId[0] ? f->SmKachel->KachelId : NULL;   /* Spieldatei einer ShadowMount-Kachel */
+    if (f->Art == ART_ABBILD && f->PfadeBasis.n == 1) {                                            /* Spieldatei ohne Kachel: Nummer im Dateinamen */
+        htreffer m = h_mt(A, h_blatt(A, f->PfadeBasis.e[0]), "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
+        return m.ok ? m.gr[1] : NULL;
+    }
+    return NULL;
+}
+/* Codex-Prüfung 73: eine installierte Kopie zählt nur, wenn ihr App-Ordner das Spiel wirklich enthält (app.pkg - PS4 und PS5 - oder
+ * eboot.bin). Ein leerer Installationsrest neben einer echten Installation ist keine zweite Kopie - sonst stimmte der Satz "Löschst du
+ * nur eine Kopie, bleibt die andere" nicht. Gelesen wird nur die Ordnerliste, und nur bei Spielen, die mehr als einmal vorkommen. */
+static bool kopie_echt(kern *k, const eintrag *f, const char *id)
+{
+    if (!ist_teil(f, "Spiel") || (f->Quelle && f->Quelle[0])) return true;   /* Spieldatei: die Datei selbst ist die Kopie */
+    for (int j = 0; j < f->PfadeBasis.n; j++) {
+        const char *p = f->PfadeBasis.e[j], *b = strrchr(p, '/');
+        if (!b || strcmp(b + 1, id) != 0 || !h_m(p, "(^|/)user/app/[^/]+$")) continue;
+        dliste *l = s_liste(k->S, p, false);
+        if (!l) return false;
+        for (int i = 0; i < l->n; i++) if (!l->e[i].ist_ordner && !l->e[i].ist_link && (txt_gleich_ci(l->e[i].name, "app.pkg") || txt_gleich_ci(l->e[i].name, "eboot.bin"))) return true;
+        return false;
+    }
+    return false;                                          /* kein App-Ordner dabei: nicht als Kopie zählen */
+}
+static void doppelte_spiele(kern *k)
+{
+    int n = k->Funde.n;
+    if (n == 0) return;
+    const char **id = a_hole(A, sizeof(char *) * (size_t)n);
+    for (int i = 0; i < n; i++) id[i] = kopie_kennung(k, k->Funde.e[i]);
+    for (int i = 0; i < n; i++) {                          /* nur Spiele, die mehr als einmal vorkommen, genauer ansehen */
+        if (!id[i]) continue;
+        bool mehr = false; for (int j = 0; j < n && !mehr; j++) if (j != i && id[j] && !strcmp(id[i], id[j])) mehr = true;
+        if (mehr && !kopie_echt(k, k->Funde.e[i], id[i])) id[i] = NULL;
+    }
+    for (int i = 0; i < n; i++) {
+        if (!id[i]) continue;
+        eintrag *f = k->Funde.e[i];
+        f->Doppelt = (pliste){0};
+        for (int j = 0; j < n; j++) if (j != i && id[j] && !strcmp(id[i], id[j])) pl_add(A, &f->Doppelt, k->Funde.e[j]);
+    }
 }
 /* NEU 1.0.7 (PS5-Test 02.11.2026): Datenbank-Kopien, die ältere Versionen von PS5 Cleanup angelegt haben (ps5cleanup_db_<Zeit>_…),
  * stehen als EIN Eintrag je Speicher unter "Apps" - "PS5 Cleanup – alte Sicherungen" (bis hier je Datei unter "Sonstiges" mit dem falschen
@@ -1972,17 +3335,37 @@ static void bereiche_107(kern *k)
         /* jeder Jailbreak-Einstieg unter "Jailbreak" - auch die, die schon beim Merken markiert wurden (z. B. gemeinsame Spieldatei, Codex-Prüfung 37) */
         if (f->Jailbreak) { f->Kat = 7; continue; }
         if (f->Gesperrt) continue;
-        if (f->Kat == 1 && !(f->Quelle && f->Quelle[0])) {
+        /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 zu Orbit Store: "Apps über ShadowMount unter Apps"): auch eine über ShadowMount
+         * eingetragene Kachel (Quelle = Spieldatei), wenn ihre eigenen Angaben sagen, dass sie eine App ist - wie bei installierten Apps */
+        if (f->Kat == 1 && (!(f->Quelle && f->Quelle[0]) || f->Kachel)) {
             for (int j = 0; j < f->PfadeBasis.n; j++) {
                 htreffer m = h_mt(A, f->PfadeBasis.e[j], "/(app|patch|addcont)/([A-Z]{4}\\d{5})(/|$)");
                 if (!m.ok) continue;
                 app_titel(k, m.gr[2]);
-                if (k->APP_ART == 2) f->Kat = 6;
+                /* Codex-Prüfung 108 (P3): eine ShadowMount-Kachel bleibt, was sie ist (Art, Ampel, Hinweise wie unter Spiele) - Codex-Prüfung
+                 * 109 (P3): auch ohne erreichbare Spieldatei (tote oder verschobene Kachel, Quelle leer); unter Spiele trägt nur sie .kachel */
+                if (k->APP_ART == 2) { if (f->Kachel) f->KatHer = 1; f->Kat = 6; }
+                break;
+            }
+        }
+        /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 17:35 zum Spielekompressor: "ist unter spiele drin nicht unter apps bitte prüfen",
+         * 19:13 "entscheidest du"): eine Tool-Kachel, die sich bei Sony als Spiel meldet (param.json "applicationCategoryType": 0 - auf
+         * da_Chris86s PS5 nur PSGC50001 "Spielekompressor", alle anderen Tools 65536), steht wie im PS5-Menü unter Spiele. Regel vom
+         * 02.11.2026: "ob Spiel oder App, bleibt so, wie die PS5 es anzeigt" - bis hier galt sie für alle Kacheln außer Tool-Kacheln. Der
+         * ganze Block geht mit (kachel_bloecke: Daten-Ordner und Programmdateien folgen ihrer Kachel). Sie bleibt eine Tool-Kachel (KatHer 6:
+         * Art, Ampel, Hinweise und Löschen wie unter Apps). Ohne Angabe oder mit einem anderen Wert bleibt sie unter Apps. */
+        else if (f->Kat == 6 && f->Kachel && !f->KatHer && txt_beginnt(f->TextBasis, T("Tool-Kachel: ", "Tool tile: "))) {
+            for (int j = 0; j < f->PfadeBasis.n; j++) {
+                htreffer m = h_mt(A, f->PfadeBasis.e[j], "^/user/(?:app|appmeta)/([A-Z]{4}\\d{5})$");
+                if (!m.ok) continue;
+                app_titel(k, m.gr[1]);
+                if (k->APP_ART == 1) { f->KatHer = 6; f->Kat = 1; }
                 break;
             }
         }
         else if (f->Kat == 6 && f->Ort == ORT_INTERN && !f->Kachel && f->PfadeBasis.n > 0) {
-            htreffer m = h_mt(A, f->PfadeBasis.e[0], "^/user/data/(homebrew/)?([^/]+)$");
+            /* Codex-Prüfung 83: der Rest eines Tool-Ordners ohne seine PKG-Dateien (merke_pkg_ordner) zählt wie der Ordner selbst */
+            htreffer m = h_mt(A, f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.e[0], "^/user/data/(homebrew/)?([^/]+)$");
             if (!m.ok || h_m(m.gr[2], "(?i)\\.elf$")) continue;   /* ELF-Dateien bleiben unter Apps (Codex-Prüfung 39) */
             /* 02.11.2026: ob der Ordner zu einer Kachel gehört, entscheidet danach kachel_bloecke (gleiche Regeln für alle Kacheln) - er
              * kommt dann von hier aus unter seine Kachel; was zu keiner gehört, bleibt unter "Sonstiges" */
@@ -2004,7 +3387,7 @@ static void sm_spieldatei_zeilen(kern *k)
         if (!f->Quelle || !f->Quelle[0] || f->SmDatei) continue;
         eintrag *d = a_hole(A, sizeof *d);
         d->Pfade = L1(A, f->Quelle); d->PfadeBasis = sl_kopie(A, &d->Pfade);
-        d->Kat = f->Kat; d->Quelle = ""; d->Gesperrt = f->Gesperrt; d->SperrGrund = f->SperrGrund;
+        d->Kat = f->Kat; d->KatHer = f->KatHer; d->Quelle = ""; d->Gesperrt = f->Gesperrt; d->SperrGrund = f->SperrGrund;   /* KatHer: NEU 1.0.8 (App über ShadowMount) */
         d->Ort = kern_pfad_ort(f->Quelle); d->Jailbreak = f->Jailbreak;
         d->NurEinzeln = f->NurEinzeln || d->Ort == ORT_STICK;   /* Spieldatei auf dem USB-Stick: nur einzeln (wie bisher "Spiel + Kachel" nur ausdrücklich) */
         d->SmDatei = true; d->SmKachel = f;
@@ -2019,11 +3402,135 @@ static void sm_spieldatei_zeilen(kern *k)
     k->bau = neu;
 }
 
+/* NEU 1.0.8 (PS5-Test 07.11.2026, L.A. Noire: Spielstand und Trophäen-Liste "unbekannt", obwohl die PKG-Datei des Spiels auf dem
+ * USB-Laufwerk lag): die PKG-Dateien werden erst nach Spielständen und Trophäen gefunden. Darum trägt namen_nachtragen nach der Suche den
+ * Namen aus dem Kopf einer PKG-Datei ein - nur bei Kennungen, die beim Anlegen ohne jeden Beleg "unbekannt" blieben (NAMEN_OFFEN,
+ * NPWR_OFFEN), nie bei einem Widerspruch. Die Texte bekommen genau die Form, die sie mit einem Beleg von Anfang an gehabt hätten. Eine
+ * Trophäen-Liste bekommt den Namen, wenn ihre TROPHY.TRP mit der Trophäen-Datei einer PKG-Datei übereinstimmt (Kopf mit Prüfsumme). */
+static const char *ersetze_alle(kern *k, const char *t, const char *alt, const char *neu)
+{
+    if (!t || !strstr(t, alt)) return t;
+    const char *aus = ""; size_t al = strlen(alt);
+    for (const char *q = t; ; ) {
+        const char *p = strstr(q, alt);
+        if (!p) { aus = VERB(A, aus, q); break; }
+        aus = VERB(A, aus, a_kopie_n(A, q, (size_t)(p - q)), neu);
+        q = p + al;
+    }
+    return aus;
+}
+static bool kennung_zeichen(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-'; }
+/* "<id...> (unbekannt)" -> "<id...> (<Name>, nicht mehr auf der Konsole)" (mit_name_art) bzw. "(<Name>)" in Texten, die selbst schon
+ * "nicht mehr installiert" sagen (mit_name_kurz) - nur, wo die Kennung als eigenes Wort beginnt */
+static const char *nachtrag_kennung(kern *k, const char *t, const char *id, const char *name)
+{
+    const char *mk = T("Spiel/App unbekannt", "game/app unknown");
+    if (!strstr(t, mk) || !strstr(t, id)) return t;
+    /* Aufnahmen (galerie_name): "<id> (Spiel nicht mehr auf der Konsole, unbekannt)" */
+    t = ersetze_alle(k, t, VERB(A, id, T(" (Spiel nicht mehr auf der Konsole, ", " (game no longer on the console, "), mk, ")"),
+                     VERB(A, name, " (", id, T(", Spiel nicht mehr auf der Konsole)", ", game no longer on the console)")));
+    /* Fake-Lizenz: "Fake-Lizenz: EP...-<id>_00-... - unbekannt (Spiel nicht mehr installiert)". Codex-Prüfung 108 (P2): nur, wenn die Lizenz
+     * selbst diese Kennung trägt - die erste Spielnummer nach "Fake-Lizenz: ", genau wie beim Anlegen (tm in kern_suche_funde) */
+    const char *fl = strstr(t, T("Fake-Lizenz: ", "Fake license: "));
+    if (fl) {
+        htreffer lm = h_mt(A, fl, "([A-Z]{4}\\d{5})");
+        if (lm.ok && !strcmp(lm.gr[1], id))
+            t = ersetze_alle(k, t, VERB(A, " - ", mk, T(" (Spiel nicht mehr installiert)", " (game no longer installed)")),
+                             VERB(A, " - ", name, T(" (Spiel nicht mehr installiert)", " (game no longer installed)")));
+    }
+    /* ohne "nicht mehr auf der Konsole": Texte, die selbst schon "nicht mehr installiert" sagen, und - Prüfer 110 - installierte Kennungen
+     * ohne lesbaren Namen (wie name_belegt, Codex-Prüfung 45) */
+    bool kurz = strstr(t, T(" (Spiel nicht mehr installiert)", " (game no longer installed)")) != NULL || mt_hat(&k->INSTALLIERT, id);
+    const char *ende = VERB(A, " (", mk, ")"), *neu = VERB(A, " (", name, kurz ? "" : T(", nicht mehr auf der Konsole", ", no longer on the console"), ")");
+    size_t il = strlen(id), el = strlen(ende);
+    const char *aus = "", *q = t; bool geaendert = false;
+    for (const char *p = strstr(q, id); p; p = strstr(p + il, id)) {
+        if (p > t && kennung_zeichen(p[-1])) continue;
+        const char *e = p + il;
+        while (kennung_zeichen(*e)) e++;
+        if (strncmp(e, ende, el) != 0) continue;
+        aus = VERB(A, aus, a_kopie_n(A, q, (size_t)(e - q)), neu);
+        q = e + el; geaendert = true;
+        p = q - il;   /* weiter hinter dem ersetzten Stück */
+    }
+    return geaendert ? VERB(A, aus, q) : t;
+}
+static void namen_nachtragen(kern *k)
+{
+    if (kern_bereiche_106() || k->PKG_NAMEN.n + k->PKG_TRP.n == 0) return;
+    const char *mk = T("Spiel/App unbekannt", "game/app unknown");
+    /* Trophäen-Listen (PS4): Kopf der TROPHY.TRP mit den Trophäen-Dateien der PKG-Dateien vergleichen - nur lesen, 96 Byte je Liste */
+    k->NPWR_PKG = mt_neu(true);
+    mtab nr = mt_neu(true);   /* NEU 1.0.8: Trophäen-Kennung -> Nummer der Liste im PKG (nur bei mehreren) */
+    for (int i = 0; i < k->NPWR_OFFEN.n && k->PKG_TRP.n > 0; i++) {
+        const char *np = k->NPWR_OFFEN.e[i].k;
+        unsigned char b[96]; size_t len = 0;
+        volatile bool ok = false;
+        VERSUCHE { ok = s_lies_ab(k->S, VERB(A, "/user/trophy/conf/", np, "/TROPHY.TRP"), 0, sizeof b, b, &len) && len == sizeof b; }
+        FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); ok = false; } ENDE_VERSUCHE;
+        if (!ok) continue;
+        char hex[sizeof b * 2 + 1];
+        for (size_t j = 0; j < sizeof b; j++) snprintf(hex + 2 * j, 3, "%02x", b[j]);
+        if (mt_hat(&k->PKG_TRP, hex)) mt_setze(A, &k->NPWR_PKG, np, mt_hole(&k->PKG_TRP, hex));
+    }
+    /* Codex-Prüfung 116 (P3): die Nummer für JEDE Liste ohne Nummer, deren Trophäen-Datei in einem PKG mit mehreren Listen steckt - auch wenn
+     * ihr Name schon anders belegt ist (früheres Protokoll, Bilder). Nur lesen, 96 Byte je Liste. */
+    for (int i = 0; i < k->bau.n && k->PKG_TRP_NR.n > 0; i++) {
+        eintrag *f = k->bau.e[i];
+        if (f->Kat != 3 || f->ListeNr > 0) continue;
+        for (int j = 0; j < f->PfadeBasis.n; j++) {
+            htreffer m = h_mt(A, f->PfadeBasis.e[j], "(?-i)^/user/trophy/conf/(NPWR\\d{5}_\\d{2})$");
+            if (!m.ok || mt_hat(&nr, m.gr[1])) continue;
+            unsigned char b[96]; size_t len = 0;
+            volatile bool ok = false;
+            VERSUCHE { ok = s_lies_ab(k->S, VERB(A, f->PfadeBasis.e[j], "/TROPHY.TRP"), 0, sizeof b, b, &len) && len == sizeof b; }
+            FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); ok = false; } ENDE_VERSUCHE;
+            if (!ok) continue;
+            char hex[sizeof b * 2 + 1];
+            for (size_t q = 0; q < sizeof b; q++) snprintf(hex + 2 * q, 3, "%02x", b[q]);
+            if (mt_hat(&k->PKG_TRP_NR, hex)) mt_setze(A, &nr, a_kopie(A, m.gr[1]), mt_hole(&k->PKG_TRP_NR, hex));
+        }
+    }
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 17:32, DRIVECLUB und DRIVECLUB BIKES): mehrere Listen aus EINEM PKG tragen den Namen des Spiels -
+     * ihre Nummer im PKG unterscheidet sie ("DRIVECLUB™ – Trophäen-Liste 2"), wie bei installierten Spielen (NPWR_NR). Für Liste,
+     * Fortschritt und dessen Kopie (Ordnername ohne Endung) */
+    for (int i = 0; i < k->bau.n && nr.n > 0; i++) {
+        eintrag *f = k->bau.e[i];
+        if (f->Kat != 3 || f->ListeNr > 0) continue;
+        for (int j = 0; j < f->PfadeBasis.n; j++) {
+            const char *b = npwr_basis(k, h_blatt(A, f->PfadeBasis.e[j]));
+            if (mt_hat(&nr, b)) { f->ListeNr = (int)(intptr_t)mt_hole(&nr, b); break; }
+        }
+    }
+    for (int i = 0; i < k->bau.n; i++) {
+        eintrag *f = k->bau.e[i];
+        if (!f->TextBasis || !strstr(f->TextBasis, mk)) continue;
+        const char *tb = f->TextBasis, *tx = f->Text ? f->Text : "";
+        for (int j = 0; j < k->NPWR_PKG.n; j++) {
+            const char *np = k->NPWR_PKG.e[j].k, *nm = k->NPWR_PKG.e[j].v;
+            const char *alt = VERB(A, np, " (", mk, ")"), *neu = VERB(A, nm, " (", np, ")");
+            tb = ersetze_alle(k, tb, alt, neu); tx = ersetze_alle(k, tx, alt, neu);
+        }
+        for (int j = 0; j < k->NAMEN_OFFEN.n; j++) {
+            const char *id = k->NAMEN_OFFEN.e[j].k;
+            if ((intptr_t)k->NAMEN_OFFEN.e[j].v != 1 || !mt_hat(&k->PKG_NAMEN, id)) continue;   /* 2 = Widerspruch (offen_merken) */
+            const char *nm = mt_hole(&k->PKG_NAMEN, id);
+            tb = nachtrag_kennung(k, tb, id, nm); tx = nachtrag_kennung(k, tx, id, nm);
+        }
+        if (tb != f->TextBasis) { f->TextBasis = tb; f->Text = tx; }
+    }
+}
+
 void kern_suche_funde(kern *k)
 {
     k->S->abbruch = abbruch_kern; k->S->abbruch_ctx = k;
     k->FUNDE_GUELTIG = false;                 /* erst gültig, wenn die Suche ganz durch ist */
     k->bau = (pliste){0};                     /* die neue Liste wird erst am Ende sichtbar */
+    k->PKG_GELISTET = 0; k->PKG_GEFUNDEN = 0;   /* NEU 1.0.8 (Codex-Prüfungen 83, 96): Grenzen der PKG-Suche in Ordnern gelten je Suche */
+    /* NEU 1.0.8 (PS5-Test 07.11.2026): Namen, die erst nach dem Anlegen belegt werden (namen_nachtragen) - je Suche neu */
+    k->PKG_NAMEN = mt_neu(true); k->PKG_TRP = mt_neu(true); k->NAMEN_OFFEN = mt_neu(true); k->NPWR_OFFEN = mt_neu(true); k->NPWR_PKG = mt_neu(true);
+    k->PKG_TRP_NR = mt_neu(true);   /* NEU 1.0.8 */
+    k->NPWR_UCP = mt_neu(true); k->BILD_ORT = mt_neu(true);   /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31) */
     k->LEER_DANACH = mt_neu(true);
     kern_groessen_zuruecksetzen(k);
     /* NEU 1.1 (S3): konnte der Selbstschutz nicht sicher ermittelt werden, wird gar nichts angeboten */
@@ -2383,11 +3890,13 @@ void kern_suche_funde(kern *k)
             if (h_hat(&k->ASTRO_NPWRS, x)) continue;
             const char *t;
             if (h_gleich(x, "sce_trop")) t = T("Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)", "Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)");
-            else if (h_m(x, "^NPWR")) t = VERB(A, T("Trophäen-Fortschritt: ", "Trophy progress: "), trophaen_name(k, x), T(" (PS4-Spiel)", " (PS4 game)"), trophaen_weg(k, x));
+            else if (h_m(x, "^NPWR")) { const char *xb = npwr_basis(k, x);   /* NEU 1.0.8: Kopie "<Liste>_BK" */
+                t = VERB(A, T("Trophäen-Fortschritt: ", "Trophy progress: "), trophaen_name(k, xb), T(" (PS4-Spiel)", " (PS4 game)"), trophaen_weg(k, xb), npwr_kopie(k, x, xb)); }
             else t = VERB(A, T("Trophäen-Daten ", "Trophy data "), "trophy/data/", x);
             sliste l = L1(A, VERB(A, "/user/home/", u, "/trophy/data/", x));
             MERKE(k, &l, 3, t, 0);
-            if (k->MERKE_OK && mt_hat(&k->NPWR_NR, x)) ((eintrag *)k->bau.e[k->bau.n - 1])->ListeNr = (int)(intptr_t)mt_hole(&k->NPWR_NR, x);
+            const char *xn = npwr_basis(k, x);
+            if (k->MERKE_OK && mt_hat(&k->NPWR_NR, xn)) ((eintrag *)k->bau.e[k->bau.n - 1])->ListeNr = (int)(intptr_t)mt_hole(&k->NPWR_NR, xn);
         }
         xs = s_namen(k->S, VERB(A, "/user/home/", u, "/trophy"), false);
         for (int j = 0; j < xs.n; j++)
@@ -2396,11 +3905,12 @@ void kern_suche_funde(kern *k)
         for (int j = 0; j < xs.n; j++) {
             const char *x = xs.e[j];
             if (h_hat(&k->ASTRO_NPWRS, x)) continue;
-            const char *t = h_m(x, "^NPWR") ? VERB(A, T("Trophäen-Fortschritt: ", "Trophy progress: "), trophaen_name(k, x), trophaen_weg(k, x))
+            const char *xb = npwr_basis(k, x);   /* NEU 1.0.8: Kopie "<Liste>_BK" */
+            const char *t = h_m(x, "^NPWR") ? VERB(A, T("Trophäen-Fortschritt: ", "Trophy progress: "), trophaen_name(k, xb), trophaen_weg(k, xb), npwr_kopie(k, x, xb))
                                              : VERB(A, T("Trophäen-Daten ", "Trophy data "), "trophy2/nobackup/data/", x);
             sliste l = L1(A, VERB(A, "/user/home/", u, "/trophy2/nobackup/data/", x));
             MERKE(k, &l, 3, t, 0);
-            if (k->MERKE_OK && mt_hat(&k->NPWR_NR, x)) ((eintrag *)k->bau.e[k->bau.n - 1])->ListeNr = (int)(intptr_t)mt_hole(&k->NPWR_NR, x);
+            if (k->MERKE_OK && mt_hat(&k->NPWR_NR, xb)) ((eintrag *)k->bau.e[k->bau.n - 1])->ListeNr = (int)(intptr_t)mt_hole(&k->NPWR_NR, xb);
         }
         xs = s_namen(k->S, VERB(A, "/user/home/", u, "/trophy2"), false);
         for (int j = 0; j < xs.n; j++) {
@@ -2536,7 +4046,7 @@ void kern_suche_funde(kern *k)
         k->MERKE_STICK = true;
         int vorher = k->bau.n;
         volatile bool kaputt = false;
-        VERSUCHE { for (int i = 0; i < nn; i++) merke_ordner(k, b, &ee[i], 1, ext_kat(ee[i].name), ""); }
+        VERSUCHE { for (int i = 0; i < nn; i++) { int vor = k->bau.n; merke_ordner(k, b, &ee[i], 1, ext_kat(ee[i].name), ""); usb_kopie_markieren(k, b, &ee[i], vor); } }
         FANGE { k->MERKE_STICK = false; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); kaputt = true; } ENDE_VERSUCHE;
         k->MERKE_STICK = false;
         if (kaputt) k->bau.n = vorher;
@@ -2662,7 +4172,7 @@ void kern_suche_funde(kern *k)
             if (weiter) continue;
             const char *n = h_r(A, g, "^fake", "");
             if (tm.ok && kern_bereiche_106()) { const char *mn = mit_name(k, tm.gr[1]); if (strcmp(mn, tm.gr[1]) != 0) n = VERB(A, n, " - ", h_r(A, mn, "^[A-Z]{4}\\d{5} ", "")); }
-            else if (tm.ok) { int art = 3; const char *nm = name_belegt(k, tm.gr[1], &art); n = VERB(A, n, " - ", nm[0] ? nm : T("Spiel/App unbekannt", "game/app unknown")); }
+            else if (tm.ok) { int art = 3; const char *nm = name_belegt(k, tm.gr[1], &art); if (!nm[0]) offen_merken(k, tm.gr[1]); n = VERB(A, n, " - ", nm[0] ? nm : T("Spiel/App unbekannt", "game/app unknown")); }
             MERKE(k, &pf, kern_bereiche_106() ? 6 : 5, VERB(A, T("Fake-Lizenz: ", "Fake license: "), n,   /* 1.0.7: Rest eines gelöschten Spiels -> Sonstiges */ T(" (Spiel nicht mehr installiert)", " (game no longer installed)")), 0);
         }
     }
@@ -2798,9 +4308,11 @@ void kern_suche_funde(kern *k)
         f->Text = f->TextBasis = VERB(A, f->Text, kern_nur_einzeln_text());
     }
     for (int i = 0; i < jbNeu.n; i++) pl_add(A, &k->bau, jbNeu.e[i]);
+    namen_nachtragen(k);   /* NEU 1.0.8 (PS5-Test 07.11.2026): Namen aus PKG-Dateien für "unbekannt" angelegte Einträge */
     if (!kern_bereiche_106()) bereiche_107(k);
     if (!kern_bereiche_106()) alte_sicherungen_zusammen(k);
     if (!kern_bereiche_106()) sm_spieldatei_zeilen(k);
+    if (!kern_bereiche_106()) { pkg_zusammenfassen(k); pkg_doppelt(k); }   /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12) */
     /* fest nach Bereich ordnen, darin nach Ort (intern, M.2, USB, USB-Stick - NEU 1.0.6); sonst bleibt die Fundreihenfolge */
     pliste sortiert = {0};
     for (int ki = 0; ki < KAT_ANZ; ki++) for (int o = ORT_INTERN; o <= ORT_STICK; o++) for (int i = 0; i < k->bau.n; i++) {
@@ -2810,6 +4322,9 @@ void kern_suche_funde(kern *k)
     if (kern_bereiche_106()) tool_daten_ordnen(k, &sortiert);
     else kachel_bloecke(k, &sortiert);   /* NEU 1.0.7 (02.11.2026): ein Block pro Kachel - ersetzt tool_daten_ordnen */
     if (!kern_bereiche_106()) ohne_eingeblendete_ordner(k, &sortiert);
+    if (!kern_bereiche_106()) tools_ohne_kachel(k, &sortiert);   /* NEU 1.0.8 (Arbeitsplan 2.3) */
+    if (!kern_bereiche_106()) pkg_ohne_spiel(k, &sortiert);      /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12) */
+    if (!kern_bereiche_106()) payload_gruppen(k, &sortiert);     /* NEU 1.0.8 (PS5-Test 06.11.2026, da_Chris86 17:47) */
     k->Funde = sortiert;
     /* NEU 1.0.7 (PS5-Test 02.11.2026, Red Dead Redemption 2): kaputte Zusatzinhalt-Angaben deutlich an der Kachel des Spiels */
     if (!kern_bereiche_106() && k->SID_KAPUTT.n > 0)
@@ -2819,6 +4334,7 @@ void kern_suche_funde(kern *k)
             if (id && (f->KachelId || ist_teil(f, "Spiel")) && mt_hat(&k->SID_KAPUTT, id)) f->SidKaputt = (int)(intptr_t)mt_hole(&k->SID_KAPUTT, id);
         }
     kern_arten_setzen(k);   /* NEU 1.0.7: Art, Ampel, Rot */
+    if (!kern_bereiche_106()) doppelte_spiele(k);   /* NEU 1.0.8 (Arbeitsplan 2.4): braucht die Art (Spieldatei ohne Kachel) */
     if (!kern_bereiche_106()) {   /* NEU 1.0.7 (da_Chris86 31.10.2026 19:56): installierte PS4-Spiele - nur lesen */
         k->PS4_UNKLAR = false;
         VERSUCHE { kern_ps4_erfassen(k); }

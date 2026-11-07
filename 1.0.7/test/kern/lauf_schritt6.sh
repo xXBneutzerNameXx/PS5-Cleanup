@@ -78,5 +78,47 @@ for v in v1 v3; do
   ok=1; for i in ${ids//|/ }; do [ -d $T/w/user/av_contents/content_tmp/$i ] && ok=0; done
   if [ $ok = 1 ] && [ ! -e $T/w/user/av_contents/content_tmp/PPSA12000 ] && grep -q '^ERG Fehler=0 ' $E/u12_${v}_komplettm2_an.out; then echo "OK   vollständige Bereinigung mit Schutz: Launcher-Ordner und PPSA12000 weg, 0 Fehler (1.0.6)"; else echo "FAIL vollständige Bereinigung: $(grep '^ERG' $E/u12_${v}_komplettm2_an.out)"; fehler=$((fehler+1)); fi
 done
+# NEU 1.0.8 (Arbeitsplan 5.1a, Codex-Prüfung 76): Grenzen der Selbstschutz-Suche (Arbeitsplan 3.7) mit kleinen Grenzen. Ist die Grenze
+# erreicht, wird nur gesperrt, was nicht mehr geprüft wird (große Ordner); kleine Ordner und Spiel-Kopien werden weiter geprüft. Mehr als
+# REST_GRENZE große Ordner danach: der ganze Ort. Baum: schutz_v1 plus Ordner, die vor den übrigen an der Reihe sind (0_, 1_, ...).
+echo; echo "===== Grenzen der Selbstschutz-Suche (1.0.8, 3.7)"
+GB1=$B/test_schritt6_grenze12; GB3=$B/test_schritt6_grenze3; rm -f $GB1 $GB3
+gcc -O2 -g -w -DKERN_LOESCHEN -DSUCH_GRENZE=40 -DLEICHT_ORDNER=10 -DREST_GRENZE=2 -I$KK/bau/pcre2-pc/include -I$KK/bau/cjson \
+   $KERN $KK/bau/cjson/cJSON.c $KK/test/kern/test_schritt6.c -L$KK/bau/pcre2-pc/lib -lpcre2-8 -lpthread -o $GB1 || echo "BAU GRENZE FEHLGESCHLAGEN"
+gcc -O2 -g -w -DKERN_LOESCHEN -DSUCH_GRENZE=40 -DLEICHT_ORDNER=10 -DLEICHT_GRENZE=12 -DREST_GRENZE=50 -I$KK/bau/pcre2-pc/include -I$KK/bau/cjson \
+   $KERN $KK/bau/cjson/cJSON.c $KK/test/kern/test_schritt6.c -L$KK/bau/pcre2-pc/lib -lpcre2-8 -lpthread -o $GB3 || echo "BAU GRENZE FEHLGESCHLAGEN"
+grenz_baum() {
+  rm -rf $T/w; cp -r $RF/schutz_v1 $T/w; D=$T/w/user/data
+  mkdir -p $D/0_sammlung $D/1_klein $D/2_spielkopie/sce_sys $D/3_gross $D/4_gross
+  for i in $(seq 1 50); do echo x > $D/0_sammlung/f$i.txt; done                                   # 50 Einträge: hier wird die Grenze (40) erreicht
+  for i in 1 2 3 4; do echo x > $D/1_klein/f$i.txt; done; cp $D/homebrew/PS5Cleanup/eboot.elf $D/1_klein/kopie.elf   # kleiner Ordner mit PS5-Cleanup-Kopie
+  echo eboot > $D/2_spielkopie/eboot.bin; echo param > $D/2_spielkopie/sce_sys/param.json         # Spiel-Kopie (sce_sys + eboot.bin)
+  # Codex-Prüfung 78: GROSSE Spiel-Kopie (15 Einträge, über LEICHT_ORDNER) mit einer PS5-Cleanup-Kopie oben drin - nach der Grenze wird sie nur
+  # über die Ausnahme für Spiel-Kopien geprüft; ohne diese wäre der ganze Ordner gesperrt und die Kopie darin nicht erkannt
+  mkdir -p $D/2b_spielkopie/sce_sys; echo eboot > $D/2b_spielkopie/eboot.bin; echo param > $D/2b_spielkopie/sce_sys/param.json
+  for i in $(seq 1 12); do echo x > $D/2b_spielkopie/f$i.txt; done; cp $D/homebrew/PS5Cleanup/eboot.elf $D/2b_spielkopie/ps5c.elf
+  for i in $(seq 1 20); do echo x > $D/3_gross/f$i.txt; echo x > $D/4_gross/f$i.txt; done        # zwei große Ordner (über LEICHT_ORDNER)
+  if [ "$1" = g2 ]; then mkdir -p $D/5_gross; for i in $(seq 1 20); do echo x > $D/5_gross/f$i.txt; done; fi   # dritter großer Ordner: über REST_GRENZE
+  if [ "$1" = g3 ]; then rm -rf $D/3_gross $D/4_gross; mkdir -p $D/1b_klein; for i in $(seq 1 9); do echo x > $D/1b_klein/f$i.txt; done; fi   # 5 + 9 > LEICHT_GRENZE 12
+}
+for g in g1 g2 g3; do
+  grenz_baum $g; bin=$GB1; [ $g = g3 ] && bin=$GB3
+  if [ -x $bin ]; then (cd $T; RMDA=1 FAKESM=1 $bin detail $T schutz > $E/grenze_$g.out 2>&1); else echo "FEHLT $bin" > $E/grenze_$g.out; fi
+done
+O1=$E/grenze_g1.out; O2=$E/grenze_g2.out; O3=$E/grenze_g3.out
+pr() { if eval "$2"; then echo "OK   Grenze: $1"; else echo "FAIL Grenze: $1"; fehler=$((fehler+1)); fi; }
+pr "alle drei Suchen vollständig" "grep -q '^ANZAHL' $O1 && grep -q '^ANZAHL' $O2 && grep -q '^ANZAHL' $O3"
+pr "Grenze erreicht - die große Sammlung ist gesperrt" "grep -q -x 'SCHUTZ /user/data/0_sammlung' $O1"
+pr "danach große Ordner einzeln gesperrt (3_gross, 4_gross)" "grep -q -x 'SCHUTZ /user/data/3_gross' $O1 && grep -q -x 'SCHUTZ /user/data/4_gross' $O1"
+pr "danach nicht der ganze Ort gesperrt" "! grep -q -x 'SCHUTZ /user/data' $O1"
+pr "danach PS5-Cleanup-Kopie im kleinen Ordner erkannt" "grep -q -x 'SCHUTZ /user/data/1_klein/kopie.elf' $O1"
+pr "danach Spiel-Kopie weiter angeboten" "grep '^DETAIL' $O1 | grep ':: /user/data/2_spielkopie ' | grep -q 'gesperrt=False'"
+pr "danach PS5-Cleanup-Kopie in einer großen Spiel-Kopie erkannt (2b_spielkopie, nicht der ganze Ordner gesperrt)" "grep -q -x 'SCHUTZ /user/data/2b_spielkopie/ps5c.elf' $O1 && ! grep -q -x 'SCHUTZ /user/data/2b_spielkopie' $O1"
+pr "danach kleiner Ordner weiter angeboten (homebrew/AndereApp)" "grep '^DETAIL' $O1 | grep ':: /user/data/homebrew/AndereApp ' | grep -q 'gesperrt=False'"
+pr "nichts aus gesperrten Ordnern wählbar" "! grep '^DETAIL' $O1 | grep -E '/user/data/(0_sammlung|3_gross|4_gross)' | grep -q 'gesperrt=False'"
+pr "zu viele große Ordner - der ganze Ort gesperrt" "grep -q -x 'SCHUTZ /user/data' $O2"
+pr "zu viele große Ordner - nichts aus /user/data wählbar" "! grep '^DETAIL' $O2 | grep ':: /user/data/' | grep -q 'gesperrt=False'"
+pr "Grenze für kleine Ordner - der nächste kleine Ordner gesperrt (1b_klein)" "grep -q -x 'SCHUTZ /user/data/1b_klein' $O3 && ! grep '^DETAIL' $O3 | grep '/user/data/1b_klein' | grep -q 'gesperrt=False'"
+pr "Grenze für kleine Ordner - die Kopie davor erkannt" "grep -q -x 'SCHUTZ /user/data/1_klein/kopie.elf' $O3"
 echo; echo "ZUSAMMEN: $fehler Fehler"
 date "+%Y-%m-%d %H:%M:%S FERTIG"

@@ -13,7 +13,7 @@ nm -u $B/selbstweg_sim.o | grep -w -E "unlink|rmdir|nmount|sceAppInstUtil.*" && 
 # NEU 1.0.7: Protokoll-Anhang - Simulation schreibt nichts
 gcc -O2 -Wall -DSIMULATION -c $KK/start/sw_protokoll.c -o $B/sw_protokoll_sim.o || { echo BAU SIM FEHLGESCHLAGEN; exit 1; }
 nm -u $B/sw_protokoll_sim.o | grep -w -E "open|write|unlink|mkdir" && { echo "FAIL Simulation: sw_protokoll.o schreibt"; RC=1; } || echo "OK   Simulation: sw_protokoll.o ohne schreibenden Aufruf"
-for fall in ${FAELLE:-ok ohne_kachel ro_zurueck ealready zweiter_wechsel ablehnen fremd_start fremd_kachel sitzung_offen haengt start_frei start_gesperrt protokoll zweimal nie_weg}; do
+for fall in ${FAELLE:-ok ohne_kachel ro_zurueck ealready zweiter_wechsel ablehnen fremd_start fremd_kachel sitzung_offen haengt start_frei start_gesperrt protokoll protokoll_intern zweimal nie_weg}; do
   rm -rf $T/w; mkdir -p $T/w/user/temp $T/w/system_ex/app/PSCL00002/sce_sys $T/w/system_ex/app/FAKE00000/sce_sys $T/w/system_ex/app/NPXS40106 $T/w/user/app/PSCL00001/sce_sys
   printf 'PS5CLEANUP-STARTORDNER\n' > $T/w/system_ex/app/PSCL00002/.ps5cleanup_start; echo x > $T/w/system_ex/app/PSCL00002/eboot.bin; echo '{}' > $T/w/system_ex/app/PSCL00002/sce_sys/param.json
   echo x > $T/w/system_ex/app/FAKE00000/eboot.bin; echo x > $T/w/system_ex/app/NPXS40106/eboot.bin

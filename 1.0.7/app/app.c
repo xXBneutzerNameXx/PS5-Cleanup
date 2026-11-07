@@ -16,19 +16,21 @@
 #include <pthread.h>
 #include <errno.h>
 #include <stdint.h>
+#include <limits.h>   /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): LONG_MAX (datei_stueck) */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <math.h>     /* NEU 1.0.8 (Arbeitsplan 4.1): geglättete Ecken, Kreise und Linien */
 #ifdef KERN_LOESCHEN
 #include <fcntl.h>    /* NEU 02.11.2026 (Prüfung p8, Befund 3): Protokolldatei mit O_NOFOLLOW öffnen */
 int close(int);       /* aus unistd.h - das ganze unistd.h nicht, weil app.c eine eigene Funktion dup() hat */
 #endif
 #include "../kern/ablauf.h"
-#include "../db/db_sicherung.h"   /* NEU 1.0.7: Datenbank-Sicherung mit SQLite-Prüfung */
 #include "plattform.h"
 #include "qrcodegen.h"        /* NEU 1.0.7 (03.11.2026): QR-Code für die freiwillige Rückmeldung (Project Nayuki, MIT) */
+#include <dirent.h>           /* NEU 1.0.8 (PS5-Test 07.11.2026): Bilder der Spielstände (spielstand_bild) - in jeder Fassung */
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "../probelauf/fremd/stb_truetype.h"
@@ -36,6 +38,17 @@ int close(int);       /* aus unistd.h - das ganze unistd.h nicht, weil app.c ein
 #define STBI_ONLY_PNG
 #define STBI_NO_STDIO
 #include "../probelauf/fremd/stb_image.h"
+#ifdef MITSCHNITT
+#if !defined(KERN_LOESCHEN)
+#error "MITSCHNITT nur in der Test-Fassung der echten Version (mit KERN_LOESCHEN)"
+#endif
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_WRITE_NO_STDIO                  /* geschrieben wird nur über eigene Dateien (O_EXCL, O_NOFOLLOW) */
+#include "../probelauf/fremd/stb_image_write.h"   /* Sean Barrett, gemeinfrei bzw. MIT - nur für die Bildschirmbilder der Test-Fassung */
+#include "../db/db_lesen.h"
+#include <sys/types.h>
+ssize_t write(int, const void *, size_t);   /* aus unistd.h - das ganze unistd.h nicht (eigene Funktion dup(), siehe oben) */
+#endif
 
 #define EINBINDEN(name, datei)                                              \
   __asm__(".section .rodata\n.global " #name "\n.balign 16\n" #name ":\n"   \
@@ -56,11 +69,21 @@ EINBINDEN(logo_png, "../probelauf/logo.png")
 #define VERSION_TEXT "1.0.6 Test (nur lesen)"
 #else
 #ifdef KERN_LOESCHEN
-#define VERSION_TEXT "1.0.7"                 /* 02.11.2026 (da_Chris86, finaler Plan 1.0.7 Punkt 7): ohne "Vorschau" */
+#ifdef MITSCHNITT   /* NEU 1.0.8 (Arbeitsplan 2.7): Test-Fassung für den Abschlusstest - Bauzeit sichtbar, damit klar ist, welche läuft */
+#define VERSION_TEXT "1.0.8 TESTLAUF · Bau " __DATE__ " " __TIME__
+#define VERSION_TEXT_EN "1.0.8 TEST RUN · Build " __DATE__ " " __TIME__
 #else
-#define VERSION_TEXT "1.0.7 TEST · Bau " __DATE__ " " __TIME__   /* Testfassung - ohne Löschbefehle gebaut, löscht nie; 31.10.2026: Bauzeit sichtbar (welche Fassung läuft?) */
+#define VERSION_TEXT "1.0.8"                 /* 02.11.2026 (da_Chris86, finaler Plan 1.0.7 Punkt 7): ohne "Vorschau"; 06.11.2026: 1.0.8 (Arbeitsplan Phase 5) */
+#endif
+#else
+#define VERSION_TEXT "1.0.8 TEST · Bau " __DATE__ " " __TIME__   /* Testfassung - ohne Löschbefehle gebaut, löscht nie; 31.10.2026: Bauzeit sichtbar (welche Fassung läuft?) */
+#define VERSION_TEXT_EN "1.0.8 TEST · Build " __DATE__ " " __TIME__   /* NEU 1.0.8: englische Oberfläche "Build" statt "Bau" */
 #endif
 #endif
+#ifndef VERSION_TEXT_EN
+#define VERSION_TEXT_EN VERSION_TEXT
+#endif
+#define VERSION_ANZEIGE (SP_EN ? VERSION_TEXT_EN : VERSION_TEXT)   /* NEU 1.0.8: Kopf, Protokoll-Datei und Absturzmeldung in der eingestellten Sprache */
 
 /* Farben wie 1.0.5 (Fenster.xaml) */
 #define F_HG        0x141519
@@ -110,6 +133,7 @@ static Glyph *glyph(int f, int groesse, int cp)
 static int cp_naechstes(const char **s) { const unsigned char *p = (const unsigned char *)*s; uint32_t c = utf8_naechstes(&p); *s = (const char *)p; return (int)c; }
 static int textbreite(int f, int gr, const char *t) { int b = 0; while (*t) { Glyph *g = glyph(f, gr, cp_naechstes(&t)); if (g) b += g->vorschub; } return b; }
 static int clip_x0 = 0, clip_x1 = 1 << 30;   /* NEU 1.0.6: waagrechter Ausschnitt (Laufschrift) */
+static int clip_y0 = 0, clip_y1 = 1 << 30;   /* NEU 1.0.8 (4.3): senkrechter Ausschnitt (Kasten der Auswahl läuft durch) */
 static void text(int x, int y, int f, int gr, uint32_t farbe, const char *t)
 {
     Uint8 fr = (farbe >> 16) & 255, fg = (farbe >> 8) & 255, fb = farbe & 255;
@@ -119,7 +143,7 @@ static void text(int x, int y, int f, int gr, uint32_t farbe, const char *t)
         if (!g) continue;
         for (int j = 0; j < g->h; j++) {
             int py = y + g->yoff + j;
-            if (py < 0 || py >= ziel->h) continue;
+            if (py < 0 || py >= ziel->h || py < clip_y0 || py >= clip_y1) continue;
             Uint32 *zeile = (Uint32 *)((Uint8 *)ziel->pixels + py * ziel->pitch);
             for (int i = 0; i < g->w; i++) {
                 int px = x + g->xoff + i;
@@ -135,6 +159,120 @@ static void text(int x, int y, int f, int gr, uint32_t farbe, const char *t)
 static void rechteck(int x, int y, int w, int h, uint32_t farbe)
 { SDL_Rect r = {x, y, w, h}; SDL_FillRect(ziel, &r, SDL_MapRGB(ziel->format, (farbe >> 16) & 255, (farbe >> 8) & 255, farbe & 255)); }
 static void karte(int x, int y, int w, int h, uint32_t rand, uint32_t innen) { rechteck(x, y, w, h, rand); rechteck(x + 2, y + 2, w - 4, h - 4, innen); }
+
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.1): Grundbausteine der neuen Oberfläche
+ * nach Entwurf 2 (Artefakt "PS5 Cleanup Oberfläche"): Farben, runde Ecken, Kreise und Linien geglättet, Symbole im Raster wie im Entwurf
+ * (app/symbole.h, erzeugt von app/werkzeug/symbole_erzeugen.py). Alles zeichnet direkt in "ziel", ohne Speicher pro Bild. */
+#include "symbole.h"
+#define N_HG         0x121417   /* Hintergrund */
+#define N_KARTE      0x1A1D22   /* Karten */
+#define N_RAND       0x262A31   /* Rand der Karten */
+#define N_FELD       0x22262D   /* Symbolfeld, Abzeichen, Knopf "aus" */
+#define N_TEXT       0xF2F4F7
+#define N_TEXT2      0xD5DAE1
+#define N_GRAU       0xB4BBC6
+#define N_GRAU2      0x8B93A1
+#define N_LINIE      0x3A404A
+#define N_BLAU       0x1C74E9   /* Hauptknopf, erledigte Schritte */
+#define N_FOKUS      0x4CC9F0   /* türkise Markierung */
+#define N_ROT        0xFF7B76
+#define N_ROT_KNOPF  0xC8423E
+#define N_GELB       0xE3BE6A
+#define N_GRUEN      0x5DD39A
+#define N_ORANGE     0xFF9A52
+#define N_FUSS       0x0F1114
+#define N_FUSS_LINIE 0x23272E
+#define N_BALKEN     0x687080   /* belegt */
+#define N_BALKEN_FREI 0x2A2F37
+#define RAND_X 96               /* Ränder wie im Entwurf: 96 px links/rechts, 56 oben, 54 unten */
+#define RAND_O 56
+#define RAND_U 54
+static inline void misch(int x, int y, uint32_t farbe, float a)
+{
+    if (a <= 0.f || x < 0 || y < 0 || x >= ziel->w || y >= ziel->h || x < clip_x0 || x >= clip_x1 || y < clip_y0 || y >= clip_y1) return;
+    if (a > 1.f) a = 1.f;
+    Uint32 *p = (Uint32 *)((Uint8 *)ziel->pixels + y * ziel->pitch) + x;
+    Uint8 r, g, b; SDL_GetRGB(*p, ziel->format, &r, &g, &b);
+    unsigned ai = (unsigned)(a * 255.f + .5f), fr = (farbe >> 16) & 255, fg = (farbe >> 8) & 255, fb = farbe & 255;
+    *p = SDL_MapRGB(ziel->format, (Uint8)((fr * ai + r * (255 - ai)) / 255), (Uint8)((fg * ai + g * (255 - ai)) / 255), (Uint8)((fb * ai + b * (255 - ai)) / 255));
+}
+static uint32_t farbmisch(uint32_t a, uint32_t b, float t)   /* t = Anteil von a (für halbdurchsichtige Flächen des Entwurfs) */
+{
+    unsigned r = (unsigned)(((a >> 16) & 255) * t + ((b >> 16) & 255) * (1.f - t) + .5f), g = (unsigned)(((a >> 8) & 255) * t + ((b >> 8) & 255) * (1.f - t) + .5f),
+             bl = (unsigned)((a & 255) * t + (b & 255) * (1.f - t) + .5f);
+    return (r << 16) | (g << 8) | bl;
+}
+/* gefülltes Rechteck mit runden Ecken (Radius r) */
+static void rund(int x, int y, int w, int h, int r, uint32_t farbe)
+{
+    if (w <= 0 || h <= 0) return;
+    if (r * 2 > w) r = w / 2;
+    if (r * 2 > h) r = h / 2;
+    if (r <= 0) { rechteck(x, y, w, h, farbe); return; }
+    rechteck(x + r, y, w - 2 * r, h, farbe);
+    rechteck(x, y + r, r, h - 2 * r, farbe);
+    rechteck(x + w - r, y + r, r, h - 2 * r, farbe);
+    for (int dy = 0; dy < r; dy++) for (int dx = 0; dx < r; dx++) {
+        float ex = (float)r - ((float)dx + .5f), ey = (float)r - ((float)dy + .5f);
+        float a = (float)r - sqrtf(ex * ex + ey * ey) + .5f;
+        if (a <= 0.f) continue;
+        misch(x + dx, y + dy, farbe, a); misch(x + w - 1 - dx, y + dy, farbe, a);
+        misch(x + dx, y + h - 1 - dy, farbe, a); misch(x + w - 1 - dx, y + h - 1 - dy, farbe, a);
+    }
+}
+/* Karte wie im Entwurf: Rand d px, runde Ecken */
+static void karte_rund(int x, int y, int w, int h, int r, int d, uint32_t rand, uint32_t innen)
+{
+    if (d <= 0) { rund(x, y, w, h, r, innen); return; }
+    rund(x, y, w, h, r, rand); rund(x + d, y + d, w - 2 * d, h - 2 * d, r > d ? r - d : 0, innen);
+}
+static void kreis(float cx, float cy, float r, uint32_t farbe)   /* gefüllt */
+{
+    for (int y = (int)floorf(cy - r - 1); y <= (int)ceilf(cy + r + 1); y++)
+        for (int x = (int)floorf(cx - r - 1); x <= (int)ceilf(cx + r + 1); x++) {
+            float dx = (float)x + .5f - cx, dy = (float)y + .5f - cy;
+            misch(x, y, farbe, r - sqrtf(dx * dx + dy * dy) + .5f);
+        }
+}
+static void ring(float cx, float cy, float r, float d, uint32_t farbe)   /* Kreislinie, r = Mitte der Linie */
+{
+    float h = d / 2.f;
+    for (int y = (int)floorf(cy - r - h - 1); y <= (int)ceilf(cy + r + h + 1); y++)
+        for (int x = (int)floorf(cx - r - h - 1); x <= (int)ceilf(cx + r + h + 1); x++) {
+            float dx = (float)x + .5f - cx, dy = (float)y + .5f - cy;
+            misch(x, y, farbe, h - fabsf(sqrtf(dx * dx + dy * dy) - r) + .5f);
+        }
+}
+/* Linie mit runden Enden, Dicke d */
+static void strich(float ax, float ay, float bx, float by, float d, uint32_t farbe)
+{
+    float h = d / 2.f, vx = bx - ax, vy = by - ay, ll = vx * vx + vy * vy;
+    int x0 = (int)floorf(fminf(ax, bx) - h - 1), x1 = (int)ceilf(fmaxf(ax, bx) + h + 1), y0 = (int)floorf(fminf(ay, by) - h - 1), y1 = (int)ceilf(fmaxf(ay, by) + h + 1);
+    for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) {
+        float px = (float)x + .5f - ax, py = (float)y + .5f - ay;
+        float t = ll > 0.f ? (px * vx + py * vy) / ll : 0.f;
+        if (t < 0.f) t = 0.f; else if (t > 1.f) t = 1.f;
+        float qx = px - t * vx, qy = py - t * vy;
+        misch(x, y, farbe, h - sqrtf(qx * qx + qy * qy) + .5f);
+    }
+}
+/* Symbol aus app/symbole.h in ein Feld der Größe gr x gr (Raster wird auf die Höhe gr gebracht) */
+static void symbol(const float *s, int x, int y, int gr, uint32_t farbe)
+{
+    float k = (float)gr / s[1], d = s[2] * k;
+    if (d < 1.2f) d = 1.2f;
+    x += (int)((gr - s[0] * k) / 2.f);   /* Raster, die breiter als hoch sind, mittig */
+    s += 3;
+    while (*s != 0.f) {
+        int typ = (int)*s++;
+        if (typ == 1) {
+            int n = (int)*s++;
+            for (int i = 0; i + 1 < n; i++) strich(x + s[2 * i] * k, y + s[2 * i + 1] * k, x + s[2 * i + 2] * k, y + s[2 * i + 3] * k, d, farbe);
+            s += 2 * n;
+        } else if (typ == 2) { ring(x + s[0] * k, y + s[1] * k, s[2] * k, d, farbe); s += 3; }
+        else { kreis(x + s[0] * k, y + s[1] * k, s[2] * k + d / 2.f, farbe); s += 3; }
+    }
+}
 static void abdunkeln(void)
 {
     SDL_PixelFormat *pf = ziel->format;
@@ -158,14 +296,18 @@ static zeilen umbrechen(int f, int gr, const char *t, int breite)
         const char *p = a;
         if (!*p && r.n < 4096) r.z[r.n++] = "";
         while (*p && r.n < 4096) {
-            const char *start = p, *letzt_leer = NULL, *q = p; int b = 0;
+            const char *start = p, *letzt_leer = NULL, *letzt_strich = NULL, *q = p; int b = 0;
             while (*q) {
                 const char *v = q; int c = cp_naechstes(&q);
                 Glyph *g = glyph(f, gr, c); b += g ? g->vorschub : 0;
                 if (b > breite && v > start) { q = v; break; }
                 if (c == ' ') letzt_leer = q;
+                else if (c == '/') letzt_strich = q;
             }
             if (*q && letzt_leer && letzt_leer > start) q = letzt_leer;
+            /* NEU 1.0.8 (Arbeitsplan 4.6): ein Pfad ohne Leerzeichen bricht nach einem "/" um ("/system_data/priv/appmeta/" + "ORBT00001")
+             * statt mitten im Wort - nur wenn die Zeile kein Leerzeichen hat, Text mit Leerzeichen bricht wie bisher um */
+            else if (*q && letzt_strich && letzt_strich - start > 1) q = letzt_strich;
             r.z[r.n++] = a_kopie_n(fa, start, (size_t)(q - start));
             p = q; while (*p == ' ' && p != start) p++;
         }
@@ -173,6 +315,26 @@ static zeilen umbrechen(int f, int gr, const char *t, int breite)
         absatz = ende + 1;
     }
     return r;
+}
+/* NEU 1.0.8 (4.6): Zeilen ab "ab" wieder zu einem Text zusammensetzen, für die letzte Zeile, die gekürzt werden muss. umbrechen lässt
+ * das Leerzeichen am Zeilenende stehen - früher kamen dadurch doppelte Leerzeichen hinein ("unbekannt  (Spiel"). Ein Leerzeichen kommt
+ * nur dorthin, wo auch eins war (nicht nach einem "/" oder mitten im Wort). */
+static const char *zeilen_rest(const zeilen *z, int ab)
+{
+    /* Codex-Prüfung 78: in einem Zug zusammensetzen - vorher wurde für jede Zeile der ganze bisherige Text neu kopiert (bei einem sehr
+     * langen Namen aus param.json viele MB je Bild) */
+    size_t gesamt = 1;
+    for (int j = ab; j < z->n; j++) gesamt += strlen(z->z[j]) + 1;
+    char *s = a_hole(fa, gesamt); size_t n = 0; bool leer = false;
+    for (int j = ab; j < z->n; j++) {
+        size_t l = strlen(z->z[j]), m = l;
+        while (m > 0 && z->z[j][m - 1] == ' ') m--;
+        if (j > ab && leer) s[n++] = ' ';
+        memcpy(s + n, z->z[j], m); n += m;
+        leer = m < l;
+    }
+    s[n] = 0;
+    return s;
 }
 /* NEU 1.0.7 (da_Chris86 01.11.2026: "Überall, bei der ganzen App ist das so" - abgeschnittene Texte): PC-Prüfung. In der
  * PC-Vorschau (-DVORSCHAU) kommt jeder Text, der nicht in seinen Platz passt, in die Ausgabe ("ZU LANG ..."). Die PS5-Fassungen
@@ -188,6 +350,7 @@ static const char *kuerzen(int f, int gr, const char *t, int breite)
     if (textbreite(f, gr, t) <= breite) return t;
     zu_lang("gekürzt", gr, breite, t);
     int el = textbreite(f, gr, "…");
+    if (el > breite) return "";   /* Codex-Prüfung 85: nicht einmal "…" passt - dann nichts, statt über den Rand */
     const char *q = t; int b = 0;
     while (*q) { const char *v = q; Glyph *g = glyph(f, gr, cp_naechstes(&q)); b += g ? g->vorschub : 0; if (b + el > breite) { q = v; break; } }
     return VERB(fa, a_kopie_n(fa, t, (size_t)(q - t)), "…");
@@ -202,20 +365,28 @@ static void text_passend(int x, int y, int f, int gr, int gr_min, uint32_t farbe
 /* NEU 1.0.6 (da_Chris86 28.10.2026: lange Spielnamen): in der markierten Zeile läuft ein zu langer Text langsam durch -
  * 1,5 s Pause am Anfang, mit 90 Pixeln pro Sekunde bis zum Ende, 1,5 s Pause, dann wieder von vorn */
 static const void *lauf_wer; static Uint32 lauf_seit; static bool lauf_aktiv;
+/* NEU 1.0.8 (Arbeitsplan 4.7): die PS5 zeichnet über den Prozessor - darum nur neu zeichnen, wenn sich etwas bewegt. Laufschrift und
+ * durchlaufende Kästen stehen am Anfang und am Ende still (1,5 s bzw. 3 s); in diesen Pausen wird nicht gezeichnet. lauf_naechst sagt
+ * der Hauptschleife, wann sich das Nächste wieder bewegt. */
+static Uint32 lauf_naechst;
+static int lauf_versatz(Uint32 seit, int weg, int px_s, Uint32 halt)
+{
+    Uint32 jetzt = SDL_GetTicks(), lauf = (Uint32)weg * 1000 / (Uint32)px_s, zyklus = halt + lauf + halt, z = (jetzt - seit) % zyklus;
+    Uint32 naechst = z < halt ? jetzt + (halt - z) : z < halt + lauf ? jetzt : jetzt + (zyklus - z);
+    if (!lauf_aktiv || (Sint32)(naechst - lauf_naechst) < 0) lauf_naechst = naechst;
+    lauf_aktiv = true;
+    return z < halt ? 0 : z < halt + lauf ? (int)((z - halt) * (Uint32)px_s / 1000) : weg;
+}
 static void laufschrift(int x, int y, int f, int gr, uint32_t farbe, const char *t, int breite, const void *wer)
 {
     int tw = textbreite(f, gr, t);
     if (tw <= breite) { text(x, y, f, gr, farbe, t); return; }
     zu_lang("Laufschrift", gr, breite, t);
-    Uint32 jetzt = SDL_GetTicks();
-    if (wer != lauf_wer) { lauf_wer = wer; lauf_seit = jetzt; }
-    int weg = tw - breite + 20;
-    Uint32 halt = 1500, lauf = (Uint32)weg * 1000 / 90, z = (jetzt - lauf_seit) % (halt + lauf + halt);
-    int off = z < halt ? 0 : z < halt + lauf ? (int)((z - halt) * 90 / 1000) : weg;
+    if (wer != lauf_wer) { lauf_wer = wer; lauf_seit = SDL_GetTicks(); }
+    int off = lauf_versatz(lauf_seit, tw - breite + 20, 90, 1500);   /* 1,5 s stehen, 90 Pixel pro Sekunde, 1,5 s stehen */
     clip_x0 = x; clip_x1 = x + breite;
     text(x - off, y, f, gr, farbe, t);
     clip_x0 = 0; clip_x1 = 1 << 30;
-    lauf_aktiv = true;
 }
 static int absatz(int x, int y, int f, int gr, uint32_t farbe, const char *t, int breite, int zeilenhoehe)
 {
@@ -232,7 +403,7 @@ static int absatz_max(int x, int y, int f, int gr, uint32_t farbe, const char *t
     if (z.n > max) zu_lang("zu viele Zeilen", gr, breite, t);
     for (int i = 0; i < n; i++) {
         const char *s = z.z[i];
-        if (i == n - 1 && z.n > max) { for (int j = i + 1; j < z.n; j++) s = VERB(fa, s, " ", z.z[j]); s = kuerzen(f, gr, s, breite); }
+        if (i == n - 1 && z.n > max) s = kuerzen(f, gr, zeilen_rest(&z, i), breite);   /* 1.0.8: ohne doppelte Leerzeichen */
         text(x, y + i * zeilenhoehe, f, gr, farbe, s);
     }
     return n * zeilenhoehe;
@@ -251,9 +422,7 @@ static passend einpassen(int f, int gr, int gr1, int gr_min, const char *t, int 
     /* NEU 1.0.7 (da_Chris86 02.11.2026 morgens, Prüfung Punkt 6): nur in diesem Ausnahmefall kürzen - höchstens max_z Zeilen, die
      * letzte mit "…", damit nichts über den Kartenrand in die Fußzeile läuft. In der PC-Prüfung kommt der Fall nicht vor. */
     if (max_z > 0 && p.z.n > max_z) {
-        const char *s = p.z.z[max_z - 1];
-        for (int j = max_z; j < p.z.n; j++) s = VERB(fa, s, " ", p.z.z[j]);
-        p.z.z[max_z - 1] = kuerzen(f, p.gr, s, breite);
+        p.z.z[max_z - 1] = kuerzen(f, p.gr, zeilen_rest(&p.z, max_z - 1), breite);   /* 1.0.8: ohne doppelte Leerzeichen */
         p.z.n = max_z;
     }
     return p;
@@ -261,12 +430,6 @@ static passend einpassen(int f, int gr, int gr1, int gr_min, const char *t, int 
 static void passend_zeichnen(int x, int y, int f, uint32_t farbe, const passend *p)   /* y = Grundlinie der ersten Zeile */
 {
     for (int i = 0; i < p->z.n; i++) text(x, y + i * p->lh, f, p->gr, farbe, p->z.z[i]);
-}
-/* eine Listenzeile (46 Pixel hoch): ein oder zwei Zeilen, senkrecht mittig */
-static void zeile_zeichnen(int x, int ry, int f, uint32_t farbe, const passend *p)
-{
-    int n = p->z.n < 2 ? p->z.n : 2, lh = p->gr + 3, y0 = ry + 23 - (n - 1) * lh / 2 + p->gr * 36 / 100;
-    for (int i = 0; i < n; i++) text(x, y0 + i * lh, f, p->gr, farbe, p->z.z[i]);
 }
 
 static SDL_Surface *logo;
@@ -307,7 +470,8 @@ static SDL_Surface *bild_verkleinert(const unsigned char *px, int w, int h, int 
     const unsigned hr = (F_KARTE2 >> 16) & 255, hg = (F_KARTE2 >> 8) & 255, hb = F_KARTE2 & 255;
     for (int y = 0; y < s; y++) for (int x = 0; x < s; x++) {
         int x0 = x * w / s, x1 = (x + 1) * w / s, y0 = y * h / s, y1 = (y + 1) * h / s;
-        if (x1 <= x0) x1 = x0 + 1; if (y1 <= y0) y1 = y0 + 1;
+        if (x1 <= x0) x1 = x0 + 1;
+        if (y1 <= y0) y1 = y0 + 1;
         unsigned long r = 0, g = 0, b = 0, a = 0, n = 0;
         for (int yy = y0; yy < y1; yy++) for (int xx = x0; xx < x1; xx++) {
             const unsigned char *q = px + ((size_t)yy * (size_t)w + (size_t)xx) * 4;
@@ -321,50 +485,220 @@ static SDL_Surface *bild_verkleinert(const unsigned char *px, int w, int h, int 
     SDL_FreeSurface(o);
     return c;
 }
+/* NEU 1.0.7 (Prüfung 02.11.2026): Abmessungen vor dem Entpacken prüfen - eine kaputte icon0.png mit riesiger Breite könnte sonst beim
+ * Verkleinern über den Puffer hinaus lesen. icon0.png ist normal 512 x 512. Gibt d immer frei. */
+static unsigned char *bild_entpacken(unsigned char *d, size_t n, int *w, int *h)
+{
+    int iw = 0, ih = 0, ic = 0;
+    if (!d || n == 0 || n > 4u * 1024 * 1024 || !stbi_info_from_memory(d, (int)n, &iw, &ih, &ic) || iw <= 0 || ih <= 0 || iw > 4096 || ih > 4096) { free(d); return NULL; }
+    int c; unsigned char *px = stbi_load_from_memory(d, (int)n, w, h, &c, 4);
+    free(d);
+    if (px && *w > 0 && *h > 0) return px;
+    if (px) stbi_image_free(px);
+    return NULL;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86: "wenn das Spiel nicht mehr da ist, zumindest noch das Bild"): Bilder ohne Kachel, nur gelesen.
+ *  - Trophäen-Liste eines PS4-Spiels: ICON0.PNG aus /user/trophy/conf/<NPWR>/TROPHY.TRP (Kopf "DC A2 4D 00", Einträge zu 64 Byte ab 0x60:
+ *    Name, Stelle, Größe, Kennzeichen - genommen wird nur ein unverschlüsselter Eintrag, Kennzeichen 0)
+ *  - Spielstände: das Bild, das Sony zu jedem Spielstand ablegt (/user/home/<Benutzer>/savedata_meta/user/<Kennung>/<Name>_icon0.png) */
+static uint32_t bild_be32(const unsigned char *p) { return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3]; }
+static unsigned long long bild_be64(const unsigned char *p) { return (unsigned long long)bild_be32(p) << 32 | bild_be32(p + 4); }
+static unsigned char *datei_stueck(const char *pfad, unsigned long long ab, size_t n)
+{
+    char p[1024];
+#ifdef VORSCHAU
+    const char *w = getenv("VORSCHAU_WURZEL"); snprintf(p, sizeof p, "%s%s", w ? w : "", pfad);
+#else
+    snprintf(p, sizeof p, "%s", pfad);
+#endif
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): das Bild einer Spieldatei liegt oft weit hinten im Abbild - bis LONG_MAX (PS5: 64 Bit) */
+    if (n == 0 || n > 4u * 1024 * 1024 || ab > (unsigned long long)LONG_MAX) return NULL;
+    FILE *f = fopen(p, "rb"); if (!f) return NULL;
+    unsigned char *d = malloc(n);
+    if (d && (fseek(f, (long)ab, SEEK_SET) != 0 || fread(d, 1, n, f) != n)) { free(d); d = NULL; }
+    fclose(f);
+    return d;
+}
+static unsigned char *trp_bild(const char *npwr, size_t *n)
+{
+    char p[160]; snprintf(p, sizeof p, "/user/trophy/conf/%s/TROPHY.TRP", npwr);
+    unsigned char *k = datei_stueck(p, 0, 0x60);
+    if (!k) return NULL;
+    uint32_t kennung = bild_be32(k), anz = bild_be32(k + 0x10), gr = bild_be32(k + 0x14);
+    free(k);
+    if (kennung != 0xDCA24D00u || anz == 0 || anz > 4096 || gr != 0x40) return NULL;
+    unsigned char *tab = datei_stueck(p, 0x60, (size_t)anz * 0x40), *bild = NULL;
+    for (uint32_t i = 0; tab && i < anz; i++) {
+        const unsigned char *e = tab + (size_t)i * 0x40;
+        if (memcmp(e, "ICON0.PNG", 10) != 0) continue;
+        unsigned long long ab = bild_be64(e + 32), len = bild_be64(e + 40);
+        if (bild_be32(e + 48) != 0 || len < 8 || len > 4u * 1024 * 1024) break;
+        bild = datei_stueck(p, ab, (size_t)len);
+        if (bild && memcmp(bild, "\x89PNG", 4) != 0) { free(bild); bild = NULL; }
+        if (bild) *n = (size_t)len;
+        break;
+    }
+    free(tab);
+    return bild;
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Bild einer PS5-Trophäen-Liste aus /user/trophy2/nobackup/conf/<NPWR>/TROPHY.UCP - Aufbau wie
+ * TROPHY.TRP (Kopf "B2 28 C6 0A", Gesamtlänge, Zahl der Einträge, Eintragsgröße 0x40; je Eintrag Name, Stelle, Größe, Kennzeichen 0), die
+ * Bilder offen als PNG (auf da_Chris86s PS5 nachgesehen). Genommen wird icon0_<Sprache der Oberfläche>.png, sonst en-US, en-GB, icon0.png,
+ * sonst das erste andere icon0*.png. Nur lesen. */
+static unsigned char *ucp_bild(const char *npwr, size_t *n)
+{
+    char p[160]; snprintf(p, sizeof p, "/user/trophy2/nobackup/conf/%s/TROPHY.UCP", npwr);
+    unsigned char *k = datei_stueck(p, 0, 0x60);
+    if (!k) return NULL;
+    uint32_t kennung = bild_be32(k), anz = bild_be32(k + 0x10), gr = bild_be32(k + 0x14);
+    unsigned long long gesamt = bild_be64(k + 0x08);
+    free(k);
+    if (kennung != 0xB228C60Au || anz == 0 || anz > 4096 || gr != 0x40 || gesamt < 0x60 + (unsigned long long)anz * 0x40) return NULL;
+    unsigned char *tab = datei_stueck(p, 0x60, (size_t)anz * 0x40), *bild = NULL;
+    if (!tab) return NULL;
+    const char *wunsch[4] = { T("icon0_de-DE.png", "icon0_en-US.png"), "icon0_en-US.png", "icon0_en-GB.png", "icon0.png" };
+    int beste = 99; unsigned long long ab = 0, len = 0;
+    for (uint32_t i = 0; i < anz; i++) {
+        const unsigned char *e = tab + (size_t)i * 0x40;
+        char name[33]; memcpy(name, e, 32); name[32] = 0;
+        size_t nl = strlen(name);
+        int rang = -1;
+        for (int w = 0; w < 4; w++) if (!strcmp(name, wunsch[w])) { rang = w; break; }
+        if (rang < 0 && nl > 9 && !strncmp(name, "icon0", 5) && !strcmp(name + nl - 4, ".png")) rang = 4;
+        if (rang < 0 || rang >= beste || bild_be32(e + 48) != 0) continue;
+        unsigned long long a = bild_be64(e + 32), l = bild_be64(e + 40);
+        if (l < 8 || l > 4u * 1024 * 1024 || a < 0x60 || a > gesamt || l > gesamt - a) continue;
+        beste = rang; ab = a; len = l;
+    }
+    free(tab);
+    if (beste == 99) return NULL;
+    bild = datei_stueck(p, ab, (size_t)len);
+    if (bild && memcmp(bild, "\x89PNG", 4) != 0) { free(bild); bild = NULL; }
+    if (bild) *n = (size_t)len;
+    return bild;
+}
+static kern *K;
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Spieldatei oder Spiel-Ordner ohne Kachel - das Bild aus dem Spiel selbst. Wo es liegt, hat die
+ * Suche gemerkt (BILD_ORT: "Pfad\nAnfang\nLänge", Länge 0 = die ganze Datei icon0.png eines Spiel-Ordners); gelesen wird es nur hier. */
+static unsigned char *spiel_bild(const char *id, size_t *n)
+{
+    if (!K || !mt_hat(&K->BILD_ORT, id)) return NULL;
+    const char *o = mt_hole(&K->BILD_ORT, id);
+    const char *z1 = o ? strchr(o, '\n') : NULL, *z2 = z1 ? strchr(z1 + 1, '\n') : NULL;
+    if (!z1 || !z2 || z1 == o || (size_t)(z1 - o) >= 1000) return NULL;
+    char pfad[1024]; memcpy(pfad, o, (size_t)(z1 - o)); pfad[z1 - o] = 0;
+    char *ende = NULL;
+    unsigned long long ab = strtoull(z1 + 1, &ende, 10);
+    if (ende != z2) return NULL;
+    unsigned long long len = strtoull(z2 + 1, &ende, 10);
+    if (!ende || *ende) return NULL;
+    size_t m = 0; unsigned char *d;
+    if (len == 0) d = datei_lesen(pfad, &m);
+    else { if (len < 8 || len > 4u * 1024 * 1024) return NULL; d = datei_stueck(pfad, ab, (size_t)len); m = (size_t)len; }
+    if (d && (m < 8 || memcmp(d, "\x89PNG", 4) != 0)) { free(d); d = NULL; }
+    if (d) *n = m;
+    return d;
+}
+static unsigned char *spielstand_bild(const char *id, size_t *n)
+{
+    const char *wz = "";
+#ifdef VORSCHAU
+    { const char *v = getenv("VORSCHAU_WURZEL"); if (v) wz = v; }
+#endif
+    char hp[1024]; snprintf(hp, sizeof hp, "%s/user/home", wz);
+    DIR *hd = opendir(hp); if (!hd) return NULL;
+    struct dirent *he; unsigned char *bild = NULL; int nh = 0;
+    static const char *const SD[2] = { "savedata_meta", "savedata_prospero_meta" };
+    while (!bild && (he = readdir(hd)) != NULL && nh < 16) {
+        if (he->d_name[0] == '.') continue;
+        nh++;
+        for (int s = 0; s < 2 && !bild; s++) {
+            char o[1024]; snprintf(o, sizeof o, "%s/user/home/%s/%s/user/%s", wz, he->d_name, SD[s], id);
+            DIR *od = opendir(o); if (!od) continue;
+            char best[256] = ""; struct dirent *oe; int no = 0;
+            while ((oe = readdir(od)) != NULL && no++ < 256) {
+                size_t l = strlen(oe->d_name);
+                if (l < 9 || l >= sizeof best || strcmp(oe->d_name + l - 9, "icon0.png") != 0) continue;
+                if (!best[0] || strcmp(oe->d_name, best) < 0) snprintf(best, sizeof best, "%s", oe->d_name);   /* immer dasselbe Bild */
+            }
+            closedir(od);
+            if (!best[0]) continue;
+            char p[1024]; snprintf(p, sizeof p, "/user/home/%s/%s/user/%s/%s", he->d_name, SD[s], id, best);
+            bild = datei_lesen(p, n);
+        }
+    }
+    closedir(hd);
+    return bild;
+}
 static unsigned char *kachelbild_laden(const char *id, int *w, int *h)
 {
-    const char *wege[3] = { "/user/appmeta/%s/icon0.png", "/system_data/priv/appmeta/%s/icon0.png", "/user/app/%s/sce_sys/icon0.png" };
-    for (int i = 0; i < 3; i++) {
+    if (!strncmp(id, "NPWR", 4)) {   /* NEU 1.0.8: PS4 (TROPHY.TRP), sonst PS5 (TROPHY.UCP, PS5-Test 07.11.2026 16:31) */
+        size_t n = 0; unsigned char *d = trp_bild(id, &n);
+        if (!d) d = ucp_bild(id, &n);
+        return d ? bild_entpacken(d, n, w, h) : NULL;
+    }
+    /* NEU 1.0.8 (F5, da_Chris86s Bilder vom 04.11.2026): auch Kacheln, deren App unter /system_ex/app liegt (z. B. Startordner von Tools), und
+     * Apps auf M.2 oder erweitertem Speicher */
+    const char *wege[6] = { "/user/appmeta/%s/icon0.png", "/system_data/priv/appmeta/%s/icon0.png", "/user/app/%s/sce_sys/icon0.png",
+                            "/system_ex/app/%s/sce_sys/icon0.png", "/mnt/ext1/user/app/%s/sce_sys/icon0.png", "/mnt/ext0/user/app/%s/sce_sys/icon0.png" };
+    for (int i = 0; i < 6; i++) {
         char p[256]; snprintf(p, sizeof p, wege[i], id);
         size_t n = 0; unsigned char *d = datei_lesen(p, &n);
         if (!d) continue;
-        /* NEU 1.0.7 (Prüfung 02.11.2026): Abmessungen vor dem Entpacken prüfen - eine kaputte icon0.png mit riesiger Breite
-         * könnte sonst beim Verkleinern über den Puffer hinaus lesen. icon0.png ist normal 512 x 512. */
-        int iw = 0, ih = 0, ic = 0;
-        if (!stbi_info_from_memory(d, (int)n, &iw, &ih, &ic) || iw <= 0 || ih <= 0 || iw > 4096 || ih > 4096) { free(d); continue; }
-        int c; unsigned char *px = stbi_load_from_memory(d, (int)n, w, h, &c, 4);
-        free(d);
-        if (px && *w > 0 && *h > 0) return px;
-        if (px) stbi_image_free(px);
+        unsigned char *px = bild_entpacken(d, n, w, h);
+        if (px) return px;
     }
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): ohne Kachel das Bild aus der Spieldatei bzw. dem Spiel-Ordner (spiel_bild) */
+    { size_t n = 0; unsigned char *d = spiel_bild(id, &n); if (d) { unsigned char *px = bild_entpacken(d, n, w, h); if (px) return px; } }
+    /* NEU 1.0.8 (PS5-Test 07.11.2026): ohne Kachel das Bild eines Spielstands derselben Kennung (meist das Bild des Spiels) */
+    if (!strncmp(id, "CUSA", 4) || !strncmp(id, "PPSA", 4)) { size_t n = 0; unsigned char *d = spielstand_bild(id, &n); if (d) return bild_entpacken(d, n, w, h); }
     return NULL;
 }
 #define BILDER_MAX 512
 static struct { char id[16]; SDL_Surface *b; } bilder[BILDER_MAX];
 static int bilder_n = 0, bilder_neu = 0;          /* bilder_neu: in diesem Bild schon geladen */
-static char gross_id[16]; static SDL_Surface *gross_b;
-static kern *K;
+static char gross_id[16]; static SDL_Surface *gross_b; static int gross_s;
 static const char *bild_kennung(const eintrag *f)
 {
     if (f->KachelId && f->KachelId[0]) return f->KachelId;
     if (f->SmDatei && f->SmKachel && f->SmKachel->KachelId) return f->SmKachel->KachelId;
-    if (f->ToolKachel && f->ToolKachel->KachelId) return f->ToolKachel->KachelId;
     const char *tx = f->TextBasis ? f->TextBasis : (f->Text ? f->Text : "");
-    htreffer m = h_mt(fa, tx, "\\b((?:CUSA|PPSA)\\d{5})\\b");
+    /* NEU 1.0.8 (Codex-Prüfungen 111 bis 113): Spieldatei oder Spiel-Ordner ohne Kachel - die Kennung, zu der der gelesene Name gehört
+     * ("[Spiel: Name (PPSA…)]", kern_suche.c spiel_zusatz), geht vor jeder Nummer im Dateinamen und vor der Kachel eines Blocks, unter dem
+     * die Datei steht. Nur bei Spieldateien; genommen wird der letzte solche Zusatz (er steht hinter dem Dateinamen), er endet vor dem
+     * nächsten "  [" oder am Textende - im Namen selbst steht nie "  [" (spiel_zusatz fasst Leerzeichen zusammen) */
+    htreffer m;
+    if (f->Art == ART_ABBILD) {
+        m = h_mt(fa, tx, "^.*\\[(?:Spiel|game): .*?\\(([A-Z]{4}\\d{5})\\)\\](?=  \\[|\\s*$)");   /* PS5-Test 17:33: auch FAKE77031 (Playden) */
+        if (m.ok) return m.gr[1];
+    }
+    if (f->ToolKachel && f->ToolKachel->KachelId) return f->ToolKachel->KachelId;
+    m = h_mt(fa, tx, "\\b((?:CUSA|PPSA)\\d{5})\\b");
     if (m.ok) return m.gr[1];
+    if (h_m(tx, "\\bPSCL0000[12]\\b")) return "PSCL00001";   /* NEU 1.0.8 (F4): Aufnahmen von PS5 Cleanup - das Bild der eigenen Kachel */
     m = h_mt(fa, tx, "\\b(NPWR\\d{5}_\\d{2})\\b");   /* Trophaeen: Kachel des Spiels (npbind.dat) */
     if (m.ok && K && mt_hat(&K->NPWR_KACHEL, m.gr[1])) return (const char *)mt_hole(&K->NPWR_KACHEL, m.gr[1]);
-    return NULL;
+    if (m.ok) return m.gr[1];   /* NEU 1.0.8 (PS5-Test 07.11.2026): ohne Kachel das Bild aus der Trophäen-Datei (kachelbild_laden) */
+    /* NEU 1.0.8 (F5): steht die Kennung nicht im Text (z. B. "Grand Theft Auto V – Spielstände"), dann die aus dem Ordner (savedata/CUSA…) -
+     * nur wenn alle Ordner dieselbe Kennung haben (ein Sammel-Eintrag mehrerer Spiele bekommt kein Bild eines davon) */
+    const char *pid = NULL;
+    for (int j = 0; j < f->PfadeBasis.n; j++) {
+        m = h_mt(fa, f->PfadeBasis.e[j], "/((?:CUSA|PPSA)\\d{5})(?:/|$)");
+        if (!m.ok) continue;
+        if (pid && strcmp(pid, m.gr[1])) return NULL;
+        pid = m.gr[1];
+    }
+    return pid;
 }
 static void neu_zeichnen(void);
-static SDL_Surface *kachelbild(const eintrag *f, int s)   /* s = 40 (Zeile) oder 150 (Kasten) */
+static SDL_Surface *kachelbild(const eintrag *f, int s)   /* s = 44 (Zeile) oder 180 (Kasten); 1.0.8: Grenze 64 statt 40 */
 {
     const char *id = bild_kennung(f);
     if (!id || strlen(id) >= sizeof gross_id) return NULL;
-    if (s > 40) {
-        if (!strcmp(gross_id, id)) return gross_b;
+    if (s > 64) {
+        if (!strcmp(gross_id, id) && gross_s == s) return gross_b;   /* 1.0.8: auch die Größe (der Kasten verkleinert das Bild bei langem Text) */
         if (gross_b) { SDL_FreeSurface(gross_b); gross_b = NULL; }
-        snprintf(gross_id, sizeof gross_id, "%s", id);
+        snprintf(gross_id, sizeof gross_id, "%s", id); gross_s = s;
         int w, h; unsigned char *px = kachelbild_laden(id, &w, &h);
         if (px) { gross_b = bild_verkleinert(px, w, h, s); stbi_image_free(px); }
         return gross_b;
@@ -385,8 +719,8 @@ typedef enum { D_KEINER, D_WAHL, D_TEXT, D_FERTIG, D_FEHLER } dialogart;
 static struct {
     pthread_mutex_t m; pthread_cond_t c;
     dialogart art; char *titel, *text, *sicher, *gef; bool beantwortet, wahl; char eingabe[256]; bool eingabe_ok;
+    bool bestaetigen;               /* NEU 1.0.8 (Codex-Prüfung 76): die Frage ist "Endgültig löschen?" - unter G.m gesetzt, ohne Text lesbar */
     char *f_kopf, *f_frei, *f_sm; bool f_ok;
-    volatile bool f_auto; Uint32 f_seit;     /* NEU 1.0.6: automatischer Neustart nach 10 s (abbrechbar) */
     char stand[1024]; double prozent; bool unbestimmt;
     char **log; int log_n, log_cap;
     time_t *log_zeit;              /* NEU 1.0.7: Uhrzeit je Zeile (für die Protokoll-Datei) */
@@ -398,7 +732,13 @@ static struct {
 static ablauf A;                     /* (Vorab-Deklaration, steht weiter unten) */
 static void rm_loeschen_merken(void);   /* NEU 1.0.7: QR-Rückmeldung (steht weiter unten) */
 static char *dup(const char *s) { return strdup(s ? s : ""); }
-static void neu_zeichnen(void) { G.neu = true; }
+static void neu_zeichnen(void) { __atomic_store_n(&G.neu, true, __ATOMIC_RELEASE); }   /* Codex-Prüfung 78: kommt auch aus anderen Fäden - atomar */
+/* NEU 1.0.8 (Arbeitsplan 4.7): Protokollzeilen, Stand und gezählte Größen kommen aus anderen Fäden, beim Nachschauen und beim Zählen der
+ * Größen oft viele pro Sekunde. Bisher wurde für jede gleich neu gezeichnet (bis zu 60 Bilder pro Sekunde, alles über den Prozessor) -
+ * jetzt gesammelt, höchstens alle 100 ms. Tasten, neue Fragen und die Liste zeichnen weiter sofort. */
+static bool neu_bald;                /* Codex-Prüfung 78: nur atomar lesen und schreiben (mehrere Fäden) */
+static void neu_zeichnen_bald(void) { __atomic_store_n(&neu_bald, true, __ATOMIC_RELEASE); }
+static Uint32 bild_zeit;             /* wann zuletzt gezeichnet wurde */
 
 /* NEU 1.0.7 (da_Chris86 31.10.2026 19:27/19:28): Protokoll als Datei - Zeile für Zeile (kostet keinen Speicher, bei einem Absturz
  * ist alles bis dahin gesichert). Seit 02.11.2026 (da_Chris86 15:44/15:45) beginnt die Datei erst direkt vor dem ersten Löschen
@@ -423,28 +763,129 @@ static void prot_datei_zeile(FILE *f, time_t z, const char *t)
 static void prot_datei_kopf(FILE *f)   /* Kopf + alles bisherige (unter G.m) */
 {
     time_t j = time(NULL); struct tm tm; localtime_r(&j, &tm);
-    fprintf(f, "===== PS5 Cleanup %s (%s) - %04d-%02d-%02d %02d:%02d:%02d =====\r\n", VERSION_TEXT, plattform_name(),
+    fprintf(f, "===== PS5 Cleanup %s (%s) - %04d-%02d-%02d %02d:%02d:%02d =====\r\n", VERSION_ANZEIGE, plattform_name(),
             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     for (int i = 0; i < G.log_n; i++) prot_datei_zeile(f, G.log_zeit[i], G.log[i]);
 }
 #endif
+#ifdef MITSCHNITT
+/* NEU 1.0.8 (Arbeitsplan 2.7, Absprache da_Chris86 05.11.2026): nur die Test-Fassung für den Abschlusstest - nie in der veröffentlichten
+ * Version (start/bauen_release.sh prüft das). Alles kommt in den Ordner PS5-Cleanup-Test auf dem USB-Laufwerk (sonst /data/PS5-Cleanup-Test):
+ *  - mitschnitt_<Zeit>.txt: jede Frage an das Dateisystem samt Antwort, Befehle samt Antwort von Sony, Zustand vor und nach dem Entfernen
+ *    einer Kachel (Ordner, app.db, appinfo.db), alle Zeilen des Protokolls, Zeilen aus appinfo.db, freier Speicher, Konsole. Format und
+ *    PC-Nachbau: kern/zugriff_mitschnitt.c, test/kern/test_mitschnitt.c ("zeige").
+ *  - bild_<Nr>_<Zeit>.png: ein Bild von jedem Bildschirm - nach jedem Tastendruck, bei jeder neuen Frage, sonst höchstens alle 15 s, nur
+ *    wenn sich etwas verändert hat. Selbst gespeichert, ohne Sonys Screenshot-Funktion (Sonys Einblendungen sind darauf nicht zu sehen).
+ * Der Ordner wird nie zum Löschen angeboten (K->TEST_ORDNER). */
+static const char MS_MARKE[] = "PS5CLEANUP-MITSCHNITT-TESTFASSUNG";
+static FILE *ms_f; static char ms_ordner[160];
+/* Codex-Prüfung 74: Geschrieben wird nur von einem eigenen Faden. Wer eine Zeile abgibt (Oberfläche, Löschen, Bilder), legt sie nur in einen
+ * Puffer (höchstens 8 MB) und wartet nie auf das Laufwerk - hängt es, gehen Zeilen verloren (gezählt), die Oberfläche läuft weiter.
+ * Höchstens 2 GB Text; unter 500 MB frei oder bei einem Schreibfehler schreibt der Mitschnitt nicht weiter (letzte Zeile sagt warum). */
+#define MS_PUF_MAX (8u << 20)
+#define MS_TEXT_MAX (2048LL << 20)
+#define MS_FREI_MIN (500LL << 20)
+static pthread_mutex_t ms_m = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t ms_mc = PTHREAD_COND_INITIALIZER;
+static char *ms_puf; static size_t ms_puf_n, ms_puf_cap;
+static bool ms_schreibt, ms_aus; static long long ms_verloren;
+/* Codex-Prüfung 75: eine Aufzeichnung (z. B. eine Ordnerliste) kommt mit allen Folgezeilen in einem Aufruf - gezählt werden die Zeilen */
+static long long ms_zeilen(const char *z, size_t n) { long long k = 0; for (size_t i = 0; i < n; i++) if (z[i] == '\n') k++; return k ? k : 1; }
+/* zwingend: die Schlusszeile (ENDE) kommt auch in einen vollen Puffer - sie ist kurz */
+static void ms_schreib_x(const char *z, bool zwingend)
+{
+    size_t n = strlen(z);
+    pthread_mutex_lock(&ms_m);
+    if (ms_f && !ms_aus) {
+        if (ms_puf_n + n > MS_PUF_MAX && !zwingend) ms_verloren += ms_zeilen(z, n);
+        else {
+            if (ms_puf_n + n > ms_puf_cap) {
+                size_t nc = ms_puf_cap ? ms_puf_cap : 65536;
+                while (nc < ms_puf_n + n) nc *= 2;
+                char *np = realloc(ms_puf, nc);
+                if (!np) { ms_verloren += ms_zeilen(z, n); pthread_mutex_unlock(&ms_m); return; }
+                ms_puf = np; ms_puf_cap = nc;
+            }
+            memcpy(ms_puf + ms_puf_n, z, n); ms_puf_n += n;
+            pthread_cond_broadcast(&ms_mc);
+        }
+    }
+    pthread_mutex_unlock(&ms_m);
+}
+static void ms_schreib(void *c, const char *z) { (void)c; ms_schreib_x(z, false); }
+static void *ms_schreib_faden(void *x)
+{
+    (void)x;
+    char *b = NULL; size_t bcap = 0;
+    long long gemeldet = 0, geschrieben = 0, pruefen_ab = 16LL << 20;
+    pthread_mutex_lock(&ms_m);
+    for (;;) {
+        while (ms_puf_n == 0 && ms_verloren == gemeldet) pthread_cond_wait(&ms_mc, &ms_m);
+        char *t = ms_puf; size_t n = ms_puf_n, tc = ms_puf_cap;
+        ms_puf = b; ms_puf_cap = bcap; ms_puf_n = 0; b = t; bcap = tc;   /* Puffer tauschen - geschrieben wird ohne Sperre */
+        long long neu_verloren = ms_verloren - gemeldet; gemeldet = ms_verloren;
+        FILE *f = ms_f; bool aus = ms_aus;
+        ms_schreibt = true;
+        pthread_mutex_unlock(&ms_m);
+        const char *grund = NULL;
+        if (f && !aus) {
+            bool ok = true;
+            if (neu_verloren > 0) { char v[128]; snprintf(v, sizeof v, "I VERLOREN%%20%lld%%20Zeilen%%20(Schreiben%%20kam%%20nicht%%20nach)\n", neu_verloren); ok = fputs(v, f) >= 0; }
+            ok = ok && (n == 0 || fwrite(b, 1, n, f) == n) && fflush(f) == 0;
+            geschrieben += (long long)n;
+            if (!ok) grund = "Schreibfehler";
+            else if (geschrieben > MS_TEXT_MAX) grund = "2 GB Text erreicht";
+            else if (geschrieben >= pruefen_ab) {
+                pruefen_ab = geschrieben + (16LL << 20);
+                long long fr = plattform_frei_bytes(ms_ordner);
+                if (fr >= 0 && fr < MS_FREI_MIN) grund = "unter 500 MB frei";
+            }
+            if (grund) { arena *a = arena_neu(); fputs(zugriff_mitschnitt_zeile(a, 'I', VERB(a, "MITSCHNITT AUS: ", grund), NULL, NULL), f); fflush(f); arena_frei(a); }
+        }
+        pthread_mutex_lock(&ms_m);
+        ms_schreibt = false;
+        if (grund) ms_aus = true;
+        pthread_cond_broadcast(&ms_mc);
+    }
+    return NULL;
+}
+static void ms_zeile(char typ, const char *t1, const char *t2, const char *t3)
+{
+    if (!ms_f) return;
+    arena *a = arena_neu();
+    ms_schreib(NULL, zugriff_mitschnitt_zeile(a, typ, t1, t2, t3));
+    arena_frei(a);
+}
+static void ms_speicher(const char *wann);   /* weiter unten */
+#endif
+/* NEU 1.0.8 (Codex-Prüfungen 74/75): der Ordner der Test-Fassung an allen Orten, an denen plattform_test_ordner ihn anlegen kann (Wege wie im
+ * Kern) - in JEDER Fassung nie angeboten und nie gelöscht, damit auch die normale Version Mitschnitt und Bilder des Tests in Ruhe lässt */
+static const char *const TEST_ORDNER_ORTE[] = { "/user/data/PS5-Cleanup-Test", "/mnt/usb0/PS5-Cleanup-Test", "/mnt/usb1/PS5-Cleanup-Test", "/mnt/usb2/PS5-Cleanup-Test",
+                                                "/mnt/usb3/PS5-Cleanup-Test", "/mnt/usb4/PS5-Cleanup-Test", "/mnt/usb5/PS5-Cleanup-Test", "/mnt/usb6/PS5-Cleanup-Test",
+                                                "/mnt/usb7/PS5-Cleanup-Test" };
 static void ui_log(void *c, const char *t)
 {
     (void)c;
     pthread_mutex_lock(&G.m);
-    if (G.log_n == G.log_cap) {
-        G.log_cap = G.log_cap ? G.log_cap * 2 : 256;
-        G.log = realloc(G.log, sizeof(char *) * (size_t)G.log_cap);
-        G.log_zeit = realloc(G.log_zeit, sizeof(time_t) * (size_t)G.log_cap);
+    time_t jetzt = time(NULL);
+    if (G.log_n == G.log_cap) {   /* Codex-Prüfung 84: realloc kann scheitern - dann wird die Zeile nur nicht gemerkt (Datei und Ausgabe bleiben) */
+        int cap = G.log_cap ? G.log_cap * 2 : 256;
+        char **l = realloc(G.log, sizeof(char *) * (size_t)cap);
+        if (l) G.log = l;
+        time_t *z = l ? realloc(G.log_zeit, sizeof(time_t) * (size_t)cap) : NULL;
+        if (z) G.log_zeit = z;
+        if (l && z) G.log_cap = cap;
     }
-    G.log_zeit[G.log_n] = time(NULL);
-    G.log[G.log_n++] = dup(t);
-    if (prot_f) prot_datei_zeile(prot_f, G.log_zeit[G.log_n - 1], t);
-    if (prot_stick_f) prot_datei_zeile(prot_stick_f, G.log_zeit[G.log_n - 1], t);
+    if (G.log_n < G.log_cap) { G.log_zeit[G.log_n] = jetzt; G.log[G.log_n++] = dup(t); }
+    if (prot_f) prot_datei_zeile(prot_f, jetzt, t);
+    if (prot_stick_f) prot_datei_zeile(prot_stick_f, jetzt, t);
     pthread_mutex_unlock(&G.m);
     printf("PS5 Cleanup: %s\n", t ? t : ""); fflush(stdout);
     plattform_protokoll_zeile(t);                  /* NEU 1.0.7: auch ins Kernel-Protokoll */
-    neu_zeichnen();
+#ifdef MITSCHNITT
+    ms_zeile('P', t ? t : "", NULL, NULL);         /* NEU 1.0.8 (2.7): jede Zeile des Protokolls auch in den Mitschnitt */
+#endif
+    neu_zeichnen_bald();                           /* 1.0.8 (4.7) */
 }
 static void ui_meldung(const char *t) { ui_log(NULL, t); }   /* NEU 1.0.7: Zeilen der Plattform (Sony-Deinstallation) */
 /* Protokoll auf den USB-Stick: neue Datei mit Datum und Uhrzeit, danach wird jede Zeile dort angehängt.
@@ -500,7 +941,12 @@ static void ui_stand(void *c, const char *t, double p)
     if (p == ABLAUF_UNBESTIMMT) G.unbestimmt = true;
     else if (p >= 0) { G.unbestimmt = false; G.prozent = p; }
     pthread_mutex_unlock(&G.m);
-    neu_zeichnen();
+    neu_zeichnen_bald();                           /* 1.0.8 (4.7) */
+#ifdef VORSCHAU   /* NEU 1.0.8 (4.5): PC-Vorschau - Löschen sichtbar langsam, damit Bilder der Seite "Löschen läuft" möglich sind */
+    static int langsam = -1; if (langsam < 0) { const char *e = getenv("VORSCHAU_LANGSAM"); langsam = e ? atoi(e) : 0; }
+    if (langsam > 0 && t && (txt_beginnt(t, T("Lösche Eintrag ", "Deleting entry ")) || txt_beginnt(t, T("SIMULATION · prüfe Eintrag ", "SIMULATION · checking entry ")))) SDL_Delay((Uint32)langsam);
+    if (langsam > 0 && t && p == ABLAUF_UNBESTIMMT && txt_beginnt(t, T("Schaue nach, was auf der PS5 liegt", "Scanning what is on the PS5"))) SDL_Delay((Uint32)langsam * 20);   /* Seite "Nachschauen läuft" */
+#endif
 }
 static void warte_antwort(void)
 {
@@ -514,6 +960,7 @@ static bool ui_wahl(void *c, const char *text, const char *titel, const char *si
     (void)c;
     pthread_mutex_lock(&G.m);
     dialog_frei(); G.titel = dup(titel); G.text = dup(text); G.sicher = dup(sicher); G.gef = dup(gef);
+    G.bestaetigen = titel && !strcmp(titel, T("Endgültig löschen?", "Delete permanently?"));
     G.art = D_WAHL; warte_antwort();
     bool w = G.wahl;
     pthread_mutex_unlock(&G.m);
@@ -525,6 +972,7 @@ static const char *ui_text(void *c, const char *text, const char *titel)
     (void)c;
     pthread_mutex_lock(&G.m);
     dialog_frei(); G.titel = dup(titel); G.text = dup(text); G.eingabe[0] = 0;
+    G.bestaetigen = titel && !strcmp(titel, T("Endgültig löschen?", "Delete permanently?"));
     G.art = D_TEXT; warte_antwort();
     bool ok = G.eingabe_ok;
     /* te.Text.Trim() */
@@ -537,21 +985,21 @@ static const char *ui_text(void *c, const char *text, const char *titel)
 static void ui_fertig(void *c, const char *kopf, bool ok, const char *frei, const char *sm)
 {
     (void)c;
+#ifdef MITSCHNITT
+    ms_speicher("FERTIG");                         /* NEU 1.0.8 (2.7): freier Speicher nach der Arbeit */
+#endif
     rm_loeschen_merken();   /* NEU 1.0.7: QR-Rückmeldung - der Kern ruht hier (Arbeitsfaden, vor G.m) */
     pthread_mutex_lock(&G.m);
     free(G.f_kopf); free(G.f_frei); free(G.f_sm);
-    G.f_kopf = dup(kopf); G.f_frei = dup(frei); G.f_sm = dup(sm); G.f_ok = ok;
-    G.f_auto = false; G.f_seit = SDL_GetTicks();   /* da_Chris86 30.10.2026 09:01: kein Countdown - ausgeschaltet wird erst mit ✕ oder ○ */
-    (void)A.auto_neustart;   /* NEU 1.0.6; da_Chris86 29.10.2026 20:03: kein Neustart, wenn die Datenbank neu aufgebaut werden muss */
+    G.f_kopf = dup(kopf); G.f_frei = dup(frei); G.f_sm = dup(sm); G.f_ok = ok; G.bestaetigen = false;
     G.art = D_FERTIG; warte_antwort();
-    G.f_auto = false;
     pthread_mutex_unlock(&G.m);
 }
 static void ui_fehler(void *c, const char *t)
 {
     (void)c;
     pthread_mutex_lock(&G.m);
-    dialog_frei(); G.titel = dup("PS5 Cleanup"); G.text = dup(t);
+    dialog_frei(); G.titel = dup("PS5 Cleanup"); G.text = dup(t); G.bestaetigen = false;
     G.art = D_FEHLER; warte_antwort();
     pthread_mutex_unlock(&G.m);
 }
@@ -605,7 +1053,197 @@ static const char *eigener_ort(void)
     if (!strncmp(o, "/data/", 6)) return VERB(K->a, "/user", o);       /* /data ist /user/data */
     return o;
 }
-static zugriff *neue_verbindung(void *c) { (void)c; return plattform_zugriff(); }
+#ifdef MITSCHNITT
+static zugriff *app_zugriff(void) { zugriff *z = plattform_zugriff(); return ms_f ? zugriff_mitschnitt(z, ms_schreib, NULL) : z; }
+static void ms_speicher(const char *wann)
+{
+    static const char *const N[4] = { "intern", "M.2", "USB-Speicher", "USB-Laufwerk" };
+    for (int o = ORT_INTERN; o <= ORT_STICK; o++) {
+        long long fr = 0, ge = 0;
+        if (!plattform_speicher(o, &fr, &ge)) continue;
+        char t[160]; snprintf(t, sizeof t, "SPEICHER %s %s frei=%lld gesamt=%lld", wann, N[o], fr, ge);
+        ms_zeile('I', t, NULL, NULL);
+    }
+}
+/* appinfo.db: jede Zeile, die der Kern bekommt, auch in den Mitschnitt (D) */
+static void (*ms_ai_zeile)(struct kern *k, const char *titel, const char *feld, const char *wert);
+static void ms_ai_weiter(struct kern *k, const char *titel, const char *feld, const char *wert) { ms_zeile('D', titel, feld, wert); ms_ai_zeile(k, titel, feld, wert); }
+static void ms_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert))
+{
+    ms_ai_zeile = zeile;
+    plattform_appinfo_lesen(k, ms_ai_weiter);
+}
+/* vor und nach dem Entfernen einer Kachel (zugriff_mitschnitt.c): steht die Kennung in app.db, welche Angaben hat appinfo.db - nur lesen */
+static const char *ms_db_id; static int ms_db_n;
+static void ms_db_zeile(void *c, const char *titel, const char *feld, const char *wert) { (void)c; (void)feld; (void)wert; if (titel && ms_db_id && !strcmp(titel, ms_db_id)) ms_db_n++; }
+static void ms_db_zustand(const char *id, bool nachher, void (*zeile)(const char *t))
+{
+    const char *q = plattform_db_ordner();
+    if (!q) { zeile("DB: kein Ordner mit app.db/appinfo.db"); return; }
+    arena *a = arena_neu();
+    const char *gr = "";
+    int r = db_kennung_in_appdb(a, q, id, &gr);
+    zeile(VERB(a, "DB ", nachher ? "NACH " : "VOR ", id, " app.db: ", r == 1 ? "drin" : r == 0 ? "nicht drin" : VERB(a, "nicht prüfbar (", gr ? gr : "", ")")));
+    ms_db_id = id; ms_db_n = 0; gr = "";
+    int z = db_appinfo_angaben(a, q, ms_db_zeile, NULL, &gr);
+    zeile(VERB(a, "DB ", nachher ? "NACH " : "VOR ", id, " appinfo.db: ", z < 0 ? VERB(a, "nicht lesbar (", gr ? gr : "", ")") : a_fmt(a, "%d Angaben (Spielstand-Ordner, Zusatzinhalte) zu dieser Kennung", ms_db_n)));
+    ms_db_id = NULL;
+    arena_frei(a);
+}
+/* Bildschirmbilder: Kopie des Bilds (RGB) an einen eigenen Faden - die Oberfläche wartet nie auf das Packen; höchstens 3 warten */
+typedef struct { unsigned char *rgb; int w, h, nr; } ms_bild;
+static ms_bild ms_warte[3]; static int ms_warte_n = 0, ms_nr = 0, ms_verworfen = 0;
+static pthread_mutex_t ms_bm = PTHREAD_MUTEX_INITIALIZER; static pthread_cond_t ms_bc = PTHREAD_COND_INITIALIZER;
+static bool ms_faden_da = false, ms_arbeitet = false, ms_bilder_aus = false;
+static Uint32 ms_anlass = 0, ms_geprueft = 0; static uint32_t ms_hash = 0;
+typedef struct { int fd; bool fehler; } ms_png_ziel;
+static int ms_png_fehler = 0;
+static void ms_png_raus(void *ctx, void *d, int n)   /* Codex-Prüfung 74: stb meldet Schreibfehler nicht - darum hier merken */
+{
+    ms_png_ziel *z = ctx; const unsigned char *p = d;
+    while (n > 0 && !z->fehler) {
+        ssize_t k = write(z->fd, p, (size_t)n);
+        if (k < 0 && errno == EINTR) continue;
+        if (k <= 0) { z->fehler = true; return; }
+        p += k; n -= (int)k;
+    }
+}
+static void *ms_bild_faden(void *x)
+{
+    (void)x;
+    for (;;) {
+        pthread_mutex_lock(&ms_bm);
+        while (ms_warte_n == 0) pthread_cond_wait(&ms_bc, &ms_bm);
+        ms_bild b = ms_warte[0];
+        memmove(ms_warte, ms_warte + 1, sizeof(ms_bild) * (size_t)(ms_warte_n - 1)); ms_warte_n--; ms_arbeitet = true;
+        pthread_mutex_unlock(&ms_bm);
+        /* Platz: höchstens 2000 Bilder zu etwa 250 KB - unter 500 MB frei keine Bilder mehr. Codex-Prüfung 75: hier im Bild-Faden, nie in der
+         * Oberfläche (hängt das Laufwerk, darf nur dieser Faden warten) */
+        if (b.nr % 10 == 1) {
+            long long fr = plattform_frei_bytes(ms_ordner);
+            if (fr >= 0 && fr < 500LL * 1024 * 1024) {
+                free(b.rgb);
+                char t[120]; snprintf(t, sizeof t, "BILDER AUS: nur noch %lld MB frei", fr / (1024 * 1024));
+                pthread_mutex_lock(&ms_bm);
+                for (int i = 0; i < ms_warte_n; i++) free(ms_warte[i].rgb);   /* die noch wartenden Bilder auch nicht mehr */
+                ms_warte_n = 0; ms_arbeitet = false; ms_bilder_aus = true;
+                pthread_mutex_unlock(&ms_bm);
+                ms_zeile('I', t, NULL, NULL);
+                continue;
+            }
+        }
+        time_t j = time(NULL); struct tm tm; localtime_r(&j, &tm);
+        char p[256]; snprintf(p, sizeof p, "%s/bild_%04d_%02d%02d%02d.png", ms_ordner, b.nr, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        int fd = open(p, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0644);
+        ms_png_ziel pz = { fd, false };
+        int ok = fd >= 0 ? stbi_write_png_to_func(ms_png_raus, &pz, b.w, b.h, 3, b.rgb, b.w * 3) : 0;
+        if (fd >= 0 && close(fd) != 0) pz.fehler = true;
+        if (pz.fehler) ok = 0;
+        free(b.rgb);
+        char t[300]; snprintf(t, sizeof t, "BILD %d %s%s", b.nr, strrchr(p, '/') + 1, ok ? "" : fd < 0 ? " (nicht angelegt)" : " (unvollständig - Schreibfehler)");
+        ms_zeile('I', t, NULL, NULL);
+        pthread_mutex_lock(&ms_bm);
+        ms_arbeitet = false;
+        if (!ok && ++ms_png_fehler >= 3 && !ms_bilder_aus) { ms_bilder_aus = true; ms_zeile('I', "BILDER AUS: drei Bilder ließen sich nicht speichern", NULL, NULL); }
+        pthread_mutex_unlock(&ms_bm);
+    }
+    return NULL;
+}
+static void ms_taste(void) { ms_anlass = SDL_GetTicks(); }
+/* ein Bild des Bildschirms, wenn er sich seit dem letzten verändert hat */
+static bool ms_bilder_ende = false;               /* Codex-Prüfung 75: nach der Schlusszeile keine neuen Bilder */
+static void ms_bild_jetzt(void)
+{
+    if (!ms_f || ms_bilder_aus || ms_bilder_ende || !ziel || ms_nr >= 2000 || ziel->format->BytesPerPixel != 4) return;
+    if (SDL_MUSTLOCK(ziel)) SDL_LockSurface(ziel);
+    uint32_t h = 2166136261u;
+    for (int y = 0; y < ziel->h; y += 5) { const uint32_t *z = (const uint32_t *)((const unsigned char *)ziel->pixels + (size_t)y * (size_t)ziel->pitch); for (int x = 0; x < ziel->w; x += 5) { h ^= z[x]; h *= 16777619u; } }
+    if (SDL_MUSTLOCK(ziel)) SDL_UnlockSurface(ziel);
+    if (h == ms_hash) return;                      /* nichts verändert */
+    SDL_Surface *rgb = SDL_ConvertSurfaceFormat(ziel, SDL_PIXELFORMAT_RGB24, 0);
+    if (!rgb) return;
+    unsigned char *d = malloc((size_t)rgb->w * (size_t)rgb->h * 3);
+    if (d) for (int y = 0; y < rgb->h; y++) memcpy(d + (size_t)y * (size_t)rgb->w * 3, (const unsigned char *)rgb->pixels + (size_t)y * (size_t)rgb->pitch, (size_t)rgb->w * 3);
+    int w = rgb->w, hh = rgb->h;
+    SDL_FreeSurface(rgb);
+    if (!d) return;
+    ms_hash = h;
+    pthread_mutex_lock(&ms_bm);
+    if (!ms_faden_da) { pthread_t t; if (basis_faden(&t, ms_bild_faden, NULL) == 0) { pthread_detach(t); ms_faden_da = true; } }
+    if (ms_faden_da && ms_warte_n < 3) { ms_warte[ms_warte_n++] = (ms_bild){ d, w, hh, ++ms_nr }; pthread_cond_signal(&ms_bc); d = NULL; }
+    else ms_verworfen++;
+    pthread_mutex_unlock(&ms_bm);
+    free(d);
+}
+/* nach jedem Durchlauf der Hauptschleife: ein neues Bild, wenn es einen Anlass gibt (400 ms nach einer Taste oder neuen Frage, sonst alle 15 s) */
+static void ms_bild_vielleicht(void)
+{
+    if (!ms_f) return;
+    Uint32 jetzt = SDL_GetTicks();
+    bool anlass = (ms_anlass && jetzt - ms_anlass >= 400) || jetzt - ms_geprueft >= 15000;
+    if (!anlass) return;
+    ms_anlass = 0; ms_geprueft = jetzt;
+    ms_bild_jetzt();
+}
+/* vor dem Beenden oder Neustart: letztes Bild, auf die noch wartenden Bilder warten (höchstens 4 s), Schlusszeile */
+static void ms_ende(const char *wann)
+{
+    if (!ms_f) return;
+    ms_bild_jetzt();
+    ms_bilder_ende = true;                         /* Codex-Prüfung 75: danach keine neuen Bilder mehr (sonst stünden BILD-Zeilen hinter ENDE) */
+    bool fertig = false;
+    for (int i = 0; i < 400; i++) {
+        pthread_mutex_lock(&ms_bm); fertig = ms_warte_n == 0 && !ms_arbeitet; pthread_mutex_unlock(&ms_bm);
+        if (fertig) break;
+        SDL_Delay(10);
+    }
+    char t[200]; snprintf(t, sizeof t, "ENDE %s bilder=%d verworfen=%d%s", wann, ms_nr, ms_verworfen, fertig ? "" : " (ein Bild wurde noch gespeichert)");
+    { arena *a = arena_neu(); ms_schreib_x(zugriff_mitschnitt_zeile(a, 'I', t, NULL, NULL), true); arena_frei(a); }   /* Codex-Prüfung 75: auch bei vollem Puffer */
+    for (int i = 0; i < 300; i++) {               /* höchstens 3 s, bis der Text geschrieben ist - hängt das Laufwerk, nicht länger */
+        pthread_mutex_lock(&ms_m); bool leer = (ms_puf_n == 0 && !ms_schreibt) || ms_aus; pthread_mutex_unlock(&ms_m);
+        if (leer) break;
+        SDL_Delay(10);
+    }
+}
+/* NEU (Codex-Prüfung 74): jede Suche beginnt im Mitschnitt mit "I SUCHE <n>" - auch das erneute Nachschauen nach dem Löschen - und nennt die
+ * Sprache (sie lässt sich vor der ersten Suche umstellen). So gibt der PC-Nachbau die Suchen nacheinander mit demselben Kern wieder. */
+static int ms_suche_nr = 0;
+static void ms_suche_beginnen(bool nach_loeschen)
+{
+    if (!ms_f) return;
+    char t[64]; snprintf(t, sizeof t, "I SUCHE %d%s\n", ++ms_suche_nr, nach_loeschen ? " NACH_LOESCHEN" : ""); ms_schreib(NULL, t);
+    ms_zeile('I', SP_EN ? "SPRACHE en" : "SPRACHE de", NULL, NULL);
+}
+static void ms_neusuche(void *c) { (void)c; ms_suche_beginnen(true); ms_speicher("NACH_LOESCHEN"); }
+static void ms_oeffnen(void)
+{
+    const char *o = plattform_test_ordner();
+    if (!o) { ui_log(NULL, "TESTLAUF: kein Ordner für Mitschnitt und Bilder (USB-Laufwerk oder /data) - es wird nichts mitgeschnitten."); return; }
+    long long fr = plattform_frei_bytes(o);
+    if (fr >= 0 && fr < 200LL * 1024 * 1024) { char t[300]; snprintf(t, sizeof t, "TESTLAUF: in %s ist zu wenig Platz (unter 200 MB) - es wird nichts mitgeschnitten.", o); ui_log(NULL, t); return; }
+    snprintf(ms_ordner, sizeof ms_ordner, "%s", o);
+    time_t j = time(NULL); struct tm tm; localtime_r(&j, &tm);
+    char p[256]; snprintf(p, sizeof p, "%s/mitschnitt_%04d-%02d-%02d_%02d%02d%02d.txt", o, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    int fd = open(p, O_WRONLY | O_CREAT | O_EXCL | O_APPEND | O_NOFOLLOW | O_CLOEXEC, 0644);
+    FILE *f = fd >= 0 ? fdopen(fd, "a") : NULL;
+    if (!f) { int e = errno; if (fd >= 0) close(fd); char t[400]; snprintf(t, sizeof t, "TESTLAUF: Mitschnitt nicht anlegbar: %s (%s)", p, strerror(e)); ui_log(NULL, t); return; }
+    stbi_write_png_compression_level = 4;          /* schneller packen - die Bilder dürfen etwas größer sein */
+    pthread_t sf;
+    if (basis_faden(&sf, ms_schreib_faden, NULL) != 0) { fclose(f); ui_log(NULL, "TESTLAUF: Mitschnitt nicht möglich (kein Faden zum Schreiben) - es wird nichts mitgeschnitten."); return; }
+    pthread_detach(sf);
+    pthread_mutex_lock(&ms_m); ms_f = f; pthread_mutex_unlock(&ms_m);
+    char t[400];
+    snprintf(t, sizeof t, "%s PS5 Cleanup %s (%s)", MS_MARKE, VERSION_ANZEIGE, plattform_name()); ms_zeile('I', t, NULL, NULL);
+    snprintf(t, sizeof t, "KONSOLE modell=%s firmware=%s ddd_bekannt=%d ddd=%d sprache=%s", KI.modell, KI.firmware, KI.ddd_bekannt ? 1 : 0, KI.ddd, SP_EN ? "en" : "de"); ms_zeile('I', t, NULL, NULL);
+    snprintf(t, sizeof t, "EIGENER_ORT %s", plattform_eigener_ort() ? plattform_eigener_ort() : ""); ms_zeile('I', t, NULL, NULL);
+    for (size_t i = 0; i < sizeof TEST_ORDNER_ORTE / sizeof TEST_ORDNER_ORTE[0]; i++) { snprintf(t, sizeof t, "TEST_ORDNER %s", TEST_ORDNER_ORTE[i]); ms_zeile('I', t, NULL, NULL); }   /* für den PC-Nachbau */
+    ms_speicher("START");
+    snprintf(t, sizeof t, "TESTLAUF: Mitschnitt und Bildschirmbilder kommen in den Ordner %s", o); ui_log(NULL, t);
+}
+#else
+static zugriff *app_zugriff(void) { return plattform_zugriff(); }
+#endif
+static zugriff *neue_verbindung(void *c) { (void)c; return app_zugriff(); }
 
 typedef enum { AUF_SUCHEN, AUF_KOMPLETT, AUF_AUSWAHL } auftrag;
 #ifdef PRUEFLAUF
@@ -678,19 +1316,73 @@ static volatile int groessen_gemeldet = 0;
 static void groesse_neu_app(void *c)
 {
     (void)c;
-    neu_zeichnen();
+    neu_zeichnen_bald();                           /* 1.0.8 (4.7): beim Zählen kommt das für jeden Eintrag */
+#ifdef VORSCHAU   /* NEU 1.0.8 (PS5-Test 07.11.2026): PC-Vorschau - Zählen sichtbar langsam (VORSCHAU_ZAEHLEN = ms je Eintrag), für Bilder beim Zählen */
+    static int zl = -1; if (zl < 0) { const char *e = getenv("VORSCHAU_ZAEHLEN"); zl = e ? atoi(e) : 0; }
+    if (zl > 0 && A.hg_n < A.hg_gesamt) SDL_Delay((Uint32)zl);
+#endif
     if (!groessen_gemeldet && A.hg_gesamt > 0 && A.hg_n >= A.hg_gesamt) { groessen_gemeldet = 1; speicher_zeile(T("Größen fertig gezählt", "sizes counted")); }
+}
+/* NEU 1.0.8 (Codex-Prüfung 105, P2): zählt der Hintergrund gerade? Fehlen Größen, ohne dass noch gezählt wird (Zählen nach einem Lesefehler
+ * beendet oder angehalten), heißt es "mind. …" statt endlos "zählt …" */
+static bool zaehlen_laeuft(void) { return A.hintergrund && A.hg_gesamt > 0 && A.hg_n < A.hg_gesamt; }
+/* NEU 1.0.8 (Arbeitsplan 2.5): In den Rückmeldungen stand „Nicht lesbare Ordner: 48“ (nur die Zahl). Welche Ordner das sind, steht jetzt
+ * im Protokoll - es bleibt auf der Konsole, über den QR-Code geht weiter nur die Zahl. Am Verhalten ändert sich nichts: die Ordner bleiben
+ * geschützt und werden nicht angeboten. "Zu tief" = tiefer verschachtelt, als der Selbstschutz durchsucht (kern_selbstschutz.c SUCH_TIEFE). */
+/* Codex-Prüfung 79: haben zwei Pfade denselben Ordner darüber (wie h_eltern, aber ohne Kopie)? "/a/b/c" und "/a/b/d" ja, "/x" und "/y" ja ("/") */
+static bool gleiche_eltern(const char *a, const char *b)
+{
+    const char *sa = strrchr(a, '/'), *sb = strrchr(b, '/');
+    return sa && sb && sa - a == sb - b && !memcmp(a, b, (size_t)(sa - a));
+}
+static void unlesbar_melden(void)
+{
+    int n = K->SCHUTZ.diag.n, t = K->SCHUTZ.zu_tief.n, v = K->SCHUTZ.zu_viele.n;   /* in DIESER Suche gefunden (Codex-Prüfung 71) */
+    if (n <= 0) return;
+    if (v > 0)   /* NEU 1.0.8 (3.7) */
+        ui_log(NULL, T("HINWEIS: Manche Ordner enthalten so viele Dateien, dass PS5 Cleanup nicht ganz prüfen kann, ob darin eine Kopie von sich selbst liegt. "
+                       "Sie werden zur Sicherheit nicht angeboten - Spiele daneben schon. Welche es sind, steht in der Liste darunter.",
+                       "NOTE: Some folders contain so many files that PS5 Cleanup cannot fully check whether a copy of itself is in them. "
+                       "To be safe they are not offered - games next to them are. They are listed below."));
+    ui_log(NULL, VERB(K->a, T("Geschützt und nicht angeboten: ", "Protected and not offered: "), a_fmt(K->a, "%d", n), T(" Ordner (", " folders ("),
+                      a_fmt(K->a, "%d", n - t - v), T(" nicht lesbar, ", " not readable, "), a_fmt(K->a, "%d", t), T(" zu tief verschachtelt", " nested too deep"),
+                      v > 0 ? VERB(K->a, ", ", a_fmt(K->a, "%d", v), T(" mit zu vielen Dateien", " with too many files")) : "", "):"));
+    sliste schon = {0};   /* NEU 1.0.8 (3.7): ab 3 gesperrten Ordnern im selben Ordner steht nur dieser, mit Anzahl (hier: je Gruppe ein Ordner daraus) */
+    for (int i = 0, z = 0; i < n && z < 1000; i++) {   /* Codex-Prüfung 71: alle zeigen (bis 1000) */
+        const char *p = K->SCHUTZ.diag.e[i];
+        if (h_hat(&K->SCHUTZ.zu_viele, p)) {
+            /* Codex-Prüfung 79: Eltern vergleichen, ohne sie jedes Mal dauerhaft zu kopieren (vorher je Ordner alle Eltern aller gesperrten
+             * Ordner - bei 500 Ordnern mit langen Pfaden über 150 MB), und eine schon zusammengefasste Gruppe nicht nochmal zählen */
+            bool zusammen = false;
+            for (int k = 0; k < schon.n && !zusammen; k++) zusammen = gleiche_eltern(schon.e[k], p);
+            if (zusammen) continue;
+            int c = 0;
+            for (int j = 0; j < v; j++) if (gleiche_eltern(K->SCHUTZ.zu_viele.e[j], p)) c++;
+            if (c >= 3) {
+                sl_add(K->a, &schon, p); z++;
+                ui_log(NULL, VERB(K->a, "   ", h_eltern(K->a, p), "/...  (", a_fmt(K->a, "%d", c), T(" Ordner darin: zu viele Dateien)", " folders in it: too many files)")));
+                continue;
+            }
+            z++; ui_log(NULL, VERB(K->a, "   ", p, T("  (zu viele Dateien)", "  (too many files)"))); continue;
+        }
+        z++; ui_log(NULL, VERB(K->a, "   ", p, h_hat(&K->SCHUTZ.zu_tief, p) ? T("  (zu tief)", "  (too deep)") : T("  (nicht lesbar)", "  (not readable)")));
+    }
+    if (n > 1000) ui_log(NULL, VERB(K->a, T("   ... und ", "   ... and "), a_fmt(K->a, "%d", n - 1000), T(" weitere", " more")));
 }
 static void lauf_suchen(void *x)
 {
     (void)x;
     groessen_gemeldet = 0;
     ablauf_hintergrund_anhalten(&A);
-    kern_verbinden(K, plattform_zugriff());
+#ifdef MITSCHNITT
+    ms_suche_beginnen(false); ms_speicher("SUCHE");
+#endif
+    kern_verbinden(K, app_zugriff());
     /* Selbstschutz (NEU 1.1): eigener Ort + Homebrew Launcher, auf allen Speichern */
     kern_selbstschutz_eigener_pfad(K, eigener_ort());
     kern_selbstschutz_ermitteln(K);
     ablauf_suchen(&A, KI.modell, KI.firmware);
+    unlesbar_melden();   /* NEU 1.0.8 (Arbeitsplan 2.5) */
     pruefausgabe();
     speicher_zeile(T("Nachschauen fertig", "scan finished"));
 }
@@ -718,17 +1410,23 @@ static void *arbeit(void *x)
         memcpy(rm_stand.bereich, bereich, sizeof bereich); rm_stand.sm_da = sm_da; snprintf(rm_stand.jb, sizeof rm_stand.jb, "%s", jb);
         rm_stand.unlesbar = GESUCHT ? K->SCHUTZ.unlesbar.n : 0;
         rm_stand.m2 = GESUCHT && K->m2Da; rm_stand.ext = GESUCHT && K->USB_SPEICHER; rm_stand.usb = GESUCHT && K->STICK_DA;
-        rm_stand.dauer_s = GESUCHT ? (int)((SDL_GetTicks() - rm_such_start) / 1000) : 0;
+        /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 9): in der Rückmeldung stand "Dauer 1 s" - das war das letzte, schnelle Nachschauen nach
+         * dem Löschen. Jetzt zählt das längste Nachschauen dieses Starts (meist das erste) */
+        if (GESUCHT) { int d = (int)((SDL_GetTicks() - rm_such_start) / 1000); if (d > rm_stand.dauer_s) rm_stand.dauer_s = d; }
         pthread_mutex_unlock(&rm_m);
     } else { K->RM_ERFASSEN = false; rm_loeschen_merken(); }   /* auch nach einem Abbruch (dann gibt es keinen Endbildschirm) */
     basis_schritt = T("Liste/Menü", "list/menu");
     G.beschaeftigt = false; neu_zeichnen();
     return NULL;
 }
+static auftrag auftrag_jetzt = AUF_SUCHEN;   /* NEU 1.0.8 (4.5): was gerade läuft (Seite "Nachschauen läuft", Schritt oben) */
+static Uint32 arbeit_seit = 0;               /* NEU 1.0.8 (4.5): seit wann ("Läuft seit") */
+static bool nach_loeschen = false;           /* NEU 1.0.8 (Codex-Prüfung 76): "Fertig" war da - der Kern schaut gerade neu nach */
 static void starte(auftrag a)
 {
     if (G.beschaeftigt) return;
     G.beschaeftigt = true;
+    auftrag_jetzt = a; arbeit_seit = SDL_GetTicks(); nach_loeschen = false;
     pthread_mutex_lock(&G.m); G.stand[0] = 0; G.prozent = 0; G.unbestimmt = false; pthread_mutex_unlock(&G.m);
     basis_schritt = a == AUF_SUCHEN ? T("Nachschauen", "scan") : a == AUF_KOMPLETT ? T("vollständige Bereinigung", "full cleanup") : T("Auswahl löschen", "delete selection");
     pthread_t t;
@@ -741,7 +1439,6 @@ static int fokus_zone = 0;      /* 0 Bereiche, 1 Einträge */
 static int fokus_bereich = 0;   /* Index in sicht[] */
 /* NEU 1.0.6 (da_Chris86 28.10.2026): leere Bereiche werden nicht angezeigt (solange überhaupt etwas gefunden wurde) */
 static int sicht[KAT_ANZ], sicht_n = 0;
-static int fokus_eintrag = 0;   /* Index innerhalb des Bereichs */
 /* dlg_fokus - Dialog: 0 sicher, 1 gefährlich  |  Text: 0 Feld, 1 Abbrechen, 2 OK (oben deklariert) */
 static int dlg_gesehen = 0;
 static Uint32 dlg_seit = 0;    /* kurz nach dem Erscheinen einer Frage zählt ✕ nicht (kein versehentliches Doppel-Drücken) */
@@ -752,7 +1449,43 @@ static bool laeuft = true;
 static char hinweis_kurz[1024];  static Uint32 hinweis_bis = 0;   /* kurze Meldung unten */
 static SDL_Window *fenster;
 
-static void kurz(const char *t) { snprintf(hinweis_kurz, sizeof hinweis_kurz, "%s", t); hinweis_bis = SDL_GetTicks() + 4000; }
+/* Codex-Prüfung 80: 0 heißt "keine Meldung" - fiele das Ende beim Überlauf der Uhr genau auf 0, stünde dort 1 */
+static void hinweis_dauer(Uint32 ms) { hinweis_bis = SDL_GetTicks() + ms; if (!hinweis_bis) hinweis_bis = 1; }
+static void kurz(const char *t) { snprintf(hinweis_kurz, sizeof hinweis_kurz, "%s", t); hinweis_dauer(4000); neu_zeichnen(); }
+/* NEU 1.0.8 (Arbeitsplan 3.6, da_Chris86 05.11.2026 20:33/20:41): Testmodus wie der Haken der Windows-Fassung - beim Start an, dann wird nur
+ * angeschaut; Löschen geht erst, wenn er im Options-Menü aus ist. Die App merkt sich das nicht (bei jedem Start wieder an). Damit gibt es
+ * beim Veröffentlichen nur noch eine ELF. */
+static bool testmodus = true;
+static bool optionen_offen = false; static int opt_fokus = 0;   /* Options-Menü (Startseite und Auswahl) */
+static Uint32 x_ruhe_bis = 0;   /* NEU 1.0.8 (PS5-Test 07.11.2026): bis dahin zählt ✕ nicht (gleich nach dem Umschalten des Testmodus) */
+#ifndef NUR_LESEN
+static const char *testmodus_hinweis(void) { return T("Testmodus ist an: es wird nur angeschaut. Zum Löschen mit der Options-Taste ausschalten.",
+                                                      "Test mode is on: only looking. To delete, switch it off with the Options button."); }
+#endif
+static void testmodus_umschalten(void)
+{
+#ifdef NUR_LESEN
+    kurz(T("Diese Testversion schaut immer nur nach.", "This test version only ever looks."));
+#else
+    testmodus = !testmodus;
+    kurz(testmodus ? T("Testmodus an: es wird nur angeschaut.", "Test mode on: only looking.")
+                   : T("Testmodus aus: Löschen ist jetzt möglich - vorher fragt die App noch einmal nach.", "Test mode off: deleting is now possible - the app asks once more first."));
+    ui_log(NULL, testmodus ? T("Testmodus an - es wird nur angeschaut.", "Test mode on - only looking.")
+                           : T("Testmodus aus - Löschen ist jetzt möglich (die App fragt vorher nach).", "Test mode off - deleting is now possible (the app asks first)."));
+#ifdef MITSCHNITT
+    ms_zeile('I', testmodus ? "TESTMODUS an" : "TESTMODUS aus", NULL, NULL);
+#endif
+#endif
+}
+/* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46: "Löschen konnte ich nichts ... auch wenn er aus war"): laut Mitschnitt ging der Testmodus
+ * um 08:39:56 aus und in derselben Sekunde durch ein zweites ✕ wieder an (der Satz "erst nach dem Bestätigen" klang nach noch einmal ✕).
+ * Jetzt schließt sich das Options-Menü gleich nach dem Umschalten, und ✕ zählt kurz danach nicht - sonst hakte ein doppeltes ✕ einen Eintrag an. */
+static void testmodus_aus_menue(void)
+{
+    testmodus_umschalten();
+    optionen_offen = false;
+    x_ruhe_bis = SDL_GetTicks() + 700; if (!x_ruhe_bis) x_ruhe_bis = 1;
+}
 
 static int bereich_anzahl(int k) { int n = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->Kat == k) n++; return n; }
 static void sicht_neu(void)
@@ -763,687 +1496,1345 @@ static void sicht_neu(void)
     if (fokus_bereich >= sicht_n) fokus_bereich = sicht_n - 1;
     if (fokus_bereich < 0) fokus_bereich = 0;
 }
-/* NEU 1.0.7 (da_Chris86 31.10.2026: "größte zuerst"): Einträge eines Bereichs nach Größe, größte oben. Sortiert wird erst, wenn
- * alle Größen des Bereichs gezählt sind - vorher bleibt die Fundreihenfolge (die Liste springt so nur einmal). Der markierte
- * Eintrag bleibt beim Umsortieren markiert. */
-static arena *oa;
-static eintrag **ord_e; static int ord_n = 0, ord_cap = 0, ord_k = -1, ord_funde = -1, ord_hg = -1;
-static void *ord_fe;                        /* NEU 1.0.7 (Prüfung 02.11.2026): welche Fundliste - nach neuem Nachschauen neu ordnen */
-static bool *ord_ein;                       /* NEU 1.0.7 (Prüfung 02.11.2026): Zeile steht direkt unter ihrem Kopf (eingerückt) */
-/* NEU 1.0.7: Sammelzeile "Reste" je Bereich */
-static eintrag RESTE_ZEILE;                 /* Platzhalter in ord_e - wird nie gelöscht, steht nur für die Teile in reste_e */
-static eintrag **reste_e; static int reste_n = 0; static bool reste_offen = false, ord_reste_offen = false; static int reste_offen_k = -1;
-static bool ist_rest(const eintrag *f) { return f->Art == ART_REST || f->Art == ART_TR_LISTE_REST || f->Art == ART_GALERIE_REST; }
-/* NEU 1.0.7: Kopf eines Teils im selben Bereich - nur für die Anzeige, was gelöscht wird, ändert sich dadurch nicht:
- *   Spieldatei -> ShadowMount-Kachel; Daten/Payload-Datei -> Tool-Kachel; Update/Zusatzinhalt -> ihr Spiel (gleiche Gruppe);
- *   im Bereich Jailbreak: Spielstand, App-Daten, Zusatzinhalt-Infos -> die Kachel mit derselben Kennung (da_Chris86 01.11.2026 23:38:
- *   "der YouTube Jailbreak und der YouTube Speicherstand sind nicht in einer Kachel, obwohl es die gleiche PPSA hat, 1650").
- * Nur wenn genau EIN Kopf passt. Ohne Regex/Arena (wird auch außerhalb des Zeichnens aufgerufen). */
-static bool kennung_von(const eintrag *f, char out[10])
-{
-    const char *q[2] = { f->TextBasis ? f->TextBasis : "", f->PfadeBasis.n > 0 ? f->PfadeBasis.e[0] : "" };
-    for (int s = 0; s < 2; s++) for (const char *p = q[s]; *p; p++) {
-        if (strncmp(p, "CUSA", 4) && strncmp(p, "PPSA", 4)) continue;
-        char v = p > q[s] ? p[-1] : ' ';
-        if ((v >= 'A' && v <= 'Z') || (v >= 'a' && v <= 'z') || (v >= '0' && v <= '9')) continue;
-        int d = 0; while (d < 5 && p[4 + d] >= '0' && p[4 + d] <= '9') d++;
-        char n = d == 5 ? p[9] : 'x';
-        if (d == 5 && !((n >= 'A' && n <= 'Z') || (n >= 'a' && n <= 'z') || (n >= '0' && n <= '9'))) { memcpy(out, p, 9); out[9] = 0; return true; }
-    }
-    return false;
-}
-static eintrag *kopf_von(const eintrag *f, int k)
-{
-    if (f->SmDatei && f->SmKachel && f->SmKachel->Kat == k) return f->SmKachel;
-    if (kern_bereiche_106()) return NULL;
-    if (f->ToolKachel && f->ToolKachel->Kat == k) return f->ToolKachel;
-    eintrag *h = NULL; int n = 0;
-    if (f->Teil && strcmp(f->Teil, "Spiel") && f->Gruppe) {   /* Update / Zusatzinhalt */
-        for (int i = 0; i < K->Funde.n; i++) { eintrag *g = K->Funde.e[i];
-            if (g != f && g->Kat == k && ist_teil(g, "Spiel") && g->Gruppe && !strcmp(g->Gruppe, f->Gruppe)) { h = g; n++; } }
-        return n == 1 ? h : NULL;
-    }
-    char id[10];
-    if (k == 7 && !(f->KachelId && f->KachelId[0]) && !f->SmDatei && !ist_teil(f, "Spiel") && kennung_von(f, id)) {
-        for (int i = 0; i < K->Funde.n; i++) { eintrag *g = K->Funde.e[i];
-            if (g != f && g->Kat == 7 && g->KachelId && !strcmp(g->KachelId, id)) { h = g; n++; } }
-        return n == 1 ? h : NULL;
-    }
-    return NULL;
-}
-static void ordnung(int k)
-{
-    if (reste_offen_k != k) { reste_offen = false; reste_offen_k = k; }
-    if (k == ord_k && K->Funde.n == ord_funde && (void *)K->Funde.e == ord_fe && A.hg_n == ord_hg && ord_reste_offen == reste_offen) return;
-    ord_reste_offen = reste_offen;
-    eintrag *alt = (k == ord_k && fokus_eintrag >= 0 && fokus_eintrag < ord_n) ? ord_e[fokus_eintrag] : NULL;
-    ord_k = k; ord_funde = K->Funde.n; ord_fe = (void *)K->Funde.e; ord_hg = A.hg_n;
-    if (ord_cap < K->Funde.n + 1) { ord_cap = K->Funde.n + 64; ord_e = realloc(ord_e, sizeof(eintrag *) * (size_t)ord_cap); }
-    if (oa) arena_frei(oa);
-    oa = arena_neu();
-    long long *by = a_hole(oa, sizeof(long long) * (size_t)(K->Funde.n + 1));
-    bool alle = true; ord_n = 0;
-    for (int i = 0; i < K->Funde.n; i++) {
-        eintrag *f = K->Funde.e[i]; if (f->Kat != k) continue;
-        groesse *g = kern_eintrag_groesse_in(K, oa, f, true);
-        if (!g) alle = false; else by[ord_n] = g->Bytes;
-        ord_e[ord_n++] = f;
-    }
-    /* NEU 1.0.7 (da_Chris86 01.11.2026 abends: "wie bei Spielen sollen die Apps auch zusammengehören ... die Kachel war an Position 3,
-     * die Elf-Datei an Position 12"): Teile stehen direkt unter ihrem Kopf - die Spieldatei unter ihrer ShadowMount-Kachel, Daten und
-     * Payload-Dateien unter ihrer Tool-Kachel. Sortiert wird nach der Größe der ganzen Gruppe (größte oben, stabil). */
-    eintrag **kh = a_hole(oa, sizeof(eintrag *) * (size_t)(ord_n + 1));   /* Kopf je Eintrag, einmal bestimmt */
-    for (int i = 0; i < ord_n; i++) kh[i] = kopf_von(ord_e[i], k);
-    if (alle) {
-        long long *gb = a_hole(oa, sizeof(long long) * (size_t)(ord_n + 1));
-        for (int i = 0; i < ord_n; i++) gb[i] = by[i];
-        for (int i = 0; i < ord_n; i++) if (kh[i]) for (int j = 0; j < ord_n; j++) if (ord_e[j] == kh[i]) { gb[j] += by[i]; break; }
-        for (int i = 1; i < ord_n; i++) {
-            eintrag *e = ord_e[i], *h = kh[i]; long long b = gb[i]; int j = i - 1;
-            while (j >= 0 && gb[j] < b) { ord_e[j + 1] = ord_e[j]; gb[j + 1] = gb[j]; kh[j + 1] = kh[j]; j--; }
-            ord_e[j + 1] = e; gb[j + 1] = b; kh[j + 1] = h;
-        }
-    }
-    {
-        int m = 0; eintrag **tmp = a_hole(oa, sizeof(eintrag *) * (size_t)(ord_n + 1));
-        for (int i = 0; i < ord_n; i++) {
-            if (kh[i]) continue;
-            tmp[m++] = ord_e[i];
-            /* NEU 1.0.7 (03.11.2026, Codex-Prüfung 62): unter einer Trophäen-Liste zuerst die weiteren Listen, dann der Fortschritt -
-             * innerhalb davon nach Größe */
-            for (int dg = 0; dg < 2; dg++)
-                for (int j = 0; j < ord_n; j++) if (kh[j] == ord_e[i] && (dg == 0) == (ord_e[j]->Art == ART_TR_LISTE || ord_e[j]->Art == ART_TR_LISTE_REST)) tmp[m++] = ord_e[j];
-        }
-        if (m == ord_n) memcpy(ord_e, tmp, sizeof(eintrag *) * (size_t)ord_n);
-    }
-    /* NEU 1.0.7 (Grundlage 31.10.2026, Punkt 4): Harmloses (grün, "es geht nichts verloren") als EINE Zeile "Reste" ganz unten -
-     * die Einzelteile erst beim Aufklappen (→ auf der Zeile). Ab zwei Teilen; in Spiele und Jailbreak nie. */
-    reste_n = 0;
-    if (!kern_bereiche_106() && k != 1 && k != 7) {
-        int m = 0; eintrag **rest = a_hole(oa, sizeof(eintrag *) * (size_t)(ord_n + 1));
-        /* Codex-Prüfung 62: ein Kopf mit Teilen darunter (Trophäen-Liste eines entfernten Spiels mit Fortschritt) bleibt bei seinem Block */
-        bool *kinder = a_hole(oa, sizeof(bool) * (size_t)(ord_n + 1));
-        for (int i = 0; i < ord_n; i++) { kinder[i] = false; for (int j = 0; j < ord_n && !kinder[i]; j++) if (j != i && kopf_von(ord_e[j], k) == ord_e[i]) kinder[i] = true; }
-        #define ALS_REST(i) (ist_rest(ord_e[i]) && !kopf_von(ord_e[i], k) && !kinder[i])
-        for (int i = 0; i < ord_n; i++) if (ALS_REST(i)) rest[reste_n++] = ord_e[i];
-        if (reste_n >= 2) {
-            for (int i = 0; i < ord_n; i++) if (!ALS_REST(i)) ord_e[m++] = ord_e[i];
-            ord_e[m++] = &RESTE_ZEILE;
-            if (reste_offen) for (int i = 0; i < reste_n; i++) ord_e[m++] = rest[i];
-            ord_n = m;
-            reste_e = rest;
-        } else reste_n = 0;
-        #undef ALS_REST
-    }
-    /* NEU 1.0.7 (Prüfung 02.11.2026): eingerückt mit Strich ("gehört zur Zeile darüber") nur, was wirklich direkt unter seinem Kopf
-     * steht - klappt die Gruppierung nicht (Kopf in einem anderen Bereich oder bei den Resten), steht die Zeile für sich */
-    ord_ein = a_hole(oa, sizeof(bool) * (size_t)(ord_n + 1));
-    {
-        eintrag *kopf = NULL;
-        for (int i = 0; i < ord_n; i++) {
-            eintrag *f = ord_e[i];
-            if (f == &RESTE_ZEILE) { ord_ein[i] = false; kopf = NULL; continue; }
-            eintrag *h = kopf_von(f, k);
-            ord_ein[i] = h != NULL && h == kopf;
-            if (!h) kopf = f;
-        }
-    }
-    if (alt) for (int i = 0; i < ord_n; i++) if (ord_e[i] == alt) fokus_eintrag = i;
-}
-static bool unter_kopf(int i) { return ord_ein && i >= 0 && i < ord_n && ord_ein[i]; }
-static int bereich_zeilen(int k) { ordnung(k); return ord_n; }
-static eintrag *bereich_eintrag(int k, int idx)
-{
-    ordnung(k);
-    return idx >= 0 && idx < ord_n ? ord_e[idx] : NULL;
-}
+#ifndef NUR_LESEN   /* 1.0.8: nur für "Nur Auswahl löschen" gebraucht - die Testfassungen meldeten es als unbenutzt */
 static int gewaehlt_anzahl(void) { int n = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->Wahl) n++; return n; }
+#endif
 
-/* =================================================================== Bildschirme */
-static void kopf(void)
+/* =================================================================== Bildschirme
+ * 1.0.8 (4.5): der alte Kopf (kopf) und die alte Fußleiste (fuss) sind weg - alle Seiten nutzen kopf_neu und fuss_neu. */
+
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.1/4.2): Kopf, Fußleiste und Startseite
+ * nach Entwurf 2 ("Start vor dem Nachschauen" und "Start nach dem Nachschauen"). Die Bedienung bleibt wie bisher. */
+static int grundlinie(int oben, int lh, int gr) { return oben + (lh + gr * 7 / 10) / 2; }   /* Schrift mittig in einer Zeile der Höhe lh */
+static void text_rechts(int xr, int y, int f, int gr, uint32_t farbe, const char *t) { text(xr - textbreite(f, gr, t), y, f, gr, farbe, t); }
+static void text_mitte(int cx, int y, int f, int gr, uint32_t farbe, const char *t) { text(cx - textbreite(f, gr, t) / 2, y, f, gr, farbe, t); }
+/* runde Ecken über ein Bild legen (Hintergrund hg) */
+static void ecken_maske(int x, int y, int w, int h, int r, uint32_t hg)
 {
-    /* NEU 1.0.7 (Vorlage doku/ui_vorlage_1.0.7.png): flacher Kopf ohne Karte, Version als Abzeichen - Platz für die Infoleiste */
-    if (logo) { SDL_Rect z = {48, 26, 92, 92}; SDL_BlitScaled(logo, NULL, ziel, &z); }
-    text(160, 74, 1, 46, F_TEXT, "PS5 Cleanup");
-    int vx = 160 + textbreite(1, 46, "PS5 Cleanup") + 18, vb = textbreite(1, 20, VERSION_TEXT) + 24;
-    rechteck(vx, 44, vb, 34, F_BLAU);
-    text(vx + 12, 69, 1, 20, 0xFFFFFF, VERSION_TEXT);
-    const char *k = T("Löscht nur, was du auswählst. Kein Zurücksetzen, keine Neuinstallation: Systemsoftware, Laufwerks-Kopplung, Konto und echte Lizenzen bleiben. Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.",
-                      "Deletes only what you select - single games, saved data, trophies or everything at once. No reset, no reinstall: system software, disc drive pairing, account and real licenses stay. Use at your own risk - deleted data is gone for good.");
-    absatz(162, 104, 0, 17, F_GRAU, k, 1220, 21);
-    /* dauerhaft: SIMULATION (Release-Bau: kein Hinweisfeld) */
+    for (int dy = 0; dy < r; dy++) for (int dx = 0; dx < r; dx++) {
+        float ex = (float)r - ((float)dx + .5f), ey = (float)r - ((float)dy + .5f);
+        float a = 1.f - ((float)r - sqrtf(ex * ex + ey * ey) + .5f);
+        if (a <= 0.f) continue;
+        misch(x + dx, y + dy, hg, a); misch(x + w - 1 - dx, y + dy, hg, a); misch(x + dx, y + h - 1 - dy, hg, a); misch(x + w - 1 - dx, y + h - 1 - dy, hg, a);
+    }
+}
+/* Kopf: Logo, Name, Version, Hinweis-Abzeichen der Testfassungen, Schritte 1-2-3 rechts. schritt = aktueller Schritt (1..3), 4 = alle erledigt */
+static void kopf_neu(int schritt, const char *satz)
+{
+    int lg = satz ? 72 : 64, cy = RAND_O + lg / 2;
+    if (logo) { SDL_Rect z = { RAND_X, RAND_O, lg, lg }; SDL_BlitScaled(logo, NULL, ziel, &z); ecken_maske(RAND_X, RAND_O, lg, lg, lg / 4, N_HG); }
+    int x = RAND_X + lg + 24, ty = satz ? RAND_O + 38 : cy + 13;
+    text(x, ty, 1, 36, N_TEXT, "PS5 Cleanup");
+    int vx = x + textbreite(1, 36, "PS5 Cleanup") + 16, vb = textbreite(1, 22, VERSION_ANZEIGE) + 28;
+    rund(vx, ty - 29, vb, 36, 18, N_FELD); text(vx + 14, ty - 4, 1, 22, N_GRAU, VERSION_ANZEIGE);
+    int hx = vx + vb + 12;
 #ifndef KERN_LOESCHEN
-    karte(1420, 28, 460, 92, F_GELB, F_GELB_HG);
-#endif
-#ifdef KERN_LOESCHEN
-#elif defined(NUR_LESEN)
-    text(1444, 68, 1, 30, F_GELB, T("TEST: NUR LESEN", "TEST: READ ONLY"));
-    text(1444, 102, 0, 19, F_GELB, T("Es wird nur nachgeschaut - nichts verändert.", "Only looking - nothing is changed."));
+    {   /* Testfassungen: immer sichtbar, dass nichts gelöscht wird */
+#ifdef NUR_LESEN
+        const char *h = T("TEST: NUR LESEN", "TEST: READ ONLY");
 #else
-    text(1444, 68, 1, 30, F_GELB, "SIMULATION");
-    text(1444, 102, 0, 19, F_GELB, T("Es wird nichts gelöscht - nur angezeigt.", "Nothing is deleted - display only."));
+        const char *h = "SIMULATION";
 #endif
-}
-
-static uint32_t kopplung_farbe(void)
-{
-    switch (kern_kopplungs_stufe(K)) { case KOPPLUNG_BESTAETIGT: return F_MINT; case KOPPLUNG_UNKLAR: return F_GELB; default: return 0xC9CCD4; }
-}
-/* NEU 1.0.7 (da_Chris86 01.11.2026 abends, abgeschnittene Texte): statt der langen Liste der Einträge, die zum Jailbreak gehören
- * (stehen alle unter "Jailbreak", die volle Warnung kommt beim Anhaken), ein kurzer Satz mit der Anzahl */
-static const char *jb_kurz(const char *warn)
-{
-    if (!warn || kern_bereiche_106()) return warn;
-    int nj = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->Jailbreak) nj++;
-    if (nj == 0) return warn;
-    return a_fmt(fa, T("Nicht löschen, wenn du ihn behalten willst - die %d Einträge dafür stehen unter „Jailbreak“.", "Do not delete if you want to keep it - its %d entries are under “Jailbreak”."), nj);
-}
-/* ZeigeKonsole/ZeigeKopplung/ZeigeSpeicher aus 1.0.5 */
-static void konsole_karte(int x, int y, int w, int h, bool kompakt)
-{
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    int yy = y + 40;
-    text(x + 24, yy, 1, 20, F_GRAU, T("KONSOLE", "CONSOLE")); yy += 44;
-    const char *reihe = kern_modell_reihe(K->MODELL_TYP, K->MODELL_DIGITAL);
-    text(x + 24, yy, 1, 30, F_TEXT, K->MODELL_TYP[0] ? reihe : T("Unbekanntes Modell", "Unknown model")); yy += 34;
-    /* NEU 1.0.6 (da_Chris86 28.10.2026): "CFI-7021 · Europa · seit Nov. 2024"; "Erkannt" nur noch, wenn das Modell fehlt */
-    text(x + 24, yy, 0, 21, F_GRAU, KI.modell[0] ? kern_modell_zeile(fa, KI.modell) : T("Modell nicht erkannt - Angaben ohne Gewähr", "Model not detected - no guarantee for the details")); yy += 38;
-    text(x + 24, yy, 0, 21, F_GRAU, "Firmware"); text(x + 200, yy, 1, 21, F_TEXT, KI.firmware[0] ? KI.firmware : T("unbekannt", "unknown")); yy += 50;
-    /* NEU 1.0.6 (da_Chris86 28.10.2026 23:16): welcher Jailbreak-Einstieg liegt drauf - und was man dafür nicht löschen darf */
-    /* da_Chris86 29.10.2026 19:12: zeigt, was EINGERICHTET ist - nicht, womit gerade gestartet wurde */
-    text(x + 24, yy, 1, 20, F_GRAU, T("JAILBREAK - EINGERICHTET", "JAILBREAK - SET UP")); yy += 34;
-    if (!GESUCHT || !ablauf_verbunden(&A) || G.beschaeftigt) { text(x + 24, yy, 0, 21, F_GRAU, T("Wird beim Nachschauen erkannt.", "Detected when scanning.")); yy += 46; }
-    else {
-        const char *warn = NULL, *jb = kern_jailbreak_erkannt(K, fa, &warn);
-        if (!jb) {
-            text(x + 24, yy, 0, 21, F_GRAU, T("Kein Jailbreak-Einstieg gefunden.", "No jailbreak entry found.")); yy += 30;
-            if (warn) yy += absatz(x + 24, yy, 0, 19, F_ORANGE, warn, w - 48, 24);   /* NEU 29.10.2026: Browserspeicher */
-            yy += 16;
-        }
-        else { yy += absatz(x + 24, yy, 1, 22, F_MINT, VERB(fa, T("Eingerichtet: ", "Set up: "), jb), w - 48, 28); yy += 2; if (warn) yy += absatz(x + 24, yy, 0, 19, F_ORANGE, jb_kurz(warn), w - 48, 24); yy += 16; }
+        int hb = textbreite(1, 22, h) + 28;
+        rund(hx, ty - 29, hb, 36, 18, farbmisch(N_GELB, N_HG, .16f)); text(hx + 14, ty - 4, 1, 22, N_GELB, h);
+        hx += hb + 12;
     }
-    /* Laufwerks-Kopplung */
-    text(x + 24, yy, 1, 20, F_GRAU, T("LAUFWERKS-KOPPLUNG", "DISC DRIVE PAIRING")); yy += 34;
-    const char *t = kern_laufwerk_text(K); const char *dp = strstr(t, ": ");
-    const char *titel = dp ? a_kopie_n(fa, t, (size_t)(dp - t)) : t, *rest = dp ? dp + 2 : "";
-    if (rest[0] >= 'a' && rest[0] <= 'z') { char *r2 = (char *)a_kopie_n(fa, rest, strlen(rest)); r2[0] = (char)(r2[0] - 'a' + 'A'); rest = r2; }   /* Satzanfang groß */
-    text(x + 24, yy, 1, 24, kopplung_farbe(), VERB(fa, kern_kopplungs_stufe(K) == KOPPLUNG_BESTAETIGT ? "✓ " : "", titel)); yy += 30;
-    if (!kompakt) { yy += absatz(x + 24, yy, 0, 19, F_GRAU, rest, w - 48, 24); }
-    text(x + 24, yy + 4, 0, 18, F_GRAU, T("Wird nur gelesen, nie verändert.", "Only read, never changed."));
-    if (yy + 10 > y + h) zu_lang("unter den Kartenrand (Konsole, Startbildschirm)", 18, h, T("Wird nur gelesen, nie verändert.", "Only read, never changed."));   /* NEU 1.0.7: PC-Prüfung */
-}
-static void speicher_karte(int x, int y, int w, int h)
-{
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    int yy = y + 40;
-    text(x + 24, yy, 1, 20, F_GRAU, T("SPEICHER", "STORAGE")); yy += 42;
-    /* NEU 1.0.6 (da_Chris86 28.10.2026): nur die Anzahl; weiß = gefunden, grau = nicht angeschlossen, gelb = unklar */
-    const char *nl[4] = { T("Intern", "Internal"), T("M.2-SSD", "M.2 SSD"), T("USB-Geräte", "USB devices"), "ShadowMount" };   /* Codex-Prüfung 48: nicht nur "USB" */
-    const char *wt[4]; uint32_t fb[4] = { F_TEXT, F_TEXT, F_TEXT, F_TEXT };
-    if (!GESUCHT || !ablauf_verbunden(&A)) { for (int i = 0; i < 4; i++) wt[i] = "–"; }
-    else {
-        int n[4] = { 0, 0, 0, 0 }, sm = 0;
-        for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->Ort >= 0 && f->Ort <= 3) n[f->Ort]++; if (f->Quelle[0]) sm++; }
-        wt[0] = VERB(fa, a_fmt(fa, "%d", n[ORT_INTERN]), EINTRAEGE(n[ORT_INTERN]));
-        if (!K->m2Da) { wt[1] = T("nicht eingebaut", "not installed"); fb[1] = F_GRAU; }
-        else if (K->M2_OHNE_USER) { wt[1] = T("leer oder nicht richtig erkannt", "empty or not detected properly"); fb[1] = F_GELB; }
-        else wt[1] = VERB(fa, a_fmt(fa, "%d", n[ORT_M2]), EINTRAEGE(n[ORT_M2]));
-        const char *u = "";
-        if (K->USB_SPEICHER) u = VERB(fa, T("erweiterter Speicher · ", "extended storage · "), a_fmt(fa, "%d", n[ORT_USB]), EINTRAEGE(n[ORT_USB]));
-        if (K->STICK_DA) u = VERB(fa, u, u[0] ? "  ·  " : "", T("USB-Laufwerk · ", "USB drive · "), a_fmt(fa, "%d", n[ORT_STICK]), n[ORT_STICK] == 1 ? T(" Datei", " file") : T(" Dateien", " files"));
-        if (!u[0]) { u = T("nicht angeschlossen", "not connected"); fb[2] = F_GRAU; }
-        wt[2] = u;
-        if (sm > 0) wt[3] = VERB(fa, a_fmt(fa, "%d", sm), sm == 1 ? T(" Spiel", " game") : T(" Spiele", " games"));
-        else { wt[3] = T("keine Spiele", "no games"); fb[3] = F_GRAU; }
+#endif
+#ifndef NUR_LESEN
+    if (testmodus) {   /* NEU 1.0.8 (3.6): solange er an ist, immer sichtbar */
+        const char *h = T("TESTMODUS", "TEST MODE"); int hb = textbreite(1, 22, h) + 28;
+        rund(hx, ty - 29, hb, 36, 18, farbmisch(N_GELB, N_HG, .16f)); text(hx + 14, ty - 4, 1, 22, N_GELB, h);
     }
-    for (int i = 0; i < 4; i++) { text(x + 24, yy, 0, 21, F_GRAU, nl[i]); text(x + 230, yy, 1, 21, fb[i], kuerzen(1, 21, wt[i], w - 254)); yy += 32; }
-    if (GESUCHT && ablauf_verbunden(&A)) {
-        const char *hw = h_trim(fa, kern_speicher_hinweis(K));
-        if (hw[0]) { yy += 8; absatz(x + 24, yy + 4, 0, 18, F_GELB, hw, w - 48, 23); }
+#endif
+    if (satz) text(x, RAND_O + 76, 0, 24, N_GRAU, kuerzen(0, 24, satz, BREITE - x - 860));
+    const char *sn[3] = { T("Nachschauen", "Scan"), T("Auswählen", "Select"), T("Bestätigen", "Confirm") };
+    int ges = 0;
+    for (int i = 0; i < 3; i++) ges += 44 + 12 + textbreite(i + 1 == schritt ? 1 : 0, 24, sn[i]) + (i < 2 ? 14 + 40 + 14 : 0);
+    int sx = BREITE - RAND_X - ges;
+    for (int i = 0; i < 3; i++) {
+        int nr = i + 1; char z[4]; snprintf(z, sizeof z, "%d", nr);
+        if (nr < schritt) { kreis(sx + 22, cy, 22, N_BLAU); symbol(SYM_HAKEN, sx + 11, cy - 11, 22, 0xFFFFFF); }
+        else if (nr == schritt) { ring(sx + 22, cy, 20.5f, 3, N_FOKUS); text_mitte(sx + 22, cy + 8, 1, 22, N_FOKUS, z); }
+        else { ring(sx + 22, cy, 21, 2, N_LINIE); text_mitte(sx + 22, cy + 8, 1, 22, N_GRAU2, z); }
+        text(sx + 56, cy + 9, nr == schritt ? 1 : 0, 24, nr == schritt ? N_TEXT : nr < schritt ? N_GRAU : N_GRAU2, sn[i]);
+        sx += 56 + textbreite(nr == schritt ? 1 : 0, 24, sn[i]);
+        if (i < 2) { sx += 14; rund(sx, cy - 1, 40, 3, 1, nr < schritt ? N_BLAU : N_LINIE); sx += 54; }
     }
 }
-
-static void fuss(const char **knoepfe, int n)
+/* Tasten der Fußleiste: gezeichnetes Symbol im Ring (wie auf dem DualSense) */
+typedef enum { KN_X, KN_O, KN_DREIECK, KN_QUADRAT, KN_OPT, KN_HOCHRUNTER, KN_LINKSRECHTS, KN_L1R1 } knopfart;
+typedef struct { knopfart k; const char *t; bool rechts; } fussknopf;
+static int knopf_breite(knopfart k) { return k == KN_OPT ? 46 : k == KN_L1R1 ? textbreite(1, 18, "L1") * 2 + 40 : k == KN_LINKSRECHTS || k == KN_HOCHRUNTER ? 44 : 36; }
+static void knopf_glyph(knopfart k, int x, int cy, uint32_t ring_f, uint32_t sym_f)
 {
-    rechteck(0, HOEHE - 64, BREITE, 64, F_KARTE);
-    rechteck(0, HOEHE - 64, BREITE, 2, F_RAND);
-    int x = 60, ende = 60;
-    for (int i = 0; i < n; i++) ende += textbreite(0, 22, knoepfe[i]) + 56;
-    bool hw = hinweis_bis > SDL_GetTicks();
-    int hb = hw ? textbreite(1, 22, hinweis_kurz) : 0;
-    /* da_Chris86 29.10.2026 (Fernsehtest): eine lange Meldung (z. B. die Jailbreak-Warnung) überlagerte die Tastenhilfe -
-     * passt sie nicht daneben, steht sie allein in der Zeile (links beginnend, notfalls gekürzt) */
-    bool allein = hw && ende - 56 + 40 > BREITE - 60 - hb;
-    if (!allein) for (int i = 0; i < n; i++) { text(x, HOEHE - 22, 0, 22, F_GRAU, knoepfe[i]); x += textbreite(0, 22, knoepfe[i]) + 56; }
-    if (allein) { passend hp = einpassen(1, 22, 18, 16, hinweis_kurz, BREITE - 120, 2); hp.lh = hp.gr + 4; passend_zeichnen(60, hp.z.n > 1 ? HOEHE - 38 : HOEHE - 22, 1, F_GELB, &hp); }   /* NEU 1.0.7: ganz, notfalls zweizeilig */
-    else if (hw) text(BREITE - 60 - hb, HOEHE - 22, 1, 22, F_GELB, hinweis_kurz);
+    switch (k) {
+    case KN_OPT: karte_rund(x, cy - 18, 46, 36, 18, 2, ring_f, N_FUSS); symbol(SYM_KN_OPTIONEN, x + 14, cy - 9, 18, sym_f); return;
+    case KN_L1R1: {
+        int w = textbreite(1, 18, "L1") + 16;
+        karte_rund(x, cy - 16, w, 32, 8, 2, ring_f, N_FUSS); text(x + 8, cy + 6, 1, 18, sym_f, "L1");
+        karte_rund(x + w + 8, cy - 16, w, 32, 8, 2, ring_f, N_FUSS); text(x + w + 16, cy + 6, 1, 18, sym_f, "R1");
+        return; }
+    case KN_HOCHRUNTER: karte_rund(x, cy - 18, 44, 36, 18, 2, ring_f, N_FUSS); symbol(SYM_KN_HOCH_RUNTER, x + 13, cy - 9, 18, sym_f); return;
+    case KN_LINKSRECHTS: karte_rund(x, cy - 18, 44, 36, 10, 2, ring_f, N_FUSS); symbol(SYM_KN_LINKS_RECHTS, x + 12, cy - 7, 14, sym_f); return;
+    default: break;
+    }
+    ring(x + 18, cy, 17, 2, ring_f);
+    const float *s = k == KN_X ? SYM_KN_KREUZ : k == KN_O ? SYM_KN_KREIS : k == KN_DREIECK ? SYM_KN_DREIECK : SYM_KN_QUADRAT;
+    symbol(s, x + 10, cy - 8, 16, sym_f);
+}
+/* Fußleiste über die ganze Breite (Entwurf 2): Tasten links, mit rechts = true rechts; kurze Meldungen und "○ halten" wie bisher.
+ * hinweis_ueber: untere Kante der kurzen Meldung (0 = über der Fußleiste) - gilt für ein Bild */
+static int hinweis_ueber = 0;
+static void fuss_neu(const fussknopf *kn, int n)
+{
+    int y0 = HOEHE - RAND_U - 64, cy = y0 + 32;
+    rechteck(0, y0, BREITE, HOEHE - y0, N_FUSS); rechteck(0, y0, BREITE, 1, N_FUSS_LINIE);
+    int x = RAND_X, xr = BREITE - RAND_X;
+    for (int i = 0; i < n; i++) if (!kn[i].rechts) {
+        knopf_glyph(kn[i].k, x, cy, N_GRAU2, 0xE6EAF0); x += knopf_breite(kn[i].k) + 12;
+        text(x, cy + 9, 0, 24, N_GRAU, kn[i].t); x += textbreite(0, 24, kn[i].t) + 44;
+    }
+    for (int i = n - 1; i >= 0; i--) if (kn[i].rechts) {
+        int tw = textbreite(0, 24, kn[i].t); xr -= tw; text(xr, cy + 9, 0, 24, N_GRAU, kn[i].t);
+        xr -= 12 + knopf_breite(kn[i].k); knopf_glyph(kn[i].k, xr, cy, N_GRAU2, 0xE6EAF0); xr -= 44;
+    }
+    if (hinweis_bis && (Sint32)(hinweis_bis - SDL_GetTicks()) > 0) {   /* kurze Meldung: gut sichtbar, notfalls zweizeilig (die Jailbreak-Warnung ist lang); Codex-Prüfung 78: auch beim Überlauf der Uhr (nach 49 Tagen) */
+        int mw = BREITE - 2 * RAND_X - 48, hb = 0;
+        passend p = einpassen(1, 24, 22, 18, hinweis_kurz, mw, 2); p.lh = p.gr + 8;
+        for (int i = 0; i < p.z.n; i++) { int b = textbreite(1, p.gr, p.z.z[i]); if (b > hb) hb = b; }
+        int hh = 24 + p.z.n * p.lh, hy = (hinweis_ueber ? hinweis_ueber : y0 - 14) - hh;
+        rund(BREITE / 2 - hb / 2 - 24, hy, hb + 48, hh, 16, farbmisch(N_GELB, N_HG, .18f));
+        for (int i = 0; i < p.z.n; i++) text_mitte(BREITE / 2, hy + 10 + p.gr + i * p.lh, 1, p.gr, N_GELB, p.z.z[i]);
+    }
+    hinweis_ueber = 0;
     if (kreis_seit && !G.beschaeftigt) {
         int anteil = (int)(SDL_GetTicks() - kreis_seit); if (anteil > 1000) anteil = 1000;
-        rechteck(0, HOEHE - 6, BREITE * anteil / 1000, 6, F_GRUEN);
+        rechteck(0, HOEHE - 6, BREITE * anteil / 1000, 6, N_FOKUS);
     }
 }
+/* Karte mit Symbolfeld und drei Zeilen (Konsole, Laufwerks-Kopplung, Jailbreak) */
+static void info_karte(int x, int y, int w, int h, const float *sym, uint32_t sym_f, uint32_t feld, uint32_t rand_f, uint32_t innen,
+                       const char *titel, uint32_t titel_f, const char *wert, uint32_t wert_f, const float *wert_sym, const char *unter, const float *unter_sym)
+{
+    karte_rund(x, y, w, h, 22, 1, rand_f, innen);
+    int iy = y + (h - 64) / 2;
+    rund(x + 24, iy, 64, 64, 16, feld); symbol(sym, x + 24 + 16, iy + 16, 32, sym_f);
+    int tx = x + 24 + 64 + 20, tb = x + w - 24 - tx, ty = y + (h - 104) / 2;
+    text(tx, grundlinie(ty, 30, 24), 0, 24, titel_f, kuerzen(0, 24, titel, tb));
+    int wx = tx;
+    if (wert_sym) { symbol(wert_sym, wx, ty + 32 + 7, 24, wert_f); wx += 34; }
+    text(wx, grundlinie(ty + 32, 38, 30), 1, 30, wert_f, kuerzen(1, 30, wert, tx + tb - wx));
+    int ux = tx;
+    if (unter_sym) { symbol(unter_sym, ux, ty + 72 + 4, 22, N_GRAU2); ux += 30; }
+    text(ux, grundlinie(ty + 72, 30, 24), 0, 24, N_GRAU, kuerzen(0, 24, unter, tx + tb - ux));
+}
+/* Speicher-Balken: belegt/frei bzw. gefunden/bleibt/frei, mit Legende */
+static void speicher_balken(int x, int y, int w, const float *sym, const char *name, long long gesamt, long long frei, long long gefunden, bool nach)
+{
+    symbol(sym, x, y, 30, N_GRAU);
+    text(x + 44, grundlinie(y, 32, 28), 1, 28, N_TEXT, name);
+    text(x + 44 + textbreite(1, 28, name) + 14, grundlinie(y, 32, 24), 0, 24, N_GRAU2, kern_groesse_text(fa, gesamt));
+    long long belegt = gesamt - frei; if (belegt < 0) belegt = 0;
+    long long bleibt = nach ? belegt - gefunden : 0; if (bleibt < 0) bleibt = 0;
+    long long teil[3] = { nach ? gefunden : belegt, bleibt, frei };
+    uint32_t farbe[3] = { nach ? N_BLAU : N_BALKEN, N_BALKEN, N_BALKEN_FREI };
+    int by = y + 44, bx = x, frei_w = w;
+    int n_da = 0; for (int i = 0; i < 3; i++) if (teil[i] > 0) n_da++;
+    frei_w -= (n_da > 1 ? n_da - 1 : 0) * 2;
+    long long summe = teil[0] + teil[1] + teil[2]; if (summe <= 0) summe = 1;
+    for (int i = 0; i < 3; i++) {
+        if (teil[i] <= 0) continue;
+        int bw = (int)((double)frei_w * (double)teil[i] / (double)summe); if (bw < 6) bw = 6;
+        if (bx + bw > x + w) bw = x + w - bx;
+        rund(bx, by, bw, 24, 4, farbe[i]); bx += bw + 2;
+    }
+    int ly = by + 24 + 14, lx = x;
+    for (int i = 0; i < 3; i++) {
+        if (teil[i] <= 0 && !(i == 2)) continue;
+        if (i == 1 && !nach) continue;
+        rund(lx, ly + 7, 16, 16, 4, farbe[i]);
+        if (i == 2) { rund(lx, ly + 7, 16, 16, 4, 0x4A515C); rund(lx + 1, ly + 8, 14, 14, 3, N_BALKEN_FREI); }
+        lx += 26;
+        const char *z = kern_groesse_text(fa, teil[i]);
+        const char *w2 = i == 0 ? (nach ? T(" gefunden", " found") : T(" belegt", " used")) : i == 1 ? T(" bleibt", " stays") : T(" frei", " free");
+        if (i == 0 && nach) { text(lx, grundlinie(ly, 30, 24), 1, 24, N_TEXT, z); lx += textbreite(1, 24, z); text(lx, grundlinie(ly, 30, 24), 0, 24, N_GRAU, w2); lx += textbreite(0, 24, w2) + 28; }
+        else { const char *s = VERB(fa, z, w2); text(lx, grundlinie(ly, 30, 24), 0, 24, N_GRAU, s); lx += textbreite(0, 24, s) + 28; }
+    }
+}
+static const float *kat_symbol(int k)
+{
+    switch (k) { case 1: return SYM_SPIELE; case 2: return SYM_SPIELSTAND; case 3: return SYM_TROPHAE; case 4: return SYM_BILDER; case 6: return SYM_APPS; case 7: return SYM_JAILBREAK; default: return SYM_SONSTIGES; }
+}
+/* Hauptknopf (blau, türkiser Rand = Fokus) bzw. Nebenknopf (Rand) mit Tastensymbol */
+static void knopf_gross(int x, int y, int w, int h, bool haupt, knopfart k, const char *t)
+{
+    int tw = textbreite(1, haupt ? 28 : 26, t), gw = 40, gx = x + (w - (gw + 14 + tw)) / 2, cy = y + h / 2;
+    if (haupt) {
+        rund(x - 9, y - 9, w + 18, h + 18, 27, farbmisch(N_FOKUS, N_HG, .18f));
+        rund(x - 3, y - 3, w + 6, h + 6, 21, N_FOKUS);
+        rund(x, y, w, h, 18, N_BLAU);
+        ring(gx + 20, cy, 19, 2, 0xF2F6FF);
+    } else {
+        karte_rund(x, y, w, h, 18, 2, N_LINIE, N_KARTE);
+        ring(gx + 20, cy, 17, 2, N_GRAU2);
+    }
+    const float *s = k == KN_X ? SYM_KN_KREUZ : k == KN_O ? SYM_KN_KREIS : k == KN_DREIECK ? SYM_KN_DREIECK : SYM_KN_QUADRAT;
+    symbol(s, gx + 12, cy - 8, 16, haupt ? 0xFFFFFF : 0xE6EAF0);
+    text(gx + gw + 14, grundlinie(y, h, haupt ? 28 : 26), 1, haupt ? 28 : 26, haupt ? 0xFFFFFF : N_TEXT, t);
+}
+static int knopf_gross_breite(bool haupt, const char *t) { return textbreite(1, haupt ? 28 : 26, t) + 40 + 14 + (haupt ? 68 : 52); }
 
+/* NEU 1.0.8 (4.3/3.6): Options-Menü als Fenster über der Seite (Startseite und Auswahl) - Zeilen mit Symbol, Titel und einem Satz darunter */
+static void optionen_zeichnen(const char *const *z, const char *const *u, const float *const *sy, int n)
+{
+    abdunkeln();
+    int w = 840, h = 96 + n * 96 + 72, x = (BREITE - w) / 2, y = (HOEHE - h) / 2;
+    karte_rund(x, y, w, h, 22, 1, N_RAND, N_KARTE);
+    text(x + 32, y + 58, 1, 32, N_TEXT, T("Optionen", "Options"));
+    for (int i = 0; i < n; i++) {
+        int ry = y + 88 + i * 96;
+        if (opt_fokus == i) karte_rund(x + 20, ry, w - 40, 84, 14, 3, N_FOKUS, 0x2C323B); else rund(x + 20, ry, w - 40, 84, 14, 0x20242A);
+        symbol(sy[i], x + 44, ry + 28, 28, N_GRAU);
+        text_passend(x + 92, ry + 38, 1, 26, 24, N_TEXT, z[i], w - 132);
+        text_passend(x + 92, ry + 70, 0, 24, 22, N_GRAU2, u[i], w - 132);
+    }
+    fussknopf kn[3] = { { KN_HOCHRUNTER, T("wählen", "move"), false }, { KN_X, T("auswählen", "select"), false }, { KN_O, T("schließen", "close"), false } };
+    int kx = x + 32, ky = y + h - 38;
+    for (int i = 0; i < 3; i++) { knopf_glyph(kn[i].k, kx, ky, N_GRAU2, 0xE6EAF0); kx += knopf_breite(kn[i].k) + 12; text(kx, ky + 9, 0, 24, N_GRAU, kn[i].t); kx += textbreite(0, 24, kn[i].t) + 36; }
+}
+static const char *testmodus_zeile(void) { return testmodus ? T("Testmodus: an", "Test mode: on") : T("Testmodus: aus", "Test mode: off"); }
+static const char *testmodus_satz(void)
+{
+#ifdef NUR_LESEN
+    return T("Diese Testversion schaut immer nur nach.", "This test version only ever looks.");
+#else
+    return testmodus ? T("Nur anschauen, nichts wird gelöscht. ✕ schaltet ihn aus.", "Only looking, nothing is deleted. ✕ switches it off.")
+                     : T("Löschen möglich, die App fragt vorher nach. ✕ schaltet ihn wieder ein.", "Deleting possible, the app asks first. ✕ switches it on again.");
+#endif
+}
+static void start_optionen(void)   /* Startseite: Testmodus, Protokoll & Rückmeldung */
+{
+    const char *z[2] = { testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback") };
+    const char *u[2] = { testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback") };
+    const float *sy[2] = { SYM_SCHILD_HAKEN, SYM_DOKUMENT };
+    optionen_zeichnen(z, u, sy, 2);
+}
 static void schirm_start(void)
 {
-    kopf();
-    konsole_karte(40, 176, 900, 520, false);
-    speicher_karte(980, 176, 900, 300);
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
     bool fertig = GESUCHT && ablauf_verbunden(&A);
-    karte(980, 500, 900, 196, F_BLAU, F_KARTE);
-    if (!fertig) {
-        text(1010, 552, 1, 30, F_TEXT, T("✕  Nachschauen, was drauf ist", "✕  Scan what is on it"));
-        absatz(1010, 594, 0, 21, F_GRAU, T("Es wird nur gelesen - dabei wird nichts verändert. Danach kannst du auswählen, was weg soll.",
-                                           "This only reads - nothing is changed. Afterwards you can choose what should go."), 840, 27);
-    } else {
-        text(1010, 552, 1, 30, F_TEXT, T("✕  Weiter zur Auswahl", "✕  Continue to selection"));
-        const char *z = K->Funde.n == 0 ? T("Nichts zu tun - die PS5 ist bereits sauber.", "Nothing to do - the PS5 is already clean.")
-                                        : VERB(fa, a_fmt(fa, "%d", K->Funde.n), EINTRAEGE(K->Funde.n), T(" gefunden · nichts verändert", " found · nothing changed"));
-        text(1010, 600, 0, 22, F_GRAU, z);
-        text(1010, 644, 0, 20, F_GRAU, T("△  Nochmal nachschauen", "△  Scan again"));
+    kopf_neu(fertig ? 2 : 1, T("Löscht nur, was du auswählst. System, Konto und Lizenzen bleiben.", "Deletes only what you select. System, account and licenses stay."));
+    /* drei Karten: Konsole, Laufwerks-Kopplung, Jailbreak */
+    int ky = RAND_O + 78 + 32, kh = 146, kw = (BREITE - 2 * RAND_X - 48) / 3;
+    const char *reihe = K->MODELL_TYP[0] ? kern_modell_reihe(K->MODELL_TYP, K->MODELL_DIGITAL) : T("Unbekanntes Modell", "Unknown model");
+    const char *fw = KI.firmware[0] ? VERB(fa, reihe, " · Firmware ", KI.firmware) : reihe;
+    info_karte(RAND_X, ky, kw, kh, SYM_KONSOLE, N_GRAU, N_FELD, N_RAND, N_KARTE, T("Konsole", "Console"), N_GRAU2, fw, N_TEXT, NULL,
+               KI.modell[0] ? kern_modell_zeile(fa, KI.modell) : T("Modell nicht erkannt", "Model not detected"), NULL);
+    {
+        kopplungsart ks = kern_kopplungs_stufe(K);
+        const char *t = kern_laufwerk_text(K), *dp = strstr(t, ": ");
+        const char *wert = dp ? a_kopie_n(fa, t, (size_t)(dp - t)) : t;   /* kurz: "Online gekoppelt", "Ab Werk gekoppelt", "Keine Kopplung", "Nicht abgefragt" ... (1.0.8: auch bei bestätigter Kopplung der Titel des Kerns) */
+        uint32_t wf = ks == KOPPLUNG_BESTAETIGT ? N_GRUEN : ks == KOPPLUNG_UNKLAR ? N_GELB : N_GRAU;
+        info_karte(RAND_X + kw + 24, ky, kw, kh, SYM_SCHEIBE, N_GRAU, N_FELD, N_RAND, N_KARTE, T("Laufwerks-Kopplung", "Disc drive pairing"), N_GRAU2,
+                   wert, wf, ks == KOPPLUNG_BESTAETIGT ? SYM_HAKEN : NULL, T("Wird nie verändert", "Never changed"), SYM_SCHLOSS);
     }
-    karte(40, 720, 1840, 270, F_RAND, F_KARTE);
-    text(70, 764, 1, 20, F_GRAU, T("SO GEHT ES", "HOW IT WORKS"));
-    const char *schritte[5] = { T("1. Starten", "1. Start"), T("2. Konsole und Speicher prüfen", "2. Check console and storage"), T("3. Bereinigung auswählen", "3. Choose what to clean up"),
-                                T("4. Ergebnis kontrollieren", "4. Review the result"), T("5. Bestätigen", "5. Confirm") };
-    for (int i = 0; i < 5; i++) text(70 + i * 360, 812, 1, 22, (fertig ? i == 1 : i == 0) ? F_BLAU_HELL : F_GRAU, schritte[i]);
-#ifdef NUR_LESEN
-    absatz(70, 860, 0, 20, F_GELB, T("Testversion: Es wird nur nachgeschaut, was auf der PS5 liegt. Löschen ist gesperrt - auch als Simulation.",
-                                     "Test version: it only looks at what is on the PS5. Deleting is locked - even as a simulation."), 1780, 26);
-    if (0)
-#endif
-#ifdef KERN_LOESCHEN
-    absatz(70, 860, 0, 20, F_GRAU, T("PS5 Cleanup bleibt während der Bereinigung erhalten und geht ganz zum Schluss mit. Gelöscht wird erst, wenn du am Ende ausdrücklich bestätigst.",
-                                     "PS5 Cleanup stays during the cleanup and is removed at the very end. Nothing is deleted until you explicitly confirm at the end."), 1780, 26);
-#else
-    absatz(70, 860, 0, 20, F_GRAU, T("In dieser Version ist alles eine Simulation: Du siehst genau, was passieren würde - gelöscht wird nichts.",
-                                     "In this version everything is a simulation: you see exactly what would happen - nothing is deleted."), 1780, 26);
-#endif
-    if (!fertig) { const char *kn[4] = { T("✕ Nachschauen", "✕ Scan"), SP_EN ? "□ Deutsch" : "□ English", T("Options: Protokoll & Rückmeldung", "Options: log & feedback"), T("○ halten: Beenden", "hold ○: Quit") }; fuss(kn, 4); }
-    else { const char *kn[4] = { T("✕ Weiter zur Auswahl", "✕ Continue"), T("△ Nochmal nachschauen", "△ Scan again"), T("Options: Protokoll & Rückmeldung", "Options: log & feedback"), T("○ halten: Beenden", "hold ○: Quit") }; fuss(kn, 4); }
+    {
+        int jx = RAND_X + 2 * (kw + 24);
+        const char *warn = NULL, *jb = fertig && !G.beschaeftigt ? kern_jailbreak_erkannt(K, fa, &warn) : NULL;
+        if (!fertig || G.beschaeftigt)
+            info_karte(jx, ky, kw, kh, SYM_JAILBREAK, N_GRAU2, N_FELD, N_RAND, N_KARTE, "Jailbreak", N_GRAU2, T("Noch nicht geprüft", "Not checked yet"), N_GRAU, NULL,
+                       T("Wird beim Nachschauen erkannt", "Detected when scanning"), NULL);
+        else if (!jb)
+            info_karte(jx, ky, kw, kh, SYM_JAILBREAK, N_GRAU2, N_FELD, N_RAND, N_KARTE, "Jailbreak", N_GRAU2, T("Kein Einstieg gefunden", "No entry found"), N_GRAU, NULL,
+                       T("Nichts zu schützen", "Nothing to protect"), NULL);
+        else {
+            /* so viele Namen, wie in die Zeile passen (mindestens einer), der Rest als Zahl - alle stehen unter "Jailbreak" */
+            sliste nm = r_split(fa, jb, ", ");
+            int platz = kw - 24 - 64 - 20 - 24, n = 1;
+            const char *zwei = nm.n ? nm.e[0] : jb;
+            while (n < nm.n && textbreite(1, 30, VERB(fa, zwei, ", ", nm.e[n])) <= platz) { zwei = VERB(fa, zwei, ", ", nm.e[n]); n++; }
+            int rest = nm.n - n;
+            const char *unter = rest > 0 ? a_fmt(fa, T("+%d weitere · nicht vorausgewählt", "+%d more · not preselected"), rest) : T("nicht vorausgewählt", "not preselected");
+            info_karte(jx, ky, kw, kh, SYM_JAILBREAK, N_ORANGE, farbmisch(N_ORANGE, N_HG, .14f), farbmisch(N_ORANGE, N_HG, .38f), farbmisch(N_ORANGE, N_HG, .07f),
+                       T("Jailbreak erkannt", "Jailbreak detected"), N_ORANGE, zwei, N_TEXT, NULL, unter, NULL);
+        }
+    }
+    /* Speicher (links) und "So geht's" bzw. das Gefundene (rechts) */
+    int my = ky + kh + 28, fy = HOEHE - RAND_U - 64, uy = fy - 24 - (fertig ? 76 : 60), mh = uy - 24 - my, rw = 620, lw = BREITE - 2 * RAND_X - 24 - rw;
+    karte_rund(RAND_X, my, lw, mh, 22, 1, N_RAND, N_KARTE);
+    text(RAND_X + 32, grundlinie(my + 28, 34, 28), 1, 28, N_GRAU, T("Speicher", "Storage"));
+    text_rechts(RAND_X + lw - 32, grundlinie(my + 28, 34, 24), 0, 24, N_GRAU2, fertig ? T("Bleibt = System und Geschütztes", "Stays = system and protected data") : T("Was weg kann, siehst du nach dem Nachschauen.", "What can go is shown after scanning."));
+    {
+        static Uint32 sp_zeit = 0; static bool sp_da[4]; static long long sp_frei[4], sp_ges[4]; static int usb_n = 1;
+        if (!sp_zeit || SDL_GetTicks() - sp_zeit > 5000) {
+            for (int o = 0; o < 4; o++) sp_da[o] = plattform_speicher(o, &sp_frei[o], &sp_ges[o]) && sp_ges[o] > 0;
+            usb_n = plattform_usb_anzahl();   /* Codex-Prüfung 91: alle USB-Laufwerke zusammen */
+            sp_zeit = SDL_GetTicks();
+        }
+        long long gef[4] = { 0, 0, 0, 0 };
+        if (fertig) kern_bytes_je_ort(K, gef);
+        const char *nm[4] = { T("Interne SSD", "Internal SSD"), T("M.2-SSD", "M.2 SSD"), T("Erweiterter Speicher", "Extended storage"),
+                              usb_n > 1 ? a_fmt(fa, T("USB-Laufwerke (%d)", "USB drives (%d)"), usb_n) : T("USB-Laufwerk", "USB drive") };
+        const float *sy[4] = { SYM_SSD, SYM_M2, SYM_SSD, SYM_USB };
+        int n = 0; for (int o = 0; o < 4; o++) if (sp_da[o]) n++;
+        int block = 112, platz = mh - 28 - 34 - 28, abst = n > 1 ? (platz - n * block) / (n + 1) : (platz - block) / 2;
+        if (abst > 30) abst = 30;
+        int y = my + 28 + 34 + (platz - n * block - (n - 1) * abst) / 2;
+        for (int o = 0; o < 4; o++) if (sp_da[o]) { speicher_balken(RAND_X + 32, y, lw - 64, sy[o], nm[o], sp_ges[o], sp_frei[o], gef[o], fertig); y += block + abst; }
+        if (n == 0) text(RAND_X + 32, my + mh / 2, 0, 24, N_GRAU2, T("Speicher nicht lesbar", "Storage not readable"));
+    }
+    int rx = RAND_X + lw + 24;
+    karte_rund(rx, my, rw, mh, 22, 1, N_RAND, N_KARTE);
+    if (!fertig) {
+        text(rx + 32, grundlinie(my + 28, 34, 28), 1, 28, N_GRAU, T("So geht's", "How it works"));
+        const char *st[3][2] = { { T("Nachschauen", "Scan"), T("Nur lesen, nichts wird verändert.", "Read only, nothing is changed.") },
+                                 { T("Auswählen", "Select"), T("Du entscheidest, was weg soll.", "You decide what should go.") },
+                                 { T("Bestätigen", "Confirm"), T("Erst dann wird gelöscht.", "Only then is anything deleted.") } };
+        int sy = my + 28 + 34 + 24;
+        for (int i = 0; i < 3; i++) {
+            char z[4]; snprintf(z, sizeof z, "%d", i + 1);
+            if (i == 0) { ring(rx + 32 + 24, sy + 34, 22.5f, 3, N_FOKUS); text_mitte(rx + 56, sy + 42, 1, 22, N_FOKUS, z); }
+            else { kreis(rx + 56, sy + 34, 24, N_FELD); text_mitte(rx + 56, sy + 42, 1, 22, N_GRAU, z); }
+            text(rx + 32 + 48 + 18, grundlinie(sy, 34, 28), 1, 28, N_TEXT, st[i][0]);
+            text(rx + 32 + 48 + 18, grundlinie(sy + 36, 30, 24), 0, 24, N_GRAU, st[i][1]);
+            sy += 66 + 22;
+        }
+        knopf_gross(rx + 32, my + mh - 28 - 80, rw - 64, 80, true, KN_X, T("Nachschauen", "Scan"));
+    } else {
+        long long ges[8] = { 0 }; int anz[8] = { 0 }; bool alle_da = true, gekappt = false, da_k[8]; long long summe = 0;
+        for (int ki = 0; ki < KAT_ANZ; ki++) {
+            int k = ALLE_KAT[ki]; kblock *b = NULL;
+            int nb = kern_bloecke(K, fa, k, SORT_AZ, &b);
+            /* NEU 1.0.8 (PS5-Test 06.11.2026, Befunde 4 und 10): hier standen Blöcke (zugeklappte Apps), links in der Auswahl und in der
+             * Rückmeldung Einträge - verschiedene Zahlen für denselben Bereich. Jetzt überall Einträge. */
+            anz[k] = kern_anzahl(K, k); da_k[k] = true;
+            for (int i = 0; i < nb; i++) { if (!b[i].groesse_da) alle_da = da_k[k] = false; else ges[k] += b[i].bytes; if (b[i].gekappt) gekappt = true; }
+            summe += ges[k];
+        }
+        int lauf = 0; { long long g4[4]; kern_bytes_je_ort(K, g4); for (int o = 0; o < 4; o++) if (g4[o] > 0) lauf++; }
+        /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 11:12 mit Foto: "wenn er zählt, das überlappt sich am Anfang"): beim Zählen stand
+         * "mind. 165,5 GB" in 64 Pixeln und daneben "wird noch gezählt …" - zusammen breiter als der Kasten, der Zusatz lief über den Rand.
+         * Jetzt beim Zählen ohne "mind." (das sagt schon der Zusatz); die Zahl wird kleiner, bis beides nebeneinander passt (64 bis 40), und
+         * passt es auch dann nicht (z. B. "mind. 1,98 TB gefunden auf 3 Laufwerken", wenn das Zählen gekappt wurde), steht der Zusatz unter
+         * der Zahl. */
+        bool zl = zaehlen_laeuft();
+        const char *gross = VERB(fa, (!alle_da ? !zl : gekappt) ? T("mind. ", "min. ") : "", kern_groesse_text(fa, summe));
+        /* Codex-Prüfung 106 (P3): die Zahl der Laufwerke stammt aus den gezählten Größen - fehlen Größen (Zählen beendet) oder ist sie 0,
+         * steht nur "gefunden" (sonst z. B. "gefunden auf 0 Laufwerken") */
+        const char *auf = (!alle_da && zl) ? T("wird noch gezählt …", "still counting …")
+                        : (!alle_da || lauf == 0) ? T("gefunden", "found")
+                        : a_fmt(fa, lauf == 1 ? T("gefunden auf %d Laufwerk", "found on %d drive") : T("gefunden auf %d Laufwerken", "found on %d drives"), lauf);
+        int frei = rw - 64, wa = textbreite(0, 24, auf), gsz = 64;
+        while (gsz > 40 && textbreite(1, gsz, gross) + 16 + wa > frei) gsz -= 4;
+        if (textbreite(1, gsz, gross) + 16 + wa <= frei) {
+            text(rx + 32, grundlinie(my + 24, 80, gsz), 1, gsz, N_TEXT, gross);
+            text(rx + 32 + textbreite(1, gsz, gross) + 16, grundlinie(my + 24, 80, 24), 0, 24, N_GRAU, auf);
+        } else {
+            text_passend(rx + 32, grundlinie(my + 18, 60, 52), 1, 52, 32, N_TEXT, gross, frei);
+            text_passend(rx + 32, grundlinie(my + 78, 28, 22), 0, 22, 18, N_GRAU, auf, frei);
+        }
+        int ly = my + 24 + 80 + 12, zh = (my + mh - 20 - ly) / KAT_ANZ; if (zh > 50) zh = 50;
+        for (int ki = 0; ki < KAT_ANZ; ki++) {
+            int k = ALLE_KAT[ki];
+            rechteck(rx + 32, ly, rw - 64, 1, N_RAND);
+            symbol(kat_symbol(k), rx + 32, ly + (zh - 26) / 2, 26, k == 7 ? N_ORANGE : N_GRAU);
+            text(rx + 32 + 26 + 16, grundlinie(ly, zh, 26), 0, 26, k == 7 ? N_ORANGE : N_TEXT, kern_kat_name(k));
+            /* NEU 1.0.8 (PS5-Test 07.11.2026, Foto da_Chris86 11:15): beim Zählen stand bei noch nicht gezählten Bereichen "0 Byte" - als
+             * wären sie leer. Jetzt "zählt …", bis der Bereich fertig gezählt ist (wie links in der Auswahl). */
+            const char *gt = !anz[k] ? "–" : (da_k[k] || !zl) ? kern_groesse_text(fa, ges[k]) : T("zählt …", "counting …");
+            int sw = textbreite(1, 26, gt); if (sw < 120) sw = 120;   /* 1.0.8 (4.6): "194 bytes" ist breiter als die Spalte - die Zahl rückt nach links */
+            text_rechts(rx + rw - 32 - sw - 16, grundlinie(ly, zh, 24), 0, 24, N_GRAU2, a_fmt(fa, "%d", anz[k]));
+            text_rechts(rx + rw - 32, grundlinie(ly, zh, 26), 1, 26, N_TEXT, gt);
+            ly += zh;
+        }
+    }
+    /* untere Zeile */
+    if (!fertig) {
+        int cx = RAND_X, cyy = uy + 30;
+        text(cx, cyy + 9, 0, 24, N_GRAU2, T("Gesucht wird nach", "Looking for")); cx += textbreite(0, 24, T("Gesucht wird nach", "Looking for")) + 18;
+        for (int ki = 0; ki < KAT_ANZ; ki++) {
+            int k = ALLE_KAT[ki]; const char *nmk = kern_kat_name(k); int w = 20 + 24 + 10 + textbreite(0, 24, nmk) + 20;
+            if (cx + w > BREITE - RAND_X) break;
+            karte_rund(cx, cyy - 28, w, 56, 28, 1, N_RAND, N_KARTE);
+            symbol(kat_symbol(k), cx + 20, cyy - 12, 24, N_GRAU);
+            text(cx + 20 + 24 + 10, cyy + 9, 0, 24, N_TEXT2, nmk);
+            cx += w + 12;
+        }
+    } else {
+        text(RAND_X, grundlinie(uy, 76, 24), 0, 24, N_GRAU, K->Funde.n == 0 ? T("Nichts zu tun - die PS5 ist bereits sauber.", "Nothing to do - the PS5 is already clean.")
+                                                                           : T("Als Nächstes wählst du aus, was weg soll.", "Next you choose what should go."));
+        const char *t1 = T("Nochmal nachschauen", "Scan again"), *t2 = T("Weiter zur Auswahl", "Continue to selection");
+        int w2 = knopf_gross_breite(true, t2), w1 = knopf_gross_breite(false, t1);
+        knopf_gross(BREITE - RAND_X - w2, uy, w2, 76, true, KN_X, t2);
+        knopf_gross(BREITE - RAND_X - w2 - 16 - w1, uy + 4, w1, 68, false, KN_DREIECK, t1);
+    }
+    fussknopf kn[3] = { { KN_OPT, T("Optionen", "Options"), false }, { KN_O, T("halten: Beenden", "hold: Quit"), false },
+                        { KN_QUADRAT, SP_EN ? "Deutsch" : "English", true } };
+    fuss_neu(kn, fertig ? 2 : 3);
+    if (optionen_offen) start_optionen();
 }
 
-/* =================================================================== 1.0.7: Auswahl-Bildschirm nach Vorlage
- * (doku/ui_vorlage_1.0.7.png + HTML-Vorschau, Farben von 1.0.6): Infoleiste, links Bereiche + Legende + Jailbreak getrennt,
- * rechts Einträge mit Ampel/Art/Größe und Kasten mit drei Fragen, unten die Auswahl-Leiste. */
-static void punkt(int cx, int cy, int r, uint32_t farbe)
-{
-    for (int dy = -r; dy <= r; dy++) { int dx = 0; while ((dx + 1) * (dx + 1) + dy * dy <= r * r) dx++; rechteck(cx - dx, cy + dy, 2 * dx + 1, 1, farbe); }
-}
-/* Ampel "Was passiert danach?" - VORLÄUFIG (Plan 1.0.7 Schritt 4): wird mit der abgestimmten Textliste je Eintragsart ersetzt.
- * Bis dahin vorsichtig: grün nur, wo PS5 Cleanup selbst schon "kann weg" sagt. */
-enum { AMP_GRUEN = AMPEL_GRUEN, AMP_GELB = AMPEL_GELB, AMP_ROT = AMPEL_ROT };
-/* NEU 1.0.7: Ampel aus dem Kern (Art des Eintrags, kern_art.c) - laut abgestimmter Textliste (Freigabe da_Chris86 31.10.2026 13:16) */
-static int ampel(const eintrag *f) { return kern_ampel(f); }
-static uint32_t ampel_farbe(int a) { return a == AMP_GRUEN ? F_GRUEN : a == AMP_GELB ? F_GELB : 0xE5484D; }
-static const char *ampel_text(int a)
-{
-    return a == AMP_GRUEN ? T("harmlos, es geht nichts verloren", "harmless, nothing is lost")
-         : a == AMP_GELB  ? T("neu einrichten oder neu laden", "set up again or download again")
-                          : T("endgültig weg", "gone for good");
-}
-/* Name und Art aus dem Text: "Altes Spiel (CUSA12345) - Update (Version 01.09)" -> Name bis zur Klammer, Art dahinter.
- * Ohne dieses Muster bleibt der ganze Text der Name (keine erfundene Art). */
-static void name_art(const eintrag *f, const char **name, const char **art)
-{
-    *name = f->Text; *art = "";
-    const char *p = strstr(f->Text, ") - ");
-    if (p && p[4]) { *name = a_kopie_n(fa, f->Text, (size_t)(p + 1 - f->Text)); *art = p + 4; }
-    /* Marken wie "  [GESPERRT: …]" / "  [Jailbreak-Einstieg - nur einzeln]" nur im Kasten unten (voller Text), nicht in der Zeile */
-    const char *m = strstr(*name, "  ["); if (m) *name = a_kopie_n(fa, *name, (size_t)(m - *name));
-    m = strstr(*art, "  ["); if (m) *art = a_kopie_n(fa, *art, (size_t)(m - *art));
-}
-/* Platzhalter-Bild (bis die Kachelbilder kommen): zwei Buchstaben des Namens */
-static void bildchen(int x, int y, int gr, const eintrag *f, int schrift)
-{
-    SDL_Surface *b = kachelbild(f, gr);   /* NEU 1.0.7: Kachelbild, wenn es eins gibt */
-    if (b) { SDL_Rect z = { x, y, gr, gr }; SDL_BlitSurface(b, NULL, ziel, &z); return; }
-    karte(x, y, gr, gr, F_RAND, F_KARTE2);
-    const char *n = f->Text, *v = kern_ort_vorsatz(f->Ort);
-    if (v && v[0] && strncmp(n, v, strlen(v)) == 0) n += strlen(v);
-    char kz[3] = {0}; int i = 0;
-    for (const char *q = n; *q && i < 2; q++) { char c = *q; if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) kz[i++] = (char)((c >= 'a' && c <= 'z') ? c - 32 : c); else if (i == 1) break; }
-    if (!kz[0]) { kz[0] = '?'; }
-    int tw = textbreite(1, schrift, kz);
-    text(x + (gr - tw) / 2, y + gr / 2 + schrift * 7 / 20, 1, schrift, F_GRAU, kz);
-}
 static const char *groesse_von(arena *ar, long long b, bool gekappt) { return VERB(ar, gekappt ? T("mind. ", "min. ") : "", kern_groesse_text(ar, b)); }
-static const char *bereich_unterzeile(int k)
+
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.3): Auswahl nach Entwurf 2
+ * Links die Bereiche, in der Mitte die Einträge als Blöcke (eine Kachel mit allem, was dazugehört - zugeklappt mit Gesamtgröße; der
+ * markierte Block ist aufgeklappt), rechts der Kasten zum markierten Eintrag, unten die Auswahl-Leiste. Größte zuerst oder A–Z
+ * (Optionen). Was gelöscht wird, entscheidet weiter jede einzelne Zeile (ablauf_eintrag_setzen) - die Blöcke sind nur Anzeige
+ * (kern_bloecke, Arbeitsplan 2.6). Gezählt werden überall Einträge (Zeilen), wie in der Zusammenfassung vor dem Löschen.
+ * Abweichung vom Entwurf (eigene Entscheidung, 05.11.2026): der Kopf eines Blocks ist zweizeilig (oben der Name, darunter "3 Teile" bzw.
+ * was es ist und das Schildchen) - in einer Zeile blieben für lange Spielnamen nur 175 Pixel. */
+static eintrag RESTE_ZEILE;                 /* Kopf des Blocks "Reste" - wird nie gelöscht, steht nur für seine Teile */
+/* Codex-Prüfung 98 (P1): in die Sammelzeile "Reste" kommt nur wirklich Harmloses - was rot ist, nur einzeln geht oder eine PKG-Datei ist
+ * (z. B. ein Ordner "Temporäre Dateien", in dem PS5 Cleanup nicht nach PKG-Dateien suchen konnte), bleibt eine eigene Zeile */
+static bool ist_rest(const eintrag *f) { return (f->Art == ART_REST || f->Art == ART_TR_LISTE_REST || f->Art == ART_GALERIE_REST) && !f->Rot && !f->NurEinzeln && !f->Paket && !f->PkgOffen; }
+static int sortierung = SORT_GROESSTE;      /* da_Chris86 04.11.2026 17:04: Standard "größte zuerst", A–Z im Options-Menü */
+static struct { int k, funde_n, hg, sort; void *funde_e; arena *a; kblock *bl; int n; } AL = { .k = -1 };
+static int al_b = 0, al_t = -1, al_py = 0;  /* Markierung: Block, Teil (-1 = Kopf); Bildlauf in Pixeln */
+static bool al_mehr(int b) { return b >= 0 && b < AL.n && AL.bl[b].teile.n > 1; }
+static eintrag *al_markiert(void)
 {
-    int n = 0; long long b = 0; bool alle = true, gek = false;
-    for (int i = 0; i < K->Funde.n; i++) {
-        eintrag *f = K->Funde.e[i]; if (f->Kat != k) continue;
-        n++; groesse *g = kern_eintrag_groesse_in(K, fa, f, true);
-        if (!g) alle = false; else { b += g->Bytes; if (g->Gekappt) gek = true; }
+    if (AL.n <= 0 || al_b < 0 || al_b >= AL.n) return NULL;
+    return al_t < 0 || !al_mehr(al_b) ? AL.bl[al_b].kopf : AL.bl[al_b].teile.e[al_t];
+}
+/* Blöcke des Bereichs k; Harmloses ("es geht nichts verloren") als ein Block "Reste" ganz unten (ab zwei, nie bei Spielen und
+ * Jailbreak - wie bis 1.0.7). Der markierte Eintrag bleibt beim Umsortieren markiert. */
+static void al_ordnen(int k)
+{
+    if (k == AL.k && AL.funde_n == K->Funde.n && AL.funde_e == (void *)K->Funde.e && AL.hg == A.hg_n && AL.sort == sortierung) return;
+    const eintrag *merk = k == AL.k ? al_markiert() : NULL;
+    /* Codex-Prüfung 99 (P2): der erste Teil eines Blocks ist oft derselbe Eintrag wie sein Kopf. War eine Teilzeile markiert, bleibt es eine
+     * Teilzeile - bisher sprang die Markierung beim Umsortieren (Größen fertig gezählt, Reihenfolge geändert) auf den Kopf, und ✕ hakte
+     * dann den ganzen Block an statt des einen Teils */
+    const bool merk_teil = merk && al_t >= 0 && al_mehr(al_b);
+    if (k != AL.k) { al_b = 0; al_t = -1; al_py = 0; }
+    if (AL.a) arena_frei(AL.a);
+    AL.a = arena_neu();
+    kblock *bl = NULL; int nb = kern_bloecke(K, AL.a, k, sortierung, &bl), nr = 0;
+#define ALS_REST(x) (!kern_bereiche_106() && k != 1 && k != 7 && (x)->teile.n == 1 && ist_rest((x)->kopf))
+    for (int b = 0; b < nb; b++) if (ALS_REST(&bl[b])) nr++;
+    if (nr >= 2) {
+        kblock *neu = a_hole(AL.a, sizeof(kblock) * (size_t)(nb - nr + 1));
+        kblock r; memset(&r, 0, sizeof r); r.kopf = &RESTE_ZEILE; r.groesse_da = true; r.name = T("Reste", "Leftovers");
+        int n = 0;
+        for (int b = 0; b < nb; b++) {
+            if (!ALS_REST(&bl[b])) { neu[n++] = bl[b]; continue; }
+            pl_add(AL.a, &r.teile, bl[b].kopf);
+            if (!bl[b].groesse_da) r.groesse_da = false; else r.bytes += bl[b].bytes;
+            if (bl[b].gekappt) r.gekappt = true;
+        }
+        neu[n++] = r; bl = neu; nb = n;
     }
-    const char *t = VERB(fa, a_fmt(fa, "%d", n), EINTRAEGE(n));
-    if (n > 0) t = VERB(fa, t, "  ·  ", alle ? groesse_von(fa, b, gek) : T("Größe wird gezählt …", "counting size …"));
+#undef ALS_REST
+    AL.bl = bl; AL.n = nb; AL.k = k; AL.funde_n = K->Funde.n; AL.funde_e = (void *)K->Funde.e; AL.hg = A.hg_n; AL.sort = sortierung;
+    if (merk) {
+        bool da = false;
+        for (int b = 0; b < AL.n && !da; b++) {
+            if (!merk_teil && AL.bl[b].kopf == merk) { al_b = b; al_t = -1; da = true; break; }
+            for (int t = 0; t < AL.bl[b].teile.n; t++) if (AL.bl[b].teile.e[t] == merk) { al_b = b; al_t = t; da = true; break; }
+        }
+        for (int b = 0; b < AL.n && !da; b++) if (AL.bl[b].kopf == merk) { al_b = b; al_t = -1; da = true; }   /* als Teil nicht mehr da: sein Block */
+    }
+    if (al_b >= AL.n) { al_b = AL.n > 0 ? AL.n - 1 : 0; al_t = -1; }
+    if (!al_mehr(al_b) || al_t >= AL.bl[al_b].teile.n) al_t = -1;
+}
+/* Zeilen der Liste: jeder Block mit seinem Kopf (68 Pixel), der markierte Block (nur in der Liste) dazu mit allen Teilen (je 48).
+ * y/h in Pixeln, mit dem Rand des Blocks; zwischen den Blöcken 8 Pixel. */
+#define AL_KOPF 74
+#define AL_TEIL 52
+typedef struct { int b, t, y, h; } al_zeile;
+static int al_zeilen(al_zeile *z)
+{
+    int n = 0, y = 0;
+    for (int b = 0; b < AL.n; b++) {
+        bool auf = fokus_zone == 1 && b == al_b && al_mehr(b);
+        int hk = 2 + AL_KOPF + (auf ? 0 : 2);
+        z[n++] = (al_zeile){ b, -1, y, hk }; y += hk;
+        if (auf) for (int t = 0; t < AL.bl[b].teile.n; t++) { int h = AL_TEIL + (t == AL.bl[b].teile.n - 1 ? 4 : 0); z[n++] = (al_zeile){ b, t, y, h }; y += h; }
+        y += 8;
+    }
+    return n;
+}
+static int al_zustand(int b)   /* Haken des Blocks: 0 nichts, 1 teilweise, 2 alles gewählt */
+{
+    int w = 0, m = 0; const char *g;
+    for (int i = 0; i < AL.bl[b].teile.n; i++) { eintrag *f = AL.bl[b].teile.e[i]; if (ablauf_eintrag_gesperrt(&A, f, &g)) continue; m++; if (f->Wahl) w++; }
+    return w == 0 ? 0 : w == m ? 2 : 1;
+}
+static void eintrag_umschalten(eintrag *f)
+{
+    const char *g;
+    if (ablauf_eintrag_gesperrt(&A, f, &g)) { kurz(g ? g : T("Nicht wählbar.", "Not selectable.")); return; }
+    bool vorher = f->Wahl;
+    ablauf_eintrag_setzen(&A, f, !f->Wahl);
+    /* NEU 1.0.6 (da_Chris86 29.10.2026 07:28): beim Anwählen eines Jailbreak-Einstiegs deutlich warnen */
+    if (!vorher && f->Wahl && f->Jailbreak) { kurz(kern_jb_warnung(fa, f)); hinweis_dauer(8000); }
+    else if (vorher && !f->Wahl && f->Jailbreak) hinweis_bis = 0;   /* da_Chris86 29.10.2026 (Fernsehtest): abgewählt - Warnung sofort weg */
+}
+/* Teile, die ✕ auf dem Kopf nicht mit anhakt: was endgültig weg ist oder nur einzeln geht (wie bei "ganzen Bereich wählen") */
+static bool nur_einzeln_teil(int b, const eintrag *f) { (void)b; return f->Rot || f->NurEinzeln || f->Paket; }   /* Paket: Codex-Prüfung 90; Codex-Prüfung 98: auch bei den Resten */
+/* ✕ auf dem Kopf eines Blocks: alle anderen Teile an bzw. aus. Abwählen nimmt alles raus. Bei den Resten geht alles. */
+static void al_block_setzen(int b)
+{
+    const pliste *p = &AL.bl[b].teile; const char *g;
+    if (p->n == 1 && AL.bl[b].kopf != &RESTE_ZEILE) { eintrag_umschalten(p->e[0]); return; }
+    int frei = 0, an = 0, alle_an = 0;
+    for (int i = 0; i < p->n; i++) {
+        eintrag *f = p->e[i]; if (ablauf_eintrag_gesperrt(&A, f, &g)) continue;
+        if (f->Wahl) alle_an++;
+        if (nur_einzeln_teil(b, f)) continue;
+        frei++; if (f->Wahl) an++;
+    }
+    if (frei == 0 && alle_an == 0) { kurz(T("Diese Teile nur einzeln anhaken: mit ↓ in den Block, dann ✕.", "Tick these parts one by one: ↓ into the block, then ✕.")); return; }
+    bool ein = frei > 0 && an < frei;
+    for (int i = 0; i < p->n; i++) {
+        eintrag *f = p->e[i]; if (ablauf_eintrag_gesperrt(&A, f, &g)) continue;
+        if (ein && nur_einzeln_teil(b, f)) continue;
+        if (f->Wahl != ein) ablauf_eintrag_setzen(&A, f, ein);
+    }
+}
+static void al_schritt(int d)
+{
+    if (AL.n <= 0) return;
+    if (d > 0) {
+        if (al_mehr(al_b) && al_t < AL.bl[al_b].teile.n - 1) al_t++;   /* in den Block hinein bzw. zum nächsten Teil */
+        else if (al_b < AL.n - 1) { al_b++; al_t = -1; }
+    } else {
+        if (al_t >= 0) al_t--;                                           /* vom ersten Teil zurück auf den Kopf */
+        else if (al_b > 0) { al_b--; al_t = -1; }
+    }
+}
+/* ---- kleine Bausteine der Auswahl */
+static const char *ohne_ort_vorne(const char *t)
+{
+    for (int o = ORT_M2; o <= ORT_STICK; o++) { const char *v = kern_ort_vorsatz(o); if (v && v[0] && txt_beginnt(t, v)) return t + strlen(v); }
     return t;
 }
-
-/* ---- Infoleiste */
-static void info_leiste(int y, int h)
+/* F8 (da_Chris86s Bilder vom 04.11.2026): die Kachel eines ShadowMount-Spiels liegt intern - "M.2" gehört nur zur Zeile der Spieldatei */
+static int anzeige_ort(const eintrag *f) { return f->Quelle && f->Quelle[0] && !f->SmDatei ? ORT_INTERN : f->Ort; }
+static const char *ort_kurz(int o) { return o == ORT_M2 ? "M.2" : o == ORT_USB ? T("USB-Platte", "USB HDD") : o == ORT_STICK ? "USB" : ""; }
+static const char *al_name(const eintrag *f) { const char *n = kern_name(fa, f); return n && n[0] ? n : ohne_ort_vorne(kern_zeile(fa, f)); }
+/* Was nach "Name – " in der Zeile steht ("Grand Theft Auto V – Spielstände" -> "Spielstände"); NULL = die Zeile fängt nicht so an */
+static const char *nach_name(const char *z, const char *n)
 {
-    bool da = GESUCHT && ablauf_verbunden(&A) && !G.beschaeftigt;
-    /* Konsole - NEU 1.0.7 (da_Chris86 01.11.2026 abends: "die halbe Kachel ist leer - entweder größer oder besser verteilt"):
-     * links die Reihe groß, rechts die Firmware groß, darunter Modell · Region · seit über die ganze Breite. Nichts wird gekürzt. */
-    const char *reihe = K->MODELL_TYP[0] ? kern_modell_reihe(K->MODELL_TYP, K->MODELL_DIGITAL) : T("Unbekanntes Modell", "Unknown model");
-    const char *mz = KI.modell[0] ? kern_modell_zeile(fa, KI.modell) : T("Modell nicht erkannt", "Model not detected");
-    const char *fw = KI.firmware[0] ? KI.firmware : T("unbekannt", "unknown");
-    int bf = textbreite(1, 28, fw); if (textbreite(1, 17, "FIRMWARE") > bf) bf = textbreite(1, 17, "FIRMWARE");
-    int w = textbreite(1, 28, reihe) + 48 + bf, w2 = textbreite(0, 19, mz);
-    if (w2 > w) w = w2;
-    w += 44; if (w < 400) w = 400; if (w > 560) w = 560;
-    int x = 40;
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    text(x + 22, y + 32, 1, 17, F_GRAU, T("KONSOLE", "CONSOLE"));
-    text(x + w - 22 - textbreite(1, 17, "FIRMWARE"), y + 32, 1, 17, F_GRAU, "FIRMWARE");
-    text_passend(x + 22, y + 70, 1, 28, 18, F_TEXT, reihe, w - 44 - bf - 24);
-    text(x + w - 22 - textbreite(1, 28, fw), y + 70, 1, 28, F_TEXT, fw);
-    text_passend(x + 22, y + 98, 0, 19, 14, F_GRAU, mz, w - 44);
-    /* Laufwerk */
-    x = x + w + 16; w = 360;
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    text(x + 22, y + 32, 1, 17, F_GRAU, T("LAUFWERK", "DISC DRIVE"));
-    const char *t = kern_laufwerk_text(K); const char *dp = strstr(t, ": ");
-    const char *titel = dp ? a_kopie_n(fa, t, (size_t)(dp - t)) : t;
-    text_passend(x + 22, y + 66, 1, 24, 16, kopplung_farbe(), VERB(fa, kern_kopplungs_stufe(K) == KOPPLUNG_BESTAETIGT ? "✓ " : "", titel), w - 44);
-    text_passend(x + 22, y + 94, 0, 18, 14, F_GRAU, T("wird nur gelesen, nie verändert", "only read, never changed"), w - 44);
-    /* Jailbreak: was EINGERICHTET ist (nicht, womit gestartet wurde). NEU 1.0.7 (da_Chris86 01.11.2026, Foto: abgeschnitten): die
-     * Namen notfalls auf zwei Zeilen; statt der langen Liste der Einträge (steht unter "Jailbreak" und in der Warnung beim Anhaken)
-     * ein kurzer Satz mit der Anzahl */
-    x = x + w + 16; w = 1508 - 16 - x;
-    const char *warn = NULL, *jb = da ? kern_jailbreak_erkannt(K, fa, &warn) : NULL;
-    karte(x, y, w, h, jb ? F_ORANGE : F_RAND, F_KARTE);
-    text(x + 22, y + 32, 1, 17, jb ? F_ORANGE : F_GRAU, jb ? T("JAILBREAK ERKANNT", "JAILBREAK DETECTED") : "JAILBREAK");
-    if (!da) text(x + 22, y + 66, 0, 21, F_GRAU, T("wird beim Nachschauen erkannt", "detected when scanning"));
-    else if (!jb) {
-        text(x + 22, y + 62, 0, 20, F_GRAU, T("kein Einstieg gefunden", "no entry found"));
-        if (warn) { passend wp = einpassen(0, 16, 15, 14, warn, w - 44, 2); wp.lh = wp.gr + 3; passend_zeichnen(x + 22, y + 84, 0, F_ORANGE, &wp); }
-    } else {
-        passend jp = einpassen(1, 22, 18, 16, jb, w - 44, 2); jp.lh = jp.gr + 4;
-        passend_zeichnen(x + 22, jp.z.n > 1 ? y + 58 : y + 66, 1, F_TEXT, &jp);
-        const char *hw = warn ? jb_kurz(warn) : T("geschützt - nur einzeln löschbar", "protected - delete individually only");
-        if (warn && kern_bereiche_106()) { passend wp = einpassen(0, 17, 15, 14, hw, w - 44, 1); passend_zeichnen(x + 22, y + 100, 0, F_ORANGE, &wp); }
-        else text_passend(x + 22, y + 100, 0, 17, 14, warn ? F_ORANGE : F_GRAU, hw, w - 44);
+    size_t l = n ? strlen(n) : 0, s = strlen(" – ");
+    if (l && !strncmp(z, n, l) && !strncmp(z + l, " – ", s) && z[l + s]) return z + l + s;
+    return NULL;
+}
+/* Zeile eines Teils ohne den Namen des Blocks und ohne den "Jailbreak-Start: …", der schon am Kopf steht */
+static const char *teil_name(int b, const eintrag *f)
+{
+    const char *z = ohne_ort_vorne(kern_zeile(fa, f)), *r = nach_name(z, AL.bl[b].name);
+    if (r) z = r;
+    const char *kz = ohne_ort_vorne(kern_zeile(fa, AL.bl[b].kopf)), *js = T(" – Jailbreak-Start", " – jailbreak start");
+    const char *p = strstr(kz, js), *q = strstr(z, js);
+    if (p && q && q > z && !strcmp(p, q)) z = a_kopie_n(fa, z, (size_t)(q - z));
+    return z;
+}
+/* im Bereich Jailbreak steht in jeder Zeile "Jailbreak-Start: …" - dort reicht der Weg selbst ("Y2JB (YouTube)"), der Bereich sagt den Rest */
+static const char *ohne_jb_start(const char *t, int k)
+{
+    if (k != 7) return t;
+    const char *v = T("Jailbreak-Start: ", "jailbreak start: ");
+    return r_r(fa, txt_beginnt(t, v) ? t + strlen(v) : t, T(" – Jailbreak-Start: ", " – jailbreak start: "), " – ");
+}
+static const char *schild_text(const eintrag *f, int k) { return k == 7 && f->Art == ART_JAILBREAK ? T("neu einrichten", "set up again") : kern_folge_kurz(f); }
+/* Name und Zusatz einer Zeile für die zweizeilige Anzeige ("Grand Theft Auto V" / "Spielstände"):
+ * - "Name – Zusatz" (der Name kommt aus dem Kern, kern_name)
+ * - "Aufnahmen von Name (ID): 1 Screenshot" -> Name / "1 Screenshot"
+ * - "Kurzer Vorsatz: Rest" (Fake-Lizenz, App-Daten ohne App, Kachel ohne Spiel, Spieldatei ohne Kachel ...) -> Rest / Vorsatz
+ * Sonst die ganze Zeile als Name, ohne Zusatz. */
+static void zeile_teilen(const eintrag *f, int k, const char **name, const char **was)
+{
+    const char *z = ohne_ort_vorne(kern_zeile(fa, f)), *n = al_name(f), *r = nach_name(z, n);
+    *name = z; *was = "";
+    if (r) { *name = n; *was = ohne_jb_start(r, k); return; }
+    const char *v = T("Aufnahmen von ", "Captures of "), *e = strstr(z, "): ");
+    if (txt_beginnt(z, v) && e) {
+        const char *p = e; while (p > z && *p != '(') p--;
+        if (p > z + strlen(v) + 1 && p[-1] == ' ') { *name = a_kopie_n(fa, z + strlen(v), (size_t)(p - 1 - (z + strlen(v)))); *was = e + 3; return; }
     }
-    /* Speicher frei (alle 5 s neu gelesen) */
-    x = 1508; w = 372;
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    text(x + 22, y + 32, 1, 17, F_GRAU, T("SPEICHER FREI", "FREE STORAGE"));
-    static Uint32 sp_zeit = 0; static bool sp_da[4]; static long long sp_frei[4], sp_ges[4];
-    if (!sp_zeit || SDL_GetTicks() - sp_zeit > 5000) { sp_zeit = SDL_GetTicks() | 1; for (int i = 0; i < 4; i++) sp_da[i] = plattform_speicher(i, &sp_frei[i], &sp_ges[i]); }
-    const char *nl[4] = { T("Intern", "Internal"), "M.2", T("Erw. Speicher", "Ext. storage"), T("USB-Laufwerk", "USB drive") };   /* 03.11.2026: nicht nur "USB" */
-    int zy = y + 56, gezeigt = 0;
-    for (int i = 0; i < 4 && gezeigt < 3; i++) {
-        if (!sp_da[i]) continue;
-        text(x + 22, zy + 6, 0, 17, F_GRAU, nl[i]);
-        const char *fw = kern_groesse_text(fa, sp_frei[i]);
-        if (sp_frei[i] >= 1024LL * 1024 * 1024 * 1024) {   /* ab 1 TB als TB (sonst "1.024,5 GB") */
-            char *t = (char *)a_fmt(fa, "%.1f TB", (double)sp_frei[i] / (1024.0 * 1024 * 1024 * 1024));
-            for (char *c = t; *c; c++) if (*c == '.' && !SP_EN) *c = ',';
-            fw = t;
+    const char *d = strstr(z, ": ");
+    if (d && d - z <= 40 && d[2]) {
+        const char *s = strstr(z, " – ");
+        if (!s || s > d) { *name = d + 2; *was = a_kopie_n(fa, z, (size_t)(d - z)); }
+    }
+}
+static uint32_t ampel_f(int a) { return a == AMPEL_ROT ? N_ROT : a == AMPEL_GELB ? N_GELB : N_GRUEN; }
+static const float *ampel_sym(int a) { return a == AMPEL_ROT ? SYM_WARNUNG : a == AMPEL_GELB ? SYM_NEU : SYM_HAKEN; }
+static int schild_breite(const char *t) { return 11 + 18 + 7 + textbreite(1, 22, t) + 13; }
+static void schild(int x, int cy, int a, const char *t, uint32_t hg)   /* Schildchen mit Symbol: rot "endgültig weg", gelb "neu laden" ... */
+{
+    uint32_t f = ampel_f(a); int w = schild_breite(t);
+    if (a == AMPEL_ROT) karte_rund(x, cy - 16, w, 32, 16, 2, farbmisch(f, hg, .6f), farbmisch(f, hg, .16f));
+    else rund(x, cy - 16, w, 32, 16, farbmisch(f, hg, .12f));
+    symbol(ampel_sym(a), x + 11, cy - 9, 18, f);
+    text(x + 36, cy + 8, 1, 22, f, t);
+}
+static int ort_breite(const char *o) { return o[0] ? textbreite(1, 22, o) + 20 : 0; }
+static void ort_schild(int x, int cy, const char *o) { rund(x, cy - 15, ort_breite(o), 30, 8, 0x2A2F37); text(x + 10, cy + 8, 1, 22, N_GRAU, o); }
+static void kasten_haken(int x, int y, int z, uint32_t hg, bool gesperrt, bool jb)   /* 28 x 28: 0 leer, 1 teilweise, 2 gewählt */
+{
+    if (gesperrt) { karte_rund(x, y, 28, 28, 8, 2, N_LINIE, hg); symbol(SYM_SCHLOSS, x + 5, y + 5, 18, N_GRAU2); return; }
+    uint32_t f = jb ? N_ORANGE : N_BLAU;
+    if (z == 2) { rund(x, y, 28, 28, 8, f); symbol(SYM_HAKEN, x + 4, y + 4, 20, 0xFFFFFF); }
+    else if (z == 1) { karte_rund(x, y, 28, 28, 8, 3, jb ? N_ORANGE : N_FOKUS, hg); rund(x + 7, y + 12, 14, 3, 1, jb ? N_ORANGE : N_FOKUS); }
+    else karte_rund(x, y, 28, 28, 8, 3, 0x5A616D, hg);
+}
+static void kachel_klein(int x, int y, int gr, const eintrag *f, int k, uint32_t hg)   /* Kachelbild, sonst Symbol des Bereichs */
+{
+    SDL_Surface *b = (f && f != &RESTE_ZEILE) ? kachelbild(f, gr) : NULL;
+    if (b) { SDL_Rect z = { x, y, gr, gr }; SDL_BlitSurface(b, NULL, ziel, &z); ecken_maske(x, y, gr, gr, gr / 4, hg); return; }
+    rund(x, y, gr, gr, gr / 4, N_FELD);
+    symbol(f == &RESTE_ZEILE ? SYM_SONSTIGES : kat_symbol(k), x + gr / 4, y + gr / 4, gr / 2, k == 7 ? N_ORANGE : N_GRAU);
+}
+static const char *block_groesse(int b)
+{
+    const kblock *x = &AL.bl[b];
+    return x->groesse_da ? groesse_von(fa, x->bytes, x->gekappt) : "…";
+}
+static int block_rot(int b) { int n = 0; for (int i = 0; i < AL.bl[b].teile.n; i++) if (kern_ampel(AL.bl[b].teile.e[i]) == AMPEL_ROT) n++; return n; }
+/* NEU 1.0.8 (Vorschau 06.11.2026, Block "WebKit Autoloader"): Dateinamen in der Mitte kürzen ("webkit-autolo…er_v0.6.2.elf"), damit Version
+ * und Endung sichtbar bleiben - zwei Dateien desselben Tools sahen sonst gleich aus ("webkit-autoloader-…") */
+static bool endet_wie_datei(const char *t)
+{
+    const char *p = strrchr(t, '.');
+    if (!p || p == t || !p[1] || strlen(p + 1) > 6) return false;
+    for (const char *q = p + 1; *q; q++) if (!((*q >= 'a' && *q <= 'z') || (*q >= 'A' && *q <= 'Z') || (*q >= '0' && *q <= '9'))) return false;
+    return true;
+}
+static const char *kuerzen_mitte(int f, int gr, const char *t, int breite)
+{
+    int tw = textbreite(f, gr, t), el = textbreite(f, gr, "…");
+    if (tw <= breite) return t;
+    if (breite - el < 60) return kuerzen(f, gr, t, breite);
+    zu_lang("in der Mitte gekürzt", gr, breite, t);
+    int platz = breite - el, hinten = platz * 45 / 100, vorne = platz - hinten, b = 0;
+    const char *q = t, *kopf = t;
+    while (*q) { Glyph *g = glyph(f, gr, cp_naechstes(&q)); b += g ? g->vorschub : 0; if (b > vorne) break; kopf = q; }
+    q = t; b = 0;
+    while (*q && tw - b > hinten) { Glyph *g = glyph(f, gr, cp_naechstes(&q)); b += g ? g->vorschub : 0; }
+    if (q < kopf) q = kopf;
+    return VERB(fa, a_kopie_n(fa, t, (size_t)(kopf - t)), "…", q);
+}
+/* Text in einer Zeile: zu lang -> erst kleiner, in der markierten Zeile dann Laufschrift, sonst "…" (ganz steht er im Kasten rechts).
+ * Rückgabe: gezeichnete Breite */
+static int name_zeichnen(int x, int y, int f, int gr, int gr_min, uint32_t farbe, const char *t, int breite, bool fok, const void *wer)
+{
+    if (breite < 20) return 0;
+    int g = gr; while (g - 2 >= gr_min && textbreite(f, g, t) > breite) g -= 2;
+    int tw = textbreite(f, g, t);
+    if (tw <= breite) { text(x, y, f, g, farbe, t); return tw; }
+    if (fok) laufschrift(x, y, f, g, farbe, t, breite, wer); else text(x, y, f, g, farbe, endet_wie_datei(t) ? kuerzen_mitte(f, g, t, breite) : kuerzen(f, g, t, breite));
+    return breite;
+}
+/* ---- links: Bereiche */
+/* 1.0.8 (4.6): breite = Platz für die Zeile (0 = egal). Passt "53 Einträge · mind. 736,0 GB" nicht, steht nur die Größe da - bis hier wurde
+ * die Zeile gekürzt ("53 Einträge · wird gez…", auf der PS5 so lange, wie das Zählen dauert) */
+static const char *bereich_unter(int k, int breite)
+{
+    int n = 0, w = 0; long long b = 0; bool alle = true, gek = false;
+    for (int i = 0; i < K->Funde.n; i++) {
+        eintrag *f = K->Funde.e[i]; if (f->Kat != k) continue;
+        n++; if (f->Wahl) w++;
+        groesse *g = kern_eintrag_groesse_in(K, fa, f, true);
+        if (!g) alle = false; else { b += g->Bytes; if (g->Gekappt) gek = true; }
+    }
+    if (w > 0) return a_fmt(fa, T("%d von %d gewählt", "%d of %d selected"), w, n);
+    bool zl = zaehlen_laeuft();   /* Codex-Prüfung 105 (P2): nach beendetem Zählen mit fehlenden Größen "mind. …", nicht endlos "zählt …" */
+    const char *gr = alle ? groesse_von(fa, b, gek) : zl ? T("zählt …", "counting …") : groesse_von(fa, b, true);
+    const char *t = VERB(fa, a_fmt(fa, "%d", n), EINTRAEGE(n), " · ", gr);
+    if (breite > 0 && textbreite(0, 22, t) > breite) t = (alle || !zl) ? gr : VERB(fa, a_fmt(fa, "%d", n), EINTRAEGE(n), " …");
+    return t;
+}
+static void al_bereich_zeile(int x, int y, int w, int i, int k)
+{
+    bool fok = i == fokus_bereich, jb = k == 7;
+    uint32_t hg = fok ? farbmisch(N_BLAU, N_KARTE, .22f) : N_KARTE;
+    if (fok && fokus_zone == 0) karte_rund(x, y, w, 72, 16, 3, N_FOKUS, hg); else if (fok) rund(x, y, w, 72, 16, hg);
+    int z = ablauf_bereich_zustand(&A, k);
+    if (z == 2) {   /* "voll" nur, wenn wirklich alle wählbaren Einträge angehakt sind (bei "nur einzeln" sonst halb) */
+        int m = 0, ww = 0; for (int j = 0; j < K->Funde.n; j++) { eintrag *f = K->Funde.e[j]; if (f->Kat == k && !f->Gesperrt) { m++; if (f->Wahl) ww++; } }
+        if (ww < m) z = 1;
+    }
+    kasten_haken(x + 16, y + 22, z, hg, false, jb);
+    symbol(kat_symbol(k), x + 60, y + 22, 28, jb ? N_ORANGE : (fok ? N_TEXT : N_GRAU));
+    text_passend(x + 104, y + 33, 1, 26, 22, jb ? N_ORANGE : (fok ? 0xFFFFFF : N_TEXT), kern_kat_name(k), w - 120);
+    text_passend(x + 104, y + 63, 0, 24, 22, fok ? N_TEXT2 : N_GRAU2, bereich_unter(k, w - 120), w - 120);
+}
+/* ---- rechts: Kasten zum markierten Eintrag. Alles ganz zeigen, Schrift mindestens 24 (Entwurf 2): passt es nicht, wird erst das Bild
+ * kleiner, dann fällt es weg; reicht auch das nicht, laufen Fragen und Antworten langsam nach oben durch (wie die Laufschrift der Namen:
+ * 3 s stehen, durchlaufen, 3 s stehen, wieder von vorn) - abgeschnitten wird nichts. */
+typedef struct { const char *frage, *text; uint32_t farbe; const float *sym; } k_absatz;
+static int kasten_absaetze(int tx, int ty, int bw, const k_absatz *ab, int n, bool zeichnen)
+{
+    int y = ty, letzt = ty;
+    for (int i = 0; i < n; i++) {
+        const k_absatz *a = &ab[i];
+        if (!a->text || !a->text[0]) continue;
+        if (a->frage) { if (zeichnen) text(tx, y + 24, 0, 24, N_GRAU2, a->frage); y += 36; }
+        int ax = tx + (a->sym ? 34 : 0);
+        zeilen z = umbrechen(0, 24, a->text, bw - (ax - tx));
+        if (zeichnen) {
+            if (a->sym) symbol(a->sym, tx, y + 4, 24, a->farbe);
+            for (int j = 0; j < z.n; j++) text(ax, y + 24 + j * 32, 0, 24, a->farbe, z.z[j]);
         }
-        text(x + 200 - textbreite(1, 17, fw), zy + 6, 1, 17, F_TEXT, fw);
-        int bx = x + 214, bw = w - 22 - 214, an = sp_ges[i] > 0 ? (int)((sp_ges[i] - sp_frei[i]) * bw / sp_ges[i]) : 0;
-        rechteck(bx, zy - 4, bw, 10, F_KARTE2);
-        rechteck(bx, zy - 4, an, 10, sp_frei[i] * 10 < sp_ges[i] ? F_ORANGE : F_BLAU);
-        zy += 22; gezeigt++;
+        y += z.n * 32; letzt = y; y += 18;
     }
-    if (!gezeigt) text(x + 22, y + 66, 0, 20, F_GRAU, T("nicht lesbar", "not readable"));
+    return letzt - ty;
 }
-
-/* ---- links */
-static void bereich_zeile(int x, int yy, int w, int hz, int k, bool fok, bool jbk)
+static const void *kasten_wer; static Uint32 kasten_seit;
+static void kasten_zeichnen(int x, int y, int w, int h, const eintrag *bild_f, int k, const char *titel, const char *unter, const k_absatz *ab, int n, const void *wer)
 {
-    int n = bereich_anzahl(k);
-    if (fok) rechteck(x + 8, yy, w - 16, hz - 6, fokus_zone == 0 ? (jbk ? 0x4A3020 : F_FOKUS) : F_KARTE2);
-    int z = ablauf_bereich_zustand(&A, k), cy = yy + (hz - 6 - 30) / 2;
-    if (z == 2) {   /* Anzeige: "voll" nur, wenn wirklich alle wählbaren Einträge angehakt sind (bei "nur einzeln" sonst halb) */
-        int m = 0, w = 0; for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->Kat == k && !f->Gesperrt) { m++; if (f->Wahl) w++; } }
-        if (w < m) z = 1;
+    karte_rund(x, y, w, h, 22, 1, N_RAND, N_KARTE);
+    int tx = x + 28, bw = w - 56, oben = y + 26, unten = y + h - 24;
+    int inhalt = kasten_absaetze(tx, 0, bw, ab, n, false);
+    /* NEU 1.0.8 (Arbeitsplan 4.6): sehr lange Namen (z. B. "UP0000-SLIB00001_00 - Spiel/App unbekannt (Spiel nicht mehr installiert)")
+     * dürfen bis zu 4 Zeilen haben, statt nach 2 Zeilen mit "…" zu enden. Was in 2 Zeilen passt, bleibt wie bisher. */
+    int mz = umbrechen(1, 24, titel, bw).n <= 2 ? 2 : 4;
+    /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 13, da_Chris86: "rechts ist das Symbol mal kleiner und mal größer"): das Bild ist immer gleich
+     * groß (120 Pixel). Bis hier wurde es je nach Textmenge 180, 140 oder 100 groß oder fiel ganz weg - passt der Text nicht, laufen die
+     * Absätze darunter wie bisher langsam durch. */
+    passend tp = einpassen(1, 30, 26, 24, titel, bw, mz); tp.lh = tp.gr + 8;
+    int ty = oben, bg = 120;
+    if (bg) {
+        if (bild_f) kachel_klein(x + (w - bg) / 2, ty, bg, bild_f, k, N_KARTE);
+        else { rund(x + (w - bg) / 2, ty, bg, bg, bg * 2 / 9, N_FELD); symbol(kat_symbol(k), x + (w - bg) / 2 + bg / 4, ty + bg / 4, bg / 2, k == 7 ? N_ORANGE : N_GRAU); }
+        ty += bg + 22;
     }
-    karte(x + 22, cy, 30, 30, n ? F_GRAU : F_RAND, F_HG);
-    uint32_t hk = jbk ? F_ORANGE : F_BLAU_HELL;
-    if (z == 2) rechteck(x + 28, cy + 6, 18, 18, hk); else if (z == 1) rechteck(x + 28, cy + 12, 18, 6, hk);
-    text(x + 68, yy + 30, 1, 24, !n ? F_GRAU : jbk ? F_ORANGE : F_TEXT, kern_kat_name(k));
-    text_passend(x + 68, yy + 56, 0, 18, 14, F_GRAU, bereich_unterzeile(k), w - 90);
-}
-static void legende(int x, int y, int w, int h)
-{
-    karte(x, y, w, h, F_RAND, F_KARTE);
-    text(x + 22, y + 30, 1, 17, F_GRAU, T("WAS PASSIERT DANACH?", "WHAT HAPPENS AFTERWARDS?"));
-    for (int a = 0; a < 3; a++) { int ly = y + 58 + a * 26; punkt(x + 30, ly - 6, 7, ampel_farbe(a)); text(x + 48, ly, 0, 18, F_TEXT, ampel_text(a)); }
-}
-
-/* NEU 1.0.7 (da_Chris86 01.11.2026 abends, Foto vom Kasten: "Um was bringen mir die ganzen Zusatztexte, wenn die Hälfte davon
- * abgeschnitten wird?"): Kasten unter der Liste - jeder Text ganz, notfalls umgebrochen. detail_mass rechnet, detail_zeichnen zeichnet
- * mit denselben Werten; der Kasten ist so hoch wie der längste Eintrag des Bereichs (die Liste springt beim Blättern nicht). */
-#define DETAIL_BILD 130
-typedef struct { passend titel, was, weg, danach, grund; int a, lw, h; } detail_masse;
-static void detail_mass(eintrag *fe, int wr, detail_masse *d)
-{
-    memset(d, 0, sizeof *d);
-    const char *grund = NULL; bool gesp = ablauf_eintrag_gesperrt(&A, fe, &grund);
-    const char *name, *art; name_art(fe, &name, &art);
-    if (!kern_bereiche_106()) name = kern_zeile(fa, fe);
-    d->a = ampel(fe);
-    const char *weg = fe->Pfade.n > 0 ? fe->Pfade.e[0] : "";
-    if (fe->Pfade.n > 1) weg = VERB(fa, weg, a_fmt(fa, T("  (+%d weitere)", "  (+%d more)"), fe->Pfade.n - 1));
-    const char *danach = kern_bereiche_106() ? ampel_text(d->a) : kern_art_info(fa, fe);
-    if (!danach[0]) danach = kern_folge(fe);
-    if (fe->Jailbreak && kern_bereiche_106()) danach = kern_jb_hinweis(fa, fe);
-    const char *l[3] = { T("Was ist das?", "What is it?"), T("Was wird gelöscht?", "What is deleted?"), T("Was passiert danach?", "What happens then?") };
-    for (int i = 0; i < 3; i++) { int b = textbreite(1, 19, l[i]); if (b > d->lw) d->lw = b; }
-    d->lw += 24;
-    int tw = wr - (DETAIL_BILD + 46) - 24, vw = tw - d->lw;
-    d->titel = einpassen(1, 26, 22, 20, name, tw, 2); d->titel.lh = d->titel.gr + 7;
-    const char *was = fe->Text ? fe->Text : "";
-    if (!strncmp(was, "   – ", strlen("   – "))) was += strlen("   – ");   /* Teil unter seiner Kachel: ohne Strich */
-    d->was = einpassen(0, 19, 17, 16, was, vw, 3); d->was.lh = d->was.gr + 5;
-    d->weg = einpassen(0, 19, 17, 16, weg, vw, 3); d->weg.lh = d->weg.gr + 5;
-    d->danach = einpassen(0, 19, 17, 16, danach, vw - 22, 5); d->danach.lh = d->danach.gr + 5;
-    int zy = 44 + (d->titel.z.n - 1) * d->titel.lh + 36;
-    zy += d->was.z.n * d->was.lh + 6 + d->weg.z.n * d->weg.lh + 6 + d->danach.z.n * d->danach.lh;
-    if (gesp && grund && grund[0]) { d->grund = einpassen(0, 18, 16, 15, grund, tw, 2); d->grund.lh = d->grund.gr + 5; zy += 4 + d->grund.z.n * d->grund.lh; }
-    d->h = zy + 2;
-    if (d->h < DETAIL_BILD + 46) d->h = DETAIL_BILD + 46;
-}
-static void detail_zeichnen(eintrag *fe, int xr, int dy, int wr)
-{
-    detail_masse d; detail_mass(fe, wr, &d);
-    bildchen(xr + 24, dy + 22, DETAIL_BILD, fe, 40);
-    int dx = xr + DETAIL_BILD + 46;
-    passend_zeichnen(dx, dy + 44, 1, F_TEXT, &d.titel);
-    int zy = dy + 44 + (d.titel.z.n - 1) * d.titel.lh + 36;
-    text(dx, zy, 1, 19, F_GRAU, T("Was ist das?", "What is it?"));            passend_zeichnen(dx + d.lw, zy, 0, F_TEXT, &d.was); zy += d.was.z.n * d.was.lh + 6;
-    text(dx, zy, 1, 19, F_GRAU, T("Was wird gelöscht?", "What is deleted?"));  passend_zeichnen(dx + d.lw, zy, 0, F_TEXT, &d.weg); zy += d.weg.z.n * d.weg.lh + 6;
-    text(dx, zy, 1, 19, F_GRAU, T("Was passiert danach?", "What happens then?"));
-    punkt(dx + d.lw + 7, zy - 6, 7, ampel_farbe(d.a));
-    passend_zeichnen(dx + d.lw + 22, zy, 0, ampel_farbe(d.a), &d.danach); zy += d.danach.z.n * d.danach.lh;
-    if (d.grund.z.n) passend_zeichnen(dx, zy + 4, 0, F_GELB, &d.grund);
-}
-static int bereich_zeilen(int k);
-static eintrag *bereich_eintrag(int k, int idx);
-static int detail_hoehe(int k, int wr, eintrag *fe)
-{
-    static int c_k = -1, c_n = -1, c_h = 0, c_r = -1; static bool c_en; static void *c_fe;
-    if (k != c_k || K->Funde.n != c_n || (void *)K->Funde.e != c_fe || SP_EN != c_en || reste_n != c_r) {
-        int h = DETAIL_BILD + 46, n = bereich_zeilen(k);
-        for (int i = 0; i < n; i++) { eintrag *f = bereich_eintrag(k, i); if (!f || f == &RESTE_ZEILE) continue; detail_masse d; detail_mass(f, wr, &d); if (d.h > h) h = d.h; }
-        for (int i = 0; i < reste_n; i++) { detail_masse d; detail_mass(reste_e[i], wr, &d); if (d.h > h) h = d.h; }
-        c_k = k; c_n = K->Funde.n; c_fe = (void *)K->Funde.e; c_en = SP_EN; c_r = reste_n; c_h = h < 250 ? h : 250;   /* höchstens 250 - sonst zu wenig Liste */
+    passend_zeichnen(tx, ty + tp.gr, 1, k == 7 && !bild_f ? N_ORANGE : N_TEXT, &tp); ty += tp.z.n * tp.lh + 4;
+    if (unter[0]) { text_passend(tx, ty + 24, 0, 24, 22, N_GRAU2, unter, bw); ty += 34; }
+    ty += 14;
+    int platz = unten - ty, off = 0;
+    if (inhalt > platz) {
+        if (wer != kasten_wer) { kasten_wer = wer; kasten_seit = SDL_GetTicks(); }
+        off = lauf_versatz(kasten_seit, inhalt - platz + 8, 28, 3000);   /* 1.0.8 (4.7) */
+        clip_y0 = ty - 2; clip_y1 = unten + 8;
     }
-    int h = c_h;
-    if (fe && fe != &RESTE_ZEILE) { detail_masse d; detail_mass(fe, wr, &d); if (d.h > h) h = d.h; }   /* z. B. ein Sperrgrund kam dazu */
-    return h;
+    kasten_absaetze(tx, ty - off, bw, ab, n, true);
+    clip_y0 = 0; clip_y1 = 1 << 30;
+    if (inhalt > platz) {   /* weich ausblenden, wo es weitergeht: unten immer, oben, sobald es läuft */
+        for (int i = 0; i < 30; i++) { float al = (float)(i + 1) / 30.f; for (int px = x + 2; px < x + w - 2; px++) misch(px, unten + 8 - 30 + i, N_KARTE, al); }
+        if (off > 0) for (int i = 0; i < 16; i++) { float al = (float)(16 - i) / 16.f; for (int px = x + 2; px < x + w - 2; px++) misch(px, ty - 2 + i, N_KARTE, al); }
+    }
 }
-
-/* Auswahl: links Bereiche, rechts Einträge (ZeigeBereiche) */
-#define ZEILE 50
-static int eintrag_scroll = 0;
+static bool ordner_zeigen = false;   /* Options-Menü (da_Chris86 04.11.2026 16:20: "Ordner anzeigen" im Options-Menü) */
+/* Codex-Prüfung 91: in einem Stück zusammengesetzt (Zeile für Zeile neu kostete bei 5000 Pfaden über 1 GB) und höchstens ORDNER_MAX
+ * Pfade - danach "… und N weitere" */
+#define ORDNER_MAX 100
+static const char *ordner_text(const eintrag *f)
+{
+    int n = f->Pfade.n < ORDNER_MAX ? f->Pfade.n : ORDNER_MAX;
+    const char *mehr = f->Pfade.n > n ? a_fmt(fa, T("… und %d weitere", "… and %d more"), f->Pfade.n - n) : NULL;
+    size_t g = 1 + (mehr ? strlen(mehr) + 1 : 0);
+    for (int i = 0; i < n; i++) g += strlen(f->Pfade.e[i]) + 1;
+    char *t = a_hole(fa, g), *o = t;
+    for (int i = 0; i < n; i++) { if (i) *o++ = '\n'; size_t l = strlen(f->Pfade.e[i]); memcpy(o, f->Pfade.e[i], l); o += l; }
+    if (mehr) { if (n) *o++ = '\n'; size_t l = strlen(mehr); memcpy(o, mehr, l); o += l; }
+    *o = 0;
+    return t;
+}
+static void al_kasten(int x, int y, int w, int h, int k)
+{
+    eintrag *f = fokus_zone == 1 ? al_markiert() : NULL;
+    int b = al_b;
+    k_absatz ab[6]; memset(ab, 0, sizeof ab);
+    if (!f) {   /* Bereich markiert */
+        ab[0] = (k_absatz){ T("Was ist das?", "What is it?"), kern_kat_info(k), N_TEXT, NULL };
+        ab[1] = (k_absatz){ NULL, ablauf_bereich_nur_einzeln(&A, k) ? T("Hier nur einzeln wählbar: mit → in die Liste, dann ✕.", "Individually only here: → into the list, then ✕.")
+                                                                    : T("✕ wählt den ganzen Bereich, ohne was endgültig weg wäre. → geht in die Liste.", "✕ selects the whole area, without what would be gone for good. → enters the list."),
+                            k == 7 ? N_ORANGE : N_GRAU, NULL };
+        kasten_zeichnen(x, y, w, h, NULL, k, kern_kat_name(k), bereich_unter(k, w - 56), ab, 2, &sicht[fokus_bereich]);
+        return;
+    }
+    const kblock *bl = &AL.bl[b];
+    const char *unter_b = VERB(fa, a_fmt(fa, T("%d Teile", "%d parts"), bl->teile.n), " · ", block_groesse(b));
+    if (f == &RESTE_ZEILE) {
+        ab[0] = (k_absatz){ T("Was wird gelöscht?", "What is deleted?"), T("Reste von Spielen und Apps, die es nicht mehr gibt, Zwischenspeicher und leere Ordner.",
+                                                                          "Leftovers of games and apps that are gone, caches and empty folders."), N_TEXT, NULL };
+        ab[1] = (k_absatz){ T("Was passiert danach?", "What happens then?"), T("Es geht nichts verloren.", "Nothing is lost."), N_GRUEN, SYM_HAKEN };
+        kasten_zeichnen(x, y, w, h, NULL, k, bl->name, unter_b, ab, 2, &RESTE_ZEILE);
+        return;
+    }
+    if (al_t < 0 && al_mehr(b)) {   /* Kopf eines Blocks mit mehreren Teilen */
+        const char *teile = ""; int n = bl->teile.n, rot = block_rot(b), einz = 0, frei = 0; const char *g;
+        for (int i = 0; i < n && i < 6; i++) teile = VERB(fa, teile, i ? (i == n - 1 ? T(" und ", " and ") : ", ") : "", teil_name(b, bl->teile.e[i]));
+        if (n > 6) teile = VERB(fa, teile, a_fmt(fa, T(" und %d weitere", " and %d more"), n - 6));
+        for (int i = 0; i < n; i++) { eintrag *e = bl->teile.e[i]; if (ablauf_eintrag_gesperrt(&A, e, &g)) continue; if (nur_einzeln_teil(b, e)) einz++; else frei++; }
+        const char *da = kern_art_info(fa, bl->kopf); int a = kern_ampel(bl->kopf);
+        if (!da[0]) da = kern_folge(bl->kopf);
+        ab[0] = (k_absatz){ T("Was wird gelöscht?", "What is deleted?"), VERB(fa, teile, "."), N_TEXT, NULL };
+        ab[1] = (k_absatz){ T("Was passiert danach?", "What happens then?"), da, ampel_f(a), ampel_sym(a) };
+        const char *hw = NULL;
+        if (einz > 0 && frei == 0) hw = rot ? T("Was rot ist, ist danach endgültig weg. Hier hakst du jeden Teil einzeln an: mit ↓ in den Block, dann ✕.",
+                                                "What is red is gone for good afterwards. Tick each part here one by one: ↓ into the block, then ✕.")
+                                            : T("Hier hakst du jeden Teil einzeln an: mit ↓ in den Block, dann ✕.", "Tick each part here one by one: ↓ into the block, then ✕.");
+        else if (rot > 0) hw = rot == 1 ? T("1 Teil davon ist danach endgültig weg. ✕ auf dieser Zeile lässt ihn aus - den hakst du einzeln an.",
+                                            "1 part of it is gone for good afterwards. ✕ on this row leaves it out - tick it individually.")
+                                        : a_fmt(fa, T("%d Teile davon sind danach endgültig weg. ✕ auf dieser Zeile lässt sie aus - die hakst du einzeln an.",
+                                                      "%d parts of it are gone for good afterwards. ✕ on this row leaves them out - tick them individually."), rot);
+        else if (einz > 0) hw = einz == 1 ? T("1 Teil geht nur einzeln: ✕ auf dieser Zeile lässt ihn aus.", "1 part only goes individually: ✕ on this row leaves it out.")
+                                          : a_fmt(fa, T("%d Teile gehen nur einzeln: ✕ auf dieser Zeile lässt sie aus.", "%d parts only go individually: ✕ on this row leaves them out."), einz);
+        if (hw) ab[2] = (k_absatz){ NULL, hw, rot ? N_ROT : N_GELB, rot ? SYM_WARNUNG : SYM_INFO };
+        kasten_zeichnen(x, y, w, h, bl->kopf, k, bl->name, unter_b, ab, 3, (const char *)bl->kopf + 1);
+        return;
+    }
+    /* eine Zeile (Block aus einer Zeile oder ein Teil) */
+    const char *grund = NULL; bool gesp = ablauf_eintrag_gesperrt(&A, f, &grund);
+    const char *gr = h_trim(fa, ablauf_eintrag_groesse(&A, f)); int o = anzeige_ort(f);
+    const char *unter = VERB(fa, gr, o != ORT_INTERN ? VERB(fa, gr[0] ? " · " : "", kern_ort_name(o)) : "");
+    const char *nm, *ws; zeile_teilen(f, k, &nm, &ws);
+    int a = kern_ampel(f);
+    const char *da = kern_art_info(fa, f); if (!da[0]) da = kern_folge(f);
+    ab[0] = (k_absatz){ T("Was wird gelöscht?", "What is deleted?"), ohne_ort_vorne(kern_zeile(fa, f)), N_TEXT, NULL };
+    if (ordner_zeigen) ab[1] = (k_absatz){ f->Pfade.n == 1 ? T("Ordner", "Folder") : T("Ordner", "Folders"), ordner_text(f), N_GRAU, NULL };
+    /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 3): eine Zeile, die sich gar nicht wählen lässt (Update eines installierten Spiels, Game
+     * Compressor), braucht kein "Was passiert danach?" - dort stand derselbe Satz wie im Grund darunter ("Geht nur zusammen mit dem Spiel
+     * weg"). Dann steht nur der Grund da, mit der Frage "Warum nicht wählbar?". */
+    bool nie_waehlbar = gesp && grund && grund[0] && (f->Gesperrt || kern_nur_mit_spiel(K, f));
+    if (nie_waehlbar) ab[2] = (k_absatz){ T("Warum nicht wählbar?", "Why can't I select it?"), grund, N_GELB, SYM_SCHLOSS };
+    else {
+        ab[2] = (k_absatz){ T("Was passiert danach?", "What happens then?"), da, ampel_f(a), ampel_sym(a) };
+        if (gesp && grund && grund[0]) ab[3] = (k_absatz){ NULL, grund, N_GELB, SYM_SCHLOSS };
+        else if (f->Jailbreak) ab[3] = (k_absatz){ NULL, kern_jb_hinweis(fa, f), N_ORANGE, SYM_JAILBREAK };
+    }
+    kasten_zeichnen(x, y, w, h, f, k, nm, unter, ab, 4, f);
+}
+/* ---- Knöpfe der Auswahl-Leiste */
+static void leisten_knopf(int x, int y, int w, int h, bool an, bool rot, knopfart k, const char *t)
+{
+    int cy = y + h / 2;
+    if (rot) karte_rund(x, y, w, h, 16, 2, an ? farbmisch(N_ROT, N_KARTE, .6f) : N_LINIE, N_KARTE);
+    else if (an) rund(x, y, w, h, 16, N_BLAU); else karte_rund(x, y, w, h, 16, 2, N_LINIE, N_KARTE);
+    uint32_t tf = rot ? (an ? N_ROT : N_GRAU2) : (an ? 0xFFFFFF : N_GRAU2);
+    int tw = textbreite(1, 26, t), gx = x + (w - (36 + 14 + tw)) / 2;
+    ring(gx + 18, cy, 17, 2, tf);
+    symbol(k == KN_DREIECK ? SYM_KN_DREIECK : SYM_KN_QUADRAT, gx + 10, cy - 8, 16, tf);
+    text(gx + 50, cy + 9, 1, 26, tf, t);
+}
+static int leisten_knopf_breite(const char *t) { return 36 + 14 + textbreite(1, 26, t) + 2 * 26; }
+static void al_optionen(void)   /* Auswahl: Reihenfolge, Ordner anzeigen, Testmodus, Protokoll & Rückmeldung */
+{
+    const char *z[4] = { sortierung == SORT_AZ ? T("Reihenfolge: A–Z", "Order: A–Z") : T("Reihenfolge: größte zuerst", "Order: largest first"),
+                         ordner_zeigen ? T("Ordner anzeigen: an", "Show folders: on") : T("Ordner anzeigen: aus", "Show folders: off"),
+                         testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback") };
+    const char *u[4] = { sortierung == SORT_AZ ? T("✕ stellt um auf: größte zuerst", "✕ switches to: largest first") : T("✕ stellt um auf: A–Z", "✕ switches to: A–Z"),
+                         ordner_zeigen ? T("✕ blendet die Ordner im Kasten rechts wieder aus", "✕ hides the folders in the box on the right again")
+                                       : T("✕ zeigt im Kasten rechts, in welchen Ordnern es liegt", "✕ shows in the box on the right which folders it is in"),
+                         testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback") };
+    const float *sy[4] = { SYM_SORTIEREN, SYM_SSD, SYM_SCHILD_HAKEN, SYM_DOKUMENT };
+    optionen_zeichnen(z, u, sy, 4);
+}
+/* ---- eine Zeile der Liste: Kopf eines Blocks (zweizeilig) bzw. Teil eines aufgeklappten Blocks */
+/* Schildchen eines Blocks ohne Auswahl (Kopf bzw. einzige Zeile) - und ob es im ganzen Bereich gleich ist */
+static const char *al_schild(int b, int k, int *a)
+{
+    const kblock *bl = &AL.bl[b];
+    if (bl->kopf == &RESTE_ZEILE) { *a = AMPEL_GRUEN; return T("nichts geht verloren", "nothing is lost"); }
+    *a = kern_ampel(bl->kopf); return schild_text(bl->kopf, k);
+}
+/* das Schildchen, das mehr als die Hälfte der Blöcke hat (NULL = keins); *alle: alle Blöcke haben es */
+static const char *al_gleich(int k, int *a, bool *alle)
+{
+    if (AL.n < 2) return NULL;
+    const char *best = NULL; int best_n = 0, best_a = 0;
+    for (int b = 0; b < AL.n && best_n * 2 <= AL.n; b++) {
+        int xa, n = 0; const char *s = al_schild(b, k, &xa);
+        for (int c = 0; c < AL.n; c++) { int ya; const char *u = al_schild(c, k, &ya); if (ya == xa && !strcmp(u, s)) n++; }
+        if (n > best_n) { best_n = n; best = s; best_a = xa; }
+    }
+    if (best_n < 2 || best_n * 2 <= AL.n) return NULL;
+    *a = best_a; *alle = best_n == AL.n; return best;
+}
+/* der Zusatz unter dem Namen, wenn er bei allen einzelnen Zeilen gleich ist ("Spielstände") - dann steht er nicht in jeder Zeile */
+static const char *al_was_gleich(int k)
+{
+    const char *w0 = NULL; int n = 0;
+    for (int b = 0; b < AL.n; b++) {
+        if (AL.bl[b].teile.n != 1 || AL.bl[b].kopf == &RESTE_ZEILE) continue;
+        const char *nm, *w; zeile_teilen(AL.bl[b].kopf, k, &nm, &w);
+        if (!w[0] || (w0 && strcmp(w, w0))) return NULL;
+        w0 = w; n++;
+    }
+    return n >= 2 ? w0 : NULL;
+}
+static void al_kopf_zeile(int ox, int ow, int ry, int b, int k, bool fok, const char *gleich, const char *was_gleich)
+{
+    const kblock *bl = &AL.bl[b]; const char *g;
+    int hy = ry + 2, cy = hy + AL_KOPF / 2, gx = ox + ow - 16 - 22 - 14;
+    uint32_t hg = fok ? 0x2C323B : 0x20242A;
+    if (fok) karte_rund(ox + 2, hy, ow - 4, AL_KOPF, 14, 3, N_FOKUS, hg);
+    bool reste = bl->kopf == &RESTE_ZEILE, einzeln = bl->teile.n == 1 && !reste;
+    eintrag *f0 = bl->teile.e[0];
+    bool gesp = einzeln && ablauf_eintrag_gesperrt(&A, f0, &g);
+    kasten_haken(ox + 16, cy - 14, einzeln ? (f0->Wahl ? 2 : 0) : al_zustand(b), hg, gesp, k == 7 || (einzeln && f0->Jailbreak));
+    kachel_klein(ox + 56, cy - 24, 48, bl->kopf, k, hg);
+    int nx = ox + 56 + 48 + 16;
+    const char *gr = einzeln ? h_trim(fa, ablauf_eintrag_groesse(&A, f0)) : block_groesse(b);
+    int gw = textbreite(1, 26, gr);
+    text(gx - gw, cy + 10, 1, 26, N_TEXT, gr);
+    if (!einzeln) symbol(fokus_zone == 1 && b == al_b ? SYM_RUNTER : SYM_RECHTS, ox + ow - 16 - 22, cy - 11, 22, N_GRAU);
+    int rechts = gx - (gw > 96 ? gw : 96) - 18;
+    /* oben der Name (bei einer Zeile mit Ort), unten was es ist bzw. "3 Teile" und rechts das Schildchen */
+    const char *name, *was;
+    if (einzeln) { zeile_teilen(f0, k, &name, &was); if (was_gleich && !strcmp(was, was_gleich)) was = ""; }
+    else { name = bl->name ? bl->name : ""; was = reste ? a_fmt(fa, T("%d Teile", "%d parts"), bl->teile.n)
+                                                      : a_fmt(fa, bl->ohne_kachel ? T("%d Teile · ohne Kachel", "%d parts · no tile") : T("%d Teile", "%d parts"), bl->teile.n); }
+    const char *sch; int sa;
+    if (einzeln) { sch = schild_text(f0, k); sa = kern_ampel(f0); }
+    else if (reste) { sch = T("nichts geht verloren", "nothing is lost"); sa = AMPEL_GRUEN; }
+    else {   /* da_Chris86 04.11.2026 17:03: "Ist ein roter Teil angehakt, steht das in der zugeklappten Zeile" - sonst die Folge des Kopfs */
+        int rw = 0; for (int i = 0; i < bl->teile.n; i++) { const eintrag *e = bl->teile.e[i]; if (e->Wahl && kern_ampel(e) == AMPEL_ROT) rw++; }
+        if (rw) { sch = rw == 1 ? T("1 Teil endgültig weg", "1 part gone for good") : a_fmt(fa, T("%d Teile endgültig weg", "%d parts gone for good"), rw); sa = AMPEL_ROT; }
+        else { sch = schild_text(bl->kopf, k); sa = kern_ampel(bl->kopf); }
+    }
+    const char *ok = einzeln ? ort_kurz(anzeige_ort(f0)) : "";
+    bool zeigen = !(gleich && !strcmp(sch, gleich));   /* steht schon oben über der Liste */
+    int ow2 = ok[0] ? ort_breite(ok) + 12 : 0, sw = zeigen ? schild_breite(sch) : 0, b1 = rechts - nx - ow2, b2 = rechts - (zeigen ? sw + 14 : 0) - nx;
+    if (zeigen) schild(rechts - sw, hy + 55, sa, sch, hg);
+    uint32_t nf = gesp ? N_GRAU2 : N_TEXT;
+    if (!zeigen && !was[0] && textbreite(1, 24, name) <= b1) {   /* nichts für die zweite Zeile: der Name steht in der Mitte */
+        int nb = name_zeichnen(nx, cy + 10, 1, 26, 24, nf, name, b1, fok, f0);
+        if (ok[0]) ort_schild(nx + nb + 12, cy, ok);
+    } else if (textbreite(1, 24, name) > b1) {   /* langer Name: auf beide Zeilen verteilt (der Zusatz steht dann im Kasten rechts) */
+        zeilen zl = umbrechen(1, 24, name, b1);
+        const char *rest = "";
+        if (zl.n > 1) { rest = name + strlen(zl.z[0]); while (*rest == ' ') rest++; }
+        text(nx, hy + 31, 1, 24, nf, zl.z[0]);
+        if (ok[0]) ort_schild(nx + textbreite(1, 24, zl.z[0]) + 12, hy + 23, ok);
+        if (rest[0]) name_zeichnen(nx, hy + 63, 1, 24, 24, nf, rest, b2, fok, f0);
+    } else {
+        int nb = name_zeichnen(nx, hy + 31, 1, 26, 24, nf, name, b1, fok, f0);
+        if (ok[0]) ort_schild(nx + nb + 12, hy + 23, ok);
+        if (was[0]) name_zeichnen(nx, hy + 63, 0, 24, 22, N_GRAU2, was, b2, false, NULL);   /* Laufschrift nur für den Namen */
+    }
+}
+static void al_teil_zeile(int ox, int ow, int ry, int b, int t, int k, bool fok, const char *gleich)
+{
+    const kblock *bl = &AL.bl[b]; const char *g;
+    eintrag *f = bl->teile.e[t]; int cy = ry + AL_TEIL / 2, gx = ox + ow - 16 - 22 - 14;
+    uint32_t hg = fok ? 0x2C323B : 0x20242A;
+    if (fok) karte_rund(ox + 2, ry, ow - 4, AL_TEIL, 12, 3, N_FOKUS, hg);
+    bool gesp = ablauf_eintrag_gesperrt(&A, f, &g);
+    kasten_haken(ox + 16, cy - 14, f->Wahl ? 2 : 0, hg, gesp, k == 7 || f->Jailbreak);
+    rechteck(ox + 56 + 23, ry, 2, t == bl->teile.n - 1 ? AL_TEIL / 2 + 2 : AL_TEIL, N_LINIE);   /* Strich: gehört zum Kopf darüber */
+    int nx = ox + 56 + 48 + 16;
+    const char *gr = h_trim(fa, ablauf_eintrag_groesse(&A, f));
+    int gw = textbreite(0, 24, gr);
+    text(gx - gw, cy + 9, 0, 24, N_TEXT2, gr);
+    int rechts = gx - (gw > 96 ? gw : 96) - 18;
+    const char *sch = schild_text(f, k); int sa = kern_ampel(f), sw = gleich && !strcmp(sch, gleich) ? -14 : schild_breite(sch);   /* steht schon oben */
+    if (sw > 0) schild(rechts - sw, cy, sa, sch, hg);
+    const char *ok = ort_kurz(anzeige_ort(f)); int ow2 = ok[0] ? ort_breite(ok) + 12 : 0;
+    const char *name = bl->kopf == &RESTE_ZEILE ? ohne_ort_vorne(kern_zeile(fa, f)) : ohne_jb_start(teil_name(b, f), k);
+    int nb = name_zeichnen(nx, cy + 9, 0, 24, 24, gesp ? N_GRAU2 : N_TEXT2, name, rechts - sw - 14 - nx - ow2, fok, f);
+    if (ok[0]) ort_schild(nx + nb + 12, cy, ok);
+}
+/* ---- der Bildschirm */
 static void schirm_liste(void)
 {
-    kopf();
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    kopf_neu(2, NULL);
     ablauf_texte_frei(&A);
-    info_leiste(138, 112);
     sicht_neu();
-    bool jb_getrennt = !kern_bereiche_106();
-    /* links: Bereiche (Spiele bis Sonstiges), darunter Legende, ganz unten Jailbreak - getrennt und orange */
-    int xl = 40, wl = 560, yl = 266, hz = 76;
-    karte(xl, yl, wl, 16 + 6 * hz, fokus_zone == 0 && !(jb_getrennt && sicht[fokus_bereich] == 7) ? F_BLAU : F_RAND, F_KARTE);
-    int r = 0; bool jb_da = false;
-    for (int i = 0; i < sicht_n; i++) {
-        int k = sicht[i];
-        if (jb_getrennt && k == 7) { jb_da = true; continue; }
-        if (r < 7) bereich_zeile(xl, yl + 10 + r * hz, wl, hz, k, i == fokus_bereich, false);
-        r++;
-    }
-    legende(xl, yl + 16 + 6 * hz + 16, wl, 884 - (yl + 16 + 6 * hz + 16));
-    if (jb_getrennt) {
-        bool fj = sicht[fokus_bereich] == 7;
-        karte(xl, 900, wl, 96, fj && fokus_zone == 0 ? F_ORANGE : (jb_da ? 0x7A4A2E : F_RAND), F_KARTE);
-        if (jb_da) bereich_zeile(xl, 910, wl, hz + 6, 7, fj, true);
-        else { text(xl + 68, 940, 1, 24, F_GRAU, kern_kat_name(7)); text(xl + 68, 966, 0, 18, F_GRAU, T("nichts gefunden", "nothing found")); }
-    }
-    /* rechts: Einträge des Bereichs */
     int k = sicht[fokus_bereich];
-    bool jbk = jb_getrennt && k == 7;
-    int xr = 616, yr = 266, wr = BREITE - 40 - xr, hr = 618;
-    karte(xr, yr, wr, hr, fokus_zone == 1 ? (jbk ? F_ORANGE : F_BLAU) : F_RAND, F_KARTE);
-    text(xr + 24, yr + 42, 1, 28, jbk ? F_ORANGE : F_TEXT, kern_kat_name(k));
-    /* NEU 1.0.7 (da_Chris86 01.11.2026 abends): nichts abschneiden - die Erklärung des Bereichs notfalls auf zwei Zeilen */
-    passend ki = einpassen(0, 19, 17, 16, kern_kat_info(k), wr - 48, 2); ki.lh = ki.gr + 4;
-    passend_zeichnen(xr + 24, yr + 72, 0, F_GRAU, &ki);
-    int yy = yr + 84 + (ki.z.n - 1) * ki.lh;
-    bool sm = false; for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->Kat == k && f->Quelle[0]) sm = true; }   /* 1.0.7: auch unter "Jailbreak" */
-    /* NEU 1.0.7 (da_Chris86 31.10.2026 12:49): keine Abfrage mehr - Kachel und Spieldatei sind eigene Zeilen */
-    if (sm) {
-        passend sp = einpassen(0, 18, 16, 15, kern_bereiche_106() ? T("ShadowMount-Spiele: Bei \"Nur Auswahl löschen\" wirst du gefragt, ob nur die Kachel oder auch die Spieldatei weg soll.",
-                                                                      "ShadowMount games: with \"Delete selection only\" you will be asked whether only the tile or the game file too should go.")
-                                                                    : T("ShadowMount-Spiele: Kachel und Spieldatei stehen getrennt - die Spieldatei geht nur weg, wenn du sie selbst anhakst.",
-                                                                        "ShadowMount games: tile and game file are separate rows - the game file only goes if you tick it yourself."), wr - 48, 2);
-        sp.lh = sp.gr + 4;
-        passend_zeichnen(xr + 24, yy + 16, 0, F_GELB, &sp);
-        yy += 26 + (sp.z.n - 1) * sp.lh;
-    }
-    int n = bereich_zeilen(k);
+    al_ordnen(k);
     bilder_neu = 0;
-    eintrag *fe = (fokus_zone == 1) ? bereich_eintrag(k, fokus_eintrag) : NULL;
-    int detail_y = yr + hr - detail_hoehe(k, wr, fe);
-    int liste_y = yy + 8, platz = detail_y - 6 - liste_y, sichtbar = platz / ZEILE; if (sichtbar < 1) sichtbar = 1;
-    if (fokus_eintrag < eintrag_scroll) eintrag_scroll = fokus_eintrag;
-    if (fokus_eintrag >= eintrag_scroll + sichtbar) eintrag_scroll = fokus_eintrag - sichtbar + 1;
-    if (n == 0) text(xr + 24, liste_y + 34, 0, 22, F_GRAU, T("Nichts gefunden - hier ist alles sauber.", "Nothing found - all clean here."));
-    /* NEU 1.0.7: Spalte "Was passiert danach?" schmaler und notfalls zweizeilig - mehr Platz für die Namen (auch zweizeilig) */
-    int gr_w = 140, art_w = 300;
-    for (int i = eintrag_scroll; i < n && i < eintrag_scroll + sichtbar; i++) {
-        eintrag *f = bereich_eintrag(k, i);
-        if (!f) break;
-        int ry = liste_y + (i - eintrag_scroll) * ZEILE;
-        bool fok = fokus_zone == 1 && i == fokus_eintrag;
-        if (f == &RESTE_ZEILE) {   /* NEU 1.0.7: Sammelzeile "Reste" */
-            int w = 0, m = 0; long long b = 0; bool alle = true, gek = false;
-            for (int j = 0; j < reste_n; j++) { eintrag *r = reste_e[j]; if (r->Gesperrt) continue; m++; if (r->Wahl) w++;
-                groesse *g = kern_eintrag_groesse_in(K, fa, r, true); if (!g) alle = false; else { b += g->Bytes; if (g->Gekappt) gek = true; } }
-            if (fok) rechteck(xr + 8, ry, wr - 16, ZEILE - 4, F_FOKUS);
-            karte(xr + 20, ry + 9, 28, 28, F_GRAU, F_HG);
-            if (w > 0 && w == m) rechteck(xr + 26, ry + 15, 16, 16, F_BLAU_HELL); else if (w > 0) rechteck(xr + 26, ry + 21, 16, 4, F_BLAU_HELL);
-            punkt(xr + 124, ry + 23, 7, ampel_farbe(AMP_GRUEN));
-            const char *nm = VERB(fa, reste_offen ? "▾ " : "▸ ", T("Reste (", "Leftovers ("), a_fmt(fa, "%d", reste_n), T(" Teile)", " items)"));
-            int art_x = xr + wr - 24 - gr_w - art_w;
-            text_passend(xr + 144, ry + 31, 1, 22, 16, F_TEXT, nm, art_x - 20 - (xr + 144));
-            rechteck(art_x - 10, ry + 12, 2, 24, F_RAND);
-            passend ap = einpassen(0, 19, 17, 16, T("es geht nichts verloren", "nothing is lost"), art_w - 10, 2);
-            zeile_zeichnen(art_x + 6, ry, 0, ampel_farbe(AMP_GRUEN), &ap);
-            if (alle) { const char *gr = groesse_von(fa, b, gek); text(xr + wr - 28 - textbreite(0, 20, gr), ry + 31, 0, 20, F_GRAU, gr); }
-            continue;
+    int y0 = RAND_O + 64 + 28, fy = HOEHE - RAND_U - 64, lh = 100, ly = fy - 24 - lh, ph = ly - 24 - y0;
+    int nw = 400, kw = 380, lx = RAND_X + nw + 24, lw = BREITE - 2 * RAND_X - nw - kw - 48, kx = lx + lw + 24;
+    /* links: Bereiche, Jailbreak unten abgesetzt */
+    karte_rund(RAND_X, y0, nw, ph, 22, 1, N_RAND, N_KARTE);
+    {
+        int ry = y0 + 12, j7 = -1, jy = y0 + ph - 12 - 72;
+        for (int i = 0; i < sicht_n; i++) { if (sicht[i] == 7 && !kern_bereiche_106()) { j7 = i; continue; } al_bereich_zeile(RAND_X + 12, ry, nw - 24, i, sicht[i]); ry += 76; }
+        if (!kern_bereiche_106()) {
+            rechteck(RAND_X + 20, jy - 9, nw - 40, 1, N_RAND);
+            if (j7 >= 0) al_bereich_zeile(RAND_X + 12, jy, nw - 24, j7, 7);
+            else {   /* nichts gefunden: trotzdem zeigen, dass danach geschaut wurde */
+                symbol(SYM_JAILBREAK, RAND_X + 72, jy + 22, 28, N_GRAU2);
+                text(RAND_X + 116, jy + 33, 1, 26, N_GRAU2, kern_kat_name(7));
+                text(RAND_X + 116, jy + 62, 0, 22, N_GRAU2, T("nichts gefunden", "nothing found"));
+            }
         }
-        bool einger = false;   /* aufgeklappte Teile der Reste eingerückt - Codex-Prüfung 63: nur, was wirklich in den Resten steht */
-        if (reste_offen && reste_n >= 2) for (int j = 0; j < reste_n && !einger; j++) if (reste_e[j] == f) einger = true;
-        const char *grund; bool gesp = ablauf_eintrag_gesperrt(&A, f, &grund);
-        if (fok) rechteck(xr + 8, ry, wr - 16, ZEILE - 4, F_FOKUS);
-        karte(xr + 20, ry + 9, 28, 28, gesp ? F_RAND : F_GRAU, F_HG);
-        if (f->Wahl) rechteck(xr + 26, ry + 15, 16, 16, gesp ? F_GRAU : (jbk ? F_ORANGE : F_BLAU_HELL));
-        /* NEU 1.0.7: Teile unter ihrem Kopf (Spieldatei, Daten und Payload-Dateien einer Tool-Kachel) und aufgeklappte Reste eingerückt */
-        int ein = einger || unter_kopf(i) ? 34 : 0;   /* Prüfung 02.11.2026: nur direkt unter dem Kopf */
-        if (ein) rechteck(xr + 78, ry + 8, 2, 30, F_RAND);   /* senkrechter Strich: gehört zur Zeile darüber */
-        else bildchen(xr + 62, ry + 3, 40, f, 15);
-        punkt(xr + 124 + (ein ? 10 : 0), ry + 23, 7, ampel_farbe(ampel(f)));
-        /* NEU 1.0.7 (Grundlage 31.10.2026, Punkt 1): die Zeile sagt selbst, was weggeht und ob es wiederkommt */
-        const char *name = kern_bereiche_106() ? NULL : kern_zeile(fa, f), *art = kern_bereiche_106() ? NULL : kern_folge(f);
-        if (kern_bereiche_106()) name_art(f, &name, &art);
-        const char *gr = h_trim(fa, ablauf_eintrag_groesse(&A, f));
-        int art_x = xr + wr - 24 - gr_w - art_w, name_x = xr + 144 + ein;
-        int name_w = (art[0] ? art_x - 20 : xr + wr - 24 - gr_w) - name_x;
-        uint32_t fb = gesp ? F_GRAU : F_TEXT;
-        /* NEU 1.0.7 (da_Chris86 01.11.2026 abends): Name ganz - etwas kleiner oder auf zwei Zeilen; nur wenn auch das nicht reicht, läuft
-         * er in der markierten Zeile durch (Laufschrift) */
-        passend np = einpassen(0, 22, 18, 17, name, name_w, 2);
-        if (np.z.n <= 2) zeile_zeichnen(name_x, ry, 0, fb, &np);
-        else if (fok) laufschrift(name_x, ry + 31, 0, 22, fb, name, name_w, f);
-        else text(name_x, ry + 31, 0, 22, fb, kuerzen(0, 22, name, name_w));
-        if (art[0]) {
-            rechteck(art_x - 10, ry + 12, 2, 24, F_RAND);
-            passend ap = einpassen(0, 19, 17, 15, art, art_w - 10, 2);
-            zeile_zeichnen(art_x + 6, ry, 0, kern_bereiche_106() ? F_GRAU : ampel_farbe(ampel(f)), &ap);
+    }
+    /* Mitte: Einträge */
+    karte_rund(lx, y0, lw, ph, 22, 1, N_RAND, N_KARTE);
+    int gew = 0; for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->Kat == k && f->Wahl) gew++; }
+    text(lx + 24, y0 + 52, 1, 32, k == 7 ? N_ORANGE : N_TEXT, kern_kat_name(k));
+    int kopf_r = lx + 24 + textbreite(1, 32, kern_kat_name(k));
+    if (gew) { const char *g = a_fmt(fa, T("%d ausgewählt", "%d selected"), gew); text(kopf_r + 14, y0 + 52, 0, 24, N_GRAU2, g); kopf_r += 14 + textbreite(0, 24, g); }
+    int gl_a = AMPEL_GRUEN; bool gl_alle = false; const char *gleich = al_gleich(k, &gl_a, &gl_alle), *was_gleich = al_was_gleich(k);
+    int ox = lx + 24, oy = y0 + (gleich ? 124 : 80), ow = lw - 24 - 38, oh = y0 + ph - 16 - oy;
+    if (gleich) {   /* da_Chris86 05.11.2026 20:42: nicht in jeder Zeile dieselbe Warnung - einmal oben, in den Zeilen nur, was anders ist */
+        const char *vor = gl_alle ? T("Überall hier:", "Everywhere here:") : T("Wo nichts anderes steht:", "Unless shown otherwise:");
+        text(ox, y0 + 104, 0, 24, N_GRAU, vor);
+        schild(ox + textbreite(0, 24, vor) + 12, y0 + 96, gl_a, gleich, N_KARTE);
+    }
+    al_zeile *z = a_hole(fa, sizeof(al_zeile) * (size_t)(2 * K->Funde.n + 8));
+    int nz = al_zeilen(z), gesamt = nz ? z[nz - 1].y + z[nz - 1].h : 0, fz = -1;
+    for (int i = 0; i < nz; i++) if (z[i].b == al_b && z[i].t == (fokus_zone == 1 && al_mehr(al_b) ? al_t : -1)) fz = i;
+    if (fokus_zone == 1 && fz >= 0) {   /* markierte Zeile ganz sichtbar halten */
+        if (z[fz].y < al_py) al_py = z[fz].y;
+        if (z[fz].y + z[fz].h > al_py + oh) al_py = z[fz].y + z[fz].h - oh;
+    }
+    if (al_py > gesamt - oh) al_py = gesamt - oh;
+    if (al_py < 0) al_py = 0;
+    for (int i = 0; i < nz; i++) if (z[i].y >= al_py) { al_py = z[i].y; break; }   /* der Bildlauf beginnt immer mit einer ganzen Zeile */
+    int erster = -1, letzter = -1;
+    if (nz == 0) text(ox, oy + 40, 0, 24, N_GRAU2, T("Nichts gefunden - hier ist alles sauber.", "Nothing found - all clean here."));
+    for (int i = 0; i < nz; i++) {
+        if (z[i].y < al_py || z[i].y + z[i].h > al_py + oh) continue;
+        int ry = oy + z[i].y - al_py, b = z[i].b;
+        if (erster < 0) erster = b;
+        letzter = b;
+        if (z[i].t == -1 || z[i].y == al_py) {   /* Grund des Blocks: von hier bis zu seiner letzten sichtbaren Zeile */
+            int bis = i; while (bis + 1 < nz && z[bis + 1].b == b && z[bis + 1].y + z[bis + 1].h <= al_py + oh) bis++;
+            rund(ox, ry, ow, z[bis].y + z[bis].h - z[i].y, 16, 0x20242A);
         }
-        if (gr[0]) text(xr + wr - 28 - textbreite(0, 20, gr), ry + 31, 0, 20, F_GRAU, gr);
+        if (z[i].t == -1) al_kopf_zeile(ox, ow, ry, b, k, fokus_zone == 1 && i == fz, gleich, was_gleich);
+        else al_teil_zeile(ox, ow, ry, b, z[i].t, k, fokus_zone == 1 && i == fz, gleich);
     }
-    if (n > sichtbar) {   /* Bildlaufleiste */
-        int bh = platz * sichtbar / n, by = liste_y + (platz - bh) * eintrag_scroll / (n - sichtbar > 0 ? n - sichtbar : 1);
-        rechteck(xr + wr - 10, by, 4, bh, F_RAND);
+    if (gesamt > oh) {   /* Bildlaufleiste */
+        int sx = lx + lw - 20, th = oh * oh / gesamt; if (th < 40) th = 40;
+        rund(sx, oy, 6, oh, 3, N_FELD);
+        rund(sx, oy + (oh - th) * al_py / (gesamt - oh > 0 ? gesamt - oh : 1), 6, th, 3, 0x4A515C);
     }
-    /* Kasten unten: drei Fragen zum markierten Eintrag */
-    rechteck(xr + 2, detail_y, wr - 4, 2, F_RAND);
-    if (fe == &RESTE_ZEILE) {   /* NEU 1.0.7: Sammelzeile "Reste" */
-        int hy = detail_y + 46;
-        text(xr + 24, hy, 1, 26, F_TEXT, VERB(fa, T("Reste (", "Leftovers ("), a_fmt(fa, "%d", reste_n), T(" Teile)", " items)"))); hy += 38;
-        hy += absatz(xr + 24, hy, 0, 19, F_GRUEN, T("Reste von Spielen und Apps, die es nicht mehr gibt, Zwischenspeicher und leere Ordner - es geht nichts verloren.",
-                                                    "Leftovers of games and apps that are gone, caches and empty folders - nothing is lost."), wr - 48, 25);
-        text(xr + 24, hy + 14, 0, 19, F_GRAU, reste_offen ? T("✕ alle Reste wählen  ·  → zuklappen", "✕ select all leftovers  ·  → collapse")
-                                                          : T("✕ alle Reste wählen  ·  → aufklappen und einzeln wählen", "✕ select all leftovers  ·  → expand and choose one by one"));
-        fe = NULL;
+    {   /* rechts in der Überschrift: Reihenfolge und welche Blöcke zu sehen sind */
+        const char *rf = sortierung == SORT_AZ ? "A–Z" : T("Größte zuerst", "Largest first");
+        /* NEU 1.0.8 (Befunde 4 und 10): "Zeile" sagt, dass hier die Zeilen der Liste gezählt werden (eine zugeklappte App ist eine Zeile) -
+         * "19–21 von 24" stand neben "31 Einträge" und sah wie ein Fehler aus */
+        const char *bz = AL.n == 0 || erster < 0 ? "" : erster == 0 && letzter == AL.n - 1 ? (AL.n == 1 ? T(" · 1 Zeile", " · 1 row") : a_fmt(fa, T(" · %d Zeilen", " · %d rows"), AL.n))
+                                                       : a_fmt(fa, T(" · Zeile %d–%d von %d", " · rows %d–%d of %d"), erster + 1, letzter + 1, AL.n);
+        const char *t = VERB(fa, rf, bz);
+        int tw = textbreite(0, 24, t), sx = lx + lw - 24 - tw;
+        if (sx - 34 > kopf_r + 20) { text(sx, y0 + 52, 0, 24, N_GRAU, t); symbol(SYM_SORTIEREN, sx - 34, y0 + 33, 24, N_GRAU); }
     }
-    else if (fe) detail_zeichnen(fe, xr, detail_y, wr);
-    else {
-        int hy = detail_y + 40;
-        hy += absatz(xr + 24, hy, 0, 19, F_GRAU, kern_kat_info(k), wr - 48, 25);
-        if (ablauf_bereich_nur_einzeln(&A, k)) text(xr + 24, hy + 14, 0, 19, jbk ? F_ORANGE : F_GELB, T("→ Einträge dieses Bereichs einzeln wählen  ·  hier nur einzeln wählbar", "→ choose entries of this area one by one  ·  individually only here"));
-        else text(xr + 24, hy + 14, 0, 19, F_GRAU, T("→ Einträge dieses Bereichs einzeln wählen  ·  ✕ ganzen Bereich wählen", "→ choose entries of this area one by one  ·  ✕ select the whole area"));
-    }
-    /* unten: Auswahl-Leiste mit Warnung */
+    /* rechts: Kasten */
+    al_kasten(kx, y0, kw, ph, k);
+    /* unten: Auswahl-Leiste */
     int gw = 0; long long gb = 0; bool galle = true, ggek = false, rot = false, jbw = false;
     for (int i = 0; i < K->Funde.n; i++) {
         eintrag *f = K->Funde.e[i]; if (!f->Wahl) continue;
-        gw++; if (ampel(f) == AMP_ROT) rot = true; if (f->Jailbreak) jbw = true;
+        gw++; if (kern_ampel(f) == AMPEL_ROT) rot = true; if (f->Jailbreak) jbw = true;
         groesse *g = kern_eintrag_groesse_in(K, fa, f, true); if (!g) galle = false; else { gb += g->Bytes; if (g->Gekappt) ggek = true; }
     }
     bool auswahl = gw > 0, komplett = K->Funde.n > 0 && ablauf_verbunden(&A);
 #ifdef NUR_LESEN
     auswahl = komplett = false;          /* Testversion Schritt 9: nur nachschauen */
 #endif
-    karte(xr, 900, wr, 96, rot ? F_ROT_RAND : F_RAND, F_KARTE);
-    /* NEU 1.0.7 (da_Chris86 01.11.2026 abends: "Und unten ausgewählt 65 Einträge. Ist es immer noch so eingedrückt? Man kann ja gar
-     * nicht alles lesen."): die beiden Knöpfe stehen übereinander - der Text links hat doppelt so viel Platz und steht ganz da
-     * (Warnung bis zu drei Zeilen) */
-    int bw = 360, bx = xr + wr - 16 - bw, tw = bx - xr - 40;
-    const char *st = gw == 0 ? T("Nichts ausgewählt.", "Nothing selected.")
-                             : VERB(fa, T("Ausgewählt: ", "Selected: "), a_fmt(fa, "%d", gw), EINTRAEGE(gw), galle ? VERB(fa, "  ·  ", groesse_von(fa, gb, ggek)) : "");
-    text_passend(xr + 24, 930, 1, 22, 16, F_TEXT, st, tw);
-    const char *eg = kern_bereiche_106() ? "" : kern_endgueltig_satz(K, fa);
-    const char *wt = NULL; uint32_t wf = F_GRAU;
-    if (rot && eg[0]) { wt = VERB(fa, T("Achtung: ", "Caution: "), eg); wf = F_ROT_TEXT; }
-    else if (rot) { wt = jbw ? T("Achtung: Jailbreak-Einstieg ausgewählt - dein Jailbreak startet danach nicht mehr so wie bisher.", "Caution: jailbreak entry selected - your jailbreak will no longer start the way it did.")
-                             : T("Achtung: rot markierte Einträge sind danach endgültig weg.", "Caution: entries marked red are gone for good afterwards."); wf = F_ROT_TEXT; }
-    else if (A.hintergrund && A.hg_gesamt > 0 && A.hg_n < A.hg_gesamt) wt = a_fmt(fa, T("Größen werden gezählt (%d von %d) …", "Counting sizes (%d of %d) …"), A.hg_n, A.hg_gesamt);
-    else { const char *sh = kern_selbstschutz_hinweis(K); if (sh[0]) wt = sh; }
-    if (wt) { passend wp = einpassen(0, 17, 16, 14, wt, tw, 3); wp.lh = wp.gr + 3; passend_zeichnen(xr + 24, 954, 0, wf, &wp); }
-    karte(bx, 908, bw, 40, auswahl ? F_BLAU_HELL : F_RAND, auswahl ? F_BLAU : F_KARTE2);
-    text_passend(bx + 18, 936, 1, 21, 16, auswahl ? 0xFFFFFF : F_GRAU, T("□  Nur Auswahl löschen", "□  Delete selection only"), bw - 36);
-    karte(bx, 952, bw, 40, komplett ? F_ROT_RAND : F_RAND, komplett ? F_ROT : F_KARTE2);
-    text_passend(bx + 18, 980, 1, 21, 16, komplett ? 0xFFFFFF : F_GRAU, T("△  Vollständige Bereinigung", "△  Full cleanup"), bw - 36);
-    const char *kn[5] = { T("↑↓ wählen", "↑↓ move"), T("←→ Bereich / Einträge", "←→ area / entries"), T("✕ Haken", "✕ tick"), T("Options: Protokoll", "Options: log"), T("○ halten: Beenden", "hold ○: Quit") };
-    fuss(kn, 5);
+    if (testmodus) auswahl = komplett = false;   /* NEU 1.0.8 (3.6): im Testmodus wird nur angeschaut */
+    karte_rund(RAND_X, ly, BREITE - 2 * RAND_X, lh, 22, 1, rot ? farbmisch(N_ROT, N_KARTE, .5f) : N_RAND, N_KARTE);
+    const char *t1 = gw == 0 ? T("Nichts ausgewählt.", "Nothing selected.")
+                             : VERB(fa, T("Ausgewählt: ", "Selected: "), a_fmt(fa, "%d", gw), EINTRAEGE(gw), galle ? VERB(fa, " · ", groesse_von(fa, gb, ggek)) : "");
+    const char *eg = kern_bereiche_106() ? "" : kern_endgueltig_satz(K, fa), *t2 = NULL; uint32_t f2 = N_GRAU2;
+    if (rot && eg[0]) { t2 = VERB(fa, T("Achtung: ", "Caution: "), eg); f2 = N_ROT; }
+    else if (rot) { t2 = jbw ? T("Achtung: Jailbreak-Einstieg gewählt - dein Jailbreak startet danach nicht mehr so wie bisher.", "Caution: jailbreak entry selected - your jailbreak will no longer start the way it did.")
+                             : T("Achtung: rot markierte Einträge sind danach endgültig weg.", "Caution: entries marked red are gone for good afterwards."); f2 = N_ROT; }
+    else if (A.hintergrund && A.hg_gesamt > 0 && A.hg_n < A.hg_gesamt) t2 = a_fmt(fa, T("Größen werden gezählt (%d von %d) …", "Counting sizes (%d of %d) …"), A.hg_n, A.hg_gesamt);
+    else { const char *sh = kern_selbstschutz_hinweis(K, false); t2 = sh[0] ? sh : T("Gelöscht wird erst nach dem Bestätigen.", "Nothing is deleted before you confirm."); }
+#ifndef NUR_LESEN
+    if (testmodus) { t2 = testmodus_hinweis(); f2 = N_GELB; }
+#endif
+    const char *b1 = T("Vollständige Bereinigung", "Full cleanup"), *b2 = T("Nur Auswahl löschen", "Delete selection only");
+    int w1 = leisten_knopf_breite(b1), w2 = leisten_knopf_breite(b2), bx2 = BREITE - RAND_X - 16 - w2, bx1 = bx2 - 14 - w1;
+    int tbw = bx1 - 28 - (RAND_X + 28);
+    {   /* zweite Zeile: notfalls kleiner und auf zwei Zeilen - ganz, nie über den Rand. NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46:
+         * "ein paar Zeilen überlappen"): bei zwei Zeilen rückt alles nach oben - die zweite Zeile des deutschen Testmodus-Hinweises lag
+         * sonst auf dem unteren Rand der Leiste */
+        passend p = einpassen(0, 24, 24, 22, t2, tbw, 2);
+        bool zwei = p.z.n > 1;
+        p.lh = p.gr + (zwei ? 3 : 4);
+        text_passend(RAND_X + 28, zwei ? ly + 33 : ly + 40, 1, 28, 24, N_TEXT, t1, tbw);
+        passend_zeichnen(RAND_X + 28, zwei ? ly + 59 : ly + 76, 0, f2, &p);
+    }
+    leisten_knopf(bx1, ly + (lh - 64) / 2, w1, 64, komplett, true, KN_DREIECK, b1);
+    leisten_knopf(bx2, ly + (lh - 64) / 2, w2, 64, auswahl, false, KN_QUADRAT, b2);
+    fussknopf kn[6] = { { KN_HOCHRUNTER, T("wählen", "move"), false }, { KN_LINKSRECHTS, T("Bereich / Einträge", "Area / entries"), false },
+                        { KN_X, T("Haken", "Tick"), false }, { KN_L1R1, T("seitenweise", "page"), false },
+                        { KN_OPT, T("Optionen", "Options"), false }, { KN_O, T("halten: Beenden", "hold: Quit"), false } };
+    hinweis_ueber = ly - 12;   /* kurze Meldungen über der Auswahl-Leiste, nicht auf ihr */
+    fuss_neu(kn, 6);
+    if (optionen_offen) al_optionen();
+}
+
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.4): Bestätigen nach Entwurf 2
+ * Die letzte Frage vor dem Löschen bei "Nur Auswahl löschen" (Titel "Endgültig löschen?"): oben was gelöscht wird, in Gruppen nach dem, was
+ * danach passiert (rot endgültig weg, gelb neu laden oder einrichten, grün es geht nichts verloren), darunter die Hinweise des Kerns, was
+ * immer bleibt, und zwei Knöpfe. Die Seite startet auf "Zurück zur Auswahl"; gelöscht wird nur, wenn ✕ auf "Löschen" 1,5 s gehalten wird
+ * (Loslassen bricht ab). Die Frage selbst stellt der Kern wie bisher (frage_wahl) - Mitschnitt und Nachbau bleiben gleich. */
+#define HALTEN_MS 1500
+static Uint32 x_seit = 0;   /* ✕ auf "Löschen" gehalten seit (0 = nicht) */
+static bool x_vom_pad = false;   /* NEU 1.0.8 (Codex-Prüfung 76): das Halten kam vom Controller (dann wird sein Zustand mitgeprüft) */
+static SDL_GameController *pad;  /* (steht weiter unten bei pad_oeffnen) */
+static bool bestaetigen_aktiv(void) { return (G.art == D_WAHL || G.art == D_TEXT) && G.bestaetigen; }   /* Codex-Prüfung 76: ohne G.titel (der Arbeitsfaden kann ihn freigeben) */
+static bool tippen_aktiv(void) { return G.art == D_TEXT && bestaetigen_aktiv(); }   /* vollständige Bereinigung: LÖSCHEN eintippen */
+static bool eingabe_passt(void)   /* genau wie der Kern prüft (ablauf_komplett) */
+{ return SP_EN ? !strcmp(G.eingabe, "DELETE") : (!strcmp(G.eingabe, "LÖSCHEN") || !strcmp(G.eingabe, "LOESCHEN")); }
+static bool halten_start(void)   /* ✕ gedrückt: auf "Löschen" beginnt das Halten (true), sonst zählt es als normaler Tastendruck */
+{
+    if (!bestaetigen_aktiv() || G.art != D_WAHL || dlg_fokus != 1 || G.dlg_nr != dlg_gesehen || SDL_GetTicks() - dlg_seit < 400) return false;
+    if (protokoll_offen || optionen_offen) return false;   /* Codex-Prüfung 76: nie unter der Protokoll-Ansicht bestätigen */
+    x_seit = SDL_GetTicks(); if (!x_seit) x_seit = 1;
+    x_vom_pad = false;
+    neu_zeichnen();
+    return true;
+}
+static void halten_ende(void)    /* ✕ losgelassen, bevor der Kreis voll war */
+{
+    if (!x_seit) return;
+    x_seit = 0;
+    kurz(T("Losgelassen - es wurde nichts gelöscht.", "Released - nothing was deleted."));
+    neu_zeichnen();
+}
+static void halten_pruefen(void) /* aus der Hauptschleife: Kreis voll -> Ja */
+{
+    if (!x_seit) return;
+    if (!bestaetigen_aktiv() || G.art != D_WAHL || dlg_fokus != 1 || protokoll_offen || optionen_offen) { x_seit = 0; return; }
+    if (x_vom_pad) {   /* Codex-Prüfung 76: kommen keine Daten mehr vom Controller (Lesefehler, getrennt), zählt das als Loslassen */
+        const char *se = SDL_GetError();
+        if (!pad || !SDL_GameControllerGetAttached(pad) || !SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A) || (se && strstr(se, "scePadReadState"))) { halten_ende(); return; }
+    }
+    if (SDL_GetTicks() - x_seit >= HALTEN_MS) { x_seit = 0; antworten(true, false); neu_zeichnen(); return; }
+    if (SDL_GetTicks() - bild_zeit >= 33) neu_zeichnen();   /* 1.0.8 (4.7): der Kreis füllt sich mit etwa 30 Bildern pro Sekunde */
+}
+static void ring_teil(float cx, float cy, float r, float d, float anteil, uint32_t farbe)   /* Teil eines Rings, oben beginnend im Uhrzeigersinn */
+{
+    if (anteil <= 0.f) return;
+    if (anteil > 1.f) anteil = 1.f;
+    float h = d / 2.f, grenze = anteil * 6.2831853f;
+    for (int y = (int)floorf(cy - r - h - 1); y <= (int)ceilf(cy + r + h + 1); y++)
+        for (int x = (int)floorf(cx - r - h - 1); x <= (int)ceilf(cx + r + h + 1); x++) {
+            float dx = (float)x + .5f - cx, dy = (float)y + .5f - cy, w = atan2f(dx, -dy);
+            if (w < 0.f) w += 6.2831853f;
+            if (w > grenze) continue;
+            misch(x, y, farbe, h - fabsf(sqrtf(dx * dx + dy * dy) - r) + .5f);
+        }
+}
+/* Hinweise aus der Zusammenfassung des Kerns (G.text), ohne das, was die Seite schon zeigt (Anzahl je Bereich, Größe, sichere Kopplung) */
+typedef struct { const char *t; uint32_t f; const float *sym; } b_hinweis;
+static int bestaetigen_hinweise(b_hinweis *h, int max)
+{
+    const char *kt = kern_kopplungs_text(K);
+    kopplungsart ks = kern_kopplungs_stufe(K);
+    pthread_mutex_lock(&G.m); const char *gt = a_kopie(fa, G.text ? G.text : ""); pthread_mutex_unlock(&G.m);   /* Codex-Prüfung 76 */
+    sliste z = r_split(fa, gt, "\n");
+    int n = 0;
+    for (int i = 0; i < z.n && n < max; i++) {
+        const char *s = z.e[i];
+        if (!s[0]) continue;
+        if (txt_beginnt(s, T("Wird ENDGÜLTIG gelöscht: ", "Will be deleted PERMANENTLY: ")) || txt_beginnt(s, "   - ") || txt_beginnt(s, T("Das sind ", "That is "))) continue;
+        if (!strcmp(s, kt) && (ks == KOPPLUNG_BESTAETIGT || ks == KOPPLUNG_KEINE)) continue;   /* steht unten bei "Bleibt immer" */
+        if (txt_beginnt(s, T("Zum Bestätigen LÖSCHEN eintippen", "Type DELETE to confirm"))) continue;   /* steht unten am Feld */
+        while (*s == ' ') s++;
+        uint32_t f = N_GRAU; const float *sy = SYM_INFO;
+        if (txt_beginnt(s, "!!! ")) { s = r_r(fa, s + 4, " !!!$", ""); f = N_ROT; sy = SYM_WARNUNG; }
+        else if (txt_beginnt(s, T("Danach endgültig weg", "Gone for good afterwards")) || txt_beginnt(s, T("Dein Jailbreak", "Your jailbreak"))) { f = N_ROT; sy = SYM_WARNUNG; }
+        else if (txt_beginnt(s, T("HINWEIS", "NOTE")) || txt_beginnt(s, "SIMULATION") || !strcmp(s, kt)) f = N_GELB;
+        h[n++] = (b_hinweis){ s, f, sy };
+    }
+    return n;
+}
+/* Hinweise eng untereinander; passt es nicht, laufen sie langsam durch (wie der Kasten der Auswahl) */
+static Uint32 hw_seit; static int hw_nr = -1;
+static int hinweise_zeichnen(int x, int y, int w, const b_hinweis *h, int n, bool zeichnen)
+{
+    int yy = y;
+    for (int i = 0; i < n; i++) {
+        zeilen z = umbrechen(0, 24, h[i].t, w - 36);
+        if (zeichnen) { symbol(h[i].sym, x, yy + 6, 22, h[i].f); for (int j = 0; j < z.n; j++) text(x + 36, yy + 24 + j * 30, 0, 24, h[i].f, z.z[j]); }
+        yy += z.n * 30 + 6;
+    }
+    return yy - y - (n ? 6 : 0);
+}
+static void hinweise_box(int x, int y, int w, int hoehe, const b_hinweis *h, int n)
+{
+    int inhalt = hinweise_zeichnen(x, 0, w, h, n, false), off = 0;
+    if (inhalt > hoehe) {
+        if (hw_nr != G.dlg_nr) { hw_nr = G.dlg_nr; hw_seit = SDL_GetTicks(); }
+        off = lauf_versatz(hw_seit, inhalt - hoehe + 8, 28, 3000);   /* 1.0.8 (4.7) */
+        clip_y0 = y - 2; clip_y1 = y + hoehe + 6;
+    }
+    hinweise_zeichnen(x, y - off, w, h, n, true);
+    clip_y0 = 0; clip_y1 = 1 << 30;
+    if (inhalt > hoehe) {
+        for (int i = 0; i < 26; i++) { float al = (float)(i + 1) / 26.f; for (int px = x - 4; px < x + w; px++) misch(px, y + hoehe + 6 - 26 + i, N_HG, al); }
+        if (off > 0) for (int i = 0; i < 14; i++) { float al = (float)(14 - i) / 14.f; for (int px = x - 4; px < x + w; px++) misch(px, y - 2 + i, N_HG, al); }
+    }
+}
+/* eine Gruppe: Karte mit Kopf und den größten Einträgen */
+typedef struct { eintrag *f; long long b; bool da, gek; } b_zeile;
+static int b_vergleich(const void *x, const void *y) { const b_zeile *a = x, *b = y; return a->b < b->b ? 1 : a->b > b->b ? -1 : 0; }
+static void b_karte(int x, int y, int w, int h, int g, const b_zeile *z, int n, long long bytes, bool alle, bool gek)
+{
+    int amp = g == 0 ? AMPEL_ROT : g == 1 ? AMPEL_GELB : AMPEL_GRUEN;
+    uint32_t f = ampel_f(amp), hg = farbmisch(f, N_HG, g == 0 ? .07f : .04f);
+    karte_rund(x, y, w, h, 22, 2, farbmisch(f, N_HG, g == 0 ? .5f : .22f), hg);
+    const char *titel = g == 0 ? T("Endgültig weg", "Gone for good") : g == 1 ? T("Neu laden oder einrichten", "Download or set up again") : T("Es geht nichts verloren", "Nothing is lost");
+    rund(x + 24, y + 24, 56, 56, 14, farbmisch(f, hg, .16f)); symbol(ampel_sym(amp), x + 24 + 14, y + 24 + 14, 28, f);
+    text_passend(x + 96, y + 50, 1, 30, 24, f, titel, w - 96 - 24);
+    text_passend(x + 96, y + 80, 0, 24, 22, N_GRAU, VERB(fa, a_fmt(fa, "%d", n), EINTRAEGE(n), alle ? VERB(fa, " · ", groesse_von(fa, bytes, gek)) : ""), w - 96 - 24);
+    /* NEU 1.0.8 (Arbeitsplan 4.6): lange Namen brechen um (bis 3 Zeilen, Schrift 24) statt kleiner zu werden und mit "…" zu enden
+     * ("Aufnahmen von Red Dead Redemp…"). Die Zeile wird dafür höher, dann passen weniger Einträge in die Karte - der Rest steht wie
+     * bisher als "und N weitere" darunter. Nur wenn auch 3 Zeilen nicht reichen, endet die letzte mit "…" (Ausnahme, da_Chris86 02.11.).
+     * "und N weitere" steht unten in der Karte - so stehen die drei Karten gleich, auch wenn die Zeilen verschieden hoch sind. */
+    int ry = y + 106, unten = y + h - 16, unten_mehr = y + h - 50, nx = x + 26 + 48 + 14, zy = ry, zeig = 0;
+    uint32_t zhg = farbmisch(N_KARTE, hg, .6f);
+    for (int i = 0; i < n; i++) {
+        const char *gr = z[i].da ? groesse_von(fa, z[i].b, z[i].gek) : "";
+        int gw = textbreite(1, 24, gr);
+        const char *ok = ort_kurz(anzeige_ort(z[i].f)); int ow2 = ok[0] ? ort_breite(ok) + 12 : 0;
+        int nb = x + w - 30 - gw - 18 - nx - ow2; if (nb < 60) nb = 60;
+        zeilen nz = umbrechen(0, 24, ohne_ort_vorne(kern_zeile(fa, z[i].f)), nb);
+        if (nz.n > 3) { nz.z[2] = kuerzen(0, 24, zeilen_rest(&nz, 2), nb); nz.n = 3; }
+        if (nz.n < 1) { static const char *leer[1] = { "" }; nz.z = leer; nz.n = 1; }
+        int zh = 60 + (nz.n - 1) * 28;
+        if (zy + zh > (i + 1 < n ? unten_mehr : unten)) break;   /* kommen noch Einträge, bleibt unten Platz für "und N weitere" */
+        int cy = zy + zh / 2, ty0 = cy + 9 - (nz.n - 1) * 14;
+        rund(x + 16, zy, w - 32, zh, 12, zhg);
+        kachel_klein(x + 26, cy - 24, 48, z[i].f, z[i].f->Kat, zhg);
+        text(x + w - 30 - gw, cy + 9, 1, 24, N_TEXT, gr);
+        for (int j = 0; j < nz.n; j++) text(nx, ty0 + j * 28, 0, 24, N_TEXT, nz.z[j]);
+        if (ok[0]) ort_schild(nx + textbreite(0, 24, nz.z[nz.n - 1]) + 12, ty0 + (nz.n - 1) * 28 - 9, ok);
+        zy += zh + 4; zeig++;
+    }
+    if (zeig < n) text(x + 30, y + h - 26, 0, 24, N_GRAU, a_fmt(fa, T("und %d weitere", "and %d more"), n - zeig));
+}
+/* NEU 1.0.8 (4.4, da_Chris86 05.11.2026 21:33: "ne top passt gut mitgedacht"): vollständige Bereinigung - dieselbe Übersicht, unten aber
+ * wie bisher LÖSCHEN eintippen (dort geht am meisten weg). Links "Zurück zur Auswahl" (Fokus 1), in der Mitte das Feld (Fokus 0, hier
+ * startet die Seite), rechts "Löschen" (Fokus 2). Gelöscht wird nur mit genau dem Wort, das der Kern verlangt (ablauf_komplett). Eigene
+ * Entscheidung: anderer Text bricht nicht mehr ab wie in 1.0.7, die Seite sagt stattdessen, was fehlt ("Zurück" bricht ab). */
+static void bestaetigen_tippen(int kyb, int lh, int zh)
+{
+    const char *wort = T("LÖSCHEN", "DELETE");
+    bool passt = eingabe_passt(), getippt = G.eingabe[0] != 0;
+    if (passt) hinweis_bis = 0;   /* "Erst LÖSCHEN eintippen ..." gilt nicht mehr */
+    const char *zt = T("Zurück zur Auswahl", "Back to selection"), *lt = T("Löschen", "Delete");
+    const char *lu_ja = T("jetzt mit ✕", "now with ✕"), *lu_nein = VERB(fa, T("erst ", "type "), wort, T(" eintippen", " first")), *lu = passt ? lu_ja : lu_nein;
+    int zw = 36 + 14 + textbreite(1, 26, zt) + 60, fw = 520;
+    int lb = textbreite(1, 30, lt);   /* breit genug für beide Zeilen - die Knöpfe springen beim Eintippen nicht */
+    if (textbreite(0, 24, lu_ja) > lb) lb = textbreite(0, 24, lu_ja);
+    if (textbreite(0, 24, lu_nein) > lb) lb = textbreite(0, 24, lu_nein);
+    int lw = 30 + 60 + 18 + lb + 34, x0 = (BREITE - (zw + 28 + fw + 28 + lw)) / 2, zy = kyb + (lh - zh) / 2, fx = x0 + zw + 28, lx = fx + fw + 28;
+    bool fz = dlg_fokus == 1, ff = dlg_fokus == 0, fl = dlg_fokus == 2;
+    /* Zurück */
+    if (fz) rund(x0 - 9, zy - 9, zw + 18, zh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f));
+    karte_rund(x0, zy, zw, zh, 18, fz ? 3 : 2, fz ? N_FOKUS : N_LINIE, N_KARTE);
+    { int gx = x0 + 30, cy = zy + zh / 2; ring(gx + 18, cy, 17, 2, N_TEXT); symbol(SYM_KN_KREIS, gx + 10, cy - 8, 16, N_TEXT); text(gx + 50, cy + 9, 1, 26, N_TEXT, zt); }
+    /* Feld */
+    if (ff) rund(fx - 9, kyb - 9, fw + 18, lh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f));
+    karte_rund(fx, kyb, fw, lh, 18, ff ? 3 : 2, ff ? N_FOKUS : passt ? N_GRUEN : getippt ? N_GELB : N_LINIE, N_KARTE);
+    {
+        const char *kt = tastatur_offen ? T("Tastatur ist offen ...", "Keyboard is open ...") : T("✕ = Tastatur öffnen", "✕ = open keyboard");
+        text(fx + 28, kyb + 36, 0, 24, N_GRAU2, kt);
+        if (getippt) text_passend(fx + 28, kyb + 78, 1, 30, 24, passt ? N_GRUEN : N_GELB, G.eingabe, fw - 56);
+        else text(fx + 28, kyb + 78, 1, 30, N_GRAU, VERB(fa, T("", "Type "), wort, T(" eintippen", "")));
+        if (passt) symbol(SYM_HAKEN, fx + fw - 28 - 30, kyb + lh / 2 - 15, 30, N_GRUEN);
+    }
+    /* Löschen */
+    if (fl) { rund(lx - 9, kyb - 9, lw + 18, lh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f)); rund(lx - 3, kyb - 3, lw + 6, lh + 6, 21, N_FOKUS); }
+    uint32_t lf = passt ? (fl ? N_ROT_KNOPF : farbmisch(N_ROT_KNOPF, N_HG, .55f)) : farbmisch(N_ROT_KNOPF, N_HG, .2f);   /* ohne Wort: gedämpft */
+    rund(lx, kyb, lw, lh, 18, lf);
+    {
+        int gcx = lx + 30 + 30, gcy = kyb + lh / 2;
+        uint32_t wf = passt ? (fl ? 0xFFFFFF : farbmisch(0xFFFFFF, lf, .8f)) : farbmisch(0xFFFFFF, lf, .45f);
+        ring(gcx, gcy, 27, 3, farbmisch(wf, lf, .5f));
+        symbol(SYM_KN_KREUZ, gcx - 11, gcy - 11, 22, wf);
+        text(gcx + 30 + 18, gcy - 4, 1, 30, wf, lt);
+        text(gcx + 30 + 18, gcy + 26, 0, 24, farbmisch(wf, lf, .85f), lu);
+    }
+    const char *unten = getippt && !passt ? VERB(fa, T("Das ist nicht ", "That is not "), wort, T(" - bitte genau so eintippen, in Großbuchstaben.", " - please type it exactly like this, in capital letters."))
+                      : passt ? T("Bis jetzt wurde nichts gelöscht. ✕ auf „Löschen“ löscht alles oben Gezeigte endgültig.", "Nothing has been deleted yet. ✕ on 'Delete' deletes everything shown above for good.")
+                      : VERB(fa, T("Bis jetzt wurde nichts gelöscht. Zum Löschen ", "Nothing has been deleted yet. To delete, type "), wort, T(" eintippen (Großbuchstaben) und dann „Löschen“ drücken.", " (capital letters) and then press 'Delete'."));
+    text_mitte(BREITE / 2, kyb + lh + 34, 0, 24, getippt && !passt ? N_GELB : N_GRAU, unten);
+    fussknopf kn[3] = { { KN_X, ff ? T("Tastatur öffnen", "Open keyboard") : fl ? T("Löschen", "Delete") : T("Zurück zur Auswahl", "Back to selection"), false },
+                        { KN_O, T("Zurück zur Auswahl", "Back to selection"), false }, { KN_LINKSRECHTS, T("wechseln", "switch"), false } };
+    hinweis_ueber = kyb - 16;
+    fuss_neu(kn, 3);
+}
+static void schirm_bestaetigen(void)
+{
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    kopf_neu(3, NULL);
+    bilder_neu = 0;
+    /* gewählte Einträge nach Gruppen, größte zuerst (der Kern ruht, solange er auf die Antwort wartet) */
+    int nmax = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->Wahl) nmax++;
+    b_zeile *gz[3]; int gn[3] = { 0, 0, 0 }; long long gb[3] = { 0, 0, 0 }; bool galle[3] = { true, true, true }, ggek[3] = { false, false, false };
+    for (int g = 0; g < 3; g++) gz[g] = a_hole(fa, sizeof(b_zeile) * (size_t)(nmax + 1));
+    bool jb_gew = false, jb_da = false;
+    for (int i = 0; i < K->Funde.n; i++) {
+        eintrag *f = K->Funde.e[i];
+        if (f->Jailbreak) jb_da = true;
+        if (!f->Wahl || f->Gesperrt) continue;
+        if (f->Jailbreak) jb_gew = true;
+        int a = kern_ampel(f), g = a == AMPEL_ROT ? 0 : a == AMPEL_GELB ? 1 : 2;
+        groesse *gr = kern_eintrag_groesse_in(K, fa, f, true);
+        gz[g][gn[g]++] = (b_zeile){ f, gr ? gr->Bytes : -1, gr != NULL, gr ? gr->Gekappt : false };
+        if (gr) { gb[g] += gr->Bytes; if (gr->Gekappt) ggek[g] = true; } else galle[g] = false;
+    }
+    for (int g = 0; g < 3; g++) qsort(gz[g], (size_t)gn[g], sizeof(b_zeile), b_vergleich);
+    int nges = gn[0] + gn[1] + gn[2];
+    /* oben: Überschrift */
+    text(RAND_X, 196, 1, 44, N_TEXT, T("Das wird gelöscht", "This will be deleted"));
+    const char *sub = VERB(fa, a_fmt(fa, "%d", nges), EINTRAEGE(nges));
+    if (A.GROSS.Bytes > 0) sub = VERB(fa, sub, " · ", groesse_von(fa, A.GROSS.Bytes, A.GROSS.Gekappt), T(" werden frei", " will be freed"));
+    if (tippen_aktiv()) sub = VERB(fa, T("Vollständige Bereinigung · ", "Full cleanup · "), sub);
+    text_passend(RAND_X, 238, 0, 28, 24, N_GRAU, sub, BREITE - 2 * RAND_X);
+    /* unten nach oben: Knöpfe, "Bleibt immer", Hinweise, Karten */
+    int lh = 96, zh = 80, kyb = 806, by = 720, bh = 64;
+    b_hinweis hw[16]; int nh = bestaetigen_hinweise(hw, 16);
+    /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 1): die Hinweise bekommen so viel Platz, wie sie brauchen - bis hier waren es fest 90 Pixel,
+     * die dritte Zeile stand halb verdeckt unter dem Ausblenden. Die Karten werden dafür kürzer (mindestens 250 Pixel, dann "und N weitere");
+     * reicht auch das nicht, laufen die Hinweise wie bisher langsam durch. */
+    int hinh = nh ? hinweise_zeichnen(0, 0, BREITE - 2 * RAND_X - 12, hw, nh, false) : 0;
+    int ky0 = 262, ky1 = nh ? by - 14 - 16 - hinh : by - 20;
+    if (ky1 > by - 20) ky1 = by - 20;
+    if (ky1 < ky0 + 250) ky1 = ky0 + 250;
+    int ng = 0, gi[3]; for (int g = 0; g < 3; g++) if (gn[g]) gi[ng++] = g;
+    if (ng == 0) text(RAND_X, ky0 + 40, 0, 24, N_GRAU2, T("Nichts ausgewählt.", "Nothing selected."));
+    else {
+        int cw = (BREITE - 2 * RAND_X - (ng - 1) * 24) / ng;
+        for (int i = 0; i < ng; i++) { int g = gi[i]; b_karte(RAND_X + i * (cw + 24), ky0, cw, ky1 - ky0, g, gz[g], gn[g], gb[g], galle[g], ggek[g]); }
+    }
+    if (nh) hinweise_box(RAND_X + 6, ky1 + 16, BREITE - 2 * RAND_X - 12, by - 14 - (ky1 + 16), hw, nh);
+    /* was immer bleibt */
+    karte_rund(RAND_X, by, BREITE - 2 * RAND_X, bh, 18, 1, N_RAND, N_KARTE);
+    {
+        int bx = RAND_X + 28, cyb = by + bh / 2;
+        const char *t0 = T("Bleibt immer", "Always stays");
+        text(bx, cyb + 9, 1, 24, N_TEXT2, t0); bx += textbreite(1, 24, t0) + 30;
+        const char *bl[4] = { T("Systemsoftware", "System software"), T("Laufwerks-Kopplung", "Disc drive pairing"), T("Konto", "Account"), T("echte Lizenzen", "Real licenses") };
+        for (int i = 0; i < 4; i++) { symbol(SYM_SCHLOSS, bx, cyb - 11, 20, N_GRAU2); bx += 28; text(bx, cyb + 9, 0, 24, N_GRAU, bl[i]); bx += textbreite(0, 24, bl[i]) + 30; }
+        const char *jt = jb_gew ? T("Jailbreak-Einstieg ausgewählt", "Jailbreak entry selected") : jb_da ? T("Jailbreak bleibt (nicht ausgewählt)", "Jailbreak stays (not selected)") : "";
+        if (jt[0]) {
+            uint32_t jf = jb_gew ? N_ROT : N_ORANGE; int jw = textbreite(0, 24, jt), jx = BREITE - RAND_X - 28 - jw;
+            if (jx - 34 > bx) { text(jx, cyb + 9, 0, 24, jf, jt); symbol(jb_gew ? SYM_WARNUNG : SYM_JAILBREAK, jx - 34, cyb - 12, 22, jf); }
+        }
+    }
+    if (tippen_aktiv()) { bestaetigen_tippen(kyb, lh, zh); return; }
+    /* Knöpfe: links "Zurück zur Auswahl" (hier startet die Seite), rechts "Löschen" (✕ halten) */
+    const char *zt = T("Zurück zur Auswahl", "Back to selection"), *lt = T("Löschen", "Delete"), *lu = T("1,5 Sekunden gedrückt halten", "hold for 1.5 seconds");
+    int zw = 36 + 14 + textbreite(1, 26, zt) + 60, lb = textbreite(1, 30, lt) > textbreite(0, 24, lu) ? textbreite(1, 30, lt) : textbreite(0, 24, lu);
+    int lw = 30 + 60 + 18 + lb + 34, x0 = (BREITE - (zw + 28 + lw)) / 2, zy = kyb + (lh - zh) / 2, lx = x0 + zw + 28;
+    bool fz = dlg_fokus == 0, fl = dlg_fokus == 1;
+    if (fz) rund(x0 - 9, zy - 9, zw + 18, zh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f));
+    karte_rund(x0, zy, zw, zh, 18, fz ? 3 : 2, fz ? N_FOKUS : N_LINIE, N_KARTE);
+    { int gx = x0 + 30, cy = zy + zh / 2; ring(gx + 18, cy, 17, 2, N_TEXT); symbol(SYM_KN_KREIS, gx + 10, cy - 8, 16, N_TEXT); text(gx + 50, cy + 9, 1, 26, N_TEXT, zt); }
+    if (fl) { rund(lx - 9, kyb - 9, lw + 18, lh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f)); rund(lx - 3, kyb - 3, lw + 6, lh + 6, 21, N_FOKUS); }
+    rund(lx, kyb, lw, lh, 18, fl ? N_ROT_KNOPF : farbmisch(N_ROT_KNOPF, N_HG, .55f));
+    {
+        int gcx = lx + 30 + 30, gcy = kyb + lh / 2;
+        uint32_t wf = fl ? 0xFFFFFF : farbmisch(0xFFFFFF, N_ROT_KNOPF, .7f);
+        ring(gcx, gcy, 27, 3, farbmisch(0xFFFFFF, N_ROT_KNOPF, .35f));
+        if (x_seit) ring_teil(gcx, gcy, 27, 5, (float)(SDL_GetTicks() - x_seit) / (float)HALTEN_MS, 0xFFFFFF);
+        symbol(SYM_KN_KREUZ, gcx - 11, gcy - 11, 22, wf);
+        text(gcx + 30 + 18, gcy - 4, 1, 30, wf, lt);
+        text(gcx + 30 + 18, gcy + 26, 0, 24, farbmisch(wf, N_ROT_KNOPF, .85f), lu);
+    }
+    text_mitte(BREITE / 2, kyb + lh + 34, 0, 24, N_GRAU, fl ? T("Loslassen bricht ab. Bis jetzt wurde nichts gelöscht.", "Releasing cancels. Nothing has been deleted yet.")
+                                                          : T("Bis jetzt wurde nichts gelöscht. Zum Löschen: → und dann ✕ gedrückt halten.", "Nothing has been deleted yet. To delete: → and then hold ✕."));
+    fussknopf kn[3] = { { KN_X, T("halten: Löschen", "hold: Delete"), false }, { KN_O, T("Zurück zur Auswahl", "Back to selection"), false },
+                        { KN_LINKSRECHTS, T("Knopf wechseln", "Switch button"), false } };
+    hinweis_ueber = kyb - 16;   /* kurze Meldungen ("Losgelassen ...") über den Knöpfen */
+    fuss_neu(kn, 3);
 }
 
 /* NEU 1.1: Testversion "nur lesen" - Statuszeile und Protokoll sagen das statt "SIMULATION" */
@@ -1454,35 +2845,60 @@ static void sim_hinweis_setzen(void)
 #endif
 }
 
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.5): "Nachschauen läuft" nach Entwurf 2
+ * wie "Löschen läuft" aufgebaut - auch für die anderen Wartezeiten ohne Löschen (Größe zählen vor der Abschlussfrage, Abbrechen).
+ * Oben was läuft und seit wann, darunter der Stand des Kerns mit Balken, die letzten Zeilen des Protokolls und der Hinweis, dass
+ * nichts verändert wird. ○ bricht ab, solange der Kern es erlaubt (wie bisher). */
 static void schirm_arbeit(void)
 {
-    kopf();
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    bool suchen = auftrag_jetzt == AUF_SUCHEN || nach_loeschen, ab = K->abbruch;   /* nach "Fertig": der Kern schaut neu nach */
+    kopf_neu(auftrag_jetzt == AUF_SUCHEN ? 1 : 3, NULL);
+    bilder_neu = 0;
     pthread_mutex_lock(&G.m);
     char st[1024]; snprintf(st, sizeof st, "%s", G.stand); double p = G.prozent; bool unb = G.unbestimmt;
+    int von = G.log_n - 40 < 0 ? 0 : G.log_n - 40;
+    sliste lg = {0}; for (int i = von; i < G.log_n; i++) sl_add(fa, &lg, a_kopie(fa, G.log[i]));
     pthread_mutex_unlock(&G.m);
-    karte(40, 176, 1840, 200, A.loescht ? F_ROT_RAND : F_RAND, F_KARTE);
-    const char *was = A.loescht ? (K->simulation ? T("SIMULATION läuft - es wird nichts gelöscht.", "SIMULATION running - nothing is deleted.")
-                                                 : T("Löschen läuft - bitte warten, bis „Fertig“ erscheint.", "Deleting - please wait until \"Done\" appears."))
-                                : T("Bitte warten ...", "Please wait ...");
-    text(70, 228, 1, 30, A.loescht ? F_ROT_TEXT : F_TEXT, was);
-    text(70, 272, 0, 22, F_GRAU, kuerzen(0, 22, st[0] ? st : " ", 1780));
-    karte(70, 300, 1780, 40, F_RAND, F_HG);
-    if (unb) { int w = 300, pos = (int)(SDL_GetTicks() / 3 % (1776 + w)) - w; int a = pos < 0 ? 0 : pos, b = pos + w > 1776 ? 1776 : pos + w; if (b > a) rechteck(72 + a, 302, b - a, 36, F_BLAU); }
-    else if (p > 0) rechteck(72, 302, (int)(1776 * (p > 100 ? 100 : p) / 100), 36, F_BLAU);
-    /* Protokoll (letzte Zeilen) */
-    karte(40, 396, 1840, 600, F_RAND, F_KARTE);
-    text(70, 436, 1, 20, F_GRAU, T("PROTOKOLL", "LOG"));
-    pthread_mutex_lock(&G.m);
-    int von = G.log_n - 400 < 0 ? 0 : G.log_n - 400;
-    const char *alles = "";
-    sliste l = {0}; for (int i = von; i < G.log_n; i++) sl_add(fa, &l, a_kopie(fa, G.log[i]));
-    pthread_mutex_unlock(&G.m);
-    alles = sl_join(fa, &l, "\n");
-    zeilen z = umbrechen(0, 20, alles, 1780);
-    int max = 21, start = z.n > max ? z.n - max : 0;
-    for (int i = start; i < z.n; i++) text(70, 476 + (i - start) * 25, 0, 20, F_TEXT, z.z[i]);
-    const char *kn[2] = { A.abbrechbar ? T("○ Abbrechen (es wird nichts gelöscht)", "○ Cancel (nothing is deleted)") : T("Bitte warten", "Please wait"), T("Options: Protokoll", "Options: log") };
-    fuss(kn, 2);
+    int bw = BREITE - 2 * RAND_X, y = 280;   /* wie "Löschen läuft" */
+    const char *titel = ab ? T("Wird abgebrochen …", "Cancelling …") : nach_loeschen ? T("Schaue nach, was übrig ist …", "Checking what is left …") : suchen ? T("Schaue nach …", "Scanning …")
+                      : txt_beginnt(st, T("Zähle", "Only counting")) ? T("Zähle die Größe …", "Counting the size …") : T("Einen Moment …", "One moment …");
+    text(RAND_X, y, 1, 48, N_TEXT, titel);
+    int sek = arbeit_seit ? (int)((SDL_GetTicks() - arbeit_seit) / 1000) : 0;
+    text_rechts(BREITE - RAND_X, y - 44, 0, 24, N_GRAU2, T("Läuft seit", "Running for"));
+    text_rechts(BREITE - RAND_X, y, 1, 40, N_TEXT, a_fmt(fa, "%d:%02d", sek / 60, sek % 60));
+    int ry = y + 64, pz = (int)(p + .5); if (pz < 0) pz = 0; if (pz > 100) pz = 100;
+    bool mit_pz = !unb && pz > 0;
+    text_passend(RAND_X, ry, 1, 28, 22, N_TEXT2, st[0] ? st : T("Wird vorbereitet …", "Preparing …"), bw - (mit_pz ? 120 : 0));
+    if (mit_pz) text_rechts(BREITE - RAND_X, ry, 1, 28, N_GRAU, a_fmt(fa, "%d %%", pz));
+    int by = ry + 14;
+    rund(RAND_X, by, bw, 16, 8, 0x1B2638);
+    if (!mit_pz) { int w = 320, pos = (int)(SDL_GetTicks() / 3 % (Uint32)(bw + w)) - w, a = pos < 0 ? 0 : pos, b = pos + w > bw ? bw : pos + w; if (b > a) rund(RAND_X + a, by, b - a, 16, 8, N_BLAU); }
+    else { int w = bw * pz / 100; rund(RAND_X, by, w < 16 ? 16 : w, 16, 8, N_BLAU); }
+    /* die letzten Zeilen des Protokolls (umgebrochen, die neueste unten) */
+    int ly = by + 16 + 32, kh = 440, pad = 32, tb = bw - 2 * pad - 28;
+    karte_rund(RAND_X, ly, bw, kh, 22, 1, N_RAND, N_KARTE);
+    symbol(SYM_DOKUMENT, RAND_X + pad, ly + 26, 24, N_GRAU2);
+    text(RAND_X + pad + 36, ly + 48, 1, 24, N_GRAU, T("Protokoll - die letzten Zeilen", "Log - the latest lines"));
+    int max = (kh - 92 - 16) / 36, n = 0;
+    const char **zl = a_hole(fa, sizeof(char *) * (size_t)max); int *zx = a_hole(fa, sizeof(int) * (size_t)max);
+    for (int i = lg.n - 1; i >= 0 && n < max; i--) {   /* von hinten: so viele Zeilen, wie in die Karte passen */
+        const char *q = lg.e[i]; int ein = 0; while (q[ein] == ' ') ein++;
+        if (!q[ein]) continue;
+        zeilen z = umbrechen(0, 24, q + ein, tb - (ein ? 28 : 0));
+        for (int j = z.n - 1; j >= 0 && n < max; j--) { memmove(zl + 1, zl, sizeof(char *) * (size_t)n); memmove(zx + 1, zx, sizeof(int) * (size_t)n); zl[0] = z.z[j]; zx[0] = ein ? 28 : 0; n++; }
+    }
+    for (int i = 0; i < n; i++) text(RAND_X + pad + zx[i], ly + 92 + 24 + i * 36, 0, 24, i == n - 1 ? N_TEXT : N_TEXT2, zl[i]);
+    if (!n) text(RAND_X + pad, ly + 92 + 24, 0, 24, N_GRAU2, T("Noch keine Zeilen.", "No lines yet."));
+    /* darunter: was garantiert ist */
+    int iy = ly + kh + 24 + 26;
+    symbol(SYM_SCHLOSS, RAND_X, iy - 20, 24, N_GRAU2);
+    text(RAND_X + 36, iy, 0, 24, N_GRAU, suchen ? T("Nur lesen - es wird nichts verändert.", "Read only - nothing is changed.")
+                                               : T("Es wird noch nichts gelöscht - vorher kommt immer die Abschlussfrage.", "Nothing is deleted yet - the final question always comes first."));
+    fussknopf kn[2]; int nk = 0;
+    if (A.abbrechbar && !ab) kn[nk++] = (fussknopf){ KN_O, T("Abbrechen (es wird nichts gelöscht)", "Cancel (nothing is deleted)"), false };
+    kn[nk++] = (fussknopf){ KN_OPT, T("Protokoll", "Log"), true };
+    fuss_neu(kn, nk);
 }
 
 /* NEU 1.0.7 (da_Chris86 03.11.2026 19:09-19:12): freiwillige Rückmeldung per QR-Code - "wir müssen den Leuten klar machen, dass wir
@@ -1492,7 +2908,7 @@ static void schirm_arbeit(void)
 #ifndef RUECKMELDUNG_ADRESSE
 #define RUECKMELDUNG_ADRESSE "https://feedback.ps5cleanup.workers.dev/r"
 #endif
-#define RUECKMELDUNG_VERSION "1.0.7"
+#define RUECKMELDUNG_VERSION "1.0.8"                  /* 06.11.2026: 1.0.8 - die Rückmeldeseite vergleicht damit (NEUESTE_VERSION in rueckmeldung/wrangler.toml) */
 #ifdef KERN_LOESCHEN
 #define RUECKMELDUNG_FASSUNG 'r'             /* normale ELF */
 #else
@@ -1641,6 +3057,371 @@ static int rueckmeldung_kasten(int x, int y, int w, int max_h)
     return h;
 }
 
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.5): "Löschen läuft" und "Fertig" nach Entwurf 2
+ * Löschen läuft: oben "Wird gelöscht …" und "Bisher frei geräumt", darunter "Eintrag N von M" mit Balken, die letzten erledigten Einträge,
+ * der laufende und "noch N Einträge"; ○ halten = nach diesem Eintrag anhalten (Arbeitsplan 3.4). Die Angaben kommen aus dem Kern (A.lf_*,
+ * bei jedem Eintrag gesetzt). Ob ein Eintrag mit Fehler endete, zeigen die Zähler des Kerns - nur Anzeige, maßgeblich bleibt das Protokoll.
+ * Fertig: "X frei geräumt", die Meldung des Kerns, Karten "Übrig geblieben", "Protokoll" und "Rückmeldung" (QR), Knöpfe Beenden / Neu starten. */
+/* Codex-Prüfung 91: in einen festen Puffer kopieren - nie mitten in einem UTF-8-Zeichen abschneiden; gekürzt endet es mit "…" */
+static void utf8_kopie(char *ziel, size_t n, const char *q)
+{
+    size_t l = strlen(q);
+    if (l < n) { memcpy(ziel, q, l + 1); return; }
+    size_t m = n - 4;                                                /* Platz für "…" (3 Byte) und das Ende */
+    while (m > 0 && ((unsigned char)q[m] & 0xC0) == 0x80) m--;      /* q[m] ist das erste nicht kopierte Byte: kein Folgebyte */
+    memcpy(ziel, q, m); memcpy(ziel + m, "…", 4);
+}
+typedef struct { const eintrag *f; char name[200]; long long b; bool hat_b; int zustand; } lz_zeile;   /* zustand: 0 läuft, 1 erledigt, 2 Fehler, 3 unverändert */
+#define LZ_MAX 4   /* höchstens drei erledigte und der laufende */
+static lz_zeile lz[LZ_MAX]; static int lz_n = 0, lz_nr = 0, lz_fehler = 0, lz_unv = 0;
+static bool loeschseite = false, anhalten_gewuenscht = false;
+/* Codex-Prüfung 76/77: alle Angaben des Kerns aus derselben Meldung (lf_seq ungerade = schreibt gerade; dann gilt der letzte Stand) -
+ * die Seite liest nur diesen Stand. Fehler und Unverändertes je Meldung (lf_fehler, lf_unv) - so gehören sie zum richtigen Eintrag. */
+typedef struct { int nr, n, fehler, unv; const eintrag *f; long long frei, gesamt; } lf_stand;
+static lf_stand lf_jetzt;
+static void lf_lesen(void)
+{
+    unsigned q = __atomic_load_n(&A.lf_seq, __ATOMIC_ACQUIRE);
+    if (q & 1u) return;
+    lf_stand s;
+    s.nr = __atomic_load_n(&A.lf_nr, __ATOMIC_RELAXED); s.n = __atomic_load_n(&A.lf_n, __ATOMIC_RELAXED);
+    s.fehler = __atomic_load_n(&A.lf_fehler, __ATOMIC_RELAXED); s.unv = __atomic_load_n(&A.lf_unv, __ATOMIC_RELAXED);
+    s.f = __atomic_load_n(&A.lf_f, __ATOMIC_RELAXED);
+    s.frei = __atomic_load_n(&A.lf_frei, __ATOMIC_RELAXED); s.gesamt = __atomic_load_n(&A.lf_gesamt, __ATOMIC_RELAXED);
+    __atomic_thread_fence(__ATOMIC_ACQUIRE);
+    if (__atomic_load_n(&A.lf_seq, __ATOMIC_RELAXED) != q) return;
+    lf_jetzt = s;
+}
+static void loeschseite_beginnen(void) { lz_n = 0; lz_nr = 0; lz_fehler = 0; lz_unv = 0; memset(&lf_jetzt, 0, sizeof lf_jetzt); anhalten_gewuenscht = false; loeschseite = true; }
+static void lz_nachfuehren(void)
+{
+    lf_lesen();
+    int nr = lf_jetzt.nr, fe = lf_jetzt.fehler, un = lf_jetzt.unv;
+    const eintrag *f = lf_jetzt.f;
+    if (nr != lz_nr && nr > 0 && f) {
+        if (lz_n > 0 && lz[lz_n - 1].zustand == 0)   /* der vorige ist fertig - genau zuordnen lässt es sich nur, wenn keiner dazwischen lag */
+            lz[lz_n - 1].zustand = nr == lz_nr + 1 && fe > lz_fehler ? 2 : nr == lz_nr + 1 && un > lz_unv ? 3 : 1;
+        lz_fehler = fe; lz_unv = un;
+        if (lz_n == LZ_MAX) { memmove(lz, lz + 1, sizeof lz[0] * (LZ_MAX - 1)); lz_n--; }
+        lz_zeile *z = &lz[lz_n++];
+        z->f = f; utf8_kopie(z->name, sizeof z->name, ohne_ort_vorne(kern_zeile(fa, f))); z->hat_b = f->HatGroesse; z->b = f->Bytes; z->zustand = 0;
+        lz_nr = nr;
+    }
+    if (!A.anhaltbar && lz_n > 0 && lz[lz_n - 1].zustand == 0 && lf_jetzt.n > 0 && nr >= lf_jetzt.n)   /* der letzte ist durch - der Kern zählt nicht mehr */
+        lz[lz_n - 1].zustand = K->FEHLER_ZAHL > lz_fehler ? 2 : K->UNVERAENDERT.n > lz_unv ? 3 : 1;
+}
+static const char *protokoll_wo(void)   /* "auf dem USB-Laufwerk" usw. (aus A.protokoll_datei); "" = nur in der Ansicht */
+{
+    const char *p = A.protokoll_datei ? A.protokoll_datei : "";
+    if (txt_beginnt(p, T("auf dem USB-Laufwerk", "on the USB drive"))) return T("auf dem USB-Laufwerk", "on the USB drive");
+    if (txt_beginnt(p, T("auf der M.2", "on the M.2"))) return T("auf der M.2", "on the M.2");
+    if (txt_beginnt(p, T("auf der PS5", "on the PS5"))) return T("auf der PS5", "on the PS5");
+    return "";
+}
+static void schirm_loeschen(void)
+{
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    kopf_neu(3, NULL);
+    bilder_neu = 0;
+    lz_nachfuehren();
+    pthread_mutex_lock(&G.m); double p = G.prozent; bool unb = G.unbestimmt; pthread_mutex_unlock(&G.m);
+    int nr = lf_jetzt.nr, n = lf_jetzt.n, bw = BREITE - 2 * RAND_X;   /* Codex-Prüfung 77: derselbe Stand wie die Liste */
+    long long frei = lf_jetzt.frei, ges = lf_jetzt.gesamt;
+    bool sim = K->simulation, durch = n > 0 && nr >= n && !A.anhaltbar;
+    int y = 280;   /* fest (für fünf Zeilen mittig) - die Seite springt nicht, wenn die Liste wächst */
+    text(RAND_X, y, 1, 48, N_TEXT, sim ? T("Simulation läuft …", "Simulation running …") : durch ? T("Fast fertig …", "Almost done …") : T("Wird gelöscht …", "Deleting …"));
+    if (n > 0) {   /* sind nicht alle Größen bekannt: "mind." */
+        text_rechts(BREITE - RAND_X, y - 44, 0, 24, N_GRAU2, sim ? T("Würde frei geräumt", "Would be freed") : T("Bisher frei geräumt", "Freed so far"));
+        text_rechts(BREITE - RAND_X, y, 1, 40, N_TEXT, groesse_von(fa, frei, ges < 0 && frei > 0));
+    }
+    int ry = y + 64;
+    text(RAND_X, ry, 1, 28, N_TEXT, nr > 0 ? a_fmt(fa, T("Eintrag %d von %d", "Entry %d of %d"), nr, n) : T("Wird vorbereitet …", "Preparing …"));
+    int pz = (int)(p + .5); if (pz < 0) pz = 0; if (pz > 100) pz = 100;
+    if (!unb && nr > 0) text_rechts(BREITE - RAND_X, ry, 1, 28, N_GRAU, a_fmt(fa, "%d %%", pz));
+    int by = ry + 14;
+    rund(RAND_X, by, bw, 16, 8, 0x1B2638);
+    if (unb) { int w = 320, pos = (int)(SDL_GetTicks() / 3 % (Uint32)(bw + w)) - w, a = pos < 0 ? 0 : pos, b = pos + w > bw ? bw : pos + w; if (b > a) rund(RAND_X + a, by, b - a, 16, 8, N_BLAU); }
+    else if (pz > 0) { int w = bw * pz / 100; rund(RAND_X, by, w < 16 ? 16 : w, 16, 8, N_BLAU); }
+    /* Liste: die letzten erledigten, der laufende, "noch N Einträge" */
+    int rest = n - nr; if (rest < 0) rest = 0;
+    int zeilen = lz_n + (rest > 0 ? 1 : 0), ly = by + 16 + 32;
+    if (zeilen > 0) {
+        int lh = 24 + zeilen * 72 + (zeilen - 1) * 4;
+        karte_rund(RAND_X, ly, bw, lh, 22, 1, N_RAND, N_KARTE);
+        for (int i = 0; i < zeilen; i++) {
+            int zy = ly + 12 + i * 76, cy = zy + 36, x = RAND_X + 12 + 18;
+            bool wartet = i >= lz_n, laeuft = !wartet && lz[i].zustand == 0;
+            uint32_t zhg = laeuft ? farbmisch(N_FOKUS, N_KARTE, .08f) : N_KARTE;
+            if (laeuft) karte_rund(RAND_X + 12, zy, bw - 24, 72, 14, 2, farbmisch(N_FOKUS, N_KARTE, .5f), zhg);
+            if (wartet) ring(x + 18, cy, 16.5f, 2.5f, N_LINIE);
+            else if (laeuft) { ring(x + 18, cy, 13, 2.6f, farbmisch(N_FOKUS, N_KARTE, .25f)); ring_teil(x + 18, cy, 13, 2.6f, .25f, N_FOKUS); }
+            else {
+                int zu = lz[i].zustand; uint32_t f = zu == 1 ? N_GRUEN : zu == 2 ? N_ROT : N_GRAU2;
+                kreis(x + 18, cy, 18, farbmisch(f, N_KARTE, .16f));
+                symbol(zu == 1 ? SYM_HAKEN : zu == 2 ? SYM_WARNUNG : SYM_INFO, x + 8, cy - 10, 20, f);
+            }
+            x += 36 + 18;
+            if (!wartet) kachel_klein(x, cy - 22, 44, lz[i].f, lz[i].f->Kat, zhg);
+            x += 44 + 18;
+            const char *zt = wartet ? T("wartet", "waiting") : laeuft ? T("läuft …", "running …") : lz[i].zustand == 1 ? T("erledigt", "done")
+                           : lz[i].zustand == 2 ? T("Fehler", "error") : T("unverändert", "unchanged");
+            uint32_t zf = wartet ? N_GRAU2 : laeuft ? N_FOKUS : lz[i].zustand == 1 ? N_GRUEN : lz[i].zustand == 2 ? N_ROT : N_GRAU2;
+            int xr = BREITE - RAND_X - 12 - 18;
+            if (!wartet && lz[i].hat_b) text_rechts(xr, cy + 9, 1, 26, laeuft ? N_TEXT : N_TEXT2, groesse_von(fa, lz[i].b, false));
+            xr -= 150;
+            text_rechts(xr, cy + 9, 1, 24, zf, zt); xr -= textbreite(1, 24, zt) + 24;
+            const char *nm = wartet ? (rest == 1 ? T("noch 1 Eintrag", "1 more entry") : a_fmt(fa, T("noch %d Einträge", "%d more entries"), rest)) : lz[i].name;
+            text_passend(x, cy + 9, laeuft ? 1 : 0, 26, 24, wartet ? N_GRAU2 : laeuft ? N_TEXT : N_TEXT2, nm, xr - x);
+        }
+        ly += lh;
+    }
+    /* darunter: Hinweis */
+    int iy = ly + 24 + 26;
+    if (anhalten_gewuenscht && A.anhaltbar) {
+        symbol(SYM_INFO, RAND_X, iy - 20, 24, N_GELB);
+        text(RAND_X + 36, iy, 1, 24, N_GELB, nr > 0 ? T("Hält nach diesem Eintrag an - der laufende wird noch fertig gelöscht.", "Stopping after this entry - the current one is still being finished.")
+                                                      : T("Hält an, bevor etwas gelöscht wird.", "Stopping before anything is deleted."));
+    } else {
+        const char *wo = protokoll_wo();
+        const char *t = sim ? T("Simulation: Es wird nichts gelöscht.", "Simulation: nothing is deleted.")
+                            : VERB(fa, T("Bitte die Konsole nicht ausschalten.", "Please do not turn off the console."),
+                                   wo[0] ? VERB(fa, T(" Das Protokoll wird ", " The log is being written "), wo, T(" mitgeschrieben.", ".")) : "");
+        symbol(SYM_INFO, RAND_X, iy - 20, 24, N_GRAU2);
+        text(RAND_X + 36, iy, 0, 24, N_GRAU, t);
+    }
+    fussknopf kn[2]; int nk = 0;
+    bool anhalten = A.loescht && A.anhaltbar && !anhalten_gewuenscht;
+    if (anhalten) kn[nk++] = (fussknopf){ KN_O, T("halten: nach diesem Eintrag abbrechen", "hold: stop after this entry"), false };
+    kn[nk++] = (fussknopf){ KN_OPT, T("Protokoll", "Log"), true };
+    fuss_neu(kn, nk);
+    if (kreis_seit && anhalten) { int anteil = (int)(SDL_GetTicks() - kreis_seit); if (anteil > 1000) anteil = 1000; rechteck(0, HOEHE - 6, BREITE * anteil / 1000, 6, N_FOKUS); }
+}
+static const char *kuerzen_still(int f, int gr, const char *t, int breite)   /* wie kuerzen, aber gewollt (ohne "ZU LANG") */
+{
+    if (textbreite(f, gr, t) <= breite) return t;
+    int el = textbreite(f, gr, "…");
+    const char *q = t; int b = 0;
+    while (*q) { const char *v = q; Glyph *g = glyph(f, gr, cp_naechstes(&q)); b += g ? g->vorschub : 0; if (b + el > breite) { q = v; break; } }
+    return VERB(fa, a_kopie_n(fa, t, (size_t)(q - t)), "…");
+}
+static int absatz_bis(int x, int y, int f, int gr, uint32_t farbe, const char *t, int breite, int lh, int max)   /* höchstens max Zeilen, Rest "…" */
+{
+    zeilen z = umbrechen(f, gr, t, breite);
+    int n = z.n < max ? z.n : max;
+    for (int i = 0; i < n; i++) {
+        const char *s = z.z[i];
+        if (i == n - 1 && z.n > max) { for (int j = i + 1; j < z.n; j++) s = VERB(fa, s, " ", z.z[j]); s = kuerzen_still(f, gr, s, breite); }
+        text(x, y + i * lh, f, gr, farbe, s);
+    }
+    return n * lh;
+}
+static int mitte_zeilen(int cx, int y, int f, int gr, uint32_t farbe, const char *t, int breite, int lh, int max)   /* zentriert, umbrochen */
+{
+    zeilen z = umbrechen(f, gr, t, breite);
+    int n = z.n < max ? z.n : max;
+    for (int i = 0; i < n; i++) text_mitte(cx, y + i * lh, f, gr, farbe, i == n - 1 && z.n > max ? kuerzen_still(f, gr, VERB(fa, z.z[i], " …"), breite) : z.z[i]);
+    return n * lh;
+}
+static void fertig_feld(int x, int y, const float *sym, uint32_t f, uint32_t feld) { rund(x, y, 56, 56, 16, feld); symbol(sym, x + 14, y + 14, 28, f); }
+static bool fertig_neu(void) { return !kern_bereiche_106() && !K->DB_HINWEIS; }   /* der Vergleichsmodus 1.0.6 der Tests behält das alte Fenster */
+static void schirm_fertig(void)
+{
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    kopf_neu(4, NULL);
+    bilder_neu = 0;
+    pthread_mutex_lock(&G.m);
+    const char *kopf = a_kopie(fa, G.f_kopf ? G.f_kopf : ""), *frei = a_kopie(fa, G.f_frei ? G.f_frei : ""), *sm = a_kopie(fa, G.f_sm ? G.f_sm : "");
+    bool ok = G.f_ok;
+    pthread_mutex_unlock(&G.m);
+    bool sim = K->simulation;
+    int cx = BREITE / 2, bw = BREITE - 2 * RAND_X;
+    uint32_t af = ok ? N_GRUEN : N_ORANGE;
+    kreis(cx, 214, 52, farbmisch(af, N_HG, .16f));
+    symbol(ok ? SYM_HAKEN : SYM_WARNUNG, cx - 27, 214 - 27, 54, af);
+    const char *gt = groesse_von(fa, A.rm_frei.Bytes, A.rm_frei.Gekappt);
+    text_mitte(cx, 344, 1, 72, N_TEXT, sim ? VERB(fa, gt, T(" würden frei", " would be freed")) : VERB(fa, gt, T(" frei geräumt", " freed")));
+    /* darunter die Meldung des Kerns (erste Zeile), Dateien und Ordner, dann z. B. die Selbstentfernung */
+    const char *nl = strchr(kopf, '\n');
+    const char *k1 = nl ? a_kopie_n(fa, kopf, (size_t)(nl - kopf)) : kopf, *k2 = nl ? nl + 1 : "";
+    int yy = 394;
+    yy += mitte_zeilen(cx, yy, 0, 28, ok ? N_GRAU : N_ORANGE, k1, bw, 36, 2);
+    if (frei[0]) yy += mitte_zeilen(cx, yy, 0, 24, N_GRAU2, frei, bw, 32, 1);
+    if (k2[0]) yy += mitte_zeilen(cx, yy, 0, 24, N_GRAU2, k2, bw, 32, 2);
+    /* Karten */
+    int byy = 826, smh = sm[0] ? 70 : 0, ky = yy + 4, kh = byy - 34 - smh - ky;
+    if (kh > 300) { ky += (kh - 300) / 2; kh = 300; }
+    int kw = (bw - 48) / 3;
+    const char *rt = kern_rest_text(K, fa);
+    bool nichts = ok && !rt[0];
+    /* 1: Übrig geblieben */
+    karte_rund(RAND_X, ky, kw, kh, 22, 1, N_RAND, N_KARTE);
+    fertig_feld(RAND_X + 28, ky + 28, nichts ? SYM_HAKEN : SYM_WARNUNG, nichts ? N_GRUEN : N_ORANGE, farbmisch(nichts ? N_GRUEN : N_ORANGE, N_KARTE, .14f));
+    text(RAND_X + 104, ky + 65, 0, 24, N_GRAU2, T("Übrig geblieben", "Left over"));
+    absatz_bis(RAND_X + 28, ky + 124, 0, 24, nichts ? N_TEXT : N_TEXT2, nichts ? T("Nichts. Alles wurde vollständig entfernt.", "Nothing. Everything was removed completely.")
+                                                                 : rt[0] ? rt : T("Nicht alles - was übrig ist, steht im Protokoll.", "Not everything - the log shows what is left."),
+               kw - 56, 30, (kh - 124 + 6) / 30);
+    /* 2: Protokoll */
+    int x2 = RAND_X + kw + 24;
+    karte_rund(x2, ky, kw, kh, 22, 1, N_RAND, N_KARTE);
+    fertig_feld(x2 + 28, ky + 28, SYM_DOKUMENT, N_GRAU, N_FELD);
+    text(x2 + 104, ky + 65, 0, 24, N_GRAU2, T("Protokoll", "Log"));
+    {
+        const char *wo = protokoll_wo(), *pd = A.protokoll_datei ? A.protokoll_datei : "", *dp = strchr(pd, ':');
+        int ty = ky + 124;
+        ty += absatz_bis(x2 + 28, ty, 0, 26, N_TEXT, wo[0] ? VERB(fa, T("Gespeichert ", "Saved "), wo) : T("Nur in der Protokoll-Ansicht", "Only in the log view"), kw - 56, 34, 2);
+        absatz_bis(x2 + 28, ty + 4, 0, 24, N_GRAU2, wo[0] && dp ? dp + 2 : T("Mit der Options-Taste ansehen.", "View it with the Options button."), kw - 56, 30, (ky + kh - 16 - ty) / 30);
+    }
+    /* 3: Rückmeldung (QR-Code) */
+    int x3 = x2 + kw + 24, tx = x3 + 28;
+    karte_rund(x3, ky, kw, kh, 22, 1, N_RAND, N_KARTE);
+    {
+        rueckmeldung r = rueckmeldung_daten();
+        int qn = qr_kodieren(rueckmeldung_link(fa, &r));
+        bool qr_da = false;   /* Codex-Prüfung 91: ohne Platz für den Code kein "Mit dem Handy scannen" */
+        if (qn > 0) {
+            int m = (kh - 36) / (qn + 8); if (m > 5) m = 5;
+            if (m >= 3) { int s = m * (qn + 8); qr_malen(x3 + 18, ky + (kh - s) / 2, qn, m); tx = x3 + 18 + s + 22; qr_da = true; }
+        }
+        int tw = x3 + kw - 20 - tx, ty = ky + 64;
+        text(tx, ty, 0, 24, N_GRAU2, kuerzen_still(0, 24, T("Rückmeldung geben", "Give feedback"), tw)); ty += 40;
+        if (qr_da) {
+            ty += absatz_bis(tx, ty, 0, 26, N_TEXT, T("Mit dem Handy scannen", "Scan with your phone"), tw, 34, 2) + 8;
+            absatz_bis(tx, ty, 0, 24, N_GRAU, T("Keine Namen, kein Konto, keine Dateien. Gesendet wird erst am Handy.",
+                                                "No names, no account, no files. Nothing is sent until you confirm on your phone."), tw, 30, (ky + kh - 12 - ty) / 30 + 1);
+        } else
+            absatz_bis(tx, ty, 0, 24, N_TEXT, T("Hier ist gerade kein Platz für den QR-Code. Schick uns gern das Protokoll (GitHub oder psxtools.de).",
+                                                "There is no room for the QR code here right now. Feel free to send us the log (GitHub or psxtools.de)."), tw, 30, (ky + kh - 12 - ty) / 30 + 1);
+    }
+    if (sm[0]) { symbol(SYM_INFO, RAND_X, ky + kh + 26, 24, N_GELB); absatz_bis(RAND_X + 36, ky + kh + 46, 0, 24, N_GELB, sm, bw - 36, 30, 2); }
+    /* Knöpfe: ○ Beenden, ✕ Neu starten (wie bisher: jede Taste hat ihren Knopf) */
+    const char *bt = T("Beenden", "Quit"), *nt = T("Neu starten", "Restart");
+    int bh = 80, bw1 = 30 + 38 + 14 + textbreite(1, 26, bt) + 30, bw2 = 38 + 40 + 14 + textbreite(1, 28, nt) + 38, bx = (BREITE - (bw1 + 24 + bw2)) / 2, nx = bx + bw1 + 24;
+    karte_rund(bx, byy, bw1, bh, 18, 2, N_LINIE, N_KARTE);
+    ring(bx + 30 + 19, byy + bh / 2, 18, 2, N_GRAU2); symbol(SYM_KN_KREIS, bx + 30 + 11, byy + bh / 2 - 8, 16, N_TEXT);
+    text(bx + 30 + 38 + 14, byy + bh / 2 + 10, 1, 26, N_TEXT, bt);
+    rund(nx - 9, byy - 9, bw2 + 18, bh + 18, 27, farbmisch(N_FOKUS, N_HG, .18f)); rund(nx - 3, byy - 3, bw2 + 6, bh + 6, 21, N_FOKUS); rund(nx, byy, bw2, bh, 18, N_BLAU);
+    ring(nx + 38 + 20, byy + bh / 2, 19, 2, 0xFFFFFF); symbol(SYM_KN_KREUZ, nx + 38 + 12, byy + bh / 2 - 8, 16, 0xFFFFFF);
+    text(nx + 38 + 40 + 14, byy + bh / 2 + 10, 1, 28, 0xFFFFFF, nt);
+    text_mitte(cx, byy + bh + 34, 0, 24, sim ? N_GELB : N_GRAU2, sim ? T("Simulation: Der Neustart wird nur angezeigt, nicht ausgeführt.", "Simulation: the restart is only shown, not carried out.")
+                                                                     : T("Neu starten wird empfohlen.", "Restarting is recommended."));
+    fussknopf kn[3] = { { KN_X, T("Neu starten", "Restart"), false }, { KN_O, T("Beenden", "Quit"), false }, { KN_OPT, T("Protokoll ansehen", "View log"), true } };
+    hinweis_ueber = byy - 16;
+    fuss_neu(kn, 3);
+}
+
+/* =================================================================== NEU 1.0.8 (Arbeitsplan 4.5, K5): Fragen und Fehler als eigene Seite
+ * nach Entwurf 2 statt der alten Fenster (z. B. Übersicht der vollständigen Bereinigung, M.2 und erweiterter Speicher behalten/leeren,
+ * Jailbreak-Warnung, ShadowMount, PS5 Cleanup selbst entfernen, Fehler). Oben Zeichen und Titel, in der Mitte der Text des Kerns in einer
+ * Karte (↑↓ blättert), darunter die Knöpfe: links der sichere (○, hier startet die Seite), rechts der andere (rot) - wie auf der Seite
+ * "Bestätigen". Eigene Entscheidung: die Seiten tauschen damit gegenüber dem alten Fenster die Seiten der Knöpfe (← sicher, → anders).
+ * Im Text: "!!! … !!!" rot, Aufzählungen mit Punkt, Schlüsselwörter wie "BEHALTEN:" fett - grün, wenn sie zum sicheren Knopf gehören,
+ * rot beim anderen. Die Fragen selbst stellt der Kern wie bisher (Mitschnitt und Nachbau unverändert). */
+typedef struct { const char *t; int x, f, gr, h; uint32_t farbe; } fz_zeile;
+static int frage_zeilen(fz_zeile *out, int max, const char *text, int breite, const char *sicher, const char *gef)
+{
+    int n = 0;
+    const char *gs = a_gross(fa, sicher ? sicher : ""), *gg = a_gross(fa, gef ? gef : "");
+    sliste q = r_split(fa, text ? text : "", "\n");
+    for (int i = 0; i < q.n && n < max; i++) {
+        const char *s = q.e[i];
+        int ein = 0; while (s[ein] == ' ') ein++;
+        const char *rest = s + ein;
+        if (!rest[0]) { if (n > 0 && out[n - 1].h != 18) out[n++] = (fz_zeile){ "", 0, 0, 26, 18, 0 }; continue; }   /* Absatz */
+        uint32_t farbe = N_TEXT2; int f = 0, x = ein > 0 ? 28 : 0;
+        if (strstr(rest, "!!!")) { rest = r_r(fa, r_r(fa, rest, "^!!!\\s*", ""), "\\s*!!!$", ""); farbe = N_ROT; f = 1; }
+        else if (txt_beginnt(rest, "SIMULATION") || txt_beginnt(rest, "TEST:")) { farbe = N_GELB; f = 1; }
+        bool punkt = false;
+        if (txt_beginnt(rest, "- ")) { rest = rest + 2; punkt = true; x = ein > 3 ? 56 : 28; }
+        htreffer kw = h_mt(fa, rest, "(?-i)^([A-ZÄÖÜ0-9][A-ZÄÖÜ0-9 +/.-]{2,40}):\\s+(.+)$");
+        if (kw.ok && !punkt && farbe == N_TEXT2) {   /* "BEHALTEN: …" - fett, farbig nach dem passenden Knopf */
+            const char *w = kw.gr[1];
+            uint32_t kf = strstr(gs, w) ? N_GRUEN : strstr(gg, w) ? N_ROT : N_TEXT;
+            if (n < max) out[n++] = (fz_zeile){ w, x, 1, 24, 34, kf };
+            rest = kw.gr[2];
+            if (rest[0] >= 'a' && rest[0] <= 'z') { char *g = a_kopie(fa, rest); g[0] = (char)(g[0] - 'a' + 'A'); rest = g; }   /* steht jetzt am Zeilenanfang */
+        }
+        zeilen z = umbrechen(f, 26, rest, breite - x - (punkt ? 30 : 0));
+        for (int j = 0; j < z.n && n < max; j++) {
+            if (punkt && j == 0 && n < max) out[n] = (fz_zeile){ VERB(fa, "•  ", z.z[j]), x, f, 26, 36, farbe };
+            else out[n] = (fz_zeile){ z.z[j], x + (punkt ? 30 : 0), f, 26, 36, farbe };
+            n++;
+        }
+    }
+    while (n > 0 && out[n - 1].h == 18) n--;
+    return n;
+}
+static void frage_knopf(int x, int y, int w, int h, bool fok, uint32_t fuell, const float *sym, const char *t, uint32_t tf)
+{
+    if (fok) { rund(x - 9, y - 9, w + 18, h + 18, 27, farbmisch(N_FOKUS, N_HG, .18f)); rund(x - 3, y - 3, w + 6, h + 6, 21, N_FOKUS); }
+    rund(x, y, w, h, 18, fuell);
+    int cx = x + 30 + 19, cy = y + h / 2;
+    ring(cx, cy, 18, 2, farbmisch(tf, fuell, .7f)); symbol(sym, cx - 8, cy - 8, 16, tf);
+    text(x + 30 + 38 + 14, cy + 10, 1, 26, tf, t);
+}
+static void schirm_frage(void)
+{
+    rechteck(0, 0, BREITE, HOEHE, N_HG);
+    kopf_neu(auftrag_jetzt == AUF_SUCHEN ? 1 : 3, NULL);
+    bilder_neu = 0;
+    pthread_mutex_lock(&G.m);
+    dialogart art = G.art;
+    const char *titel = a_kopie(fa, G.titel ? G.titel : ""), *txt = a_kopie(fa, G.text ? G.text : ""), *si = a_kopie(fa, G.sicher ? G.sicher : ""), *ge = a_kopie(fa, G.gef ? G.gef : "");
+    pthread_mutex_unlock(&G.m);
+    bool fehler = art == D_FEHLER;
+    if (fehler && !strcmp(titel, "PS5 Cleanup")) {
+        const char *v = T("Es ist ein Fehler aufgetreten:\n", "An error occurred:\n");
+        titel = T("Es ist ein Fehler aufgetreten", "An error occurred");
+        if (txt_beginnt(txt, v)) txt += strlen(v);
+    }
+    bool warnung = fehler || strstr(txt, "!!!") || txt_beginnt(txt, T("ACHTUNG", "WARNING"));
+    uint32_t sf = fehler ? N_ROT : warnung ? N_ORANGE : N_FOKUS;
+    rund(RAND_X, 150, 64, 64, 18, farbmisch(sf, N_HG, .16f));
+    symbol(warnung ? SYM_WARNUNG : SYM_INFO, RAND_X + 16, 166, 32, sf);
+    text_passend(RAND_X + 88, 198, 1, 44, 32, N_TEXT, titel, BREITE - 2 * RAND_X - 88);
+    /* der Text in einer Karte - ↑↓ blättert */
+    int kx = RAND_X, ky = 248, kw = BREITE - 2 * RAND_X, kh = 520, pad = 36;
+    karte_rund(kx, ky, kw, kh, 22, 1, N_RAND, N_KARTE);
+    fz_zeile *z = a_hole(fa, sizeof(fz_zeile) * 600);
+    int n = frage_zeilen(z, 600, txt, kw - 2 * pad - 24, si, ge), sichtbar = kh - 2 * pad + 10, ges = 0;
+    for (int i = 0; i < n; i++) ges += z[i].h;
+    int max_start = n; { int h = 0; while (max_start > 0 && h + z[max_start - 1].h <= sichtbar) h += z[--max_start].h; }
+    if (dlg_scroll > max_start) dlg_scroll = max_start;
+    if (dlg_scroll < 0) dlg_scroll = 0;
+    clip_y0 = ky + 6; clip_y1 = ky + kh - 6;
+    int yy = ky + pad + 22;
+    for (int i = dlg_scroll; i < n && yy - 28 < ky + kh; i++) { if (z[i].t[0]) text(kx + pad + z[i].x, yy, z[i].f, z[i].gr, z[i].farbe, z[i].t); yy += z[i].h; }
+    clip_y0 = 0; clip_y1 = 1 << 30;
+    bool mehr = ges > sichtbar;
+    if (mehr) {
+        int bh = kh - 48, sh = bh * sichtbar / ges, sy = ky + 24 + (max_start > 0 ? (bh - sh) * dlg_scroll / max_start : 0);
+        rund(kx + kw - 20, ky + 24, 6, bh, 3, farbmisch(N_LINIE, N_KARTE, .5f)); rund(kx + kw - 20, sy, 6, sh, 3, N_GRAU2);
+        if (dlg_scroll < max_start) for (int i = 0; i < 40; i++) { float al = (float)(i + 1) / 40.f; for (int px = kx + 2; px < kx + kw - 30; px++) misch(px, ky + kh - 42 + i, N_KARTE, al); }
+    }
+    /* Knöpfe */
+    int byy = ky + kh + 38, bh = 80;
+    if (fehler) {
+        const char *ok = "OK"; int bw = 30 + 38 + 14 + textbreite(1, 26, ok) + 40, bx = (BREITE - bw) / 2;
+        frage_knopf(bx, byy, bw, bh, true, N_BLAU, SYM_KN_KREUZ, ok, 0xFFFFFF);
+    } else {
+        int bs = 30 + 38 + 14 + textbreite(1, 26, si) + 34, bg = 30 + 38 + 14 + textbreite(1, 26, ge) + 34;
+        int x0 = (BREITE - (bs + 28 + bg)) / 2, xg = x0 + bs + 28;
+        bool fs = dlg_fokus == 0, fg = dlg_fokus == 1;
+        frage_knopf(x0, byy, bs, bh, fs, N_BLAU, SYM_KN_KREIS, si, 0xFFFFFF);
+        frage_knopf(xg, byy, bg, bh, fg, fg ? N_ROT_KNOPF : farbmisch(N_ROT_KNOPF, N_HG, .45f), SYM_KN_KREUZ, ge, fg ? 0xFFFFFF : farbmisch(0xFFFFFF, N_HG, .8f));
+    }
+    fussknopf kn[5]; int nk = 0;
+    if (fehler) kn[nk++] = (fussknopf){ KN_X, "OK", false };
+    else {
+        kn[nk++] = (fussknopf){ KN_LINKSRECHTS, T("Knopf wählen", "Choose button"), false };
+        kn[nk++] = (fussknopf){ KN_X, T("drücken", "Press"), false };
+        kn[nk++] = (fussknopf){ KN_O, T("sicherer Knopf", "Safe button"), false };
+    }
+    if (mehr) kn[nk++] = (fussknopf){ KN_HOCHRUNTER, T("weiterlesen", "Read more"), false };
+    kn[nk++] = (fussknopf){ KN_OPT, T("Protokoll", "Log"), true };
+    hinweis_ueber = byy - 16;
+    fuss_neu(kn, nk);
+}
+
 /* Fragen (FrageWahl / FrageText / FertigFenster / Meldung) */
 static void schirm_dialog(void)
 {
@@ -1685,17 +3466,11 @@ static void schirm_dialog(void)
         }
         }
         absatz_max(x + 40, y + h - 230, 0, 18, F_GRAU, VERB(fa, T("Protokoll: ", "Log: "), A.protokoll_datei), tb, 22, 2);   /* NEU 1.0.7: neben dem Rückmelde-Kasten umbrechen */
-        /* da_Chris86 02.11.2026 15:41-15:54: am Ende ✕ Neu starten (vorgewählt) oder ○ Beenden - kein Ausschalten mehr (das gab es seit
-         * 30.10.2026 nur für den Datenbank-Neuaufbau, den PS5 Cleanup nie mehr empfiehlt). */
+        /* da_Chris86 02.11.2026 15:41-15:54: am Ende ✕ Neu starten (vorgewählt) oder ○ Beenden */
         const char *kn[2] = { T("✕  Neu starten", "✕  Restart"), T("○  Beenden", "○  Quit") };
         int kx = x + w - 40, ky = y + h - 100;
         text(x + 40, ky - 46, 0, 20, F_GRAU, T("Empfohlen: PS5 neu starten. Danach deinen Jailbreak wie gewohnt starten.",
                                                "Recommended: restart the PS5. Then start your jailbreak as usual."));
-        if (G.f_auto) {
-            int rest = 10 - (int)((SDL_GetTicks() - G.f_seit) / 1000); if (rest < 0) rest = 0;
-            text(x + 40, ky - 84, 1, 24, F_ORANGE, VERB(fa, T("Automatischer Neustart in ", "Automatic restart in "), a_fmt(fa, "%d", rest), T(" s  ·  ○ = abbrechen", " s  ·  ○ = cancel")));
-            lauf_aktiv = true;                     /* laufend neu zeichnen (Countdown) */
-        }
         for (int i = 0; i < 2; i++) {   /* rechts ✕ Neu starten (vorgewählt, hell umrandet), links daneben ○ Beenden */
             int bw = textbreite(1, 24, kn[i]) + 70; kx -= bw;
             karte(kx, ky, bw, 70, i == 0 ? 0xFFFFFF : F_RAND, i == 0 ? F_BLAU : F_KARTE2);
@@ -1867,10 +3642,17 @@ static void zeichnen(void)
     fa = arena_neu();
     rechteck(0, 0, BREITE, HOEHE, F_HG);
     lauf_aktiv = false;
-    if (G.beschaeftigt) schirm_arbeit();
-    else if (GESUCHT && AUSWAHL_OFFEN && ablauf_verbunden(&A)) schirm_liste();
-    else schirm_start();
-    if (G.art != D_KEINER) schirm_dialog();
+    if (G.beschaeftigt && A.loescht && !loeschseite) loeschseite_beginnen();   /* NEU 1.0.8 (4.5): vom ersten Löschen bis zum Ende der Arbeit */
+    if (!G.beschaeftigt) loeschseite = false;
+    if (G.art == D_FERTIG && fertig_neu()) schirm_fertig();   /* NEU 1.0.8 (4.5): eigene Seite statt Fenster */
+    else if (bestaetigen_aktiv()) schirm_bestaetigen();        /* NEU 1.0.8 (4.4) */
+    else if (G.art == D_WAHL || G.art == D_FEHLER) schirm_frage();   /* NEU 1.0.8 (4.5, K5): Fragen und Fehler als eigene Seite */
+    else {   /* (die Seiten oben zeichnen alles selbst - der Hintergrund darunter entfällt) */
+        if (G.beschaeftigt) { if (loeschseite) schirm_loeschen(); else schirm_arbeit(); }
+        else if (GESUCHT && AUSWAHL_OFFEN && ablauf_verbunden(&A)) schirm_liste();
+        else schirm_start();
+        if (G.art != D_KEINER) schirm_dialog();   /* altes Fenster nur noch: Texteingabe außer der vollständigen Bereinigung, Fertig im Vergleichsmodus 1.0.6 */
+    }
     if (protokoll_offen) schirm_protokoll();   /* NEU 1.0.7: auch über einer Frage / dem Abschluss (Options) */
 }
 
@@ -1888,18 +3670,36 @@ static void taste_dialog(int t)
     dialogart art = G.art;
     if (G.dlg_nr != dlg_gesehen || SDL_GetTicks() - dlg_seit < 400) return;   /* Frage gerade erst erschienen */
     if (art == D_FERTIG) {   /* NEU 1.0.6 */
-        pthread_mutex_lock(&G.m); bool cd = G.f_auto; if (cd && t == T_KREIS) G.f_auto = false; pthread_mutex_unlock(&G.m);   /* Codex-Prüfung 33 */
-        if (cd) return;                                  /* Countdown läuft: nur ○ (abbrechen) */
-        /* da_Chris86 02.11.2026: ✕ = Neu starten, ○ = Beenden (vorher 30.10.2026: ✕ = ausschalten, ○ = zurück zur Liste) */
+        /* da_Chris86 02.11.2026: ✕ = Neu starten, ○ = Beenden */
         if (t == T_X) { nach_aktion = 2; antworten(false, false); }
         else if (t == T_KREIS) { nach_aktion = 1; antworten(false, false); }
         return;
     }
-    if (art == D_FEHLER) { if (t == T_X || t == T_KREIS) antworten(false, false); return; }
+    if (art == D_FEHLER) { if (t == T_HOCH) dlg_scroll -= 3; else if (t == T_RUNTER) dlg_scroll += 3; else if (t == T_X || t == T_KREIS) antworten(false, false); return; }
+    if (tippen_aktiv()) {   /* NEU 1.0.8 (4.4): vollständige Bereinigung - links Zurück (1), Mitte Feld (0), rechts Löschen (2) */
+        if (t == T_LINKS) dlg_fokus = dlg_fokus == 2 ? 0 : 1;
+        else if (t == T_RECHTS) dlg_fokus = dlg_fokus == 1 ? 0 : 2;
+        else if (t == T_KREIS) antworten(false, false);
+        else if (t == T_X) {
+            if (dlg_fokus == 0) tastatur_auf();
+            else if (dlg_fokus == 1) antworten(false, false);
+            else if (eingabe_passt()) antworten(false, true);
+            else { kurz(G.eingabe[0] ? T("Bitte genau LÖSCHEN eintippen, in Großbuchstaben.", "Please type DELETE exactly, in capital letters.")
+                                      : T("Erst LÖSCHEN eintippen: ✕ auf dem Feld öffnet die Tastatur.", "Type DELETE first: ✕ on the field opens the keyboard.")); hinweis_dauer(5000); }
+        }
+        return;
+    }
+    if (bestaetigen_aktiv()) {   /* NEU 1.0.8 (4.4): links "Zurück zur Auswahl", rechts "Löschen" (✕ halten - siehe halten_start) */
+        if (t == T_LINKS) { dlg_fokus = 0; x_seit = 0; }
+        else if (t == T_RECHTS) dlg_fokus = 1;
+        else if (t == T_KREIS) antworten(false, false);
+        else if (t == T_X) { if (dlg_fokus == 0) antworten(false, false); else kurz(T("Zum Löschen ✕ gedrückt halten, bis der Kreis voll ist.", "To delete, hold ✕ until the circle is full.")); }
+        return;
+    }
     if (t == T_HOCH && (art == D_WAHL || dlg_fokus == 0)) { dlg_scroll -= 3; return; }
     if (t == T_RUNTER && art == D_WAHL) { dlg_scroll += 3; return; }
     if (art == D_WAHL) {
-        if (t == T_LINKS) dlg_fokus = 1; else if (t == T_RECHTS) dlg_fokus = 0;
+        if (t == T_LINKS) dlg_fokus = 0; else if (t == T_RECHTS) dlg_fokus = 1;   /* 1.0.8 (K5): links der sichere Knopf (wie auf der Seite "Bestätigen") */
         else if (t == T_KREIS) antworten(false, false);
         else if (t == T_X) antworten(dlg_fokus == 1, false);
         return;
@@ -1919,53 +3719,66 @@ static void taste_dialog(int t)
 static void taste_liste(int t)
 {
     sicht_neu();
-    int k = sicht[fokus_bereich], n = bereich_zeilen(k);
+    int k = sicht[fokus_bereich];
+    al_ordnen(k);
+    if (optionen_offen) {   /* NEU 1.0.8 (4.3): Options-Menü der Auswahl - Reihenfolge und Protokoll */
+        switch (t) {
+        case T_HOCH: if (opt_fokus > 0) opt_fokus--; break;
+        case T_RUNTER: if (opt_fokus < 3) opt_fokus++; break;
+        case T_X:
+            if (opt_fokus == 0) { sortierung = sortierung == SORT_AZ ? SORT_GROESSTE : SORT_AZ; al_py = 0; }
+            else if (opt_fokus == 1) ordner_zeigen = !ordner_zeigen;
+            else if (opt_fokus == 2) testmodus_aus_menue();
+            else { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; }
+            break;
+        case T_KREIS: case T_OPTIONS: optionen_offen = false; break;
+        default: break;
+        }
+        return;
+    }
     switch (t) {
-    case T_HOCH: if (fokus_zone == 0) { if (fokus_bereich > 0) { fokus_bereich--; fokus_eintrag = 0; eintrag_scroll = 0; } } else if (fokus_eintrag > 0) fokus_eintrag--; break;
-    case T_RUNTER: if (fokus_zone == 0) { if (fokus_bereich < sicht_n - 1) { fokus_bereich++; fokus_eintrag = 0; eintrag_scroll = 0; } } else if (fokus_eintrag < n - 1) fokus_eintrag++; break;
-    case T_L1: if (fokus_zone == 1) { fokus_eintrag -= 8; if (fokus_eintrag < 0) fokus_eintrag = 0; } break;
-    case T_R1: if (fokus_zone == 1) { fokus_eintrag += 8; if (fokus_eintrag > n - 1) fokus_eintrag = n - 1 < 0 ? 0 : n - 1; } break;
-    case T_RECHTS:
-        if (fokus_zone == 1 && bereich_eintrag(k, fokus_eintrag) == &RESTE_ZEILE) { reste_offen = !reste_offen; break; }   /* NEU 1.0.7: Reste auf-/zuklappen */
-        if (n > 0) fokus_zone = 1;
+    case T_HOCH: if (fokus_zone == 0) { if (fokus_bereich > 0) fokus_bereich--; } else al_schritt(-1); break;
+    case T_RUNTER: if (fokus_zone == 0) { if (fokus_bereich < sicht_n - 1) fokus_bereich++; } else al_schritt(1); break;
+    case T_L1: case T_R1:   /* seitenweise: sechs Blöcke weiter */
+        if (fokus_zone == 1 && AL.n > 0) { al_b += t == T_R1 ? 6 : -6; if (al_b < 0) al_b = 0; if (al_b > AL.n - 1) al_b = AL.n - 1; al_t = -1; }
         break;
-    case T_LINKS: fokus_zone = 0; break;
+    case T_RECHTS: if (AL.n > 0) fokus_zone = 1; break;
+    case T_LINKS: case T_KREIS: fokus_zone = 0; break;
     case T_X:
         if (fokus_zone == 0) {
+            int n = bereich_anzahl(k);
             if (n > 0 && ablauf_bereich_nur_einzeln(&A, k) && ablauf_bereich_zustand(&A, k) == 0)   /* NEU 1.1 */
                 kurz(T("Hier nur einzeln wählbar: mit → in die Liste gehen und die Einträge einzeln anhaken.", "Individually only here: press → to enter the list and tick entries one by one."));
             else if (n > 0) ablauf_bereich_setzen(&A, k, ablauf_bereich_zustand(&A, k) != 2);
         }
-        else {
-            eintrag *f = bereich_eintrag(k, fokus_eintrag);
-            const char *g;
-            if (f == &RESTE_ZEILE) {   /* NEU 1.0.7: alle Reste an/aus */
-                bool alle = true; for (int j = 0; j < reste_n; j++) if (!reste_e[j]->Gesperrt && !reste_e[j]->Wahl) alle = false;
-                for (int j = 0; j < reste_n; j++) if (!ablauf_eintrag_gesperrt(&A, reste_e[j], &g)) ablauf_eintrag_setzen(&A, reste_e[j], !alle);
-            }
-            else if (f && ablauf_eintrag_gesperrt(&A, f, &g)) kurz(g ? g : T("Nicht wählbar.", "Not selectable."));
-            else if (f) {
-                bool vorher = f->Wahl;
-                ablauf_eintrag_setzen(&A, f, !f->Wahl);
-                /* NEU 1.0.6 (da_Chris86 29.10.2026 07:28): beim Anwählen eines Jailbreak-Einstiegs deutlich warnen */
-                if (!vorher && f->Wahl && f->Jailbreak) { kurz(kern_jb_warnung(fa, f)); hinweis_bis = SDL_GetTicks() + 8000; }
-                else if (vorher && !f->Wahl && f->Jailbreak) hinweis_bis = 0;   /* da_Chris86 29.10.2026 (Fernsehtest): abgewählt - Warnung sofort weg */
-            }
+        else if (AL.n > 0) {
+            if (al_t >= 0 && al_mehr(al_b)) eintrag_umschalten(AL.bl[al_b].teile.e[al_t]);
+            else al_block_setzen(al_b);
         }
         break;
 #ifdef NUR_LESEN
     case T_QUADRAT: case T_DREIECK: kurz(T("In dieser Testversion gesperrt - es wird nur nachgeschaut.", "Locked in this test version - only looking.")); break;
 #else
-    case T_QUADRAT: if (gewaehlt_anzahl() > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_AUSWAHL); } else kurz(T("Erst etwas auswählen (✕).", "Select something first (✕).")); break;
-    case T_DREIECK: if (K->Funde.n > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_KOMPLETT); } break;
+    case T_QUADRAT: case T_DREIECK:
+        if (testmodus) { kurz(testmodus_hinweis()); hinweis_dauer(6000); break; }   /* NEU 1.0.8 (3.6) */
+        if (t == T_QUADRAT) { if (gewaehlt_anzahl() > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_AUSWAHL); } else kurz(T("Erst etwas auswählen (✕).", "Select something first (✕).")); }
+        else if (K->Funde.n > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_KOMPLETT); }
+        break;
 #endif
-    case T_OPTIONS: protokoll_offen = true; prot_scroll = 1 << 20; break;
+    case T_OPTIONS: optionen_offen = true; opt_fokus = 0; break;
     default: break;
     }
 }
 static void taste(int t)
 {
+    if (x_ruhe_bis) {   /* NEU 1.0.8: siehe testmodus_aus_menue */
+        if (t == T_X && (Sint32)(SDL_GetTicks() - x_ruhe_bis) < 0) return;
+        x_ruhe_bis = 0;   /* Codex-Prüfung 102 (P3): jede andere Taste hebt die Sperre auf (z. B. □ öffnet gleich danach die Bestätigungsfrage) */
+    }
     neu_zeichnen();
+#ifdef MITSCHNITT
+    ms_taste();                                    /* NEU 1.0.8 (2.7): nach dem Tastendruck ein Bild */
+#endif
     if (protokoll_offen) {
         if (t == T_KREIS || t == T_OPTIONS) protokoll_offen = false;
         else if (t == T_HOCH) prot_scroll -= 3; else if (t == T_RUNTER) prot_scroll += 3;
@@ -1979,21 +3792,33 @@ static void taste(int t)
     }
     if (G.beschaeftigt) {
         if (t == T_KREIS && A.abbrechbar) { K->abbruch = true; ui_stand(NULL, T("Breche ab ...", "Cancelling ..."), ABLAUF_BALKEN_GLEICH); }
+        else if (t == T_KREIS && A.loescht && A.anhaltbar && !anhalten_gewuenscht) kurz(T("Zum Anhalten ○ eine Sekunde gedrückt halten.", "To stop, hold ○ for one second."));   /* NEU 1.0.8 (4.5) */
         else if (t == T_OPTIONS) { protokoll_offen = true; prot_scroll = 1 << 20; }
         return;
     }
     bool fertig = GESUCHT && ablauf_verbunden(&A);
     if (fertig && AUSWAHL_OFFEN) { taste_liste(t); return; }
+    if (optionen_offen) {   /* NEU 1.0.8 (3.6): Options-Menü der Startseite */
+        if (t == T_HOCH && opt_fokus > 0) opt_fokus--;
+        else if (t == T_RUNTER && opt_fokus < 1) opt_fokus++;
+        else if (t == T_X) { if (opt_fokus == 0) testmodus_aus_menue(); else { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; } }
+        else if (t == T_KREIS || t == T_OPTIONS) optionen_offen = false;
+        return;
+    }
     /* Start / Übersicht */
-    if (t == T_X) { if (fertig) { AUSWAHL_OFFEN = true; fokus_zone = 0; fokus_bereich = 0; fokus_eintrag = 0; eintrag_scroll = 0; } else starte(AUF_SUCHEN); }
+    if (t == T_X) { if (fertig) { AUSWAHL_OFFEN = true; fokus_zone = 0; fokus_bereich = 0; AL.k = -1; al_b = 0; al_t = -1; al_py = 0; optionen_offen = false; } else starte(AUF_SUCHEN); }
     else if (t == T_DREIECK && fertig) starte(AUF_SUCHEN);
-    else if (t == T_QUADRAT && !GESUCHT) { SP_EN = !SP_EN; sim_hinweis_setzen(); }   /* Sprache nur vor der ersten Suche (die Texte der Liste entstehen beim Suchen) */
-    else if (t == T_OPTIONS) { protokoll_offen = true; prot_scroll = 1 << 20; }
+    else if (t == T_QUADRAT && !GESUCHT) { SP_EN = !SP_EN; sim_hinweis_setzen(); plattform_absturzmelder(SP_EN ? "PS5 Cleanup " VERSION_TEXT_EN : "PS5 Cleanup " VERSION_TEXT); }   /* Codex-Prüfung 70: auch der Absturzmelder */   /* Sprache nur vor der ersten Suche (die Texte der Liste entstehen beim Suchen) */
+    else if (t == T_OPTIONS) { optionen_offen = true; opt_fokus = 0; }   /* NEU 1.0.8 (3.6): Menü mit Testmodus und Protokoll */
 }
 static void kreis_gehalten(void)
 {
     /* ○ eine Sekunde halten = Beenden - nicht während einer Arbeit oder einer Frage */
     if (G.art == D_FERTIG) { taste_dialog(T_KREIS); return; }   /* Prüfung p8, Befund 10: am Ende wie ○ = Beenden */
+    if (A.loescht && A.anhaltbar && G.art == D_KEINER) {   /* NEU 1.0.8 (4.5, Arbeitsplan 3.4): ○ halten beim Löschen = nach diesem Eintrag anhalten */
+        if (!anhalten_gewuenscht && ablauf_loeschen_anhalten(&A)) { anhalten_gewuenscht = true; kurz(T("Wird nach diesem Eintrag angehalten.", "Stopping after this entry.")); }
+        return;
+    }
     if (G.beschaeftigt || A.loescht) { kurz(T("Bitte warten, bis die laufende Arbeit fertig ist.", "Please wait until the current task has finished.")); return; }
     if (G.art != D_KEINER) return;
     laeuft = false;
@@ -2009,7 +3834,6 @@ static int tastennr(int sdl)
     case SDL_CONTROLLER_BUTTON_START: return T_OPTIONS; default: return T_ANDERE;
     }
 }
-static SDL_GameController *pad;
 static void pad_oeffnen(void)
 {
     if (pad) return;
@@ -2033,6 +3857,17 @@ static int tasten_name(const char *s)
     for (int i = 0; i < 11; i++) if (!strcmp(s, n[i])) return i;
     return T_ANDERE;
 }
+static void *skript_fehler(void *p)   /* NEU 1.0.8 (K5): Fehlerseite in der PC-Vorschau ansehen - Aufbau wie in ablauf_starte, Beispiel-Fehler */
+{
+    (void)p;
+    char t[1024];
+    snprintf(t, sizeof t, "%s%s%s%s%s", T("Es ist ein Fehler aufgetreten:\n", "An error occurred:\n"),
+             T("Ordner nicht lesbar: /user/app/PPSA01650 (Beispiel aus der PC-Vorschau)", "Folder not readable: /user/app/PPSA01650 (example from the PC preview)"),
+             T("\n\nDas Protokoll liegt hier:\n", "\n\nThe log is here:\n"), A.protokoll_datei ? A.protokoll_datei : "",
+             T("\n\nBitte diese Datei bei einer Fehlermeldung mitschicken.", "\n\nPlease attach this file when reporting the problem."));
+    ui_fehler(NULL, t);
+    return NULL;
+}
 static void skript_schritt(void)
 {
     if (!skript || SDL_GetTicks() < skript_warte) return;
@@ -2042,11 +3877,27 @@ static void skript_schritt(void)
         size_t l = strlen(z); while (l && (z[l - 1] == '\n' || z[l - 1] == '\r')) z[--l] = 0;
         if (!l || z[0] == '#') continue;
         if (!strncmp(z, "TASTE ", 6)) { taste(tasten_name(z + 6)); skript_warte = SDL_GetTicks() + 60; return; }
-        if (!strncmp(z, "TEXT ", 5)) { pthread_mutex_lock(&G.m); snprintf(G.eingabe, sizeof G.eingabe, "%s", z + 5); pthread_mutex_unlock(&G.m); tastatur_offen = false; return; }
+        if (!strncmp(z, "WARTELOESCHEN ", 14)) {   /* 1.0.8 (4.5): bis der Kern beim Eintrag n ist (oder nichts mehr läuft) */
+            if (G.beschaeftigt && A.lf_nr < atoi(z + 14)) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 50; return; }
+            continue;
+        }
+        if (!strcmp(z, "HALTE KREIS")) { kreis_seit = SDL_GetTicks(); if (!kreis_seit) kreis_seit = 1; skript_warte = SDL_GetTicks() + 60; return; }   /* 1.0.8 (4.5): ○ halten (Anhalten) */
+        if (!strncmp(z, "HALTE X", 7)) {   /* NEU 1.0.8 (4.4): ✕ halten (Bestätigen); "HALTE X 700" = nach 700 ms weiter im Skript, der Kreis läuft weiter */
+            halten_start(); int ms = atoi(z + 7); skript_warte = SDL_GetTicks() + (Uint32)(ms > 0 ? ms : HALTEN_MS + 400); return;
+        }
+        if (!strcmp(z, "LASSE X")) { halten_ende(); skript_warte = SDL_GetTicks() + 60; return; }   /* NEU 1.0.8 (5.1a): ✕ vor 1,5 s loslassen */
+        if (!strncmp(z, "TEXT ", 5)) {   /* 1.0.8: "TEXT @WORT" = LÖSCHEN/DELETE je Sprache, "TEXT @KLEIN" = dasselbe klein (falsch) */
+            const char *w = !strcmp(z + 5, "@WORT") ? T("LÖSCHEN", "DELETE") : !strcmp(z + 5, "@KLEIN") ? T("löschen", "delete") : z + 5;
+            pthread_mutex_lock(&G.m); snprintf(G.eingabe, sizeof G.eingabe, "%.*s", (int)sizeof G.eingabe - 1, w); pthread_mutex_unlock(&G.m); tastatur_offen = false; return; }
         if (!strncmp(z, "BILD ", 5)) { bild_speichern(z + 5); return; }
+        if (!strcmp(z, "FEHLER")) { pthread_t th; if (!pthread_create(&th, NULL, skript_fehler, NULL)) pthread_detach(th); skript_warte = SDL_GetTicks() + 60; return; }   /* 1.0.8 (K5) */
         if (!strncmp(z, "WARTE ", 6)) { skript_warte = SDL_GetTicks() + (Uint32)atoi(z + 6); return; }
         if (!strcmp(z, "WARTEFREI")) {   /* bis keine Arbeit mehr läuft und die Größen gezählt sind */
             if (G.beschaeftigt || G.art != D_KEINER || (A.hintergrund && A.hg_n < A.hg_gesamt)) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 100; return; }
+            continue;
+        }
+        if (!strcmp(z, "WARTESUCHE")) {   /* NEU 1.0.8 (PS5-Test 07.11.2026): bis das Nachschauen fertig ist - die Größen dürfen noch gezählt werden */
+            if (G.beschaeftigt || G.art != D_KEINER) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 50; return; }
             continue;
         }
         if (!strcmp(z, "WARTEDIALOG")) {
@@ -2073,9 +3924,20 @@ static int programm(void)
 
     SP_EN = plattform_englisch();
     plattform_konsole(&KI);
-    plattform_absturzmelder("PS5 Cleanup " VERSION_TEXT);   /* 1.0.6 Fix: ab hier jeder Absturz als Benachrichtigung + Protokoll */
-    K = kern_neu(plattform_zugriff());
+    plattform_absturzmelder(SP_EN ? "PS5 Cleanup " VERSION_TEXT_EN : "PS5 Cleanup " VERSION_TEXT);   /* 1.0.6 Fix: ab hier jeder Absturz als Benachrichtigung + Protokoll (1.0.8: in der eingestellten Sprache) */
+#ifdef MITSCHNITT
+    ms_oeffnen();                                 /* NEU 1.0.8 (2.7): vor dem ersten Zugriff - so steht alles im Mitschnitt */
+#endif
+    K = kern_neu(app_zugriff());
     K->appinfo_lesen = plattform_appinfo_lesen;   /* NEU 1.0.7 (02.11.2026): Zuordnungen und kaputte Zusatzinhalt-Angaben aus appinfo.db (nur lesen) */
+    /* Codex-Prüfungen 74/75: der Ordner der Test-Fassung an jedem möglichen Ort - in jeder Fassung, auch wenn der Mitschnitt diesmal nicht geht */
+    for (size_t i = 0; i < sizeof TEST_ORDNER_ORTE / sizeof TEST_ORDNER_ORTE[0]; i++) sl_add(K->a, &K->TEST_ORDNER, TEST_ORDNER_ORTE[i]);
+#ifdef MITSCHNITT
+    if (ms_f) {
+        K->appinfo_lesen = ms_appinfo_lesen;
+        zugriff_mitschnitt_zustand = ms_db_zustand;
+    }
+#endif
 #ifdef KERN_LOESCHEN
     K->simulation = false;                                  /* Release-Bau: löscht wirklich (nach Bestätigung) */
 #else
@@ -2088,7 +3950,6 @@ static int programm(void)
     K->melde = ui_log; K->melde_ctx = NULL;
     A.groesse_neu = groesse_neu_app; A.groesse_ctx = NULL;
     A.neue_verbindung = neue_verbindung;
-    A.neustart_frage = NULL;   /* da_Chris86 30.10.2026 09:01: keine Neustart-Frage mehr */
 #ifdef KERN_LOESCHEN
     A.protokoll_datei = T("in der Protokoll-Ansicht (Options) - beim Löschen auf dem USB-Laufwerk oder im Ordner /data/PS5-Cleanup-Protokolle", "in the log view (Options) - when deleting on the USB drive or in the folder /data/PS5-Cleanup-Protokolle");
 #else
@@ -2096,23 +3957,24 @@ static int programm(void)
 #endif
 #ifdef NUR_LESEN
     sim_hinweis_setzen();
-    ui_log(NULL, VERB(K->a, "PS5 Cleanup " VERSION_TEXT " (", plattform_name(), ") - ", T("TEST: NUR LESEN", "TEST: READ ONLY")));
+    ui_log(NULL, VERB(K->a, "PS5 Cleanup ", VERSION_ANZEIGE, " (", plattform_name(), ") - ", T("TEST: NUR LESEN", "TEST: READ ONLY")));
 #elif defined(KERN_LOESCHEN)
-    ui_log(NULL, VERB(K->a, "PS5 Cleanup " VERSION_TEXT " (", plattform_name(), ")"));
+    ui_log(NULL, VERB(K->a, "PS5 Cleanup ", VERSION_ANZEIGE, " (", plattform_name(), ")"));
 #else
-    ui_log(NULL, VERB(K->a, "PS5 Cleanup " VERSION_TEXT " (", plattform_name(), ") - SIMULATION"));
+    ui_log(NULL, VERB(K->a, "PS5 Cleanup ", VERSION_ANZEIGE, " (", plattform_name(), ") - SIMULATION"));
 #endif
 
     /* 02.11.2026 (da_Chris86 15:44/15:45): die Protokoll-Datei beginnt erst direkt vor dem ersten Löschen (protokoll_beginnen) -
      * wer nur nachschaut, hinterlässt keine Datei. Bis dahin steht alles in der Ansicht (Options). */
     A.vor_selbstweg = vor_selbstweg_app; A.vor_selbstweg_ctx = NULL;
+#ifdef MITSCHNITT
+    if (ms_f) A.vor_neusuche = ms_neusuche;      /* NEU 1.0.8 (Codex-Prüfung 74): das Nachschauen nach dem Löschen als eigene Suche */
+#endif
     A.vor_loeschen = protokoll_beginnen; A.vor_loeschen_ctx = NULL;   /* 02.11.2026: nur noch das Protokoll - keine Datenbank-Sicherung */
-    A.loeschen_moeglich = NULL;   /* 02.11.2026 (da_Chris86 15:44): kein USB-Stick, keine Sicherung als Bedingung */
     plattform_meldung = ui_meldung;   /* NEU 1.0.7: jeder Schritt der Sony-Deinstallation ins Protokoll */
 #ifdef PRUEFLAUF
     starte(AUF_SUCHEN);                  /* Prüflauf: Nachschauen beginnt von selbst (nur lesen) */
 #endif
-    Uint32 letztes = 0;
     while (laeuft) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -2124,23 +3986,30 @@ static int programm(void)
                 neu_zeichnen(); break;
             case SDL_CONTROLLERBUTTONDOWN: {
                 int t = tastennr(e.cbutton.button);
-                /* NEU 1.0.6 (Codex-Prüfung 32): ○ bricht den Neustart-Countdown sofort beim Drücken ab */
-                if (t == T_KREIS) { pthread_mutex_lock(&G.m); bool cd = G.art == D_FERTIG && G.f_auto; if (cd) G.f_auto = false; pthread_mutex_unlock(&G.m); if (cd) { neu_zeichnen(); break; } }
                 if (t == T_KREIS) { kreis_seit = SDL_GetTicks(); neu_zeichnen(); break; }   /* erst beim Loslassen (kurz) */
+                if (t == T_X && halten_start()) { x_vom_pad = true; SDL_ClearError(); break; }   /* NEU 1.0.8 (4.4): ✕ auf "Löschen" wird gehalten */
                 taste(t); break;
             }
             case SDL_CONTROLLERBUTTONUP:
                 if (tastennr(e.cbutton.button) == T_KREIS && kreis_seit) { kreis_seit = 0; taste(T_KREIS); }
+                if (tastennr(e.cbutton.button) == T_X) halten_ende();
+                break;
+#ifdef VORSCHAU   /* Codex-Prüfung 79: Tasten der PC-Tastatur nur in der PC-Vorschau. Auf der PS5 kam von einer USB-Tastatur, die während des
+                  * Haltens auf "Löschen" abgezogen wird, kein Loslassen - das Halten hätte trotzdem bestätigt. Eintippen über Sonys Tastatur
+                  * (SDL_TEXTINPUT, darunter) bleibt. */
+            case SDL_KEYUP:     /* nur zum Testen am PC */
+                if (e.key.keysym.sym == SDLK_RETURN) halten_ende();
                 break;
             case SDL_KEYDOWN:   /* nur zum Testen am PC */
                 if (e.key.repeat) break;
                 switch (e.key.keysym.sym) {
-                case SDLK_RETURN: taste(T_X); break; case SDLK_ESCAPE: taste(T_KREIS); break;
+                case SDLK_RETURN: if (!halten_start()) taste(T_X); break; case SDLK_ESCAPE: taste(T_KREIS); break;
                 case SDLK_s: taste(T_QUADRAT); break; case SDLK_t: taste(T_DREIECK); break; case SDLK_o: taste(T_OPTIONS); break;
                 case SDLK_UP: taste(T_HOCH); break; case SDLK_DOWN: taste(T_RUNTER); break; case SDLK_LEFT: taste(T_LINKS); break; case SDLK_RIGHT: taste(T_RECHTS); break;
                 default: break;
                 }
                 break;
+#endif
             case SDL_TEXTINPUT:
                 pthread_mutex_lock(&G.m); strncat(G.eingabe, e.text.text, sizeof G.eingabe - strlen(G.eingabe) - 1); pthread_mutex_unlock(&G.m);
                 neu_zeichnen(); break;
@@ -2160,17 +4029,24 @@ static int programm(void)
 #ifdef PRUEFLAUF
         if (pruef_fertig_ab && !G.beschaeftigt && SDL_GetTicks() - pruef_fertig_ab > 15000) laeuft = false;   /* zurück zum Home-Menü */
 #endif
-        if (G.dlg_nr != dlg_gesehen) { dlg_gesehen = G.dlg_nr; dlg_fokus = 0; dlg_scroll = 0; dlg_seit = SDL_GetTicks(); neu_zeichnen(); }   /* neue Frage: sicherer Knopf */
-        if (kreis_seit) { neu_zeichnen(); if (SDL_GetTicks() - kreis_seit >= 1000) { kreis_seit = 0; kreis_gehalten(); } }
-        if (G.beschaeftigt || hinweis_bis > SDL_GetTicks()) { if (SDL_GetTicks() - letztes > 60) neu_zeichnen(); }
-        if (lauf_aktiv && SDL_GetTicks() - letztes > 33) neu_zeichnen();   /* NEU 1.0.6: Laufschrift */
-        {   /* NEU 1.0.6: Countdown abgelaufen -> Neustart (Codex-Prüfung 32: unter der Sperre lesen) */
-            pthread_mutex_lock(&G.m);
-            bool ab = G.art == D_FERTIG && G.f_auto && SDL_GetTicks() - G.f_seit >= 10000;
-            if (ab) G.f_auto = false;
-            pthread_mutex_unlock(&G.m);
-            if (ab) { nach_aktion = 2; antworten(false, false); }
+        if (G.dlg_nr != dlg_gesehen) { dlg_gesehen = G.dlg_nr; dlg_fokus = 0; dlg_scroll = 0; dlg_seit = SDL_GetTicks(); neu_zeichnen();   /* neue Frage: sicherer Knopf */
+            if (bestaetigen_aktiv()) { hinweis_bis = 0; x_seit = 0; }   /* NEU 1.0.8 (4.4): die Seite beginnt ohne alte Meldung */
+            if (G.art == D_FERTIG) { hinweis_bis = 0; loeschseite = false; lz_n = 0; nach_loeschen = true; }   /* 4.5; Codex-Prüfung 76: danach sucht der Kern neu - keine alten Einträge mehr zeigen */
+            if (G.art == D_WAHL || G.art == D_FEHLER) hinweis_bis = 0;   /* NEU 1.0.8 (K5): neue Frage - eine alte Meldung (z. B. "Testmodus aus ...") läge sonst auf der Karte */
+#ifdef MITSCHNITT
+            ms_taste();                            /* NEU 1.0.8 (2.7): jede neue Frage als Bild */
+#endif
         }
+        if (kreis_seit) { if (SDL_GetTicks() - bild_zeit >= 33) neu_zeichnen(); if (SDL_GetTicks() - kreis_seit >= 1000) { kreis_seit = 0; kreis_gehalten(); neu_zeichnen(); } }
+        halten_pruefen();                                                 /* NEU 1.0.8 (4.4): ✕ lange genug gehalten? */
+        /* NEU 1.0.8 (Arbeitsplan 4.7): nur neu zeichnen, wenn sich etwas ändert. Bisher lief bei jeder Frage und bei "Fertig" alle 60 ms ein
+         * ganzes Bild, solange der Arbeitsfaden auf die Antwort wartete - dort bewegt sich aber nichts (Halten, ○ und Laufschrift zeichnen
+         * selbst). Regelmäßig gezeichnet wird nur noch auf den Arbeits-Seiten ("Nachschauen läuft", "Löschen läuft": Balken, Zeit). */
+        Uint32 jetzt = SDL_GetTicks();
+        if (__atomic_load_n(&neu_bald, __ATOMIC_ACQUIRE) && jetzt - bild_zeit >= 100) neu_zeichnen();   /* gesammelte Änderungen aus den Fäden */
+        if (G.beschaeftigt && G.art == D_KEINER && jetzt - bild_zeit >= 60) neu_zeichnen();
+        if (hinweis_bis && (Sint32)(jetzt - hinweis_bis) >= 0) { hinweis_bis = 0; neu_zeichnen(); }   /* kurze Meldung abgelaufen: einmal ohne sie zeichnen */
+        if (lauf_aktiv && (Sint32)(jetzt - lauf_naechst) >= 0 && jetzt - bild_zeit >= 33) neu_zeichnen();   /* NEU 1.0.6: Laufschrift (1.0.8: nicht in den Pausen) */
         if (nach_aktion && !G.beschaeftigt && G.art == D_KEINER) {         /* NEU 1.0.6: Auswahl am Ende der Bereinigung */
             int na = nach_aktion; nach_aktion = 0;
             if (na == 1) {   /* ○ am Ende: Beenden (da_Chris86 02.11.2026) - der Hinweis "neu starten" kommt als Benachrichtigung */
@@ -2198,14 +4074,26 @@ static int programm(void)
                 laeuft = false;
             } else {
                 ui_log(NULL, T("PS5 startet jetzt neu ...", "PS5 is restarting now ..."));
-                if (!plattform_neustart()) { const char *t = T("Das hat nicht geklappt - bitte die PS5 über das PS5-Menü neu starten.", "That did not work - please restart the PS5 via the PS5 menu."); ui_log(NULL, t); kurz(t); }
+#ifdef MITSCHNITT
+                zeichnen(); SDL_UpdateWindowSurface(fenster); ms_ende("NEUSTART");   /* NEU 1.0.8 (2.7): letzte Bilder vor dem Neustart */
+#endif
+                if (!plattform_neustart()) {
+#ifdef MITSCHNITT
+                    ms_bilder_ende = false; ms_zeile('I', "WEITER: der Neustart hat nicht geklappt", NULL, NULL);
+#endif
+                    const char *t = T("Das hat nicht geklappt - bitte die PS5 über das PS5-Menü neu starten.", "That did not work - please restart the PS5 via the PS5 menu."); ui_log(NULL, t); kurz(t);
+                }
             }
             neu_zeichnen();
         }
 #ifdef VORSCHAU
         skript_schritt();
 #endif
-        if (G.neu) { G.neu = false; zeichnen(); SDL_UpdateWindowSurface(fenster); letztes = SDL_GetTicks(); }
+        /* Codex-Prüfung 78: beide Merker atomar zurücksetzen, BEVOR gezeichnet wird - was ein anderer Faden währenddessen meldet, kommt ins nächste Bild */
+        if (__atomic_exchange_n(&G.neu, false, __ATOMIC_ACQ_REL)) { __atomic_store_n(&neu_bald, false, __ATOMIC_RELEASE); zeichnen(); SDL_UpdateWindowSurface(fenster); bild_zeit = SDL_GetTicks(); }
+#ifdef MITSCHNITT
+        ms_bild_vielleicht();                      /* NEU 1.0.8 (2.7) */
+#endif
         SDL_Delay(16);
     }
     /* NEU 1.0.7 (Plan 1.0.7, Punkt 2): nach ○ am Ende bleibt der Hinweis auch nach dem Beenden sichtbar - als Benachrichtigung.
@@ -2216,6 +4104,9 @@ static int programm(void)
         if (!(K->SELBST_UEBERGEBEN && plattform_hinweis_uebergeben(ende_hinweis, SP_EN))) plattform_melden(hw);
     }
     ablauf_hintergrund_anhalten(&A);
+#ifdef MITSCHNITT
+    ms_ende("BEENDET");                            /* NEU 1.0.8 (2.7): letzte Bilder vor dem Beenden */
+#endif
     if (pad) SDL_GameControllerClose(pad);
     SDL_DestroyWindow(fenster);
     SDL_Quit();

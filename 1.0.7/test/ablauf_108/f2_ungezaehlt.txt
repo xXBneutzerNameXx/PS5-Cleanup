@@ -1,0 +1,12 @@
+# 1.0.8 (Arbeitsplan 5.1a, F2): dieselbe Datei, aber bevor die Größen gezählt sind - ohne Beleg, dass es nur eine Datei ist, bleibt die Warnung
+# ERWARTET_DE: DIALOG Außerhalb der internen SSD
+# ERWARTET_DE: ACHTUNG - du hast 1 Eintrag außerhalb der internen SSD gewählt (M.2, erweiterter Speicher, USB-Laufwerk):
+# ERWARTET_DE: Alles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.
+# NICHT_DE: Diese Datei wird endgültig gelöscht.
+# ERWARTET_EN: DIALOG Outside the internal SSD
+# ERWARTET_EN: WARNING - you selected 1 entry outside the internal SSD (M.2, extended storage, USB drive):
+# ERWARTET_EN: Everything in them (games, folders, files) will be deleted permanently.
+# NICHT_EN: This file will be deleted permanently.
+WAEHLE TEXT M.2 – games/x.iso
+ABLAUF_UNGEZAEHLT AUSWAHL
+ANTWORT N

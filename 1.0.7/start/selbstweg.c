@@ -41,11 +41,11 @@ void selbstweg_log(const char *fmt, ...)
     klog_printf("PS5 Cleanup Selbstentfernung: %s\n", t);
     sw_protokoll_zeile(t);   /* Simulation: tut nichts */
 }
+#ifndef SIMULATION   /* 1.0.8: sw_warte/sw_da braucht nur die echte Fassung (die Simulation meldete sie als unbenutzt) */
 static void sw_warte(int ms) { struct timespec z = { ms / 1000, (long)(ms % 1000) * 1000000L }; nanosleep(&z, NULL); }
 /* 1 = da oder nicht feststellbar (vorsichtig), 0 = nachweislich nicht da (ENOENT) - Review 30.10.2026 */
 static int sw_da(const char *p) { struct stat st; return lstat(p, &st) == 0 || errno != ENOENT; }
 
-#ifndef SIMULATION
 int sceAppInstUtilInitialize(void);
 int sceAppInstUtilAppUnInstall(const char *title_id);
 int sceAppInstUtilAppExists(const char *title_id, int *exists);

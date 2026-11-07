@@ -113,6 +113,13 @@ SCHRITT 7 – Geheimnisse eintragen
                              diese Adresse. Bis dahin einfach weglassen – dann wird
                              nur gespeichert, ohne Benachrichtigung.
 
+     Dazu eine Variable vom Typ „Text“ (kein Secret, freiwillig):
+
+     NEUESTE_VERSION       = die neueste veröffentlichte Version, z. B. 1.0.7.
+                             Steht im QR-Link eine ältere Version, zeigt die Seite
+                             oben „Es gibt eine neuere Version“ mit Link zu GitHub.
+                             Bei jeder neuen Version hier hochsetzen.
+
   3. Speichern bzw. „Deploy“.
 
 Benachrichtigungen: höchstens 20 pro Tag (Tag nach UTC-Zeit, also ab 1 bzw. 2 Uhr nachts
@@ -176,6 +183,8 @@ Statt Schritt 2–7 im Dashboard geht es auch mit Wrangler (Node.js ab 22.13):
   npx wrangler secret put UEBERSICHT_PASSWORT
   npx wrangler secret put HA_WEBHOOK_URL            (freiwillig)
   npx wrangler deploy
+NEUESTE_VERSION steht in wrangler.toml unter [vars]: bei jeder neuen Version dort hochsetzen,
+dann npx wrangler deploy.
 Schritt 1 (Unter-Adresse) und Schritt 6 (Turnstile-Widget) bleiben Klick-Arbeit im Dashboard.
 Technische Einzelheiten und ein Beispiel für die Home-Assistant-Automation: README.md.
 Automatische Tests: npm test

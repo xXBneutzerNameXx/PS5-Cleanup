@@ -104,6 +104,10 @@ def erzeuge(W, R):
             datei("/user/appmeta/%s/param.sfo" % i, sfo(werte))
         else:
             cat = 65536 if art == "medien" else 0
+            # NEU 1.0.8 (07.11.2026): Tools melden sich bei Sony meist als App (65536 - auf da_Chris86s PS5 alle außer dem Spielekompressor);
+            # mit 0 meldet sich ein Tool als Spiel und steht wie im PS5-Menü unter Spiele, samt Block. Ohne Zufall (letzte Ziffer der Kennung),
+            # damit die übrigen Zufallsbäume gleich bleiben.
+            if art == "tool" and int(i[-1]) % 3 != 0: cat = 65536
             dl = ',"deeplinkUri":"http://127.0.0.1:%d"' % R.randint(12000, 13000) if art == "tool" else ""
             teilen = []
             if art in ("ps5", "medien") and R.random() < 0.35:
@@ -117,7 +121,7 @@ def erzeuge(W, R):
             ad = ',"addcont":{"serviceIdForSharing":[%s]}' % ",".join(teilen) if teilen else ""
             datei("/user/appmeta/%s/param.json" % i, '{"titleId":"%s","applicationCategoryType":%d%s%s,"localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"%s"}}}' % (i, cat, dl, ad, titel))
         datei("/user/app/%s/eboot.bin" % i); ordner("/user/app/%s/sce_sys" % i); ordner("/system_data/priv/appmeta/%s" % i)
-        bereich = 6 if art in ("medien", "tool") else 1
+        bereich = 6 if art == "medien" or (art == "tool" and cat == 65536) else 1   # 1.0.8: Tool mit 0 unter Spiele
         erw["koepfe"][i] = bereich
         apps.append((art, i, titel, k, bereich))
     for art, i, titel, k, bereich in apps:
@@ -212,7 +216,8 @@ def erzeuge(W, R):
         k = R.choice(apps)[3][:4]
         if not any(k == x for x in keys): datei("/user/data/%s/x.txt" % k); erw["frei"].append(("/user/data/%s" % k, 5, "zu kurzer Name"))
     if stick and R.random() < 0.5:
-        n = "Fremdes Spiel - CUSA%05d - v1.00 - EU.pkg" % R.randint(10000, 19999); datei("/mnt/usb0/" + n); erw["frei"].append(("/mnt/usb0/" + n, 5, "PKG ohne installiertes Spiel"))
+        # 1.0.8 (PS5-Test 06.11.2026, Befund 12): ein PKG ohne installiertes Spiel ist Kopf seines eigenen Blocks "<Spiel> · nicht installiert" unter Spiele
+        n = "Fremdes Spiel - CUSA%05d - v1.00 - EU.pkg" % R.randint(10000, 19999); datei("/mnt/usb0/" + n); erw["frei"].append(("/mnt/usb0/" + n, 1, "PKG ohne installiertes Spiel"))
     if stick:
         for x in range(R.choice([0, 0, 1, 2, 4])):
             n = "/mnt/usb0/ps5cleanup_db_2026-10-%02d_1200%02d_FW%s_%s.db" % (R.randint(1, 30), x, fw, R.choice(["app", "appinfo", "appinfo_geprueft"]))

@@ -59,7 +59,13 @@ const char *kern_modell_zeile(arena *a, const char *m)
 }
 
 /* Klartext zum ausgelesenen Laufwerks-Status (nur lesend ermittelt)
- * NEU 1.0.6 (da_Chris86 28.10.2026): ohne Statuswerte - Titel vor dem Doppelpunkt, danach ein kurzer Satz */
+ * NEU 1.0.6 (da_Chris86 28.10.2026): ohne Statuswerte - Titel vor dem Doppelpunkt, danach ein kurzer Satz
+ * NEU 1.0.8 (da_Chris86 06.11.2026: "Der User soll feststellen können, ist mein Laufwerk gekoppelt, ist mein Laufwerk nicht gekoppelt"):
+ * alle Werte 0..6 in Worten statt "Nicht sicher bestimmbar". Die Namen sind Sonys eigene: 0 PAIRED, 1 PAIRED_TO_ANOTHER, 2 NOT_PAIRED,
+ * 3 REGISTER_INCOMPLETE, 4 DELETE_INCOMPLETE, 5 FACTORY_PAIRED, 6 FACTORY_PAIRED_TO_ANOTHER (earthonion/ddd_status). Gefragt wird ohne
+ * die Kennung des Laufwerks - dann meldet eine online gekoppelte Slim/Pro 1 und eine ab Werk gekoppelte Slim 6 (ddd_status, README);
+ * mit der Kennung meldet dieselbe Konsole 5 statt 6 (bc160201983/Troubleshoot-PS5-disc-drive-pairing, 09.10.2026). "TO_ANOTHER" heißt
+ * also nicht "mit einer anderen Konsole" - ob ein Laufwerk schon woanders gekoppelt war, sagt keiner der Werte. */
 const char *kern_laufwerk_text(kern *k)
 {
     const char *typ = k->MODELL_TYP ? k->MODELL_TYP : "";
@@ -70,10 +76,12 @@ const char *kern_laufwerk_text(kern *k)
     if (!k->DDD_BEKANNT) return T("Nicht abgefragt: Konnte nicht gelesen werden.", "Not queried: could not be read.");
     int s = k->DDD_STATUS;
     switch (s) {
-    case 1: return T("Kopplung bestätigt: Laufwerk ist mit dieser Konsole gekoppelt.", "Pairing confirmed: the disc drive is paired with this console.");
+    case 0: return T("Gekoppelt: Diese Konsole ist mit einem Laufwerk gekoppelt.", "Paired: this console is paired with a disc drive.");
+    case 1: return T("Online gekoppelt: Ein Laufwerk wurde online mit dieser Konsole gekoppelt.", "Paired online: a disc drive was paired online with this console.");
     case 2: return T("Keine Kopplung: Kein Laufwerk gekoppelt.", "No pairing: no disc drive is paired.");
-    case 0: case 3: case 4: case 5: case 6:
-        return T("Nicht sicher bestimmbar: Der Zustand ließ sich nicht eindeutig lesen.", "Not reliably determinable: the state could not be read unambiguously.");
+    case 3: return T("Koppeln nicht fertig: Das Koppeln wurde begonnen, aber nicht abgeschlossen.", "Pairing not finished: pairing was started but not completed.");
+    case 4: return T("Entkoppeln nicht fertig: Das Entkoppeln wurde begonnen, aber nicht abgeschlossen.", "Unpairing not finished: unpairing was started but not completed.");
+    case 5: case 6: return T("Ab Werk gekoppelt: Die Konsole kam mit gekoppeltem Laufwerk aus dem Werk.", "Factory paired: the console left the factory with its disc drive paired.");
     }
     return T("Nicht abgefragt: Konnte nicht gelesen werden.", "Not queried: could not be read.");
 }
@@ -82,9 +90,9 @@ kopplungsart kern_kopplungs_stufe(kern *k)
     if (k->MODELL_TYP && !strcmp(k->MODELL_TYP, "fat")) return KOPPLUNG_KEINE;
     if (!k->DDD_BEKANNT) return KOPPLUNG_NICHT_AUSLESBAR;
     switch (k->DDD_STATUS) {
-    case 1: return KOPPLUNG_BESTAETIGT;
+    case 0: case 1: case 5: case 6: return KOPPLUNG_BESTAETIGT;
     case 2: return KOPPLUNG_KEINE;
-    case 0: case 3: case 4: case 5: case 6: return KOPPLUNG_UNKLAR;
+    case 3: case 4: return KOPPLUNG_UNKLAR;   /* 1.0.8: begonnen, aber nicht fertig (gelb) */
     }
     return KOPPLUNG_NICHT_AUSLESBAR;
 }

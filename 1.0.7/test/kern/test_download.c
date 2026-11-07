@@ -131,7 +131,8 @@ int main(int argc, char **argv)
           pruefe(w7 == NULL && w8 == NULL, "Payload Manager und Browser-Statistik bleiben normal (kein Einstieg)"); }
         const char *jw = NULL, *jb = kern_jailbreak_erkannt(K, A0, &jw);
         printf("INFO Jailbreak=%s | %s\n", jb ? jb : "-", jw ? jw : "-");
-        pruefe(jb && strstr(jb, "Lua-Jailbreak") && strstr(jb, "PS2-Spielstand-Jailbreak") && !strstr(jb, "WebKit"), "Konsole-Karte: Lua- und PS2-Spielstand-Jailbreak erkannt, WebKit nur als Hinweis");
+        /* NEU 1.0.8 (F7): der Browserspeicher steht unter "Jailbreak" - die Karte nennt ihn auch (als "möglich") */
+        pruefe(jb && strstr(jb, "Lua-Jailbreak") && strstr(jb, "PS2-Spielstand-Jailbreak") && strstr(jb, "WebKit im Browser (möglich)"), "Konsole-Karte: Lua- und PS2-Spielstand-Jailbreak erkannt, WebKit im Browser als möglich");
         pruefe(jw && strstr(jw, "(CUSA17122)") && strstr(jw, "Spielstand CUSA02199") && strstr(jw, "Browserspeicher"), "Warnung nennt Lua-Spiel, Okage-Spielstand und den Browserspeicher");
         pruefe(jw && !strstr(jw, "PPSA01616"), "Warnung nennt Netflix JP nicht (nicht eingerichtet)");
         /* Auswahl mit Jailbreak-Einstieg: deutliche Warnung, "Abbrechen" löscht nichts */

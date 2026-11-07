@@ -29,6 +29,7 @@ dliste     *s_liste(sitzung *s, const char *pfad, bool streng);
 sliste      s_namen(sitzung *s, const char *pfad, bool streng);
 bool        s_existiert(sitzung *s, const char *pfad);
 bool        s_kopf(sitzung *s, const char *pfad, size_t n, const unsigned char **d, size_t *len);   /* NEU 1.1: Dateianfang */
+bool        s_lies_ab(sitzung *s, const char *pfad, long long ab, size_t n, unsigned char *ziel, size_t *len);   /* NEU 1.0.8: n Bytes ab Stelle ab */
 int         s_enthaelt(sitzung *s, const char *pfad, const void *m, size_t ml);
 int         s_stuecke(sitzung *s, const char *pfad, size_t stueck, bool (*weiter)(void *c, const unsigned char *d, size_t n), void *c);   /* NEU 1.0.7: stückweise, 1 gelesen, -1 nicht lesbar */   /* NEU 1.0.6 Fix: 1 ja, 0 nein, -1 nicht lesbar */
 const char *s_text(sitzung *s, const char *pfad);

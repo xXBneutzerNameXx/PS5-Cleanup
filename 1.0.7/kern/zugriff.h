@@ -48,6 +48,9 @@ struct zugriff {
      * höchstens stueck Bytes) und jedes Stück an weiter() geben, am Ende einmal weiter(c, NULL, 0). Liefert weiter() false, wird sofort
      * aufgehört (Abbrechen). Nur lesen; eine Verknüpfung am Ende des Pfads wird nicht verfolgt. 226 = gelesen. Darf NULL sein. */
     antwort (*stuecke)(zugriff *z, arena *a, const char *pfad, size_t stueck, bool (*weiter)(void *c, const unsigned char *d, size_t n), void *c);
+    /* NEU 1.0.8 (Arbeitsplan 2.1, Spielname im exFAT-Abbild): n Bytes ab Stelle ab nach ziel lesen (Verknüpfung am Ende des Pfads wird
+     * nicht verfolgt). *len = wirklich gelesen (am Dateiende weniger). 226 = gelesen. Darf NULL sein (dann gibt es das nicht). */
+    antwort (*lies_ab)(zugriff *z, arena *a, const char *pfad, long long ab, size_t n, unsigned char *ziel, size_t *len);
     /* Befehl mit Pfad: "SITE CHMOD 777", "DELE", "RMD", "RMDA"; ohne Pfad: "NOOP" */
     antwort (*befehl)(zugriff *z, arena *a, const char *befehl, const char *pfad);
     void (*schliessen)(zugriff *z);
@@ -131,5 +134,20 @@ zugriff *zugriff_sim(zugriff *lesen);
 /* Buch der Simulation: jede Zeile "DELE /pfad", "RMD /pfad", "RMDA /pfad",
  * "SITE CHMOD 777 /pfad", "STOR /pfad" in der Reihenfolge, in der sie kamen */
 const sliste *zugriff_sim_buch(zugriff *sim);
+
+/* ---------------------------------------------------------------- Mitschnitt (NEU 1.0.8, Arbeitsplan 2.7, zugriff_mitschnitt.c) */
+/* legt sich um innen und schreibt jede Frage samt Antwort als Textzeile(n) über schreib() mit (aus jedem Faden, nie gleichzeitig).
+ * Verändert selbst nichts. Nur die Test-Fassung (MITSCHNITT) benutzt ihn. */
+zugriff *zugriff_mitschnitt(zugriff *innen, void (*schreib)(void *c, const char *zeilen), void *c);
+/* vor und nach dem Entfernen einer Kachel ruft der Mitschnitt das auf (z. B. Zeilen der Datenbanken zu dieser Kennung); NULL = nichts */
+extern void (*zugriff_mitschnitt_zustand)(const char *id, bool nachher, void (*zeile)(const char *t));
+/* eine eigene Zeile im Format des Mitschnitts: typ 'I' (Hinweis) oder 'P' (Protokoll) mit t1, 'D' (appinfo.db) mit t1..t3 */
+const char *zugriff_mitschnitt_zeile(arena *a, char typ, const char *t1, const char *t2, const char *t3);
+/* PC-Nachbau: beantwortet die Fragen aus einem Mitschnitt (suche_nr > 0: nur die n-te Suche). Verändert nie etwas. NULL = *fehler */
+zugriff *zugriff_wiedergabe(const char *datei, int suche_nr, const char **fehler);
+int zugriff_wiedergabe_fehlend(zugriff *z, const sliste **welche);      /* Fragen, die nicht im Mitschnitt standen */
+int zugriff_wiedergabe_kaputt(zugriff *z, const sliste **welche);       /* unvollständige oder kaputte Datensätze (nicht verwendet) */
+const sliste *zugriff_wiedergabe_info(zugriff *z);                      /* die Hinweise (I) */
+void zugriff_wiedergabe_appinfo(zugriff *z, void (*zeile)(void *c, const char *titel, const char *feld, const char *wert), void *c);
 
 #endif

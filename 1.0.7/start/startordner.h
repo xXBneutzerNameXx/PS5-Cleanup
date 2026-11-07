@@ -132,7 +132,7 @@ static int so_offen_von_uns(void)             /* 1 = wir haben in DIESER Sitzung
     return z > 0 && atoll(b) == z;
 }
 /* /system_ex für diese Sitzung beschreibbar machen. 1 = beschreibbar, -2 = in dieser Sitzung nicht mehr möglich, -1 = Fehler */
-static int so_oeffnen(char *t, size_t tl)
+static __attribute__((unused)) int so_oeffnen(char *t, size_t tl)   /* 1.0.8: nicht jede Datei braucht sie */
 {
     t[0] = 0;
     int ro = so_ist_ro();
@@ -146,7 +146,7 @@ static int so_oeffnen(char *t, size_t tl)
     return 1;
 }
 /* Schreibschutz wiederherstellen, wenn WIR ihn in dieser Sitzung aufgehoben haben. 1 = zurückgestellt, 0 = nichts zu tun, -1 = Fehler */
-static int so_zurueck(void)
+static __attribute__((unused)) int so_zurueck(void)   /* 1.0.8: nicht jede Datei braucht sie */
 {
     if (!so_offen_von_uns()) { unlink(SO_OFFEN); return 0; }   /* alte Marke (andere Sitzung): nur weg damit, nichts umhängen */
     int r = so_schuetzen();
@@ -213,7 +213,7 @@ static unsigned char *so_lesen(const char *p, size_t *n)
     return b;
 }
 /* Startordner bereitstellen. 0 = bereit; sonst Fehler (Text in t). *umgehaengt: 1 = /system_ex wurde dafür kurz beschreibbar gemacht */
-static int so_einrichten(char *t, size_t tl, int *umgehaengt)
+static __attribute__((unused)) int so_einrichten(char *t, size_t tl, int *umgehaengt)   /* 1.0.8: nicht jede Datei braucht sie */
 {
     *umgehaengt = 0; t[0] = 0;
     int z = so_zustand();
@@ -254,7 +254,7 @@ static int so_einrichten(char *t, size_t tl, int *umgehaengt)
 }
 /* Eigene Startdateien entfernen (Selbstentfernung). 1 = entfernt, 0 = war nicht da, -1 = Fehler/fremd (Text in t),
  * -2 = /system_ex ist in dieser Sitzung nicht mehr beschreibbar (nichts verändert; da_Chris86 30.10.2026 00:26: dann ohne Hinweis lassen) */
-static int so_entfernen(char *t, size_t tl)
+static __attribute__((unused)) int so_entfernen(char *t, size_t tl)   /* 1.0.8: nicht jede Datei braucht sie */
 {
     t[0] = 0;
     int z = so_zustand();

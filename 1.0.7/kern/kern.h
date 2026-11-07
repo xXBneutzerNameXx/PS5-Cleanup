@@ -57,7 +57,31 @@ typedef struct eintrag {
     const char *WichtigWas;    /* NEU 1.0.7 (PS5-Test 03.11.2026): Daten-Ordner eines Tools mit Unterordnern/Dateien wie roms, keys, saves,
                                 * Mcd001.ps2 - kurzer Satz ("vermutlich eigene Spiele oder Spielstände"), NULL = nichts gefunden */
     const char *WichtigFund;   /* die gefundenen Namen dazu ("roms, keys") */
+    /* NEU 1.0.8 (Arbeitsplan 2.3): Tool ohne Kachel (nanoDNS, zftpd) - die Payload-Datei steht unter dem Daten-Ordner desselben Tools.
+     * Nur Anzeige: anders als ToolKachel hängt beim Löschen nichts daran, jede Zeile behält ihren eigenen Haken */
+    struct eintrag *Begleit;   /* bei der Payload-Datei: der Daten-Ordner, unter dem sie steht */
+    const char *BlockName;     /* beim Daten-Ordner: Name des Blocks ("nanoDNS"), NULL = kern_name */
+    bool OhneKachel;           /* beim Daten-Ordner: Kopf eines Blocks "Tool ohne Kachel" */
+    pliste Doppelt;            /* NEU 1.0.8 (Arbeitsplan 2.4): die anderen Kopien desselben Spiels (installiert oder Spieldatei) - leer = keine */
+    /* NEU 1.0.8 (PS5-Test 06.11.2026, Befund 12, da_Chris86: jede PKG-Datei steht dort, wo das steht, was sie installiert): Angaben einer
+     * Installationsdatei (PKG) - aus dem Kopf der Datei, sonst aus dem Dateinamen. PkgArt 0 = keine PKG-Datei. */
+    int PkgArt;                /* PKG_SPIEL, PKG_UPDATE, PKG_DLC, PKG_APP */
+    const char *PkgId;         /* Spielnummer (CUSA12345), NULL = unbekannt */
+    const char *PkgTitel;      /* Name aus dem PKG bzw. aus dem Dateinamen ("" = keiner) */
+    const char *PkgVer;        /* Version eines Updates bzw. Name eines Zusatzinhalts ("" = keine) */
+    int PkgAnzahl;             /* so viele PKG-Dateien stehen in dieser Zeile (ab 6 gleicher Art auf einem Speicher: eine Zeile) */
+    long long PkgBytes;        /* Größe laut Ordnerliste (nur für "doppelt") */
+    long long *PkgGroessen;    /* zusammengefasste Zeile: Größe je Pfad (wie PfadeBasis) - für "doppelt" (Codex-Prüfung 83) */
+    bool PkgOhneSpiel;         /* Kopf eines Blocks "<Spiel> · nicht installiert" */
+    bool PkgSpielFehlt;        /* NEU 1.0.8 (PS5-Test 07.11.2026): steht im Block seines Spiels bzw. seiner App, davon ist aber nur ein Rest da
+                                * (Kachel mit leerem App-Ordner, tote ShadowMount-Kachel) - eigener Text, rot wie jede PKG-Datei */
+    bool PkgOffen;             /* Codex-Prüfung 90: Ordner, in dem PKG-Dateien nicht gesucht werden konnten (zu viele Dateien, zu tief, nicht
+                                * lesbar) - er kann PKG-Dateien enthalten: rot, nur einzeln (wie eine PKG-Datei) */
+    bool WichtigLeer;          /* NEU 1.0.8 (Befund 2): bekannter wichtiger Ordner (etaHEN ...), nachweislich ohne Datei mit Inhalt */
+    unsigned char UsbKopie;    /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): Ordner, den die Konsole auf einem USB-Laufwerk anlegt - was darin liegt (USB_KOPIE_...) */
 } eintrag;
+enum { PKG_KEINE = 0, PKG_SPIEL, PKG_UPDATE, PKG_DLC, PKG_APP };
+enum { USB_KOPIE_AUFNAHMEN = 1, USB_KOPIE_SPIELSTAENDE = 2, USB_KOPIE_SICHERUNG = 4 };   /* NEU 1.0.8: eintrag.UsbKopie */
 /* NEU 1.0.7: Arten der Einträge (nur Anzeige und Auswahl-Regeln - Pfade und Schutz bleiben unberührt) */
 enum {
     ART_SONST = 0,
@@ -68,7 +92,9 @@ enum {
     ART_TOOL_KACHEL, ART_TOOL_DATEN, ART_TOOL_DATEN_WICHTIG, ART_DATEI, ART_PAKET_DATEI,
     ART_REST, ART_FAKE_LIZENZ, ART_APP_DATEN, ART_UNBEKANNT, ART_SPIEL_SICHERUNG,
     ART_JAILBREAK,
-    ART_ALTE_SICHERUNG         /* NEU 1.0.7 (PS5-Test 02.11.2026): Datenbank-Kopien älterer PS5-Cleanup-Versionen (ps5cleanup_db_…) */
+    ART_ALTE_SICHERUNG,        /* NEU 1.0.7 (PS5-Test 02.11.2026): Datenbank-Kopien älterer PS5-Cleanup-Versionen (ps5cleanup_db_…) */
+    ART_USB_KOPIE,             /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): eigene Daten, die die Konsole auf ein USB-Laufwerk kopiert hat (PS5/CREATE ...) */
+    ART_PROTOKOLL              /* NEU 1.0.8 (07.11.2026): Protokoll von PS5 Cleanup aus einem früheren Lauf (ps5cleanup_protokoll_…) */
 };
 enum { AMPEL_GRUEN = 0, AMPEL_GELB = 1, AMPEL_ROT = 2 };
 /* NEU 1.0.6 (da_Chris86 28.10.2026): Speicherorte. USB = USB-Platte als erweiterter Speicher, USB-Stick = normaler Datenträger */
@@ -94,6 +120,9 @@ typedef struct {
     sliste eigene;             /* NEU 28.10.2026: was zu PS5 Cleanup selbst gehört (Programmdateien, Daten, Kachel) - wird am Ende entfernt */
     bool   frei;               /* NEU 28.10.2026: gerade läuft die Selbstentfernung - eigene Pfade sind dann nicht gesperrt */
     sliste unlesbar;           /* NEU 1.0.6 Fix (30.10.2026, Playden): Ordner, die die PS5 nicht lesen lässt (privat) - geschützt, still übersprungen */
+    sliste diag;               /* NEU 1.0.8 (Arbeitsplan 2.5): nicht lesbar oder zu tief - in DIESER Suche gefunden (fürs Protokoll, je Suche neu) */
+    sliste zu_tief;            /* NEU 1.0.8: davon die Ordner, die nur zu tief liegen (SUCH_TIEFE) - je Suche neu */
+    sliste zu_viele;           /* NEU 1.0.8 (3.7): davon die Ordner, die wegen der Eintragsgrenze nicht (ganz) geprüft wurden - je Suche neu */
 } selbstschutz;
 
 typedef struct kern {
@@ -104,6 +133,7 @@ typedef struct kern {
     void   (*warte)(void *ctx, int ms);             /* Warte */
     void    *warte_ctx;
     volatile bool abbruch;              /* Abbruch */
+    volatile bool anhalten;             /* NEU 1.0.8 (Arbeitsplan 3.4): Löschen nach dem laufenden Eintrag anhalten - wirkt nur zwischen zwei Einträgen */
 
     sliste ASTRO_IDS;                   /* { BEHALTEN_APP } */
     sliste ASTRO_NPWRS;                 /* { "NPWR20188_00" } */
@@ -138,6 +168,8 @@ typedef struct kern {
     const char *EIGENES_PROTOKOLL;      /* NEU 1.0.7 (02.11.2026, aus Plan 1.0.8 4a vorgezogen): Protokoll-Datei, in die PS5 Cleanup gerade schreibt
                                          * (USB-Stick) - wird nie angeboten, sonst ließe sie sich in einem zweiten Durchgang mitlöschen */
     const char *PROTOKOLL_JETZT;        /* NEU 03.11.2026: Protokoll-Datei dieses Laufs (USB-Laufwerk, intern oder M.2) - bleibt immer */
+    sliste TEST_ORDNER;                 /* NEU 1.0.8 (Arbeitsplan 2.7, Codex-Prüfung 74): Ordner der Test-Fassung (Mitschnitt, Bilder) an allen möglichen
+                                         * Orten - nie angeboten, nie gelöscht, auch kein Ordner darüber (kern_test_ordner). Leer in allen anderen Fassungen */
     bool   PROTOKOLLE_FREI;             /* NEU 03.11.2026: nur während kern_alte_protokolle_weg - alte Protokolle auf der Konsole löschbar */
     mtab   NPWR_GALERIE;                /* ci */
     mtab   GALERIE_NAMEN;               /* ci */
@@ -150,9 +182,29 @@ typedef struct kern {
     mtab   SID_GEZAEHLT;                /* "Kennung|Feld" schon als kaputt gezählt (param.sfo, param.json und appinfo.db nennen dieselben Felder) */
     sliste SID_WARNUNG;                 /* Warnzeilen für das Protokoll */
     mtab   REST_NAMEN;                  /* ci: Kennung -> Name aus verbliebenen Angaben (Begleitdatei der Aufnahmen, Spielstand) */
+    /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86: Spielstand "CUSA09172 (Spiel/App unbekannt)" und zwei Trophäen-Listen ohne Namen, obwohl
+     * L.A. Noire und Red Dead Redemption 2 vorher installiert waren). Weitere Belege für Namen - alle nur gelesen, PS5 Cleanup speichert
+     * dafür nichts (da_Chris86 13:32: "keine Daten speichern auf der PS5, außer die Logs"): */
+    mtab   PROT_NAMEN;                  /* ci: Kennung -> Name aus früheren Protokollen von PS5 Cleanup (Liste der PS4-Spiele, gelöschte Spiele) */
+    mtab   PROT_NPWR;                   /* ci: NEU 1.0.8 - Trophäen-Kennung -> Name aus früheren Protokollen (gelöschte Trophäen-Listen und Fortschritte) */
+    mtab   SPST_TITEL;                  /* ci: Kennung -> Titel der Spielstände laut Sonys Spielstand-Liste (savedata.db), "" = uneinheitlich */
+    mtab   PKG_NAMEN;                   /* ci: Kennung -> Name aus dem Kopf einer gefundenen PKG-Datei (Spiel, Update, App - nie Zusatzinhalt) */
+    mtab   PKG_TRP;                     /* Kopf der Trophäen-Datei im PKG (96 Byte als Hex) -> Name des Spiels */
+    mtab   NAMEN_OFFEN;                 /* ci: Kennungen, die beim Anlegen der Einträge ohne Beleg "unbekannt" blieben (nicht bei Widerspruch) */
+    mtab   NPWR_OFFEN;                  /* ci: Trophäen-Kennungen, die beim Anlegen "unbekannt" blieben */
+    mtab   NPWR_PKG;                    /* ci: Trophäen-Kennung -> Name über dieselbe Trophäen-Datei in einer PKG-Datei (nach der Suche) */
+    mtab   PKG_TRP_NR;                  /* ci: NEU 1.0.8 - Kopf der Trophäen-Datei (Hex) -> ihre Nummer im PKG (1, 2 ...), nur bei mehreren Listen */
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31, da_Chris86: "bei den PS4-Spielen sind die Bilder und die Beschriftung da, bei den PS5-Spielen
+     * nicht"): PS5-Spiele ohne Kachel bekommen Name und Bild aus Sonys eigenen Angaben, die noch auf der Konsole liegen */
+    mtab   NPWR_UCP;                    /* ci: Trophäen-Kennung -> Name aus der PS5-Trophäen-Liste selbst (TROPHY.UCP), "" = keiner */
+    mtab   BILD_ORT;                    /* ci: Kennung -> "Pfad\nAnfang\nLänge" von icon0.png einer Spieldatei (.exfat) oder eines Spielordners
+                                         *     ohne Kachel; Länge 0 = ganze Datei. Liest nur die Oberfläche (kachelbild_laden) */
     void (*appinfo_lesen)(struct kern *k, void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert));
                                         /* Plattform: Sonys appinfo.db NUR LESEN und jede Zeile INSTALL_DIR_SAVEDATA / SERVICE_ID_ADDCONT_ADD_n
-                                         * melden (NULL = nicht verfügbar - dann nur param.sfo / param.json) */
+                                         * melden (NULL = nicht verfügbar - dann nur param.sfo / param.json). NEU 1.0.8: dazu aus Sonys
+                                         * Spielstand-Liste (savedata.db) je Spielstand eine Zeile mit dem Feld SPIELSTAND_TITEL (Wert = Titel).
+                                         * Spielstände, deren Titel gleich ihrem Untertitel ist, meldet die Plattform nicht (L.A. Noire:
+                                         * "Benutzereinstellungen & Freischaltobjekte" - das ist kein Spielname) */
     sliste SpielQuellen;
     bool   BD_DISC;             /* NEU 1.0.6 (da_Chris86 29.10.2026 19:12): Blu-ray-Jailbreak-Disc im Laufwerk (nur gelesen) */
     sliste JB_QUELLEN;          /* NEU 29.10.2026 (Codex-Prüfung 38): Spieldateien, auf die eine Kachel eines Jailbreak-Einstiegs zeigt */
@@ -175,6 +227,8 @@ typedef struct kern {
     void (*Fortschritt)(void *ctx, int nr, int anzahl, const eintrag *f);   /* nur Anzeige */
     void  *fortschritt_ctx;
     int    verbindung_nr;               /* wechselt bei kern_verbinden: Liste gilt nur für dieselbe "Verbindung" */
+    int    PKG_GELISTET;                /* NEU 1.0.8 (Codex-Prüfung 83): Einträge, die die Suche nach PKG-Dateien in Ordnern gelistet hat (Grenze je Suche) */
+    int    PKG_GEFUNDEN;                /* NEU 1.0.8 (Codex-Prüfung 96): PKG-Dateien, die sie in Ordnern gefunden und einzeln angelegt hat (Grenze je Suche) */
     int    funde_verbindung_nr;         /* statt FUNDE_IP */
 
     selbstschutz SCHUTZ;                /* NEU 1.1 */
@@ -186,6 +240,8 @@ typedef struct kern {
     const char *RM_HINWEIS;             /* Schritt, der gerade fragt ("sony", "med", "ss") - NULL = aus dem Text erkennen */
     char   RM_FEHLER[5][48];
     int    RM_FEHLER_N;
+    volatile int FEHLER_ZAHL;           /* NEU 1.0.8 (Codex-Prüfung 76): fehlgeschlagene Einträge dieses Löschlaufs, ohne Grenze (Seite "Löschen läuft") */
+    volatile long long FREI_BISHER;     /* NEU 1.0.8 (Codex-Prüfung 76): in diesem Lauf wirklich frei geräumt, vor dem laufenden Eintrag (Byte) */
     bool   simulation;                  /* NEU 1.1: Zugriff ist eine Simulation -> ShadowMount nie wirklich anhalten */
     bool   SONY;                        /* NEU 1.0.6: Sonys Deinstallations-Dienst ist da (PS5) - Kacheln gehen über Sony */
     bool   MEDIEN;                      /* NEU 1.0.7 (01.11.2026): Sonys Löschdienst für Bilder/Videos ist da (PS5) - Aufnahmen nur darüber */
@@ -213,6 +269,7 @@ typedef struct { bool Abgebrochen; int Fehler; bool SmGestoppt; groesse Frei; co
                  int Teilweise;   /* NEU 1.0.6: Dateien gelöscht, aber die Kachel bleibt im Menü (Sony lehnte ab) - gilt nicht als ganz entfernt */
                  int Geschuetzt;  /* NEU 1.0.7: vom PS4-Schutz zurückgehalten (kein Fehler) */
                  int Unveraendert;  /* NEU 1.0.7 (21:50): wegen unklarer Einbindung unverändert gelassen (kein Fehler) */
+                 bool Angehalten; int Rest;   /* NEU 1.0.8 (Arbeitsplan 3.4): auf Wunsch angehalten - so viele Einträge blieben unverändert */
                } ergebnis;
 typedef enum { SM_ANGEHALTEN_Z, SM_LAEUFT_NICHT, SM_UNBEKANNT } smzustand;   /* SmZustand */
 
@@ -242,10 +299,11 @@ void        kern_ps4_weg_setzen(kern *k);             /* PS4_WEG aus der Auswahl
 bool        kern_ps4_geschuetzt(kern *k, const char *p, const char **grund);   /* true = p gehört zu einem installierten, NICHT gewählten PS4-Spiel */
 const char *kern_ps4_ort_text(int ort);
 const char *kern_ps4_zeile(arena *a, const ps4_spiel *s);   /* "Name (CUSAxxxxx) – intern – 79,4 GB – Update 1.32 – Fake-Lizenz" */
-const char *kern_ps4_neuaufbau_text(kern *k, arena *a);     /* Folgen eines Datenbank-Neuaufbaus für die erkannten PS4-Spiele ("" = keine) */
-const char *kern_rest_text(kern *k, arena *a);              /* NEU 1.0.7: was im Menü bleibt + Folgen eines Neuaufbaus ("" = nichts) */
+const char *kern_abbild_titel_test(kern *k, const char *p, size_t *gelesen);   /* NEU 1.0.8: nur für die PC-Tests (Spiel-Abbild, kern_suche.c) */
+const char *kern_pkg_zusatz_test(kern *k, const char *p, size_t *gelesen);   /* NEU 1.0.8: nur für die PC-Tests (PKG-Prüfung, kern_suche.c) */
+const char *kern_rest_text(kern *k, arena *a);              /* NEU 1.0.7: was im Menü bleibt, dazu die Bitte ums Protokoll ("" = nichts) */
 extern int (*kern_ps4_sony_eingetragen)(const char *id);
-/* NEU 1.0.7: Sicherung von app.db/appinfo.db steht seit 31.10.2026 21:50 in db/db_sicherung.c (mit SQLite-Prüfung) */
+/* app.db/appinfo.db nur lesen und prüfen: db/db_lesen.c (die Sicherung vom 31.10.2026 ist seit 1.0.8 ausgebaut) */
 
 /* ---- NEU 1.0.7 (da_Chris86 31.10.2026 21:50, Punkt 4): Geisterkacheln - Sonderbehandlung nur für belegte Fälle (kern_geister.c) ----
  * GEIST_NORMAL:       /system_ex/app/<ID> ist keine Einbindung -> wie 1.0.6: ein Sony-Auftrag, Ergebnis prüfen (so lief der echte Test
@@ -265,6 +323,7 @@ int kern_geist_regel(const char *id, int eingehaengt, const char *fstyp, const c
 /* ---- Schutzliste (Kern.cs) ---- */
 bool kern_astro_pfad(kern *k, const char *p);        /* AstroPfad */
 bool kern_erlaubt(kern *k, const char *p);           /* Erlaubt */
+bool kern_test_ordner(const kern *k, const char *p);  /* NEU 1.0.8: p ist ein Ordner der Test-Fassung, liegt darin oder enthält ihn */
 bool kern_laufende_aufnahme(const char *p);
 bool kern_nie_anfassen(const char *p);                /* NEU 1.1 (S5): Systembereiche, Konten, Lizenzen, Sony-Apps */           /* NEU 1.1 (U16): sharevideo_…_hdr.webm der PS5 */
 bool kern_ohne_verknuepfung(kern *k, const char *p); /* OhneVerknuepfung */
@@ -330,7 +389,8 @@ int   kern_anzahl_ort(kern *k, int ort);             /* NEU 1.0.6: Einträge ein
 void kern_groessen_zuruecksetzen(kern *k);           /* GroessenZuruecksetzen */
 bool kern_pfad_gezaehlt(kern *k, const char *p);     /* PfadGezaehlt */
 groesse *kern_eintrag_groesse(kern *k, const eintrag *f, bool wieGefunden);  /* EintragGroesse (NULL = noch nicht alles gezählt) */
-groesse *kern_eintrag_groesse_in(kern *k, arena *ar, const eintrag *f, bool wieGefunden);   /* NEU 1.1: dasselbe, Speicher aus ar */
+groesse *kern_eintrag_groesse_in(kern *k, arena *ar, const eintrag *f, bool wieGefunden);
+bool     kern_bytes_je_ort(kern *k, long long aus[4]);       /* NEU 1.0.8 (4.2): Gefundenes je Speicherort, jeder Pfad einmal; false = noch nicht alles gezählt */   /* NEU 1.1: dasselbe, Speicher aus ar */
 void kern_groessen_im_hintergrund(kern *k, bool (*stopp)(void *), void *stopp_ctx, void (*fertig)(void *, eintrag *), void *fertig_ctx);
 groesse kern_ermittle_groessen(kern *k);             /* ErmittleGroessen */
 const char *kern_groesse_text(arena *a, long long bytes);   /* GroesseText */
@@ -361,7 +421,7 @@ void kern_selbstschutz_eigener_pfad(kern *k, const char *p);   /* Startordner di
 bool kern_selbstschutz_gesperrt(kern *k, const char *p);       /* darf NICHT gelöscht werden */
 bool kern_selbstschutz_anbieten(kern *k, const char *p);       /* darf in der Liste stehen */
 bool kern_selbstschutz_enthaelt(kern *k, const char *p);       /* Geschütztes liegt darin -> aufklappen */
-const char *kern_selbstschutz_hinweis(kern *k);
+const char *kern_selbstschutz_hinweis(kern *k, bool komplett);   /* NEU 1.0.8 (F1): komplett = vollständige Bereinigung, sonst eigene Auswahl */
 bool kern_selbstschutz_unlesbar(kern *k, const char *p);       /* NEU 1.0.6 Fix: p ist ein privater, nicht lesbarer Ordner (oder liegt darin) */
 bool kern_selbst_eigen(kern *k, const char *p);                  /* NEU 28.10.2026: p gehört zu PS5 Cleanup selbst (liegt in/ist ein eigener Pfad) */
 bool kern_selbst_da(kern *k, bool m2, bool usb);                                    /* NEU 28.10.2026: liegt noch etwas von PS5 Cleanup selbst auf der PS5? */
@@ -379,5 +439,25 @@ const char *kern_art_info(arena *a, const eintrag *f);      /* längerer Text f�
 bool        kern_nur_mit_spiel(kern *k, const eintrag *f);  /* Update/Zusatzinhalt eines noch installierten Spiels: geht nur mit dem Spiel */
 const char *kern_endgueltig_satz(kern *k, arena *a);        /* "Danach endgültig weg: 12 Spielstände, ..." ("" = nichts Endgültiges gewählt) */
 void        kern_sm_nach_auswahl(kern *k);                  /* gewählte ShadowMount-Kacheln: Spieldatei mit, wenn ihre Zeile gewählt ist */
+const char *kern_name(arena *a, const eintrag *f);          /* NEU 1.0.8 (Arbeitsplan 2.6): nur der Name - ohne Ort, ohne "– Kachel", "– Spielstände" ... */
+const char *kern_doppelt_text(arena *a, const eintrag *f);  /* NEU 1.0.8 (Arbeitsplan 2.4): " – doppelt: auch installiert auf der M.2-SSD" ("" = nur einmal da) */
+
+/* ---- Blöcke für die Auswahl (NEU 1.0.8, kern_bloecke.c, Arbeitsplan 2.6, Entscheidung da_Chris86 04.11.2026 17:03/17:04) ----
+ * Ein Block = eine Kachel (Spiel, App, Tool, Trophäen-Liste ...) mit allen Zeilen, die im selben Bereich darunter stehen. Nur Anzeige:
+ * was gelöscht wird, ändert sich dadurch nicht. */
+typedef struct {
+    eintrag    *kopf;          /* erste Zeile des Blocks (bei einem Block aus einer Zeile: diese Zeile) */
+    pliste      teile;         /* alle Zeilen des Blocks: der Kopf zuerst, dann seine Teile */
+    long long   bytes;         /* Größe aller Teile zusammen - gilt nur, wenn groesse_da */
+    bool        groesse_da;    /* alle Teile des Blocks sind gezählt */
+    bool        gekappt;       /* eine der Größen wurde beim Zählen gekappt */
+    const char *name;          /* nur der Name (A–Z und die zugeklappte Zeile) */
+    bool        ohne_kachel;   /* NEU 1.0.8 (2.3): Tool ohne Kachel - Daten-Ordner mit Payload-Datei ("2 Teile · ohne Kachel") */
+} kblock;
+enum { SORT_GROESSTE = 0, SORT_AZ = 1 };
+eintrag    *kern_kopf_von(kern *k, const eintrag *f, int kat);   /* Zeile, unter der f im Bereich kat steht (NULL = steht für sich) */
+int         kern_bloecke(kern *k, arena *a, int kat, int sortierung, kblock **aus);   /* Blöcke des Bereichs kat; Rückgabe: Anzahl */
+int         kern_vergleich_namen(const char *x, const char *y);  /* A–Z: Groß/klein egal, Ä wie A, ß wie ss, Zahlen nach Wert */
+const char *kern_folge_kurz(const eintrag *f);               /* NEU 1.0.8 (4.3): kurzes Schildchen der Zeile ("neu installieren", "endgültig weg") */
 
 #endif

@@ -5,7 +5,7 @@
  * (Umgebung VORSCHAU_WURZEL), feste Konsolen-Angaben. Immer Simulation.
  */
 #include "plattform.h"
-#include "../db/db_sicherung.h"   /* NEU 1.0.7: appinfo.db nur lesen */
+#include "../db/db_lesen.h"   /* NEU 1.0.7: appinfo.db nur lesen */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +29,7 @@ bool plattform_speicher(int ort, long long *frei, long long *gesamt)
     default: return false;
     }
 }
+int plattform_usb_anzahl(void) { return 1; }   /* Codex-Prüfung 91: in der Vorschau ein USB-Laufwerk */
 bool plattform_englisch(void) { const char *s = getenv("VORSCHAU_SPRACHE"); return s && !strcmp(s, "en"); }
 /* NEU 1.0.7: Protokoll-Datei in der PC-Vorschau nur über Umgebungsvariablen (sonst keine Datei) */
 const char *plattform_protokoll_ordner(int nr) { return nr == 0 ? getenv("VORSCHAU_PROTOKOLL") : NULL; }
@@ -37,17 +38,31 @@ const char *plattform_stick_ordner(void) { return getenv("VORSCHAU_STICK"); }
 void plattform_protokoll_zeile(const char *t) { (void)t; }
 void plattform_protokoll_stick_setzen(const char *pfad) { (void)pfad; }
 const char *plattform_db_ordner(void) { return getenv("VORSCHAU_MMS"); }
+#ifdef MITSCHNITT
+#include <sys/stat.h>
+/* NEU 1.0.8 (Arbeitsplan 2.7): Vorschau mit Mitschnitt - Ordner aus VORSCHAU_TEST (sonst ./PS5-Cleanup-Test) */
+const char *plattform_test_ordner(void)
+{
+    const char *o = getenv("VORSCHAU_TEST"); static char p[512];
+    snprintf(p, sizeof p, "%s", o && o[0] ? o : "PS5-Cleanup-Test");
+    mkdir(p, 0755);
+    struct stat st;
+    return stat(p, &st) == 0 && S_ISDIR(st.st_mode) ? p : NULL;
+}
+#endif
 /* NEU 1.0.7 (PS5-Test 02.11.2026): appinfo.db nur lesen und die Zeilen an den Kern geben (siehe plattform.h) */
 typedef struct { kern *k; void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert); } appinfo_ctx;
 static void appinfo_cb(void *c, const char *titel, const char *feld, const char *wert) { appinfo_ctx *x = c; x->zeile(x->k, titel, feld, wert); }
 void plattform_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert))
 {
     const char *q = plattform_db_ordner();
-    if (!k || !zeile || !q) return;
+    if (!k || !zeile) return;
     appinfo_ctx c = { k, zeile };
     const char *g = "";
-    int r = db_appinfo_angaben(k->a, q, appinfo_cb, &c, &g);
-    (void)r;
+    if (q) { int r = db_appinfo_angaben(k->a, q, appinfo_cb, &c, &g); (void)r; }
+    /* NEU 1.0.8 (PS5-Test 07.11.2026): Sonys Spielstand-Liste - in der Vorschau eine Datei aus VORSCHAU_SAVEDATA */
+    const char *s = getenv("VORSCHAU_SAVEDATA");
+    if (s && s[0]) { g = ""; int r = db_spielstand_angaben(k->a, s, appinfo_cb, &c, &g); (void)r; }
 }
 void (*plattform_meldung)(const char *t) = NULL;
 const char *plattform_eigener_ort(void) { const char *s = getenv("VORSCHAU_ORT"); return s ? s : "/data/homebrew/PS5Cleanup"; }
@@ -57,7 +72,8 @@ void plattform_konsole(konsole_info *k)
     const char *m = getenv("VORSCHAU_MODELL");
     snprintf(k->modell, sizeof k->modell, "%s", m ? m : "CFI-2016");
     snprintf(k->firmware, sizeof k->firmware, "12.00");
-    k->ddd_bekannt = true; k->ddd = 1;
+    const char *d = getenv("VORSCHAU_DDD");   /* NEU 1.0.8: andere Kopplungs-Werte in der Vorschau prüfen (Standard 1 = online gekoppelt) */
+    k->ddd_bekannt = true; k->ddd = d ? atoi(d) : 1;
 }
 zugriff *plattform_zugriff(void)
 {

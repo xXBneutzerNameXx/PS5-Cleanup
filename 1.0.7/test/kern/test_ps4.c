@@ -5,7 +5,7 @@
  * Jede Prüfung druckt OK/FAIL, am Ende FEHLERZAHL. */
 #include "../../kern/kern.h"
 #include "../../kern/ablauf.h"
-#include "../../db/db_sicherung.h"
+#include "../../db/db_lesen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,7 +54,7 @@ static eintrag *spiel_eintrag(kern *k, const char *gruppe)
 static void keine_wahl(kern *k) { for (int i = 0; i < k->Funde.n; i++) ((eintrag *)k->Funde.e[i])->Wahl = false; }
 static bool geschuetzt(kern *k, const char *p) { const char *g; return kern_ps4_geschuetzt(k, p, &g); }
 
-/* ---- Bedienablauf (für "Sicherung fehlgeschlagen -> nichts löschen") */
+/* ---- Bedienablauf (für "Vorbereitung direkt vor dem Löschen schlägt fehl -> nichts löschen") */
 static int FRAGEN_Z = 0;
 static bool u_wahl(void *c, const char *t, const char *ti, const char *s, const char *g) { (void)c; (void)t; (void)ti; (void)s; (void)g; FRAGEN_Z++; return true; }
 static const char *u_text(void *c, const char *t, const char *ti) { (void)c; (void)t; (void)ti; FRAGEN_Z++; return SP_EN ? "DELETE" : "LÖSCHEN"; }
@@ -70,8 +70,7 @@ static int test_einbindung(arena *a, const char *id, const char **fs, const char
     if (!strcmp(id, EINB_ID)) { *fs = "nullfs"; *q = EINB_QUELLE; return 1; }
     *fs = NULL; *q = NULL; return 0;
 }
-static bool kein_stick(void *c, const char **g) { (void)c; *g = "Kein USB-Stick gefunden. PS5 Cleanup sichert vor jedem Löschen die Spieldatenbanken ..."; return false; }
-static bool sicherung_scheitert(void *c) { (void)c; vor_loeschen_gerufen++; return false; }
+static bool vorbereitung_scheitert(void *c) { (void)c; vor_loeschen_gerufen++; return false; }
 static bool nie(void *c) { (void)c; return false; }
 static void nichts(void *c, eintrag *e) { (void)c; (void)e; }
 
@@ -88,7 +87,7 @@ int main(int argc, char **argv)
     const ps4_spiel *s1 = spiel(k, "CUSA30001", ORT_INTERN), *s2 = spiel(k, "CUSA30002", ORT_INTERN), *s3 = spiel(k, "CUSA30003", ORT_M2),
                     *s4 = spiel(k, "CUSA30004", ORT_INTERN), *s5 = spiel(k, "CUSA30005", ORT_INTERN), *s6i = spiel(k, "CUSA30006", ORT_INTERN),
                     *s6m = spiel(k, "CUSA30006", ORT_M2), *s7 = spiel(k, "CUSA30007", ORT_USB);
-    pruefe(k->PS4.n == 8, a_fmt(A0, "8 PS4-Ordner erfasst (intern, M.2, USB-Speicher; ist %d)", k->PS4.n));
+    pruefe(k->PS4.n == 10, a_fmt(A0, "10 PS4-Ordner erfasst (intern, M.2, USB-Speicher - seit 05.11.2026 mit CUSA30009 intern leer und auf der M.2; ist %d)", k->PS4.n));
     pruefe(s1 && s1->app_da && s1->app_bytes == 4096 && kern_ps4_installiert(s1), "CUSA30001 intern: installiert, app.pkg 4096 Byte");
     pruefe(s1 && s1->patch_da && s1->patch_bytes == 2048 && !strcmp(s1->version, "01.05"), a_fmt(A0, "CUSA30001: Update 2048 Byte, Version aus dem Update 01.05 (ist %s)", s1 ? s1->version : "-"));
     pruefe(s1 && s1->dlc == 1, "CUSA30001: 1 Zusatzinhalt");
@@ -150,6 +149,13 @@ int main(int argc, char **argv)
     }
     eintrag *e6 = spiel_eintrag(k, "/user|CUSA30006"), *e6m = spiel_eintrag(k, M2 "/user|CUSA30006");
     pruefe(e6 && e6m, "CUSA30006: je ein Eintrag für die interne und die M.2-Kopie");
+    /* NEU 1.0.8 (Arbeitsplan 2.4): doppelte Spiele deutlich markieren */
+    pruefe(e6 && e6m && e6->Doppelt.n == 1 && e6m->Doppelt.n == 1 && strstr(kern_zeile(A0, e6), " – doppelt: auch installiert auf der M.2-SSD")
+           && strstr(kern_zeile(A0, e6m), " – doppelt: auch installiert auf der internen SSD") && strstr(kern_art_info(A0, e6), "Doppelt: Dieses Spiel liegt mehr als einmal"),
+           a_fmt(A0, "2.4: beide Kopien als doppelt markiert (%s | %s)", e6 ? kern_zeile(A0, e6) : "-", e6m ? kern_zeile(A0, e6m) : "-"));
+    pruefe(e1 && e1->Doppelt.n == 0 && !strstr(kern_zeile(A0, e1), "doppelt") && !strstr(kern_art_info(A0, e1), "Doppelt"), a_fmt(A0, "2.4: Spiel nur einmal da - kein Vermerk (%s)", e1 ? kern_zeile(A0, e1) : "-"));
+    { int n9 = 0, d9 = 0; for (int i = 0; i < k->Funde.n; i++) { eintrag *f = k->Funde.e[i]; if (f->Gruppe && strstr(f->Gruppe, "CUSA30009") && ist_teil(f, "Spiel")) { n9++; if (f->Doppelt.n) d9++; } }
+      pruefe(n9 >= 1 && d9 == 0, a_fmt(A0, "2.4 (Codex-Prüfung 73): leerer App-Ordner neben der M.2-Installation ist keine zweite Kopie (%d Einträge, %d doppelt)", n9, d9)); }
     if (e6 && e6m) {
         keine_wahl(k); e6->Wahl = true; kern_ps4_weg_setzen(k);
         pruefe(!geschuetzt(k, "/user/app/CUSA30006"), "nur interne Kopie gewählt: /user/app/CUSA30006 darf weg");
@@ -183,6 +189,18 @@ int main(int argc, char **argv)
         SP_EN = true; z = ablauf_zusammenfassung(&AB, false); SP_EN = false;
         pruefe(strstr(z, "DELETED") && strstr(z, "stay protected"), "Zusammenfassung EN");
         keine_wahl(k);
+        /* NEU 1.0.8 (F2, da_Chris86s Bilder vom 04.11.2026): nur einzelne Dateien auf dem USB-Laufwerk gewählt - nur die Dateien nennen, keine
+         * "!!! ACHTUNG ... was darin liegt"-Warnung (klang nach dem ganzen Laufwerk) */
+        eintrag *d1 = mit_pfad(k, "/mnt/usb0/Spiel_Eins.pkg"), *d2 = mit_pfad(k, "/mnt/usb0/kaputt.pkg");
+        if (d1 && d2) { d1->Wahl = d2->Wahl = true; kern_ermittle_groessen(k); }   /* wie der Ablauf vor dem Bestätigen: Größen der gewählten */
+        pruefe(d1 && d2 && d1 != d2 && d1->HatGroesse && d1->Ordner == 0 && d2->HatGroesse && d2->Ordner == 0,
+               a_fmt(A0, "zwei Dateien auf dem USB-Laufwerk angeboten (mit Größe: %d/%d Ordner)", d1 ? d1->Ordner : -1, d2 ? d2->Ordner : -1));
+        if (d1 && d2) {
+            z = ablauf_zusammenfassung(&AB, false);
+            pruefe(strstr(z, "Auf dem USB-Laufwerk werden nur einzelne Dateien gelöscht (2): ") && strstr(z, "Spiel_Eins.pkg") && strstr(z, "kaputt.pkg") && !strstr(z, "ACHTUNG"),
+                   "nur Dateien gewählt: die Zusammenfassung nennt die zwei Dateien, keine Warnung vor dem ganzen Laufwerk");
+            keine_wahl(k);
+        }
     }
 
     /* =============================================================== 6. Löschen: Schutz greift unmittelbar vor dem Löschen */
@@ -294,15 +312,15 @@ int main(int argc, char **argv)
         pruefe(!k->DB_HINWEIS, "DB_HINWEIS (alte Empfehlung) im 1.0.7-Modus aus");
     }
 
-    /* =============================================================== 12. Sicherung schlägt fehl -> nichts gelöscht */
-    printf("== 12. Bedienablauf: Datenbank-Sicherung schlägt fehl -> NICHTS gelöscht\n");
+    /* =============================================================== 12. Vorbereitung vor dem Löschen schlägt fehl -> nichts gelöscht */
+    printf("== 12. Bedienablauf: Vorbereitung direkt vor dem Löschen (vor_loeschen) schlägt fehl -> NICHTS gelöscht\n");
     tdatei("/user/data/Dritter/a.txt", 1);
     k = neu();
     {
         static ablauf AB; ablauf_ui ui = { u_wahl, u_text, u_log, u_stand, u_fertig, u_fehler, NULL, NULL };
         ablauf_init(&AB, k, &ui);
         k->melde = melde_log; AB.protokoll_datei = "(Protokoll)";
-        AB.vor_loeschen = sicherung_scheitert;
+        AB.vor_loeschen = vorbereitung_scheitert;
         eintrag *dr = mit_pfad(k, "/user/data/Dritter");
         pruefe(dr != NULL, "Ordner Dritter angeboten");
         if (dr) {
@@ -311,47 +329,26 @@ int main(int argc, char **argv)
             kern_groessen_im_hintergrund(k, nie, NULL, nichts, NULL);
             ablauf_starte(&AB, (void (*)(void *))ablauf_auswahl, &AB);
             ablauf_hintergrund_anhalten(&AB);
-            pruefe(vor_loeschen_gerufen == 1, a_fmt(A0, "Sicherung wurde direkt vor dem Löschen aufgerufen (%d x)", vor_loeschen_gerufen));
+            pruefe(vor_loeschen_gerufen == 1, a_fmt(A0, "vor_loeschen wurde direkt vor dem Löschen aufgerufen (%d x)", vor_loeschen_gerufen));
             pruefe(da("/user/data/Dritter/a.txt"), "Ordner Dritter NICHT gelöscht");
             pruefe(log_hat("NICHTS gelöscht"), "Protokoll: \"Es wurde NICHTS gelöscht.\"");
         }
     }
 
-    /* =============================================================== 13. Datenbank-Sicherung mit SQLite-Prüfung */
-    printf("== 13. Datenbank-Sicherung (app.db, appinfo.db) mit echter SQLite-Prüfung\n");
+    /* =============================================================== 13. Datenbanken nur lesen und mit SQLite prüfen */
+    printf("== 13. Datenbanken (app.db, appinfo.db) nur lesen und mit echter SQLite-Prüfung (seit 1.0.8 ohne Sicherung)\n");
     {
-        const char *mms = VERB(A0, HIER, "/mms"), *stick = VERB(A0, HIER, "/stick");
-        const char *ber, *abl;
+        const char *mms = VERB(A0, HIER, "/mms");
+        const char *ber;
         struct stat st0, st1; stat(VERB(A0, mms, "/app.db"), &st0);
-        bool ok = db_sichern(A0, mms, NULL, "12.00", "CFI-7016", false, &ber, &abl);
-        pruefe(ok && strstr(ber, "integrity_check) ok") && strstr(ber, "Backup-Schnittstelle ok"), a_fmt(A0, "nur prüfen (Test-ELF/Simulation): ok\n%s", ber));
+        bool ok = db_beide_pruefen(A0, mms, &ber);
+        pruefe(ok && strstr(ber, "integrity_check) ok") && strstr(ber, "Backup-Schnittstelle ok"), a_fmt(A0, "lesen und prüfen: ok\n%s", ber));
         pruefe(strstr(ber, "WAL-Modus") && strstr(ber, "Einträge eingerechnet"), "app.db im WAL-Modus: abgeschlossene WAL-Einträge eingerechnet");
-        int vorher = -1;
-        char cmd[900]; snprintf(cmd, sizeof cmd, "ls '%s' | wc -l", stick); FILE *p = popen(cmd, "r"); if (p) { if (fscanf(p, "%d", &vorher) != 1) vorher = -1; pclose(p); }
-        pruefe(vorher == 0, "nur prüfen: auf dem Stick wurde nichts geschrieben");
-        ok = db_sichern(A0, mms, stick, "12.00", "CFI-7016", true, &ber, &abl);
-        pruefe(ok && strstr(ber, "zurückgelesen und gleich"), a_fmt(A0, "Sicherung ok:\n%s", ber));
-        pruefe(h_m(abl, "/ps5cleanup_db_\\d{4}-\\d{2}-\\d{2}_\\d{6}_FW12\\.00_CFI-7016_$"), a_fmt(A0, "Dateiname mit Datum, Firmware, Modell: %s", abl));
-        const char *dateien[6] = { "app.db", "app.db-wal", "appinfo.db", "app_geprueft.db", "appinfo_geprueft.db", "info.txt" };
-        for (int i = 0; i < 6; i++) pruefe(access(VERB(A0, abl, dateien[i]), F_OK) == 0, a_fmt(A0, "%s%s geschrieben", abl, dateien[i]));
-        pruefe(access(VERB(A0, abl, "appinfo.db-journal"), F_OK) != 0, "leeres appinfo.db-journal nicht mitkopiert");
-        snprintf(cmd, sizeof cmd, "cmp -s '%s/app.db' '%sapp.db' && cmp -s '%s/app.db-wal' '%sapp.db-wal' && cmp -s '%s/appinfo.db' '%sappinfo.db'", mms, abl, mms, abl, mms, abl);
-        pruefe(system(cmd) == 0, "Rohkopien Byte für Byte gleich den Originalen (inkl. WAL)");
-        snprintf(cmd, sizeof cmd, "python3 -I -c \"import sqlite3,sys; c=sqlite3.connect('file:%sapp_geprueft.db?mode=ro',uri=True); r=c.execute('pragma integrity_check').fetchone()[0]; n=c.execute('select count(*) from t').fetchone()[0]; print(r,n); sys.exit(0 if r=='ok' and n==2000 else 1)\"", abl);
-        pruefe(system(cmd) == 0, "geprüfte Kopie: unabhängiges SQLite (Python) meldet ok und alle 2000 abgeschlossenen Zeilen (WAL eingerechnet)");
-        snprintf(cmd, sizeof cmd, "python3 -I -c \"import sqlite3,shutil,sys,os; shutil.copy('%sapp.db','%s/nur_haupt.db'); c=sqlite3.connect('%s/nur_haupt.db')\n"
-                 "try: n=c.execute('select count(*) from t').fetchone()[0]\nexcept Exception: n=-1\nc.close(); os.remove('%s/nur_haupt.db'); print('nur Hauptdatei:',n); sys.exit(0 if n!=2000 else 1)\"", abl, HIER, HIER, HIER);
-        pruefe(system(cmd) == 0, "Gegenprobe: die Hauptdatei ALLEIN enthält diese Zeilen nicht - erst mit dem WAL ist der Stand vollständig");
         stat(VERB(A0, mms, "/app.db"), &st1);
         pruefe(st0.st_size == st1.st_size && st0.st_mtime == st1.st_mtime, "Original app.db unverändert (Größe, Zeitstempel)");
+        char cmd[900];
         snprintf(cmd, sizeof cmd, "cd '%s' && sha1sum app.db app.db-wal appinfo.db appinfo.db-journal | cmp -s - '%s/mms.sha1'", mms, HIER);
         pruefe(system(cmd) == 0, "Originale samt WAL/Journal unverändert (Prüfsumme wie vor dem Test)");
-        { FILE *i = fopen(VERB(A0, abl, "info.txt"), "rb"); char b[4096] = {0}; size_t n0 = 0; if (i) { n0 = fread(b, 1, sizeof b - 1, i); fclose(i); }
-          pruefe(n0 > 0 && strstr(b, "Firmware 12.00") && strstr(b, "CFI-7016") && strstr(b, "keine Garantie") && strstr(b, "nie getestet") && !strstr(b, "garantiert"), "info.txt: Firmware, Modell, \"keine Garantie\", \"nie getestet\", nirgends \"garantiert\""); }
-        const char *abl2; bool ok2 = db_sichern(A0, mms, stick, "12.00", "CFI-7016", true, &ber, &abl2);
-        pruefe(!ok2 || strcmp(abl, abl2) != 0, "vorhandene Sicherung wird nie überschrieben");
-        int vorher_n = -1, nachher_n = -2;
-        snprintf(cmd, sizeof cmd, "ls '%s' | wc -l", stick); p = popen(cmd, "r"); if (p) { if (fscanf(p, "%d", &vorher_n) != 1) vorher_n = -1; pclose(p); }
         struct { const char *ordner, *soll, *was; } F[] = {
             { "/mms_kaputt", "FEHLGESCHLAGEN", "abgeschnittene app.db" },
             { "/mms_fehlt", "appinfo.db - fehlt", "fehlende appinfo.db" },
@@ -360,17 +357,15 @@ int main(int argc, char **argv)
             { "/mms_defekt", "integrity_check", "beschädigter Index (integrity_check)" },
             { "/mms_walkaputt", "WAL", "WAL-Datei mit falscher Prüfsumme im Kopf" } };
         for (size_t i = 0; i < sizeof F / sizeof F[0]; i++) {
-            ok = db_sichern(A0, VERB(A0, HIER, F[i].ordner), stick, "12.00", "CFI-7016", true, &ber, &abl);
-            pruefe(!ok && strstr(ber, F[i].soll), a_fmt(A0, "%s erkannt, nichts geschrieben: %s", F[i].was, ber));
+            ok = db_beide_pruefen(A0, VERB(A0, HIER, F[i].ordner), &ber);
+            pruefe(!ok && strstr(ber, F[i].soll) && strstr(ber, "Datenbank-Prüfung FEHLGESCHLAGEN"), a_fmt(A0, "%s erkannt: %s", F[i].was, ber));
         }
-        ok = db_sichern(A0, VERB(A0, HIER, "/mms_walmuell"), NULL, "12.00", "CFI-7016", false, &ber, &abl);
+        ok = db_beide_pruefen(A0, VERB(A0, HIER, "/mms_walmuell"), &ber);
         pruefe(ok && strstr(ber, "1 nicht abgeschlossen"), a_fmt(A0, "WAL mit abgebrochenem letzten Eintrag: Eintrag verworfen, Rest ok (%s)", ber));
-        ok = db_sichern(A0, mms, VERB(A0, HIER, "/gibtsnicht"), "12.00", "CFI-7016", true, &ber, &abl);
-        pruefe(!ok && strstr(ber, "FEHLGESCHLAGEN"), a_fmt(A0, "Ziel nicht beschreibbar erkannt: %s", ber));
-        snprintf(cmd, sizeof cmd, "ls '%s' | wc -l", stick); p = popen(cmd, "r"); if (p) { if (fscanf(p, "%d", &nachher_n) != 1) nachher_n = -2; pclose(p); }
-        pruefe(vorher_n == nachher_n && vorher_n >= 6, a_fmt(A0, "Fehlerfälle haben keine Datei auf den Stick geschrieben (%d Dateien vorher und nachher)", vorher_n));
-        SP_EN = true; ok = db_sichern(A0, mms, NULL, "12.00", "CFI-7016", false, &ber, &abl); SP_EN = false;
+        SP_EN = true; ok = db_beide_pruefen(A0, mms, &ber); SP_EN = false;
         pruefe(ok && strstr(ber, "SQLite check (integrity_check) ok"), "Bericht auf Englisch");
+        SP_EN = true; ok = db_beide_pruefen(A0, VERB(A0, HIER, "/mms_kaputt"), &ber); SP_EN = false;
+        pruefe(!ok && strstr(ber, "Database check FAILED"), a_fmt(A0, "Fehlermeldung auf Englisch: %s", ber));
     }
 
     /* =============================================================== 14. Geisterkacheln: Regel */
@@ -425,30 +420,105 @@ int main(int argc, char **argv)
         }
     }
 
-    /* =============================================================== 16. Bedienablauf: keine Sicherung möglich -> gar nicht erst anfangen */
-    printf("== 16. Bedienablauf: kein USB-Stick -> verständliche Meldung, keine Frage, NICHTS gelöscht\n");
-    tdatei("/user/data/Fuenfter/a.txt", 1);
+    /* =============================================================== 16. PKG-Dateien: Spielname aus dem PKG (NEU 1.0.8, Arbeitsplan 2.2) */
+    printf("== 16. PKG-Dateien auf dem USB-Stick: Spielname und Spielnummer aus dem PKG\n");
     k = neu();
     {
-        static ablauf AB; ablauf_ui ui = { u_wahl, u_text, u_log, u_stand, u_fertig, u_fehler, NULL, NULL };
-        ablauf_init(&AB, k, &ui);
-        k->melde = melde_log; AB.protokoll_datei = "(Protokoll)";
-        AB.loeschen_moeglich = kein_stick; AB.vor_loeschen = sicherung_scheitert;
-        eintrag *fu = mit_pfad(k, "/user/data/Fuenfter");
-        if (fu) {
-            int fragen_vorher = FRAGEN_Z; vor_loeschen_gerufen = 0;
-            ablauf_eintrag_setzen(&AB, fu, true);
-            ablauf_hintergrund_anhalten(&AB);
-            ablauf_starte(&AB, (void (*)(void *))ablauf_auswahl, &AB);
-            ablauf_hintergrund_anhalten(&AB);
-            pruefe(da("/user/data/Fuenfter/a.txt"), "Ordner Fuenfter NICHT gelöscht");
-            pruefe(FRAGEN_Z == fragen_vorher, "keine Frage gestellt (es ging gar nicht erst los)");
-            pruefe(vor_loeschen_gerufen == 0, "Sicherung wurde gar nicht erst versucht");
-            pruefe(log_hat("FEHLERMELDUNG Kein USB-Stick gefunden") && log_hat("Es wurde nichts gelöscht."), "Meldung an den Nutzer: \"Kein USB-Stick gefunden ... Es wurde nichts gelöscht.\"");
-            LOG = (sliste){0};   /* gleiche Sperre auch bei der vollständigen Bereinigung */
-            ablauf_starte(&AB, (void (*)(void *))ablauf_komplett, &AB);
-            pruefe(log_hat("FEHLERMELDUNG Kein USB-Stick gefunden") && da("/user/data/Fuenfter/a.txt") && da("/user/app/CUSA30001/app.pkg"), "vollständige Bereinigung: dieselbe Meldung, nichts gelöscht");
-        } else pruefe(false, "Ordner Fuenfter angeboten");
+        eintrag *p1 = mit_pfad(k, "/mnt/usb0/Spiel_Eins.pkg"), *p2 = mit_pfad(k, "/mnt/usb0/Update_Eins.pkg"), *p3 = mit_pfad(k, "/mnt/usb0/kaputt.pkg");
+        pruefe(p1 && strstr(p1->Text, "Spiel_Eins.pkg") && strstr(p1->Text, "[PKG: Spiel Eins (CUSA30001)]"), a_fmt(A0, "Spiel-PKG: Name und Nummer aus dem PKG (%s)", p1 ? p1->Text : "nicht angeboten"));
+        pruefe(p2 && strstr(p2->Text, "[PKG: Spiel Eins (CUSA30001), Update 01.05]"), a_fmt(A0, "Update-PKG: als Update erkannt (%s)", p2 ? p2->Text : "nicht angeboten"));
+        pruefe(p3 && strstr(p3->Text, "kaputt.pkg") && !strstr(p3->Text, "[PKG"), a_fmt(A0, "kein echtes PKG: nur der Dateiname wie bisher (%s)", p3 ? p3->Text : "nicht angeboten"));
+        /* Codex-Prüfung 73: der Name aus dem PKG steht auch in der Zeile der Auswahl. 1.0.8 (PS5-Test 06.11.2026, Befund 12): CUSA30001 ist
+         * installiert - die PKG-Dateien stehen in seinem Block ("Spiel Eins – Installationsdatei", "Spiel Eins – Update-Datei 01.05"), rot */
+        pruefe(p1 && strstr(kern_zeile(A0, p1), "USB-Laufwerk – Spiel Eins – Installationsdatei") && !strcmp(kern_name(A0, p1), "Spiel Eins") && p1->Kat == 1
+               && p1->ToolKachel && kern_ampel(p1) == AMPEL_ROT,
+               a_fmt(A0, "Zeile der Auswahl: im Block des installierten Spiels (%s, Name: %s, Bereich %d)", p1 ? kern_zeile(A0, p1) : "-", p1 ? kern_name(A0, p1) : "-", p1 ? p1->Kat : -1));
+        pruefe(p2 && strstr(kern_zeile(A0, p2), "Spiel Eins – Update-Datei 01.05") && !strcmp(kern_name(A0, p2), "Spiel Eins") && p2->ToolKachel == p1->ToolKachel,
+               a_fmt(A0, "Update-PKG in der Zeile: %s", p2 ? kern_zeile(A0, p2) : "-"));
+        eintrag *p4 = mit_pfad(k, "/mnt/usb0/Zusatz_Eins.pkg");
+        pruefe(p4 && strstr(kern_zeile(A0, p4), "Spiel Eins – Zusatzinhalt-Datei: Bonuspaket") && p4->ToolKachel == (p1 ? p1->ToolKachel : NULL),
+               a_fmt(A0, "Zusatzinhalt-PKG mit seinem eigenen Namen im Block des Spiels: %s", p4 ? kern_zeile(A0, p4) : "-"));
+        {   /* Codex-Prüfung 71: Sonderfälle und Lesegrenzen */
+            struct { const char *p, *soll, *was; } P[] = {
+                { "/mnt/usb0/Zusatz_Eins.pkg", "[PKG: Bonuspaket (CUSA30001), Zusatzinhalt]", "Zusatzinhalt erkannt" },
+                { "/mnt/usb0/grenze.pkg", "[PKG: Spiel Grenze (CUSA30001)]", "param.sfo über der 64-KB-Grenze gelesen" },
+                { "/mnt/usb0/ohne_id.pkg", "[PKG: Spiel Ohne (CUSA30002)]", "Spielnummer aus der Inhaltskennung im Kopf" },
+                { "/mnt/usb0/ohne_sfo.pkg", NULL, "PKG ohne param.sfo: nur der Dateiname" },
+                { "/mnt/usb0/sfo_gross.pkg", NULL, "param.sfo zu groß: nur der Dateiname" },
+                { "/mnt/usb0/abgeschnitten.pkg", NULL, "abgeschnittene Datei: nur der Dateiname" },
+                { "/mnt/usb0/weit.pkg", "[PKG: X (CUSA30001)]", "param.sfo hinter 1 MB (wie bei großen echten PKGs, 05.11.2026): gezielt gelesen" },
+                { "/mnt/usb0/viele.pkg", NULL, "Eintragstabelle mit 9000 Einträgen (mehr als 8192): nur der Dateiname" },
+                { "/mnt/usb0/sfo_weg.pkg", NULL, "param.sfo zeigt hinter das Dateiende: nur der Dateiname" } };
+            for (size_t i = 0; i < sizeof P / sizeof P[0]; i++) {
+                eintrag *q = mit_pfad(k, P[i].p);
+                pruefe(q && (P[i].soll ? strstr(q->Text, P[i].soll) != NULL : !strstr(q->Text, "[PKG")), a_fmt(A0, "%s (%s)", P[i].was, q ? q->Text : "nicht angeboten"));
+            }
+        }
+        {   /* Codex-Prüfung 72: gelesen wird nur der Anfang, ein manipuliertes param.sfo bleibt klein */
+            size_t g = 0; const char *z = kern_pkg_zusatz_test(k, "/mnt/usb0/Spiel_Eins.pkg", &g);
+            pruefe(z[0] && g > 0 && g <= 4096, a_fmt(A0, "Spiel-PKG (gut 200 KB): nur Kopf, Eintragstabelle und param.sfo gelesen (%zu Byte)", g));
+            z = kern_pkg_zusatz_test(k, "/mnt/usb0/weit.pkg", &g);
+            pruefe(z[0] && g > 0 && g <= 4096, a_fmt(A0, "param.sfo hinter 1 MB (Datei gut 2 MB): direkt hingesprungen (%zu Byte gelesen)", g));
+            z = kern_pkg_zusatz_test(k, "/mnt/usb0/viele.pkg", &g);
+            pruefe(!z[0] && g <= 0x60, a_fmt(A0, "9000 Einträge: nach dem Kopf aufgehört (%zu Byte)", g));
+            z = kern_pkg_zusatz_test(k, "/mnt/usb0/boese.pkg", &g);
+            pruefe(z[0] && strlen(z) < 200 && g <= 2 * 65536, a_fmt(A0, "manipuliertes param.sfo (300 Einträge auf 60 KB Text): Anzeige begrenzt (%zu Zeichen, %zu Byte gelesen)", strlen(z), g));
+        }
+        SP_EN = true; k = neu(); SP_EN = false;
+        p2 = mit_pfad(k, "/mnt/usb0/Update_Eins.pkg");
+        pruefe(p2 && strstr(p2->Text, "[PKG: Spiel Eins (CUSA30001), update 01.05]"), a_fmt(A0, "EN: als update erkannt (%s)", p2 ? p2->Text : "nicht angeboten"));
+    }
+
+    /* =============================================================== 16b. Spiel-Abbilder: Spielname aus dem exFAT-Abbild (NEU 1.0.8, Arbeitsplan 2.1) */
+    printf("== 16b. Spiel-Abbilder mit nur der Spielnummer im Namen: Spielname aus dem Abbild\n");
+    {
+        kern *k = neu();
+        struct { const char *pfad, *soll, *was; } B[] = {
+            { "/mnt/usb0/PPSA30010.exfat", "[Spiel: Spiel Abbild (PPSA30010)]", "exFAT-Abbild, param.json über zwei Cluster (FAT-Kette)" },
+            { "/mnt/usb0/PPSA30011-app.exfat", "[Spiel: Am Stueck (PPSA30011)]", "zusammenhängend gespeichert (ohne FAT-Kette)" },
+            { "/mnt/usb0/PPSA30012.exfat", "[Spiel: Im Unterordner (PPSA30012)]", "Spiel in einem einzigen Unterordner" },
+            { "/mnt/usb0/CUSA30020.exfat", "[Spiel: PS4 Abbild (CUSA30020)]", "PS4-Spiel im Abbild (param.sfo)" },
+            { "/mnt/usb0/PPSA30015.exfat", "[Spiel: Schleife (PPSA30015)]", "FAT-Kette im Kreis: Verzeichnis nur begrenzt gelesen" },
+            { "/mnt/usb0/PPSA30013.img", NULL, "kein exFAT: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30014.exfat", NULL, "kaputter Kopf: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30016.exfat", NULL, "param.json mit 4 GB Länge: nicht gelesen" },
+            { "/mnt/usb0/PPSA30017.exfat", NULL, "kein sce_sys: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30019.exfat", NULL, "abgeschnittenes Abbild: nur der Dateiname" },
+            /* geändert 07.11.2026 (PS5-Test 16:31): das Abbild wird immer gelesen - Name und Bild kommen aus dem Spiel selbst */
+            { "/mnt/usb0/Spiel Mit Namen - PPSA30018.exfat", "[Spiel: Anderer Name (PPSA30018)]", "Name im Dateinamen: das Abbild wird trotzdem gelesen" },
+            { "/mnt/usb0/Mein Spiel.exfat", "[Spiel: Ohne Nummer (PPSA30021)]", "Dateiname ohne Spielnummer: Name und Kennung aus dem Abbild" },
+            { "/mnt/usb0/PPSA30022.exfat", "[Spiel: Bild Kette (PPSA30022)]", "Bild über zwei Cluster hintereinander" },
+            { "/mnt/usb0/PPSA30023.exfat", "[Spiel: Bild Verstreut (PPSA30023)]", "Bild über zwei verstreute Cluster" } };
+        for (size_t i = 0; i < sizeof B / sizeof *B; i++) {
+            eintrag *q = mit_pfad(k, B[i].pfad);
+            pruefe(q && strstr(q->Text, "[ohne Kachel]") && (B[i].soll ? strstr(q->Text, B[i].soll) != NULL : !strstr(q->Text, "[Spiel:")),
+                   a_fmt(A0, "%s (%s)", B[i].was, q ? q->Text : "nicht angeboten"));
+        }
+        /* Codex-Prüfung 73: der gelesene Name muss auch in der Zeile der Auswahl stehen (bis dahin schnitt kern_zeile ihn ab) */
+        { eintrag *q = mit_pfad(k, "/mnt/usb0/PPSA30010.exfat"), *q2 = mit_pfad(k, "/mnt/usb0/PPSA30013.img");
+          pruefe(q && strstr(kern_zeile(A0, q), "Spieldatei ohne Kachel: Spiel Abbild (PPSA30010.exfat)") && !strcmp(kern_name(A0, q), "Spiel Abbild"),
+                 a_fmt(A0, "Zeile der Auswahl zeigt den Spielnamen: %s (Name: %s)", q ? kern_zeile(A0, q) : "-", q ? kern_name(A0, q) : "-"));
+          pruefe(q2 && strstr(kern_zeile(A0, q2), "PPSA30013.img") && !strstr(kern_zeile(A0, q2), "("), a_fmt(A0, "ohne gelesenen Namen bleibt der Dateiname: %s", q2 ? kern_zeile(A0, q2) : "-")); }
+        /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): die Kennung aus dem Abbild steht nicht in der Zeile, nur der Name; das Bild (icon0.png am Stück)
+         * merkt sich die Suche für die Oberfläche: Abbild, Anfang (Heap 64 x 512 + 9 Cluster x 4096 = 69632), Länge 50 */
+        { eintrag *q = mit_pfad(k, "/mnt/usb0/Mein Spiel.exfat");
+          pruefe(q && strstr(kern_zeile(A0, q), "Spieldatei ohne Kachel: Ohne Nummer (Mein Spiel.exfat)") && !strcmp(kern_name(A0, q), "Ohne Nummer"),
+                 a_fmt(A0, "Zeile ohne die angehängte Kennung: %s (Name: %s)", q ? kern_zeile(A0, q) : "-", q ? kern_name(A0, q) : "-"));
+          const char *b1 = mt_hat(&k->BILD_ORT, "PPSA30010") ? mt_hole(&k->BILD_ORT, "PPSA30010") : "(keins)";
+          const char *b2 = mt_hat(&k->BILD_ORT, "PPSA30021") ? mt_hole(&k->BILD_ORT, "PPSA30021") : "(keins)";
+          pruefe(!strcmp(b1, "/mnt/usb0/PPSA30010.exfat\n69632\n50"), a_fmt(A0, "Bild der Spieldatei: Stelle im Abbild gemerkt (%s)", b1));
+          pruefe(!strcmp(b2, "/mnt/usb0/Mein Spiel.exfat\n69632\n50"), a_fmt(A0, "Bild der Spieldatei ohne Nummer im Namen (%s)", b2));
+          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30013") && !mt_hat(&k->BILD_ORT, "PPSA30017"), "ohne lesbaren Namen kein Bild");
+          const char *b3 = mt_hat(&k->BILD_ORT, "PPSA30022") ? mt_hole(&k->BILD_ORT, "PPSA30022") : "(keins)";
+          pruefe(!strcmp(b3, "/mnt/usb0/PPSA30022.exfat\n69632\n5000"), a_fmt(A0, "Bild über zwei Cluster hintereinander (FAT-Kette geprüft): gemerkt (%s)", b3));
+          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30023"), "Bild über verstreute Cluster: nicht gemerkt (die Oberfläche liest nur ein Stück am Stück)"); }
+        size_t g = 0; const char *z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30010.exfat", &g);
+        pruefe(!strcmp(z, "Spiel Abbild") && g > 0 && g <= 32768, a_fmt(A0, "exFAT-Abbild (knapp 300 KB): nur kleine Stücke gelesen (%zu Byte)", g));
+        z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30015.exfat", &g);
+        pruefe(g <= 300000, a_fmt(A0, "FAT-Kette im Kreis: Lesen begrenzt (%zu Byte)", g));
+        SP_EN = true; k = neu(); SP_EN = false;
+        eintrag *q = mit_pfad(k, "/mnt/usb0/PPSA30010.exfat");
+        pruefe(q && strstr(q->Text, "[game: Image Game (PPSA30010)]") && strstr(q->Text, "[no tile]"), a_fmt(A0, "EN: englischer Name (%s)", q ? q->Text : "nicht angeboten"));
     }
 
     printf("FEHLERZAHL %d\n", fehler);

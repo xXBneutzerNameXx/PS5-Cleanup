@@ -42,10 +42,11 @@ pj PPSA71002 0 "BlackBox"
 pj PPSA71003 0 "ProsperoStore"
 pj PPSA71004 0 "ProsperoEden Switch UI"
 pj SLIB71005 65536 "Spectrum Library"
-pj ORBT71006 0 "Orbit Store" "http://127.0.0.1:12801"
+pj ORBT71006 65536 "Orbit Store" "http://127.0.0.1:12801"   # 1.0.8 (07.11.2026): wie das echte Orbit Store (ORBT00001) eine App (65536)
 printf 'xx\001NPWR31009_00\000' > $W/system_data/priv/appmeta/PPSA71002/npbind.dat
 # Daten, Ordner, Dateien
 for o in playden playden-games playden-import blackbox-v2 prosperostore prosperoeden SpectrumLibrary orbit-store play prospero tmp MeinOrdner; do mkdir -p $D/$o; echo inhalt > $D/$o/datei.txt; done
+head -c 300000 /dev/urandom > $D/orbit-store/gross.dat   # NEU 1.0.8 (2.6): kleine Kachel, große Daten - der Block zählt
 mkdir -p $D/homebrew/FAKE71001 $D/homebrew/PPSA71003; echo x > $D/homebrew/FAKE71001/eboot.bin; echo x > $D/homebrew/PPSA71003/eboot.bin
 mkdir -p $W/mnt/ext1/playden/games/Spiel1; echo x > $W/mnt/ext1/playden/games/Spiel1/a.exe
 U=$W/mnt/usb0; mkdir -p $U/playden; echo x > $U/playden/b.txt
@@ -74,7 +75,10 @@ for u in 1234abcd 5678efgh; do mkdir -p $W/user/home/$u/trophy2/nobackup/data/NP
 mkdir -p $W/user/trophy/conf/NPWR39997_00 $W/user/trophy2/nobackup/conf/NPWR39997_00 $W/user/home/1234abcd/trophy2/nobackup/data/NPWR39997_00
 echo t > $W/user/trophy/conf/NPWR39997_00/TROPHY.TRP; echo t > $W/user/trophy2/nobackup/conf/NPWR39997_00/TROPHY.UCP; echo t > $W/user/home/1234abcd/trophy2/nobackup/data/NPWR39997_00/TRPTITLE.DAT
 # Codex-Prüfung 41: Payload eines anderen Tools im App-Ordner, App-Ordner mit Spielnummer im Namen, Titel mit ™, zweite Fassung ohne Original
-pj PLDM00001 0 "Payload Manager" "http://127.0.0.1:12800"
+pj PLDM00001 65536 "Payload Manager" "http://127.0.0.1:12800"   # 1.0.8 (07.11.2026): wie der echte Payload Manager eine App (65536)
+# NEU 1.0.8 (PS5-Test 07.11.2026, Spielekompressor PSGC50001): eine Tool-Kachel, die sich bei Sony als Spiel meldet (applicationCategoryType 0)
+# steht wie im PS5-Menü unter Spiele - mit ihrem ganzen Block (Daten-Ordner /data/GameCompressor, Programmdatei auf dem USB-Laufwerk)
+pj PSGC50001 0 "Spielekompressor" "http://127.0.0.1:5910/"; mkdir -p $D/GameCompressor; echo x > $D/GameCompressor/einstellungen.json; printf '\177ELF' > $U/game-compressor_v1.0.4.elf
 echo p > $U/ps5cleanup_protokoll_2026-11-02_210000.txt; echo p > $U/ps5cleanup_protokoll_2026-11-01_120000.txt   # laufendes und altes Protokoll
 echo elf > "$W/mnt/ext1/OrbitStore/pldmgr_v0.6.3.elf"
 mkdir -p "$W/mnt/ext1/playden/cache-CUSA31001"; echo x > "$W/mnt/ext1/playden/cache-CUSA31001/c.dat"
@@ -89,6 +93,7 @@ pjm LUMI71008 65536 "Lumina Library" "http://127.0.0.1:7577/"      # Kachel ohne
 pjm REST71016 0 "Alter Rest"                                        # Kachel-Infos ohne App-Ordner, ohne Verweis: bleibt Rest
 mkdir -p $D/LuminaLibrary; echo x > $D/LuminaLibrary/tile.version; echo elf > $U/LuminaLibrary_2.0.elf
 pj SPMP71009 65536 "Spiegel Mount+" "http://127.0.0.1:10109"; echo elf > $U/SpiegelMountPlus_2.0-beta1.elf; mkdir -p $D/spiegelmount; echo x > $D/spiegelmount/config.ini
+head -c 5000 /dev/urandom > $W/user/app/SPMP71009/medien.dat   # NEU 1.0.8 (2.6): diese Kachel allein ist größer als die von Orbit Store
 pj KIST71010 65536 "Kiste Manager" "http://127.0.0.1:8890"; echo elf > $U/ps5-kiste-manager_v1.0.elf
 pj ABLG71011 65536 "Ablage" "http://127.0.0.1:8891"; mkdir -p $D/ablage; echo x > $D/ablage/a.txt; echo log > $D/ablage_startup.log
 pj STRN71012 65536 "Stern Laden" "http://127.0.0.1:8892"; pj PPSA71013 0 "Stern Laden"; mkdir -p $D/sternladen
@@ -117,7 +122,18 @@ k = b"\x7fELF\x02\x01\x01"
 open(sys.argv[1], "wb").write(k + b"\0" * (1048576 - len(k) - 7) + b"\0/data/GRENZDATA/x\0" + b"\0" * 64)
 open(sys.argv[2], "wb").write(k + (b"\0/data/" + b"a/" * 300 + b"\0" + b"\0/user/data/x\0/.y\0") * 12000)
 PY
+# NEU 1.0.8 (Arbeitsplan 2.3): Tools ohne Kachel - Payload-Datei und Daten-Ordner (wie nanoDNS und zftpd auf da_Chris86s PS5), dazu
+# ein unbekannter Ordner mit passender Datei, "ps5-" vorne, zwei gleich gut passende Ordner und ein zu kurzer Name
+for o in nanodns zftpd Werkbank Werkbank-Archiv Spielwiese alpha alphabeta abc kompass; do mkdir -p $D/$o; echo x > $D/$o/einstellungen.ini; done
+for e in nanoDNS_0.4.elf zftpd-ps5-v1.6.0.elf garlic-savemgr_v1.14.elf Werkbank_v2.elf Spielwiese-ps5_v1.elf alpha-beta-tool_v1.elf abc.elf ps5-kompass_v1.0.elf; do printf '\177ELF' > "$U/$e"; done
+# NEU 1.0.8 (Arbeitsplan 2.4): das installierte Rennspiel (CUSA31001) liegt zusätzlich als Spieldatei auf dem Stick, ein fremdes Spiel zweimal als Spieldatei
+echo img > "$U/CUSA31001.exfat"; mkdir -p $W/mnt/ext1/games; echo img > "$U/Zweimal - PPSA31777.exfat"; echo img > "$W/mnt/ext1/Zweimal - PPSA31777.exfat"
 (cd $T; RMDA=1 FAKESM=1 $B/test_bloecke $T 0) | grep -v "^LOG:" || RC=1
+# NEU 1.0.8 (Arbeitsplan 2.7): Mitschnitt und PC-Nachbau - dieselbe Suche auf demselben Testbaum, einmal mitgeschnitten, einmal wiedergegeben
+gcc -O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-format-truncation -Wno-missing-field-initializers -Wno-clobbered -DKERN_LOESCHEN -DMITSCHNITT -I$KK/bau/pcre2-pc/include -I$KK/bau/cjson \
+   $KERN $KK/bau/cjson/cJSON.c $KK/test/kern/test_mitschnitt.c -L$KK/bau/pcre2-pc/lib -lpcre2-8 -lpthread -o $B/test_mitschnitt || { echo BAU FEHLGESCHLAGEN; exit 1; }
+echo "== Mitschnitt und PC-Nachbau (Testbaum der Blöcke)"
+(cd $T; RMDA=1 FAKESM=1 $B/test_mitschnitt rund $T/w $T/mitschnitt.txt) | grep -v "^LOG:" || RC=1
 # NEU 03.11.2026 (da_Chris86 17:51): alte Protokolle auf der Konsole (intern) - Lauf 2 löscht sie, das laufende und fremde Dateien bleiben
 P=$D/PS5-Cleanup-Protokolle; mkdir -p $P; for z in 2026-11-03_063508 2026-11-03_145321 2026-11-03_174254; do echo p > $P/ps5cleanup_protokoll_$z.txt; done; echo f > $P/andere.txt
 ln -sfn ps5cleanup_protokoll_2026-11-03_063508.txt $P/ps5cleanup_protokoll_2026-11-03_000000.txt

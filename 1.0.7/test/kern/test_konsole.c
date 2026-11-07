@@ -1,6 +1,8 @@
 /* PS5 Cleanup 1.1 - Test Laufwerks-Anzeige: 1:1 die Prüfungen aus TestKern.Laufwerk() (1.0.5),
  * gleiche Ausgabezeilen. (Der letzte Teil von 1.0.5 - die Antwort von ps5info.elf einlesen -
- * entfällt: auf der Konsole wird direkt abgefragt.) */
+ * entfällt: auf der Konsole wird direkt abgefragt.)
+ * NEU 1.0.8 (06.11.2026): alle Werte 0..6 in Worten (kern_konsole.c) - Vergleich gegen test/kern/laufwerk_108.out
+ * (die Ausgabe von 1.0.5, nur die Zeilen der Werte 0, 1, 3 bis 6 bei Slim/Pro/unbekanntem Modell auf die neuen Texte gesetzt). */
 #include "../../kern/kern.h"
 #include <stdio.h>
 #include <string.h>
@@ -30,13 +32,17 @@ int main(void)
                 if (!strcmp(K->MODELL_TYP, "fat")) soll = K->MODELL_DIGITAL ? (en ? "No pairing: Digital Edition" : "Keine Kopplung: Digital Edition") : (en ? "No pairing needed: built-in" : "Keine Kopplung nötig: fest eingebautes");
                 /* 1.0.6 (da_Chris86 28.10.2026): kurze Texte ohne Statuswert - gleich wie TestKernRef.cs Laufwerk() */
                 else if (!hat) soll = en ? "Not queried: could not be read." : "Nicht abgefragt: Konnte nicht gelesen werden.";
-                else if (w == 1) soll = en ? "Pairing confirmed" : "Kopplung bestätigt";
+                else if (w == 0) soll = en ? "Paired: this console" : "Gekoppelt: Diese Konsole";
+                else if (w == 1) soll = en ? "Paired online: " : "Online gekoppelt: ";
                 else if (w == 2) soll = en ? "No pairing: no disc drive" : "Keine Kopplung: Kein Laufwerk";
-                else if (w >= 0 && w <= 6) soll = en ? "Not reliably determinable" : "Nicht sicher bestimmbar";
+                else if (w == 3) soll = en ? "Pairing not finished: " : "Koppeln nicht fertig: ";
+                else if (w == 4) soll = en ? "Unpairing not finished: " : "Entkoppeln nicht fertig: ";
+                else if (w == 5 || w == 6) soll = en ? "Factory paired: " : "Ab Werk gekoppelt: ";
                 else soll = en ? "Not queried: could not be read." : "Nicht abgefragt: Konnte nicht gelesen werden.";
                 pruefe(txt_beginnt(t, soll), was);
                 kopplungsart st = kern_kopplungs_stufe(K);
-                kopplungsart stSoll = (!strcmp(K->MODELL_TYP, "fat") || (hat && w == 2)) ? KOPPLUNG_KEINE : (hat && w == 1) ? KOPPLUNG_BESTAETIGT : (hat && w >= 0 && w <= 6) ? KOPPLUNG_UNKLAR : KOPPLUNG_NICHT_AUSLESBAR;
+                kopplungsart stSoll = (!strcmp(K->MODELL_TYP, "fat") || (hat && w == 2)) ? KOPPLUNG_KEINE
+                                    : (hat && (w == 0 || w == 1 || w == 5 || w == 6)) ? KOPPLUNG_BESTAETIGT : (hat && (w == 3 || w == 4)) ? KOPPLUNG_UNKLAR : KOPPLUNG_NICHT_AUSLESBAR;
                 pruefe(st == stSoll, VERB(a, "  Farbe/Stufe passt zum Text: ", stufe_name(st)));
                 pruefe(!r_m(t, "ANDEREN|anderen Konsole|ANOTHER|another console"), "  keine unbelegte Aussage 'andere Konsole'");
                 if (en) pruefe(!r_m(t, "[äöüÄÖÜß]|Kopplung|Laufwerk"), "  keine deutschen Wörter");

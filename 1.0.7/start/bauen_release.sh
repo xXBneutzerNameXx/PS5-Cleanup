@@ -6,7 +6,8 @@
 #            -> start/ausgabe/ps5cleanup_simulation.elf (für den Kacheltest)
 set -e
 V=${1:-release}
-case "$V" in release) NAME=ps5cleanup.elf; SIMDEF= ;; simulation) NAME=ps5cleanup_simulation.elf; SIMDEF=-DSIMULATION ;; *) echo "unbekannte Fassung $V"; exit 1 ;; esac
+# NEU 1.0.8 (Arbeitsplan 2.7): "testlauf" bettet die Test-Fassung mit Mitschnitt ein -> ps5cleanup_testlauf.elf (nur für da_Chris86s Abschlusstest)
+case "$V" in release) NAME=ps5cleanup.elf; SIMDEF= ;; simulation) NAME=ps5cleanup_simulation.elf; SIMDEF=-DSIMULATION ;; testlauf) NAME=ps5cleanup_testlauf.elf; SIMDEF= ;; *) echo "unbekannte Fassung $V"; exit 1 ;; esac
 export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
 K="/pfad/zu/PS5-Cleanup/1.0.7"
 ln -sfn "$K" $HOME/ps5c-k; KK=$HOME/ps5c-k
@@ -28,6 +29,13 @@ fi
 # P2 keine Testreste in der Release-Oberfläche (z. B. die zweite, unsichtbare Suche aus der Testzeit, bis 1.0.6)
 if [ "$V" = release ] && strings "$KK/app/ausgabe/$V/eboot.elf" | grep -q -E "OHNE_SELBSTSCHUTZ_WIE_105|PRUEFLAUF FERTIG"; then
   echo "BAU FEHLGESCHLAGEN: Testcode (Prüflauf) in der Release-Oberfläche"; exit 1
+fi
+# NEU 1.0.8 (Arbeitsplan 2.7): Mitschnitt und Bildschirmbilder nie in der Release-Oberfläche - nur in testlauf
+if [ "$V" = release ] && grep -a -q "PS5CLEANUP-MITSCHNITT-TESTFASSUNG" "$KK/app/ausgabe/$V/eboot.elf"; then
+  echo "BAU FEHLGESCHLAGEN: Mitschnitt der Test-Fassung in der Release-Oberfläche"; exit 1
+fi
+if [ "$V" = testlauf ] && ! grep -a -q "PS5CLEANUP-MITSCHNITT-TESTFASSUNG" "$KK/app/ausgabe/$V/eboot.elf"; then
+  echo "BAU FEHLGESCHLAGEN: Test-Fassung ohne Mitschnitt"; exit 1
 fi
 echo "Testreste in der Release-Oberfläche: keine"
 # NEU 02.11.2026 (aus Plan 1.0.8 4a vorgezogen): ist der letzte Bau der Oberfläche (app/bauen.sh) nicht sauber durchgelaufen, abbrechen -
@@ -104,8 +112,10 @@ AUS=$(grep -a -c "sceSystemStateMgrTurnOff" $O/ps5cleanup.elf || true)
 echo "-- Ausschalten im Programm: $AUS (muss 0 sein)"
 if [ "$AUS" != 0 ]; then echo "BAU FEHLGESCHLAGEN: Ausschalten im Programm"; rm -f "$K/start/ausgabe/$NAME"; exit 1; fi
 echo "-- eingebettete Oberfläche ($V):"
-printf "   Simulation-Hinweisfeld 'Es wird nichts gelöscht - nur angezeigt.': %s\n" "$(grep -a -c -F 'Es wird nichts gelöscht - nur angezeigt.' $O/ps5cleanup.elf || true)"
-printf "   Release-Text 'Gelöscht wird erst, wenn du am Ende ausdrücklich bestätigst.': %s\n" "$(grep -a -c -F 'Gelöscht wird erst, wenn du am Ende ausdrücklich bestätigst.' $O/ps5cleanup.elf || true)"
+# 06.11.2026 (Arbeitsplan 5.2a): Texte der neuen Oberfläche 1.0.8 - die von 1.0.7 gibt es nicht mehr (zeigten deshalb 0)
+printf "   Hinweis der Test-/Simulationsfassung 'diese Fassung speichert es nicht als Datei' (release: 0): %s\n" "$(grep -a -c -F 'diese Fassung speichert es nicht als Datei' $O/ps5cleanup.elf || true)"
+printf "   Text der Auswahl 'Gelöscht wird erst nach dem Bestätigen.' (muss da sein): %s\n" "$(grep -a -c -F 'Gelöscht wird erst nach dem Bestätigen.' $O/ps5cleanup.elf || true)"
+printf "   Version '1.0.8' im Programm (muss da sein): %s\n" "$(grep -a -c -F '1.0.8' $O/ps5cleanup.elf || true)"
 # NEU 1.0.7 (03.11.2026): Adresse der freiwilligen QR-Rückmeldung (app.c RUECKMELDUNG_ADRESSE) - Platzhalter nur zum Testen, nie veröffentlichen
 RM=$(grep -a -o -i -E 'https://[a-z0-9.-]+\.workers\.dev/r' $O/ps5cleanup.elf | sort -u | tr '\n' ' ')
 echo "-- Rückmelde-Adresse im Programm: ${RM:-(keine)}"

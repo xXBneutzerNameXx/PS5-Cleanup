@@ -31,9 +31,9 @@ __attribute__((used)) const char KERN_KENNUNG[] = "PS5CLEANUP-ELF-KENNUNG:7c1e5b
 
 #define A (k->a)
 
-static void schuetze(kern *k, const char *p) { if (!h_hat(&k->SCHUTZ.pfade, p)) sl_add(A, &k->SCHUTZ.pfade, p); }
+static void schuetze(kern *k, const char *p) { if (!h_hat(&k->SCHUTZ.pfade, p)) sl_add(A, &k->SCHUTZ.pfade, a_kopie(A, p)); }   /* 1.0.8: Kopie (Pfad kann aus kurzlebigem Speicher stammen) */
 /* NEU 28.10.2026 (da_Chris86): gehört zu PS5 Cleanup selbst - während des Laufs geschützt, am Ende entfernbar */
-static void eigen(kern *k, const char *p) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.eigene, p)) sl_add(A, &k->SCHUTZ.eigene, p); }
+static void eigen(kern *k, const char *p) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.eigene, p)) sl_add(A, &k->SCHUTZ.eigene, a_kopie(A, p)); }
 
 void kern_selbstschutz_eigener_pfad(kern *k, const char *p)
 {
@@ -52,11 +52,34 @@ void kern_selbstschutz_eigener_pfad(kern *k, const char *p)
  * außerhalb von user/ und system_data/). Eine Datei gilt als PS5 Cleanup, wenn sie eine ELF ist
  * (erste 4 Bytes 7F 45 4C 46) und die Kennung enthält - egal wie sie heißt und wo sie liegt
  * (z. B. eboot.elf, ps5cleanup.elf, starttest.elf, Kopie im Payload Manager). Gelesen wird nur.
- * Grenzen: Tiefe 8, 300000 Einträge; wird eine Grenze erreicht -> "unsicher" (Homebrew-Daten gesperrt).
+ * Grenzen: Tiefe 8, 300000 Einträge je Ort. 1.0.8 (3.7): Ist die Eintragsgrenze erreicht, wird nicht mehr der ganze Ort gesperrt, sondern
+ * nur, was nicht mehr geprüft wird: große Ordner (über LEICHT_ORDNER Einträge). Spiel-Kopien und kleine Ordner werden weiter geprüft.
  * Ordner von Spiel-Kopien (sce_sys/ + eboot.bin) werden nicht durchsucht. */
 #define SUCH_TIEFE 8
+#ifndef SUCH_GRENZE   /* 1.0.8: für Tests kleiner einstellbar (-DSUCH_GRENZE=...) */
 #define SUCH_GRENZE 300000
-typedef struct { int eintraege; bool voll; bool zaehlt; } suchstand;   /* zaehlt: Fund gilt als "eigener Ort gefunden" */
+#endif
+typedef struct { int eintraege; bool voll; bool zaehlt; int rest, leicht; bool aufgeben; } suchstand;   /* rest/leicht/aufgeben: nach erreichter Grenze (3.7) */
+#ifndef REST_GRENZE   /* so viele große Ordner werden nach erreichter Grenze einzeln gesperrt - danach die Ordner darüber ganz */
+#define REST_GRENZE 500
+#endif
+/* NEU 1.0.8 (3.7): nach erreichter Grenze wird ein KLEINER Ordner (bis LEICHT_ORDNER Einträge) weiter ganz normal geprüft - so bleiben
+ * z. B. Spiel-Abbilder in einem homebrew-Ordner neben einer riesigen Sammlung verfügbar. Zusammen höchstens LEICHT_GRENZE Einträge je Ort. */
+#ifndef LEICHT_ORDNER
+#define LEICHT_ORDNER 2000
+#endif
+#ifndef LEICHT_GRENZE
+#define LEICHT_GRENZE 100000
+#endif
+static bool leicht_pruefen(suchstand *st, int n) { if (n > LEICHT_ORDNER || st->leicht + n > LEICHT_GRENZE) return false; st->leicht += n; return true; }
+/* NEU 1.0.8 (3.7): wegen der Grenze nicht (ganz) geprüft - geschützt (nie angeboten, nie gelöscht) und fürs Protokoll gemerkt */
+static void schuetze(kern *k, const char *p);
+static void zu_viele(kern *k, const char *p)
+{
+    schuetze(k, p);
+    if (!h_hat(&k->SCHUTZ.unlesbar, p)) sl_add(A, &k->SCHUTZ.unlesbar, a_kopie(A, p));
+    if (!h_hat(&k->SCHUTZ.diag, p)) { const char *pk = a_kopie(A, p); sl_add(A, &k->SCHUTZ.diag, pk); sl_add(A, &k->SCHUTZ.zu_viele, pk); }
+}   /* zaehlt: Fund gilt als "eigener Ort gefunden" */
 static bool ist_elf_mit_kennung(kern *k, const char *p, bool *unlesbar)
 {
     const unsigned char *d; size_t n;
@@ -77,45 +100,83 @@ static bool spiel_kopie(const dliste *l)
     }
     return sce && eboot;
 }
+/* NEU 1.0.8 (Rückmeldung 05.11.2026, PS5 Slim mit FW 13.60: Sicherheitsstopp bei 174 MB schon beim Nachschauen): jede Ordnerliste und
+ * jeder Pfad dieser Suche bekommt eigenen Speicher, der gleich nach dem Ordner wieder frei wird - wie beim Löschen seit 31.10.2026.
+ * Bis hier blieb alles bis zum Programmende liegen (am PC gemessen: 300.000 Dateien in /user/data -> 281 MB, rund 940 Byte je Datei).
+ * Dauerhaft bleibt nur, was geschützt wird: schuetze() und eigen() kopieren den Pfad in den Speicher des Kerns. */
+static void speicher_zurueck(sitzung *s, arena *alt, arena *t, const char *vorher)
+{
+    if (s->letzter_fehler != vorher) s->letzter_fehler = a_kopie(alt, s->letzter_fehler ? s->letzter_fehler : "");
+    s->a = alt; arena_frei(t);
+}
+static void kopien_ebene(kern *k, const char *ordner, int tiefe, suchstand *st, arena *t);
 static void kopien_suchen(kern *k, const char *ordner, int tiefe, suchstand *st)
 {
-    if (st->voll) return;
+    sitzung *const s = k->S; arena *const alt = s->a; const char *const vorher = s->letzter_fehler;
+    arena *const t = arena_neu();
+    s->a = t;
+    VERSUCHE { kopien_ebene(k, ordner, tiefe, st, t); }
+    FANGE { speicher_zurueck(s, alt, t, vorher); WEITERWERFEN(); } ENDE_VERSUCHE;
+    speicher_zurueck(s, alt, t, vorher);
+}
+static void kopien_ebene(kern *k, const char *ordner, int tiefe, suchstand *st, arena *t)
+{
     /* 1.0.6 Fix (30.10.2026, da_Chris86: Playden legt private Ordner an, z. B. /user/data/playden/runtime-state, die die PS5
      * niemandem zeigt): bis 1.0.6 brach EIN solcher Ordner das ganze Nachschauen ab. Jetzt: die oberste Ebene weiter streng;
      * ein nicht lesbarer Unterordner wird geschützt (nie gelöscht, auch kein Ordner darüber als Ganzes) und still übersprungen. */
     dliste *l = s_liste(k->S, ordner, tiefe == 0);   /* oberste Ebene streng: Lesefehler -> Ausnahme */
     if (!l) {
-        if (tiefe > 0) { schuetze(k, ordner); if (!h_hat(&k->SCHUTZ.unlesbar, ordner)) sl_add(A, &k->SCHUTZ.unlesbar, ordner); }
+        if (tiefe > 0) { schuetze(k, ordner); if (!h_hat(&k->SCHUTZ.unlesbar, ordner)) sl_add(A, &k->SCHUTZ.unlesbar, a_kopie(A, ordner));
+                         if (!h_hat(&k->SCHUTZ.diag, ordner)) sl_add(A, &k->SCHUTZ.diag, a_kopie(A, ordner)); }   /* 1.0.8: diag fürs Protokoll */
         return;
     }
     /* NEU 1.1 (Codex-Prüfung 26.10.2026): Spiel-Kopie (sce_sys/ + eboot.bin) wird nicht ganz durchsucht,
      * aber ihre Dateien der obersten Ebene werden geprüft (eine dort abgelegte PS5-Cleanup-Kopie wird erkannt). */
     bool nur_dateien = tiefe > 0 && spiel_kopie(l);
+    /* NEU 1.0.8 (3.7, da_Chris86 05.11.2026): Ist die Grenze schon erreicht, werden Spiel-Kopien und kleine Ordner (bis LEICHT_ORDNER Einträge)
+     * weiter wie immer geprüft - Spiele bleiben so verfügbar, auch wenn daneben eine riesige Sammlung liegt. Ein großer Ordner wird
+     * geschützt und im Protokoll genannt. Bis hier sperrte die Grenze den ganzen Ort (auch alle Spiele darauf). */
+    if (st->voll && !nur_dateien && !leicht_pruefen(st, l->n)) {
+        if (++st->rest > REST_GRENZE) st->aufgeben = true;   /* sehr viele: die Ordner darüber werden ganz gesperrt (siehe unten) */
+        else zu_viele(k, ordner);
+        return;
+    }
+    bool frei = st->voll;   /* nach erreichter Grenze geprüft: zählt nicht mehr zur Grenze */
+    /* NEU 1.0.8 (3.7): erst die Dateien, dann die Ordner - Dateien (z. B. Spiel-Abbilder) sind geprüft, bevor eine große Sammlung in einem
+     * Unterordner die Grenze aufbraucht */
+    for (int runde = 0; runde < 2; runde++)
     for (int i = 0; i < l->n; i++) {
         const datei *e = &l->e[i];
+        if ((e->ist_ordner && !e->ist_link) != (runde == 1)) continue;
         if (nur_dateien && (e->ist_ordner || e->ist_link)) continue;
         if (!strcmp(e->name, ".") || !strcmp(e->name, "..")) continue;
-        if (++st->eintraege > SUCH_GRENZE) { st->voll = true; return; }
-        const char *p = strcmp(ordner, "/") ? VERB(A, ordner, "/", e->name) : VERB(A, "/", e->name);
+        /* nur auf M.2 und USB-Speicher: deren Systemordner nicht durchsuchen (1.0.6, Codex-Prüfung 30: auf USB-Sticks schon) */
+        if (runde == 1 && tiefe == 0 && (h_gleich(e->name, "user") || h_gleich(e->name, "system_data") || h_gleich(e->name, "lost+found")) && (!strcmp(ordner, M2) || !strcmp(ordner, USB_ERW))) continue;
+        if (!frei && !st->voll && ++st->eintraege > SUCH_GRENZE) st->voll = true;
+        if (st->voll && !frei && runde == 0) {   /* 1.0.8 (3.7): Grenze mitten in den Dateien dieses Ordners erreicht */
+            if (!leicht_pruefen(st, l->n)) { zu_viele(k, ordner); return; }   /* großer Ordner: ganz gesperrt */
+            frei = true;                                                      /* kleiner Ordner: der Rest wie immer */
+        }
         if (e->ist_link) continue;                    /* Verknüpfungen nie verfolgen */
+        if (!e->ist_ordner && e->groesse < 64) continue;   /* 1.0.8 (Codex-Prüfung 76): vor dem Pfad - kleine Dateien kosten keinen Speicher */
+        const char *p = strcmp(ordner, "/") ? VERB(t, ordner, "/", e->name) : VERB(t, "/", e->name);   /* 1.0.8: im Speicher dieses Ordners */
         if (e->ist_ordner) {
-            /* nur auf M.2 und USB-Speicher: deren Systemordner nicht durchsuchen (1.0.6, Codex-Prüfung 30: auf USB-Sticks schon) */
-            if (tiefe == 0 && (h_gleich(e->name, "user") || h_gleich(e->name, "system_data") || h_gleich(e->name, "lost+found")) && (!strcmp(ordner, M2) || !strcmp(ordner, USB_ERW))) continue;
             /* 1.0.6 Fix (PS5-Test da_Chris86 30.10.2026 15:50, Playden: Windows-Spiele mit sehr tiefen Ordnern): bis hier wurden bei
              * erreichter Tiefe ALLE Homebrew-Daten gesperrt. Jetzt: nur dieser Ordner wird geschützt (nie gelöscht, auch kein Ordner
              * darüber als Ganzes) und still übersprungen - wie ein privater, nicht lesbarer Ordner. */
-            if (tiefe + 1 >= SUCH_TIEFE) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.unlesbar, p)) sl_add(A, &k->SCHUTZ.unlesbar, p); continue; }
-            kopien_suchen(k, p, tiefe + 1, st);
+            if (tiefe + 1 >= SUCH_TIEFE) { schuetze(k, p); if (!h_hat(&k->SCHUTZ.unlesbar, p)) sl_add(A, &k->SCHUTZ.unlesbar, a_kopie(A, p));
+                                           if (!h_hat(&k->SCHUTZ.diag, p)) { const char *pk = a_kopie(A, p); sl_add(A, &k->SCHUTZ.diag, pk); sl_add(A, &k->SCHUTZ.zu_tief, pk); } continue; }   /* 1.0.8: fürs Protokoll */
+            kopien_suchen(k, p, tiefe + 1, st);   /* nach erreichter Grenze: Spiel-Kopie, kleiner Ordner - oder gesperrt */
+            if (st->aufgeben) { zu_viele(k, ordner); return; }   /* 1.0.8 (3.7): zu viele große Ordner - dieser Ordner ganz */
             continue;
         }
-        if (e->groesse < 64) continue;
         bool unlesbar;
         bool unser = ist_elf_mit_kennung(k, p, &unlesbar);
         if (unlesbar) { schuetze(k, p); continue; }   /* nicht prüfbar: vorsichtshalber nie anbieten */
         if (!unser) continue;
         k->SCHUTZ.kopien++; if (st->zaehlt) k->SCHUTZ.eigen_gefunden = true;   /* Zusatzorte heben die Unsicherheit nie auf */
         /* homebrew/<Name>/<Datei>: der ganze Programmordner (mit Bild usw.) gehört dazu */
-        const char *o = h_eltern(A, p);
+        const char *o = h_eltern(t, p);
         if (h_m(o, "/homebrew/[^/]+$")) eigen(k, o); else eigen(k, p);
     }
 }
@@ -132,8 +193,7 @@ static void ermitteln_innen(kern *k)
     for (int w = 0; w < 6; w++) {
         suchstand st = {0};
         st.zaehlt = w < 3;                               /* wie bisher: nur diese drei Orte zählen als "gefunden" */
-        kopien_suchen(k, orte[w], 0, &st);
-        if (st.voll) schuetze(k, orte[w]);
+        kopien_suchen(k, orte[w], 0, &st);   /* 1.0.8 (3.7): bei erreichter Grenze sperrt die Suche selbst nur, was sie nicht geprüft hat */
     }
     /* NEU 1.0.6 (Codex-Prüfung 27): auch normale USB-Sticks /mnt/usb0..7 durchsuchen. Lässt sich ein Stick nicht ganz
      * lesen oder ist er zu groß, wird der ganze Stick gesperrt (nichts darauf angeboten) - die übrige Prüfung läuft weiter. */
@@ -143,7 +203,7 @@ static void ermitteln_innen(kern *k)
         volatile bool kaputt = false;
         VERSUCHE { kopien_suchen(k, b, 0, &su); }
         FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); kaputt = true; } ENDE_VERSUCHE;
-        if (kaputt || su.voll) schuetze(k, b);
+        if (kaputt) schuetze(k, b);   /* 1.0.8 (3.7): Grenze siehe oben */
     }
 }
 
@@ -151,6 +211,7 @@ void kern_selbstschutz_ermitteln(kern *k)
 {
     k->SCHUTZ.aktiv = true;
     k->SCHUTZ.fehler = NULL;
+    k->SCHUTZ.diag = (sliste){0}; k->SCHUTZ.zu_tief = (sliste){0}; k->SCHUTZ.zu_viele = (sliste){0};   /* NEU 1.0.8 (Codex-Prüfung 71): die Diagnose gilt je Suche */
     VERSUCHE { ermitteln_innen(k); }
     FANGE {
         if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN();
@@ -232,11 +293,19 @@ bool kern_selbstschutz_enthaelt(kern *k, const char *p)
     return false;
 }
 
-const char *kern_selbstschutz_hinweis(kern *k)
+/* NEU 1.0.8 (F1, da_Chris86s Bilder vom 04.11.2026): je Ablauf richtig - die vollständige Bereinigung entfernt PS5 Cleanup ganz zum Schluss,
+ * nach einer eigenen Auswahl fragt es am Ende (bis 1.0.7 hieß es auch dort "wird ganz zum Schluss entfernt") */
+const char *kern_selbstschutz_hinweis(kern *k, bool komplett)
 {
     if (!k->SCHUTZ.aktiv) return "";
+    if (komplett || kern_bereiche_106()) {
+        if (k->SCHUTZ.unsicher)
+            return T("PS5 Cleanup bleibt während der Bereinigung erhalten und wird ganz zum Schluss entfernt. Weil nicht sicher feststellbar war, wo PS5 Cleanup liegt, sind alle Homebrew-Daten gesperrt.",
+                     "PS5 Cleanup stays during the cleanup and is removed at the very end. Because it could not be determined for sure where PS5 Cleanup is located, all homebrew data is locked.");
+        return T("PS5 Cleanup bleibt während der Bereinigung erhalten und wird ganz zum Schluss entfernt.", "PS5 Cleanup stays during the cleanup and is removed at the very end.");
+    }
     if (k->SCHUTZ.unsicher)
-        return T("PS5 Cleanup bleibt während der Bereinigung erhalten und wird ganz zum Schluss entfernt. Weil nicht sicher feststellbar war, wo PS5 Cleanup liegt, sind alle Homebrew-Daten gesperrt.",
-                 "PS5 Cleanup stays during the cleanup and is removed at the very end. Because it could not be determined for sure where PS5 Cleanup is located, all homebrew data is locked.");
-    return T("PS5 Cleanup bleibt während der Bereinigung erhalten und wird ganz zum Schluss entfernt.", "PS5 Cleanup stays during the cleanup and is removed at the very end.");
+        return T("PS5 Cleanup bleibt während der Bereinigung erhalten. Am Ende fragt es, ob es sich auch selbst entfernen soll. Weil nicht sicher feststellbar war, wo PS5 Cleanup liegt, sind alle Homebrew-Daten gesperrt.",
+                 "PS5 Cleanup stays during the cleanup. At the end it asks whether to remove itself too. Because it could not be determined for sure where PS5 Cleanup is located, all homebrew data is locked.");
+    return T("PS5 Cleanup bleibt während der Bereinigung erhalten. Am Ende fragt es, ob es sich auch selbst entfernen soll.", "PS5 Cleanup stays during the cleanup. At the end it asks whether to remove itself too.");
 }

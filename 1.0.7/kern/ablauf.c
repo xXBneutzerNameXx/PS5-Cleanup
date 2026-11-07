@@ -39,13 +39,22 @@ static const char *block_schluessel(arena *ar, const eintrag *f)
 {
     if (f->SmDatei && f->SmKachel) f = f->SmKachel;   /* Codex-Prüfung 48: Spieldatei gehört zum Block ihrer ShadowMount-Kachel */
     for (int i = 0; f->ToolKachel && i < 8; i++) f = f->ToolKachel;
+    /* Codex-Prüfung 109 (P3): eine ShadowMount-Kachel im Block ihrer gleichnamigen App- oder Tool-Kachel (Begleit, kern_suche.c
+     * kachel_bloecke) zählt mit ihr als EIN Block - wie in der Auswahl (kern_kopf_von). Prüfer 110: auch unter einer installierten App (die
+     * trägt kein .Kachel); Begleit an einem Eintrag mit .Kachel setzt nur kachel_bloecke */
+    if (!kern_bereiche_106() && f->Kachel && f->Begleit && f->Begleit->Kat == f->Kat) f = f->Begleit;
     if (f->Teil && f->Gruppe) return VERB(ar, "G|", f->Gruppe);
     return a_fmt(ar, "%p", (const void *)f);
 }
-static const char *bereich_zahl(arena *ar, int bloecke, int zeilen)
+const char *ablauf_block_schluessel(arena *ar, const eintrag *f) { return block_schluessel(ar, f); }   /* auch für test_zuordnung */
+/* NEU 1.0.8 (F3, da_Chris86s Bilder vom 04.11.2026): die Klammer passt zum Bereich - "mit Daten und Updates" nur bei Spielen (bei Trophäen
+ * klang das falsch), "mit App-Daten" bei Apps, sonst nur die Zahl der Einträge. kat 0 = Spiele/Apps gemischt (Warnung beim Leeren). */
+static const char *bereich_zahl(arena *ar, int kat, int bloecke, int zeilen)
 {
     if (kern_bereiche_106() || bloecke == zeilen) return zahl(ar, zeilen);
-    return VERB(ar, zahl(ar, bloecke), T(" (zusammen mit Daten und Updates ", " (together with data and updates "), zahl(ar, zeilen), eintraege(zeilen), ")");
+    const char *mit = kat == 1 || kat == 0 ? T("mit Daten und Updates ", "with data and updates ") : kat == 6 ? T("mit App-Daten ", "with app data ") : "";
+    return SP_EN ? VERB(ar, zahl(ar, bloecke), " (", zahl(ar, zeilen), eintraege(zeilen), mit[0] ? " " : "", mit[0] ? a_kopie_n(ar, mit, strlen(mit) - 1) : "", ")")
+                 : VERB(ar, zahl(ar, bloecke), " (", mit, zahl(ar, zeilen), eintraege(zeilen), ")");
 }
 /* NEU 1.0.7 (PS5-Test 03.11.2026): vollständige Bereinigung - was je Speicher dabei ist, nach Bereichen; gezählt werden Spiele/Apps
  * (Blöcke), dahinter die Zeilen. Regel = kern_komplett_dabei (dieselbe wie die Auswahl). ShadowMount: die Kachel zählt intern, ihre
@@ -62,14 +71,14 @@ static const char *komplett_liste(ablauf *a, int ort, int *zeilen)
     for (int ki = 0; ki < KAT_ANZ; ki++) {
         int k = ALLE_KAT[ki], n = 0; mtab bl = mt_neu(false);
         FUER_ALLE(f) if (f->Kat == k && komplett_zaehlt(a, f, ort)) { n++; mt_setze(AR, &bl, block_schluessel(AR, f), (void *)1); }
-        if (n > 0) { z = VERB(AR, z, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, bl.n, n), "\n"); zs += n; }
+        if (n > 0) { z = VERB(AR, z, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, k, bl.n, n), "\n"); zs += n; }
     }
     if (zeilen) *zeilen = zs;
     return z;
 }
 static const char *anzahl_bloecke(arena *ar, int bloecke, int zeilen)
 {
-    return bloecke == zeilen ? VERB(ar, zahl(ar, zeilen), eintraege(zeilen)) : bereich_zahl(ar, bloecke, zeilen);
+    return bloecke == zeilen ? VERB(ar, zahl(ar, zeilen), eintraege(zeilen)) : bereich_zahl(ar, 0, bloecke, zeilen);
 }
 /* "auf der M.2-SSD" / "auf dem erweiterten Speicher (USB-Festplatte für Spiele)" - da_Chris86 03.11.2026: nie nur "USB" */
 static const char *ort_auf(int o)
@@ -190,17 +199,31 @@ const char *ablauf_zusammenfassung(ablauf *a, bool komplett)
     /* NEU 1.0.7 (Grundlage da_Chris86 31.10.2026 13:12, Punkt 5): vorneweg konkret, was endgültig weg ist */
     if (!kern_bereiche_106()) { const char *e = kern_endgueltig_satz(KN, AR); if (e[0]) t = VERB(AR, e, "\n\n", t); }
     for (int ki = 0; ki < KAT_ANZ; ki++) {
-        int k = ALLE_KAT[ki], c = 0;
+        int k = ALLE_KAT[ki], c = 0, pak = 0;
         mtab bl = mt_neu(false);
-        for (int i = 0; i < g.n; i++) if (((eintrag *)g.e[i])->Kat == k) { c++; mt_setze(AR, &bl, block_schluessel(AR, g.e[i]), (void *)1); }
-        if (c > 0) t = VERB(AR, t, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, bl.n, c), "\n");
+        for (int i = 0; i < g.n; i++) {
+            eintrag *f = g.e[i];
+            if (f->Kat != k) continue;
+            if (f->Paket && !kern_bereiche_106()) { pak++; continue; }   /* NEU 1.0.8 (F3): getrennt gezählt wie im ersten Fenster */
+            c++; mt_setze(AR, &bl, block_schluessel(AR, f), (void *)1);
+        }
+        if (c > 0) t = VERB(AR, t, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, k, bl.n, c), "\n");
+        if (pak > 0) t = VERB(AR, t, T("   - Trophäen-Listen installierter Spiele: ", "   - Trophy lists of installed games: "), zahl(AR, pak), "\n");
     }
     int ext[4] = { 0, 0, 0, 0 }, smDatei = 0;
+    /* NEU 1.0.8 (F2, da_Chris86s Bilder vom 04.11.2026): sind auf einem Speicher nur einzelne Dateien gewählt (z. B. drei Protokolle auf dem
+     * USB-Laufwerk), nur diese Dateien nennen - "was darin liegt (Spiele, Ordner, Dateien)" klang nach dem ganzen Laufwerk */
+    int nurDatei[4] = { 0, 0, 0, 0 }, dateiZahl[4] = { 0, 0, 0, 0 }, dn[4] = { 0, 0, 0, 0 };
+    const char *dnamen[4] = { "", "", "", "" };
     for (int i = 0; i < g.n; i++) {
         eintrag *f = g.e[i];
         int o = f->Ort;
         if (f->Quelle[0]) { o = ORT_INTERN; for (int j = 0; j < f->Pfade.n; j++) if (!strcmp(f->Pfade.e[j], f->Quelle)) o = kern_pfad_ort(f->Quelle); }   /* Codex-Prüfung 28 */
         if (o >= 0 && o <= 3) ext[o]++;
+        if (o >= 1 && o <= 3 && f->HatGroesse && f->Ordner == 0 && f->Dateien >= 1 && !f->Quelle[0] && f->Pfade.n > 0) {
+            nurDatei[o]++; dateiZahl[o] += f->Dateien;
+            for (int j = 0; j < f->Pfade.n && dn[o] < 5; j++) { const char *p = f->Pfade.e[j], *b = strrchr(p, '/'); dnamen[o] = VERB(AR, dnamen[o], dn[o] ? ", " : "", b ? b + 1 : p); dn[o]++; }
+        }
         if (f->Quelle[0]) for (int j = 0; j < f->Pfade.n; j++) if (!strcmp(f->Pfade.e[j], f->Quelle)) { smDatei++; break; }
     }
     if (smDatei > 0) t = VERB(AR, t, T("   davon ShadowMount-Spiele MIT Spieldatei: ", "   of these, ShadowMount games WITH game file: "), zahl(AR, smDatei), "\n");
@@ -222,9 +245,16 @@ const char *ablauf_zusammenfassung(ablauf *a, bool komplett)
         if (komplett && ext[o] == 0 && (o == ORT_M2 ? KN->m2Da : o == ORT_USB ? KN->USB_SPEICHER : false))
             t = kern_bereiche_106() ? VERB(AR, t, "   (", kern_ort_name(o), T(" bleibt unverändert)\n", " stays unchanged)\n"))
                                     : VERB(AR, t, T("   Bleibt unverändert: ", "   Stays unchanged: "), kern_ort_name(o), "\n");   /* 03.11.2026: keine Klammer in Klammer */
-        if (!komplett && ext[o] > 0)
-            t = kern_bereiche_106() ? VERB(AR, T("!!! ACHTUNG: ", "!!! WARNING: "), zahl(AR, ext[o]), T(" EINTRÄGE AUF ", " ENTRIES ON "), kern_ort_name(o), T(" SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n"), t)
-                                    : VERB(AR, T("!!! ACHTUNG: ", "!!! WARNING: "), zahl(AR, ext[o]), eintraege(ext[o]), " ", ort_auf(o), T(" sind gewählt - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " are selected - whatever is in them (games, files) will be gone !!!\n\n"), t);
+        if (!komplett && ext[o] > 0) {
+            if (kern_bereiche_106())
+                t = VERB(AR, T("!!! ACHTUNG: ", "!!! WARNING: "), zahl(AR, ext[o]), T(" EINTRÄGE AUF ", " ENTRIES ON "), kern_ort_name(o), T(" SIND GEWÄHLT - was darin liegt (Spiele, Dateien), ist danach weg !!!\n\n", " ARE SELECTED - whatever is in them (games, files) will be gone !!!\n\n"), t);
+            else if (nurDatei[o] == ext[o])   /* NEU 1.0.8 (F2): nur einzelne Dateien */
+                t = VERB(AR, o == ORT_STICK ? T("Auf dem USB-Laufwerk", "On the USB drive") : o == ORT_M2 ? T("Auf der M.2-SSD", "On the M.2 SSD") : T("Auf dem erweiterten Speicher", "On the extended storage"),
+                         T(" werden nur einzelne Dateien gelöscht (", ", only single files are deleted ("), zahl(AR, dateiZahl[o]), "): ", dnamen[o], dateiZahl[o] > dn[o] ? T(" und weitere", " and more") : "", ".\n\n", t);
+            else
+                t = VERB(AR, T("!!! ACHTUNG: ", "!!! WARNING: "), zahl(AR, ext[o]), eintraege(ext[o]), " ", ort_auf(o), nurDatei[o] > 0 ? T(" sind gewählt, darunter Ordner", " are selected, including folders") : T(" sind gewählt", " are selected"),
+                         T(" - was in diesen Ordnern liegt (Spiele, Dateien), ist danach weg !!!\n\n", " - whatever is in these folders (games, files) will be gone !!!\n\n"), t);
+        }
     }
     int gesp = 0, gesp11 = 0;
     bool selbst = false;
@@ -244,7 +274,7 @@ const char *ablauf_zusammenfassung(ablauf *a, bool komplett)
     t = VERB(AR, t, T("\nDas sind ", "\nThat is "), kern_groesse_satz(AR, a->GROSS), ".\n");
     t = VERB(AR, t, "\n", kern_kopplungs_text(KN), T("\nBenutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.", "\nUse at your own risk - deleted data is gone for good."));
     /* NEU 1.1 */
-    const char *sh = kern_selbstschutz_hinweis(KN);
+    const char *sh = kern_selbstschutz_hinweis(KN, komplett);
     if (sh[0]) t = VERB(AR, t, "\n\n", sh);
     if (KN->simulation) t = VERB(AR, T("SIMULATION - es wird NICHTS gelöscht. So sähe es beim echten Löschen aus:\n\n", "SIMULATION - NOTHING will be deleted. This is how real deleting would look:\n\n"), t);
     return t;
@@ -279,6 +309,19 @@ void ablauf_hintergrund_starten(ablauf *a)
     a->hg_n = 0; a->hg_gesamt = KN->Funde.n;
     a->hintergrund = h;
     if (basis_faden(&h->t, h_lauf, h) == 0) h->laeuft = true;   /* 1.0.6 Fix: mit ausreichend Stapel */ else { a->hintergrund = NULL; free(h); }
+}
+/* NEU 1.0.8 (Arbeitsplan 3.4): Löschen nach dem laufenden Eintrag anhalten. Wirkt nur zwischen zwei Einträgen (kern_loeschen.c) - der
+ * laufende Eintrag wird immer fertig. Danach keine Selbstentfernung und keine alten Protokolle; was übrig ist, sagt das Protokoll. */
+/* Codex-Prüfung 89: Annehmen des Wunsches (Oberfläche) und Schließen des Fensters (Löschfaden) sind gegeneinander gesperrt - sonst
+ * konnte die Oberfläche "Wird angehalten" sagen, während der Lauf schon an der letzten Prüfung vorbei war (und PS5 Cleanup sich entfernte) */
+static pthread_mutex_t anhalt_m = PTHREAD_MUTEX_INITIALIZER;
+bool ablauf_loeschen_anhalten(ablauf *a)
+{
+    pthread_mutex_lock(&anhalt_m);
+    bool ok = a->anhaltbar;
+    if (ok) KN->anhalten = true;
+    pthread_mutex_unlock(&anhalt_m);
+    return ok;
 }
 /* Hält die Zählung an und wartet, bis ihr Faden wirklich weg ist - erst danach geht es zum Löschen weiter. */
 void ablauf_hintergrund_anhalten(ablauf *a)
@@ -335,6 +378,19 @@ static void fortschritt(void *c, int i, int n, const eintrag *f)
     const char *t = VERB(AR, KN->simulation ? T("SIMULATION · prüfe Eintrag ", "SIMULATION · checking entry ") : T("Lösche Eintrag ", "Deleting entry "), zahl(AR, i), T(" von ", " of "), zahl(AR, n),
                          (s->groessenDa && s->gesamt > 0) ? VERB(AR, "  ·  ", kern_groesse_text(AR, s->erledigt), T(" von ", " of "), kern_groesse_text(AR, s->gesamt)) : "", "  ·  ", name);
     double wert = n > 0 ? ((s->groessenDa && s->gesamt > 0) ? s->erledigt * 100.0 / (double)s->gesamt : (i - 1) * 100.0 / n) : 0;
+    /* NEU 1.0.8 (4.5) - Codex-Prüfung 76: die Oberfläche liest die Angaben in einem anderen Faden; lf_seq ist ungerade, solange sie
+     * geschrieben werden (die Oberfläche nimmt dann den Stand beim nächsten Bild). Frei geräumt: nur, was wirklich weg ist (FREI_BISHER). */
+    unsigned q = a->lf_seq;
+    __atomic_store_n(&a->lf_seq, q + 1u, __ATOMIC_RELAXED);
+    __atomic_thread_fence(__ATOMIC_RELEASE);
+    __atomic_store_n(&a->lf_frei, (long long)KN->FREI_BISHER, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_gesamt, (s->groessenDa && s->gesamt > 0) ? s->gesamt : -1LL, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_f, f, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_n, n, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_nr, i, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_fehler, (int)KN->FEHLER_ZAHL, __ATOMIC_RELAXED);   /* Codex-Prüfung 77: Fehler bis vor diesen Eintrag */
+    __atomic_store_n(&a->lf_unv, KN->UNVERAENDERT.n, __ATOMIC_RELAXED);
+    __atomic_store_n(&a->lf_seq, q + 2u, __ATOMIC_RELEASE);
     stand(a, t, wert);
 }
 static bool sm_frage(void *c)
@@ -347,22 +403,10 @@ static bool sm_frage(void *c)
 }
 
 static void bremse_melden(ablauf *a);   /* NEU 1.0.7, unten */
-/* NEU 1.0.7 (da_Chris86 31.10.2026 21:50, Punkt 1): ohne mögliche Datenbank-Sicherung gar nicht erst anfangen */
-static bool sicherung_moeglich(ablauf *a)
-{
-    if (kern_bereiche_106() || !a->loeschen_moeglich) return true;
-    const char *g = NULL;
-    if (a->loeschen_moeglich(a->loeschen_moeglich_ctx, &g)) return true;
-    const char *t = g && g[0] ? g : T("Die Datenbank-Sicherung ist nicht möglich.", "The database backup is not possible.");
-    logz(a, t);
-    logz(a, T("Es wurde NICHTS gelöscht.", "NOTHING was deleted."));
-    if (a->ui.fehler) a->ui.fehler(a->ui.ctx, VERB(AR, t, T("\n\nEs wurde nichts gelöscht.", "\n\nNothing was deleted.")));
-    ablauf_hintergrund_starten(a);
-    return false;
-}
 static void loesche_jetzt(ablauf *a)
 {
-    /* NEU 1.0.7 (da_Chris86 31.10.2026 19:56, Punkt 2): Datenbank-Sicherung vor dem ersten Löschen - schlägt sie fehl, wird nichts gelöscht */
+    /* NEU 1.0.7: direkt vor dem ersten Löschen (vor_loeschen - die PS5-App beginnt dort das Protokoll, bis 02.11.2026 stand hier die
+     * Datenbank-Sicherung). Meldet es false, wird nichts gelöscht */
     if (a->vor_loeschen && !a->vor_loeschen(a->vor_loeschen_ctx)) {
         logz(a, T("Es wurde NICHTS gelöscht.", "NOTHING was deleted."));
         kern_sm_zuruecksetzen(KN); liste_neu(a); ablauf_hintergrund_starten(a);
@@ -374,6 +418,8 @@ static void loesche_jetzt(ablauf *a)
     int rm_n = 0;   /* NEU 1.0.7: für die Rückmeldung per QR-Code (nur die Zahl) */
     FUER_ALLE(f) if (f->Wahl) { rm_n++; if (!f->HatGroesse) fs.groessenDa = false; else fs.gesamt += f->Bytes; }
     KN->Fortschritt = fortschritt; KN->fortschritt_ctx = &fs;
+    a->lf_nr = 0; a->lf_n = rm_n; a->lf_f = NULL; a->lf_frei = 0; a->lf_gesamt = fs.groessenDa && fs.gesamt > 0 ? fs.gesamt : -1;   /* NEU 1.0.8 (4.5) */
+    memset(&a->rm_frei, 0, sizeof a->rm_frei);
     logz(a, "");
     static _Thread_local ergebnis erg;          /* (über longjmp hinweg gültig) */
     static _Thread_local bool rm_ab;            /* NEU 1.0.7 (Codex-Prüfung 69): Abbruch über Ausnahme (z. B. Speicherbremse) */
@@ -384,15 +430,24 @@ static void loesche_jetzt(ablauf *a)
     a->rm_da = true; a->rm_abgebrochen = true; a->rm_gewaehlt = rm_n; a->rm_fehler = 1; a->rm_teilweise = a->rm_geschuetzt = a->rm_unveraendert = 0;
     a->loescht = true;
     KN->RM_FEHLER_N = 0; KN->RM_SCHRITT[0] = 0; KN->RM_CODE[0] = 0; KN->RM_ERFASSEN = true;   /* NEU 1.0.7: QR-Rückmeldung */
+    KN->FEHLER_ZAHL = 0; KN->FREI_BISHER = 0;   /* NEU 1.0.8 (Codex-Prüfung 76): Anzeige "Löschen läuft" */
+    pthread_mutex_lock(&anhalt_m); KN->anhalten = false; a->anhaltbar = true; pthread_mutex_unlock(&anhalt_m);   /* NEU 1.0.8 (3.4): ein alter Wunsch gilt nicht für diesen Lauf */
     VERSUCHE { erg = kern_fuehre_loeschung(KN, sm_frage, a); }
     FANGE {
-        if (ausn_art != AUSN_ABBRUCH) { a->loescht = false; KN->RM_ERFASSEN = false; KN->Fortschritt = NULL; WEITERWERFEN(); }
+        if (ausn_art != AUSN_ABBRUCH) { pthread_mutex_lock(&anhalt_m); a->anhaltbar = false; pthread_mutex_unlock(&anhalt_m); a->loescht = false; KN->RM_ERFASSEN = false; KN->Fortschritt = NULL; WEITERWERFEN(); }
         /* kann heute nicht vorkommen (Abbrechen ist beim Löschen gesperrt) - aber dann ehrlich melden */
         memset(&erg, 0, sizeof erg); erg.Fehler = 1; rm_ab = true;
         logz(a, T("Löschen wurde unterbrochen - ein Teil kann schon gelöscht sein. Bitte das Protokoll prüfen.", "Deleting was interrupted - part may already be deleted. Please check the log."));
         if (zugriff_speicher_gebremst) bremse_melden(a);   /* NEU 1.0.7: Grund nennen */
     } ENDE_VERSUCHE;
+    pthread_mutex_lock(&anhalt_m); a->anhaltbar = false; bool gewuenscht = KN->anhalten; pthread_mutex_unlock(&anhalt_m);   /* Codex-Prüfung 89 */
     a->loescht = false;
+    /* Codex-Prüfung 75: kam der Wunsch erst während des letzten Eintrags (oder danach), gilt er trotzdem - auch dann keine Selbstentfernung
+     * und keine alten Protokolle */
+    if (gewuenscht && !erg.Angehalten && !erg.Abgebrochen && !rm_ab) {
+        erg.Angehalten = true;
+        logz(a, T("Angehalten auf deinen Wunsch - da lief schon der letzte Eintrag, übrig ist nichts.", "Stopped at your request - the last entry was already running, nothing is left."));
+    }
     KN->RM_ERFASSEN = false;
     KN->Fortschritt = NULL;
     stand(a, "", ABLAUF_BALKEN_GLEICH);
@@ -408,7 +463,7 @@ static void loesche_jetzt(ablauf *a)
     const char *selbst_text = "";
     bool sm2 = a->selbst_modus == 1 && a->leeren_m2, susb = a->selbst_modus == 1 && a->leeren_usb;   /* Codex-Prüfung 28 */
     /* NEU 03.11.2026 (da_Chris86 17:51): vollständige Bereinigung - alte Protokolle auf der Konsole mit (nie auf dem USB-Laufwerk, nie dieses) */
-    if (a->selbst_modus == 1 && erg.Fehler == 0 && !kern_bereiche_106()) {
+    if (a->selbst_modus == 1 && erg.Fehler == 0 && !erg.Angehalten && !kern_bereiche_106()) {
         KN->RM_SCHRITT[0] = 0; KN->RM_CODE[0] = 0; KN->RM_ERFASSEN = true;   /* NEU 1.0.7: QR-Rückmeldung */
         int pf = kern_alte_protokolle_weg(KN);
         KN->RM_ERFASSEN = false;
@@ -416,7 +471,11 @@ static void loesche_jetzt(ablauf *a)
         erg.Fehler += pf;
     }
     if (a->selbst_modus && kern_selbst_da(KN, sm2, susb)) {
-        if (erg.Fehler > 0) {
+        if (erg.Angehalten) {   /* NEU 1.0.8 (3.4) */
+            selbst_text = erg.Rest > 0 ? T("PS5 Cleanup bleibt, weil du angehalten hast - so kannst du später weitermachen.", "PS5 Cleanup stays because you stopped - so you can continue later.")
+                                       : T("PS5 Cleanup bleibt, weil du angehalten hast.", "PS5 Cleanup stays because you stopped.");
+            logz(a, selbst_text);
+        } else if (erg.Fehler > 0) {
             selbst_text = T("PS5 Cleanup bleibt, weil Fehler aufgetreten sind - so kannst du es nochmal versuchen.", "PS5 Cleanup stays because errors occurred - so you can try again.");
             logz(a, selbst_text);
         } else {
@@ -477,6 +536,41 @@ static void loesche_jetzt(ablauf *a)
         if (KN->simulation) kopf = kopf_meldung = VERB(AR, T("SIMULATION fertig - es wurde NICHTS gelöscht. ", "SIMULATION done - NOTHING was deleted. "), T("Beim echten Löschen: ", "Real deleting: "), tw);
         else kopf = kopf_meldung = VERB(AR, T("Fertig - aber ", "Done - but "), tw);
     }
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 17:40, da_Chris86: "ps5 upload wurde nicht sauber entfernt"): blieb ein Eintrag unverändert (Sony lehnt
+     * ab, die Kachel bleibt, Einbindung unklar), stand oben trotzdem "alles Ausgewählte ist gelöscht" mit grünem Haken - jetzt ehrlich, wie
+     * viele sich nicht ganz entfernen ließen (kein Fehler, aber orange wie "teilweise"). Codex-Prüfung 118 (P2): nicht "blieb unverändert" -
+     * hat Sony einen Auftrag angenommen, kann Sony Dateien noch im Hintergrund entfernen. Der Vergleichsmodus 1.0.6 der Tests behält den
+     * alten Text. */
+    const bool unv = erg.Unveraendert > 0 && erg.Fehler == 0 && erg.Teilweise == 0 && !kern_bereiche_106();
+    if (unv) {
+        const char *z = zahl(AR, erg.Unveraendert);
+        bool eins = erg.Unveraendert == 1;
+        if (KN->simulation)
+            kopf = kopf_meldung = VERB(AR, T("SIMULATION fertig - es wurde NICHTS gelöscht. Beim echten Löschen ", "SIMULATION done - NOTHING was deleted. Real deleting would not fully remove "),
+                                       eins ? VERB(AR, T("ließe sich ", ""), z, T(" Eintrag nicht ganz entfernen", " entry")) : VERB(AR, T("ließen sich ", ""), z, T(" Einträge nicht ganz entfernen", " entries")),
+                                       T(" (siehe unten).", " (see below)."));
+        else
+            kopf = kopf_meldung = VERB(AR, T("Fertig - aber ", "Done - but "), z,
+                                       eins ? T(" Eintrag ließ sich nicht ganz entfernen", " entry could not be fully removed") : T(" Einträge ließen sich nicht ganz entfernen", " entries could not be fully removed"),
+                                       T(" (siehe unten).", " (see below)."));
+    }
+    if (erg.Angehalten && erg.Rest == 0) {   /* Codex-Prüfung 75: angehalten erst beim letzten Eintrag - gelöscht ist alles, nur der Schluss fehlt */
+        const char *fz = erg.Fehler ? VERB(AR, T(", dazu ", ", plus "), zahl(AR, erg.Fehler), T(" Fehler", " error(s)")) : "";
+        if (KN->simulation) kopf = kopf_meldung = T("SIMULATION angehalten - es wurde NICHTS gelöscht. Es war schon der letzte Eintrag.", "SIMULATION stopped - NOTHING was deleted. It was already the last entry.");
+        else {
+            kopf = VERB(AR, T("Angehalten - es war schon der letzte Eintrag", "Stopped - it was already the last entry"), fz, T(" (siehe oben).", " (see above)."));
+            kopf_meldung = VERB(AR, T("Angehalten - es war schon der letzte Eintrag", "Stopped - it was already the last entry"), fz, T(" (siehe Protokoll).", " (see log)."));
+        }
+    } else if (erg.Angehalten) {   /* NEU 1.0.8 (3.4): ehrlich sagen, dass nicht alles gelöscht ist */
+        const char *rest = VERB(AR, zahl(AR, erg.Rest), erg.Rest == 1 ? T(" Eintrag wurde", " entry was") : T(" Einträge wurden", " entries were"));
+        if (KN->simulation) kopf = kopf_meldung = VERB(AR, T("SIMULATION angehalten - es wurde NICHTS gelöscht. ", "SIMULATION stopped - NOTHING was deleted. "), rest, T(" nicht mehr geprüft.", " not checked any more."));
+        else {
+            kopf = VERB(AR, T("Angehalten - ", "Stopped - "), rest, T(" nicht gelöscht", " not deleted"),
+                        erg.Fehler ? VERB(AR, T(", dazu ", ", plus "), zahl(AR, erg.Fehler), T(" Fehler", " error(s)")) : "", T(" (siehe oben).", " (see above)."));
+            kopf_meldung = VERB(AR, T("Angehalten - ", "Stopped - "), rest, T(" nicht gelöscht", " not deleted"),
+                                erg.Fehler ? VERB(AR, T(", dazu ", ", plus "), zahl(AR, erg.Fehler), T(" Fehler", " error(s)")) : "", T(" (siehe Protokoll).", " (see log)."));
+        }
+    }
     logz(a, kopf);
     logz(a, frei);
     logz(a, kern_kopplungs_text(KN));
@@ -496,13 +590,15 @@ static void loesche_jetzt(ablauf *a)
         if (KN->simulation) logz(a, T("(SIMULATION - nach einem echten Löschen käme jetzt:)", "(SIMULATION - after real deleting, this would come next:)"));
         for (int i = 0; i < nz; i++) logz(a, sz[i]);
     }
-    a->rm_gewaehlt = rm_n; a->rm_fehler = erg.Fehler; a->rm_teilweise = erg.Teilweise; a->rm_geschuetzt = erg.Geschuetzt; a->rm_unveraendert = erg.Unveraendert; a->rm_abgebrochen = rm_ab; a->rm_da = true;   /* NEU 1.0.7: QR-Rückmeldung */
-    if (a->ui.fertig) a->ui.fertig(a->ui.ctx, kopf_meldung, erg.Fehler == 0 && erg.Teilweise == 0, frei, smtext);
+    a->rm_gewaehlt = rm_n; a->rm_fehler = erg.Fehler; a->rm_teilweise = erg.Teilweise; a->rm_geschuetzt = erg.Geschuetzt; a->rm_unveraendert = erg.Unveraendert; a->rm_abgebrochen = rm_ab || erg.Angehalten; a->rm_da = true;   /* NEU 1.0.7: QR-Rückmeldung */
+    a->rm_frei = erg.Frei;   /* NEU 1.0.8 (4.5): "X frei geräumt" */
+    if (a->ui.fertig) a->ui.fertig(a->ui.ctx, kopf_meldung, erg.Fehler == 0 && erg.Teilweise == 0 && !erg.Angehalten && !unv, frei, smtext);   /* 1.0.8: !unv */
     /* neu nachschauen, damit die Liste stimmt. Klappt das nicht, keine alte Liste stehen lassen. */
     if (KN->simulation && a->neue_verbindung) {
         zugriff *z = a->neue_verbindung(a->verbindung_ctx);
         if (z) { kern_verbinden(KN, z); logz(a, T("SIMULATION: Die Liste zeigt wieder den echten Stand - es wurde nichts gelöscht.", "SIMULATION: the list shows the real state again - nothing was deleted.")); }
     }
+    if (a->vor_neusuche) a->vor_neusuche(a->vor_neusuche_ctx);   /* NEU 1.0.8 (Codex-Prüfung 74): Mitschnitt der Test-Fassung */
     VERSUCHE { KN->abbruch = false; kern_suche_funde(KN); }
     FANGE {
         logz(a, VERB(AR, T("Konnte nicht neu nachschauen: ", "Could not scan again: "), ausn_text, T(" - bitte neu verbinden.", " - please connect again.")));
@@ -519,7 +615,6 @@ static void alles_abwaehlen(ablauf *a) { FUER_ALLE(f) f->Wahl = false; kern_sm_z
 void ablauf_komplett(ablauf *a)
 {
     ablauf_hintergrund_anhalten(a);
-    if (!sicherung_moeglich(a)) return;
     const char *t = T("VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:\n", "FULL CLEANUP: EVERYTHING on the internal SSD will be deleted:\n");
     int extAnz[3] = { 0, 0, 0 };
     const char *extListe[3] = { "", "", "" };
@@ -561,7 +656,7 @@ void ablauf_komplett(ablauf *a)
             int k = ALLE_KAT[ki]; if (k == 7) continue;
             int n = 0; mtab bl = mt_neu(false);
             FUER_ALLE(f) if (f->Kat == k && f->Ort == ORT_INTERN && !f->Gesperrt && !f->Paket && !f->NurEinzeln && !f->SmDatei) { n++; mt_setze(AR, &bl, block_schluessel(AR, f), (void *)1); }
-            t = VERB(AR, t, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, bl.n, n), "\n");
+            t = VERB(AR, t, "   - ", kern_kat_name(k), ": ", bereich_zahl(AR, k, bl.n, n), "\n");
         }
         t = VERB(AR, t, T("(M.2 und USB-Speicher: gleich wird jeweils gefragt. USB-Sticks bleiben unangetastet.)\n", "(M.2 and USB storage: you will be asked for each. USB sticks stay untouched.)\n"));
         t = VERB(AR, t, T("\nDas heißt:\n - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.\n - Nie mit dem PSN abgeglichene Trophäen sind weg.\n - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.\n\nBleibt: Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.",
@@ -573,7 +668,7 @@ void ablauf_komplett(ablauf *a)
     }
     t = VERB(AR, t, kern_speicher_hinweis(KN));
     /* NEU 1.1 */
-    const char *sh = kern_selbstschutz_hinweis(KN);
+    const char *sh = kern_selbstschutz_hinweis(KN, true);
     if (sh[0]) t = VERB(AR, t, "\n\n", sh);
     if (KN->simulation) t = VERB(AR, T("SIMULATION - es wird NICHTS gelöscht.\n\n", "SIMULATION - NOTHING will be deleted.\n\n"), t);
     if (!frage_wahl(a, t, T("Vollständige Bereinigung", "Full cleanup"), T("Abbrechen", "Cancel"), T("Weiter", "Continue"))) { ablauf_hintergrund_starten(a); return; }
@@ -591,8 +686,8 @@ void ablauf_komplett(ablauf *a)
             const char *kurz = o == ORT_M2 ? T("M.2-SSD", "M.2 SSD") : T("Erweiterten Speicher", "Extended storage");
             leeren[o] = frage_wahl(a, VERB(AR, o == ORT_M2 ? T("Auf der M.2-SSD liegen:\n", "On the M.2 SSD there are:\n") : T("Auf dem erweiterten Speicher (USB-Festplatte für Spiele) liegen:\n", "On the extended storage (USB drive for games) there are:\n"),
                 extListe[o],
-                T("\nBEHALTEN: Die Spiele bleiben. Nur Kacheln von ShadowMount-Spielen darauf gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nAUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.",
-                  "\nKEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.\n\nALSO WIPE: all games and files on it are deleted permanently.")),
+                T("\nBEHALTEN: Die Spiele bleiben. Nur die Kacheln der ShadowMount-Spiele, deren Spieldateien darauf liegen, gehen weg (die Kacheln liegen intern) - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nAUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.",
+                  "\nKEEP: the games stay. Only the tiles of ShadowMount games whose game files are on it go (the tiles are internal) - they come back once ShadowMount is set up again.\n\nALSO WIPE: all games and files on it are deleted permanently.")),
                 o == ORT_M2 ? T("M.2-SSD", "M.2 SSD") : T("Erweiterter Speicher (USB-Festplatte)", "Extended storage (USB drive)"),
                 VERB(AR, kurz, T(" behalten (empfohlen)", ": keep (recommended)")), VERB(AR, kurz, T(" auch leeren", ": also wipe")));
             continue;
@@ -600,7 +695,7 @@ void ablauf_komplett(ablauf *a)
         const char *n = kern_ort_name(o);
         leeren[o] = frage_wahl(a, VERB(AR, T("Auf ", "On "), o == ORT_M2 ? T("der M.2-SSD", "the M.2 SSD") : T("dem USB-Speicher", "the USB storage"), T(" liegen ", " there are "), zahl(AR, extAnz[o]), eintraege(extAnz[o]),
             T(" (Spiele, Ordner, Dateien).\n\nBEHALTEN: Die Spiele bleiben. Nur Kacheln von ShadowMount-Spielen darauf gehen weg - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.\n\nAUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.",
-              " (games, folders, files).\n\nKEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.\n\nALSO WIPE: all games and files on it are deleted permanently.")),
+              " (games, folders, files).\n\nKEEP: the games stay. Only tiles of ShadowMount games on it go - they come back once ShadowMount is set up again.\n\nALSO WIPE: all games and files on it are deleted permanently.")),   /* Text bis 1.0.6 (nur PC-Vergleichstests) */
             n, VERB(AR, n, T(" behalten (empfohlen)", ": keep (recommended)")), VERB(AR, n, T(" auch leeren", ": also wipe")));
     }
     bool m2Leeren = leeren[ORT_M2], usbLeeren = leeren[ORT_USB];
@@ -652,7 +747,6 @@ void ablauf_komplett(ablauf *a)
         alles_abwaehlen(a); liste_neu(a); ablauf_hintergrund_starten(a);
         return;
     }
-    a->auto_neustart = a->neustart_frage ? a->neustart_frage(a->neustart_ctx) : false;   /* NEU 1.0.6 */
     a->selbst_modus = 1;                     /* vollständige Bereinigung: PS5 Cleanup am Ende ohne Frage mit entfernen */
     a->leeren_m2 = m2Leeren; a->leeren_usb = usbLeeren;
     loesche_jetzt(a);
@@ -663,7 +757,6 @@ void ablauf_komplett(ablauf *a)
 void ablauf_auswahl(ablauf *a)
 {
     ablauf_hintergrund_anhalten(a);
-    if (!sicherung_moeglich(a)) return;
     pliste sm = kern_sm_gewaehlt(KN);
     /* NEU 1.0.7 (da_Chris86 31.10.2026 12:51): keine Abfrage mehr - Kachel und Spieldatei sind eigene Zeilen */
     if (!kern_bereiche_106()) kern_sm_nach_auswahl(KN);
@@ -682,11 +775,27 @@ void ablauf_auswahl(ablauf *a)
         sliste z = {0}; for (int i = 0; i < m2.n && i < 15; i++) sl_add(AR, &z, VERB(AR, "   ", ((eintrag *)m2.e[i])->Text));
         const char *l = sl_join(AR, &z, "\n");
         if (m2.n > 15) l = VERB(AR, l, T("\n   ... und ", "\n   ... and "), zahl(AR, m2.n - 15), T(" weitere", " more"));
-        if (!frage_wahl(a, VERB(AR, T("ACHTUNG - du hast ", "WARNING - you selected "), zahl(AR, m2.n),
+        /* NEU 1.0.8 (F2, wie in der Zusammenfassung): nur einzelne Dateien gewählt (z. B. Protokolle auf dem USB-Laufwerk) - dann keine
+         * Warnung "Alles, was darin liegt", das klang nach dem ganzen Laufwerk. Hier ist meist nur im Hintergrund gezählt (die Zählung
+         * für die Abschlussfrage kommt erst danach) - ein Ordner zählt dort als Ordner (baum_groesse). Ohne Zählung bleibt die Warnung. */
+        int nd = 0, dz = 0;
+        for (int i = 0; i < m2.n; i++) {
+            eintrag *f = m2.e[i];
+            if (f->Quelle[0] || f->Pfade.n == 0) continue;
+            int ordner = -1, dateien = 0;
+            if (f->HatGroesse) { ordner = f->Ordner; dateien = f->Dateien; }
+            else { groesse *g = kern_eintrag_groesse_in(KN, AR, f, false); if (g) { ordner = g->Ordner; dateien = g->Dateien; } }
+            if (ordner == 0 && dateien >= 1) { nd++; dz += dateien; }
+        }
+        bool nurDateien = !kern_bereiche_106() && nd == m2.n;
+        const char *schluss = !nurDateien ? T("\n\nAlles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nEverything in them (games, folders, files) will be deleted permanently.\n\nNothing is deleted before the final question.")
+                            : dz == 1 ? T("\n\nDiese Datei wird endgültig gelöscht.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nThis file will be deleted permanently.\n\nNothing is deleted before the final question.")
+                                      : T("\n\nDiese Dateien werden endgültig gelöscht.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nThese files will be deleted permanently.\n\nNothing is deleted before the final question.");
+        if (!frage_wahl(a, VERB(AR, nurDateien ? T("Du hast ", "You selected ") : T("ACHTUNG - du hast ", "WARNING - you selected "), zahl(AR, m2.n),
                 kern_bereiche_106() ? (m2.n == 1 ? T(" Eintrag auf M.2/USB gewählt:\n", " entry on M.2/USB:\n") : T(" Einträge auf M.2/USB gewählt:\n", " entries on M.2/USB:\n"))
                                     : (m2.n == 1 ? T(" Eintrag außerhalb der internen SSD gewählt (M.2, erweiterter Speicher, USB-Laufwerk):\n", " entry outside the internal SSD (M.2, extended storage, USB drive):\n")
                                                  : T(" Einträge außerhalb der internen SSD gewählt (M.2, erweiterter Speicher, USB-Laufwerk):\n", " entries outside the internal SSD (M.2, extended storage, USB drive):\n")), l,
-                T("\n\nAlles, was darin liegt (Spiele, Ordner, Dateien), wird endgültig gelöscht.\n\nGelöscht wird erst nach der Abschlussfrage.", "\n\nEverything in them (games, folders, files) will be deleted permanently.\n\nNothing is deleted before the final question.")),
+                schluss),
                 kern_bereiche_106() ? "M.2 / USB" : T("Außerhalb der internen SSD", "Outside the internal SSD"), T("Abbrechen", "Cancel"), T("Weiter (diese Einträge löschen)", "Continue (delete these entries)")))
         { logz(a, T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed.")); kern_sm_zuruecksetzen(KN); ablauf_hintergrund_starten(a); return; }
     }
@@ -706,7 +815,6 @@ void ablauf_auswahl(ablauf *a)
     groesse_ermitteln(a);
     if (!frage_wahl(a, ablauf_zusammenfassung(a, false), T("Endgültig löschen?", "Delete permanently?"), T("Abbrechen", "Cancel"), T("Jetzt endgültig löschen", "Delete permanently now")))
     { logz(a, T("Abgebrochen - nichts verändert.", "Cancelled - nothing changed.")); kern_sm_zuruecksetzen(KN); ablauf_hintergrund_starten(a); return; }
-    a->auto_neustart = a->neustart_frage ? a->neustart_frage(a->neustart_ctx) : false;   /* NEU 1.0.6 */
     a->selbst_modus = 2;                     /* Auswahl: am Ende fragen, ob PS5 Cleanup auch weg soll */
     loesche_jetzt(a);
     a->selbst_modus = 0;

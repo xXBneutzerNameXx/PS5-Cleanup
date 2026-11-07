@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.7 by da_Chris86
+﻿PS5 CLEANUP 1.0.8 by da_Chris86
 ===============================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
@@ -8,14 +8,15 @@ und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 
 WELCHE DATEI IST WAS? - BITTE ZUERST LESEN!
 -------------------------------------------
-  ps5cleanup_v1.0.7.elf ......... PS5-App. LÖSCHT - aber erst nach
-                                  deiner ausdrücklichen Bestätigung!
-  PS5-Cleanup-Test_v1.0.7.elf ... PS5-App zum gefahrlosen Ausprobieren
-                                  (z. B. auf einer neuen Firmware). Zeigt
-                                  alles an, oben steht "TEST". KANN
-                                  TECHNISCH NICHTS LÖSCHEN!
-  Unsicher, anderes Modell oder andere Firmware? Nimm zuerst die
-  Test-Datei! (einzeln auf GitHub zum Download)
+  ps5cleanup_v1.0.8.elf ... die PS5-App. Sie startet im TESTMODUS (oben
+                            steht "TESTMODUS"): Sie zeigt alles an und
+                            löscht nichts. Gelöscht wird erst, wenn du den
+                            Testmodus im Options-Menü ausschaltest UND das
+                            Löschen ausdrücklich bestätigst.
+  Neu in 1.0.8: Es gibt nur noch diese eine Datei. Die frühere Test-Datei
+  (PS5-Cleanup-Test_v1.0.7.elf) ersetzt der Testmodus.
+  Unsicher, anderes Modell oder andere Firmware? Lass den Testmodus an
+  und schau dir zuerst in Ruhe an, was angeboten wird.
   Eine Windows-Fassung (PS5-Cleanup.exe) gibt es ab 1.0.7 nicht mehr -
   warum, steht unten unter "WARUM KEINE WINDOWS-FASSUNG MEHR?".
 
@@ -47,12 +48,11 @@ ZWEI WEGE
 
 GETESTET auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2.
 Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet -
-dort bitte zuerst PS5-Cleanup-Test_v1.0.7.elf starten und schauen, ob die
-Liste stimmt.
+dort bitte im Testmodus zuerst schauen, ob die Liste stimmt.
 
 RÜCKMELDUNGEN
-  Am einfachsten per QR-Code: Am Ende und in der Protokoll-Ansicht
-  (Options) zeigt PS5 Cleanup einen QR-Code. Mit dem Handy scannen, auf
+  Am einfachsten per QR-Code: Am Ende und unter Options, "Protokoll &
+  Rückmeldung" zeigt PS5 Cleanup einen QR-Code. Mit dem Handy scannen, auf
   "Hat geklappt" oder "Problem" tippen, fertig - ohne Konto und ohne PC.
   Was dabei übertragen wird, steht unter "Rückmeldung per QR-Code" bei
   DETAILS. Ausführlicher geht es über GitHub (Issues oder Discussions)
@@ -63,15 +63,20 @@ RÜCKMELDUNGEN
 
 SO GEHT'S (PS5-App, direkt auf der PS5)
 ---------------------------------------
-1. Jailbreak laden und ps5cleanup_v1.0.7.elf über deinen Payload-Lader
+1. Jailbreak laden und ps5cleanup_v1.0.8.elf über deinen Payload-Lader
    oder den Payload Manager starten. Ein USB-Laufwerk ist nicht nötig -
    steckt eins, kommt das Protokoll darauf.
 2. Beim ersten Start erscheint die Kachel "PS5 Cleanup". Die Oberfläche
    startet sofort: mit dem Controller bedienen (Kreuz = wählen, Kreis
-   halten = beenden, Options = Protokoll).
-3. "Nachschauen", dann einzelne Einträge anhaken (Quadrat = nur Auswahl
-   löschen) oder Dreieck = vollständige Bereinigung.
-4. Am Ende: Kreuz = Neu starten (empfohlen, ist vorgewählt) oder
+   halten = beenden, Options = Optionen und Protokoll).
+3. "Nachschauen" und in Ruhe anschauen, was gefunden wurde. Der
+   Testmodus ist an, es wird nichts gelöscht. Stimmt die Liste, den
+   Testmodus im Options-Menü ausschalten.
+4. Einzelne Einträge anhaken und Quadrat = nur Auswahl löschen: Auf der
+   Seite "Das wird gelöscht" nach rechts auf "Löschen" gehen und Kreuz
+   1,5 Sekunden halten (Loslassen bricht ab). Oder Dreieck = vollständige
+   Bereinigung: LÖSCHEN eintippen.
+5. Am Ende: Kreuz = Neu starten (empfohlen, ist vorgewählt) oder
    Kreis = Beenden. Nach dem Neustart den Jailbreak wie gewohnt starten.
    Keinen Datenbank-Neuaufbau machen (siehe oben).
 
@@ -90,6 +95,53 @@ WARUM KEINE WINDOWS-FASSUNG MEHR?
   anbieten (z. B. ShadowMount oder der Payload Manager).
 - Der Quellcode der bisherigen Windows-Fassung (1.0.6) bleibt auf GitHub
   im Ordner Quellcode, wird aber nicht weiterentwickelt.
+
+
+NEU IN 1.0.8
+------------
+- Neue Oberfläche am Fernseher: Startseite mit Konsole, Laufwerks-
+  Kopplung, Jailbreak und Speicher je Laufwerk. In der Auswahl links die
+  Bereiche, in der Mitte die Blöcke, rechts ein Kasten mit Bild und
+  Erklärung. Größte Einträge zuerst oder A-Z, L1/R1 blättern seitenweise.
+- Nur noch eine Datei: Der Testmodus ist in der App. Beim Start ist er an
+  (oben "TESTMODUS"), die App zeigt alles und löscht nichts. Im
+  Options-Menü schaltest du ihn aus. Die App merkt sich das nicht - bei
+  jedem Start ist er wieder an.
+- Bestätigen auf einer eigenen Seite "Das wird gelöscht": was endgültig
+  weg ist, was du neu laden oder einrichten musst, was nichts kostet und
+  was immer bleibt. Nur Auswahl löschen: Kreuz auf "Löschen" 1,5 Sekunden
+  halten. Vollständige Bereinigung: wie bisher LÖSCHEN eintippen.
+- Eigene Seiten "Nachschauen läuft" und "Löschen läuft": du siehst, was
+  gerade passiert. Das Löschen lässt sich nach dem laufenden Eintrag
+  anhalten (Kreis halten). Der laufende Eintrag wird fertig, alle übrigen
+  bleiben unverändert und stehen im Protokoll.
+- Fertig-Seite: freigeräumter Platz, was übrig blieb, wo das Protokoll
+  liegt, QR-Code für die Rückmeldung.
+- Besser erkannt: Spieldateien (.exfat) und entpackte Spiele ohne Kachel
+  zeigen Namen und Bild des Spiels; PKG-Dateien auf dem USB-Laufwerk mit
+  Spielnamen; Tools ohne Kachel stehen bei ihren Daten; doppelte Spiele
+  sind deutlich markiert. Was die Konsole selbst auf ein USB-Laufwerk
+  kopiert hat (Screenshots, Videos, Spielstände), steht rot da als
+  "deine Daten – endgültig weg".
+- Namen auch bei Resten gelöschter Spiele: Spielstände, Trophäen, Bilder
+  und Videos von Spielen, die nicht mehr installiert sind, zeigen ihren
+  Namen, wenn eine Quelle ihn belegt (bei PS5-Trophäen die Liste selbst,
+  frühere Protokolle von PS5 Cleanup, Sonys Spielstand-Liste, die
+  PKG-Datei des Spiels). Sonst wenigstens ihr Bild. Geraten wird nie.
+- Apps über ShadowMount stehen unter Apps, wenn ihre eigenen Angaben sie
+  als App ausweisen. Hat dasselbe Programm zusätzlich eine Kachel unter
+  Apps (gleicher Name), stehen beide in einem Block.
+- Weniger Arbeitsspeicher beim Nachschauen: Bei sehr vielen Dateien hielt
+  1.0.7 schon beim Nachschauen an (Rückmeldung von einer PS5 Slim).
+  Behoben. Ordner mit sehr vielen Dateien prüft PS5 Cleanup nur so weit,
+  wie es sicher geht - was es nicht ganz prüfen kann, bietet es nicht an
+  und nennt es im Protokoll.
+- Laufwerks-Kopplung in klaren Worten: online gekoppelt, ab Werk
+  gekoppelt, keine Kopplung, Koppeln oder Entkoppeln nicht fertig - statt
+  "nicht sicher bestimmbar".
+- Neue Version: Wer den QR-Code scannt, sieht, wenn es eine neuere Version
+  gibt.
+- Lange Namen werden ganz gezeigt, englische Texte überarbeitet.
 
 
 NEU IN 1.0.7
@@ -379,10 +431,12 @@ WICHTIG
   löschen (die Angaben werden vorher repariert) und mit einem
   unveränderten Update neu installieren.
 - Gelöschtes ist endgültig weg. Spielstände ohne Cloud-Sicherung auch.
-- Gelöscht wird erst, wenn du in der Abschlussfrage zustimmst. Bei allen
-  Rückfragen ist die sichere Wahl vorausgewählt. Ist eine Größe noch nicht
-  gezählt, zählt das Programm sie vor der Abschlussfrage nach - dabei wird
-  noch NICHTS gelöscht. "Abbrechen" = nichts passiert.
+- Gelöscht wird erst, wenn du auf der Seite "Das wird gelöscht"
+  bestätigst (Kreuz 1,5 Sekunden halten bzw. LÖSCHEN eintippen) - und
+  nie im Testmodus. Bei allen Rückfragen ist die sichere Wahl
+  vorausgewählt. Ist eine Größe noch nicht gezählt, zählt das Programm sie
+  vorher nach - dabei wird noch NICHTS gelöscht. "Zurück zur Auswahl" =
+  nichts passiert.
 - Nach der vollständigen Bereinigung musst du deine Jailbreak-Tools neu
   einrichten. Die Jailbreak-Einstiege (z. B. YouTube/Y2JB) gehören nie
   zur vollständigen Bereinigung - sie gehen nur, wenn du sie einzeln
@@ -395,7 +449,8 @@ WICHTIG
   gefunden": nicht löschen, sondern die PS5 neu starten.
 - Benutzung auf eigene Gefahr. Fehler sind möglich.
   Was dir wichtig ist, vorher sichern.
-- Bei Problemen: Options zeigt das Protokoll. Bitte schick es uns mit
+- Bei Problemen: Options, "Protokoll & Rückmeldung" zeigt das Protokoll.
+  Bitte schick es uns mit
   (siehe "RÜCKMELDUNGEN" und "Protokoll" unter DETAILS).
 
 
@@ -407,9 +462,11 @@ Laufwerks-Kopplung
   Das Programm liest den Kopplungs-Status aus und zeigt ihn an. Es fasst
   Systemsoftware und Systemeinstellungen nie an. Die erste PS5 hat ein
   fest eingebautes Laufwerk ohne Kopplung, Digital Editions gar keins.
-  Die Anzeige unterscheidet: "Kopplung bestätigt", "Keine Kopplung",
-  "nicht sicher bestimmbar" (Statuswert, dessen Bedeutung nicht belegt
-  ist) und "nicht auslesbar" (keine gültige Antwort).
+  Die Anzeige unterscheidet: "Online gekoppelt", "Ab Werk gekoppelt",
+  "Gekoppelt", "Keine Kopplung", "Koppeln nicht fertig" und "Entkoppeln
+  nicht fertig" (begonnen, aber nicht abgeschlossen) sowie "Nicht
+  abgefragt" (keine gültige Antwort). Ob ein Laufwerk schon einmal mit
+  einer anderen Konsole gekoppelt war, kann die PS5 nicht sagen.
 
 ShadowMount-Spiele
   Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2 oder der internen
@@ -457,9 +514,22 @@ Zuordnung (welche Daten gehören zu welcher Kachel?)
   ELF-Dateien werden nie über das Programm einer anderen App zugeordnet -
   ein Programm nennt oft fremde Tools, die es nur benutzt.
 
+Testmodus
+  Beim Start ist der Testmodus an, oben steht "TESTMODUS". Die App zeigt
+  alles wie beim echten Löschen, die Löschen-Knöpfe sind aber gesperrt -
+  drückst du sie, sagt die App, dass der Testmodus an ist. Ausschalten:
+  Options, "Testmodus". Die App merkt sich das nicht.
+
+Löschen anhalten
+  Auf der Seite "Löschen läuft" hält Kreis (gedrückt halten) das Löschen
+  nach dem laufenden Eintrag an. Ein Eintrag wird nie mittendrin
+  abgebrochen. Alle übrigen bleiben unverändert und stehen im Protokoll.
+  PS5 Cleanup entfernt sich dann nicht selbst, damit du später
+  weitermachen kannst.
+
 Protokoll
   Options zeigt das Protokoll jederzeit am Fernseher. Sobald gelöscht
-  wird, speichert ps5cleanup_v1.0.7.elf es zusätzlich als Datei
+  wird, speichert PS5 Cleanup es zusätzlich als Datei
   (ps5cleanup_protokoll_<Datum>_<Uhrzeit>.txt): auf dem USB-Laufwerk; fehlt
   es oder ist es voll oder nicht beschreibbar, auf der internen Platte im
   Ordner /data/PS5-Cleanup-Protokolle; ist auch die voll, auf der M.2 im
@@ -469,9 +539,7 @@ Protokoll
   räumt alte Protokolle auf der internen Platte mit weg - nie das
   laufende, nie die auf dem USB-Laufwerk oder der M.2. Abholen z. B. per
   FTP. In der Ansicht des Protokolls speichert Quadrat es auch ohne
-  Löschen auf das USB-Laufwerk.
-  Die Test-Datei (PS5-Cleanup-Test_v1.0.7.elf) speichert nichts - dort
-  das Protokoll in der Ansicht einfach abfotografieren.
+  Löschen auf das USB-Laufwerk, auch im Testmodus.
 
 Rückmeldung per QR-Code (freiwillig)
   Die PS5 sendet dabei nichts - sie zeigt nur einen QR-Code. Darin steht
@@ -502,8 +570,7 @@ Sprache
   um.
 
 Dateien
-  ps5cleanup_v1.0.7.elf        die PS5-App
-  PS5-Cleanup-Test_v1.0.7.elf  die PS5-App zum Ausprobieren - löscht nichts
+  ps5cleanup_v1.0.8.elf        die PS5-App (startet im Testmodus)
   LIESMICH.txt                 diese Anleitung
   README_EN.txt                diese Anleitung auf Englisch
   LICENSE.txt                  Lizenzen und Bestandteile anderer Urheber

@@ -38,7 +38,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include "../start/startordner.h"   /* NEU 1.0.6: eigener Startordner PSCL00002 (Selbstentfernung) */
-#include "../db/db_sicherung.h"     /* NEU 1.0.7: Reste ohne Kachel - Kennung in app.db? (nur lesen) */
+#include "../db/db_lesen.h"     /* NEU 1.0.7: Reste ohne Kachel - Kennung in app.db? (nur lesen) */
 #ifdef KERN_LOESCHEN
 #include "spielstand_db.h"          /* NEU 1.0.7: auch appinfo_zusatz_reparieren (kaputte Zusatzinhalt-Angaben) */
 #endif
@@ -257,13 +257,7 @@ static int sony_ps4_eingetragen(const char *id)
     int r = sony_eingetragen(id);
     return r == 1 || r == 0 ? r : -1;
 }
-/* NEU 1.0.7 (01.11.2026): liegt der eigene Kachel-Ordner von ps5upload auf der Konsole? Nur lesen (stat). */
-static bool ps5upload_ordner_da(void)
-{
-    struct stat st;
-    return (stat("/data/ps5upload/tile/PSUP00001", &st) == 0 && S_ISDIR(st.st_mode))
-        || (stat("/user/data/ps5upload/tile/PSUP00001", &st) == 0 && S_ISDIR(st.st_mode));
-}
+/* (bis 07.11.2026 hier ps5upload_ordner_da - entfällt, siehe "mehrfach" in sony_deinstallieren) */
 static antwort sony_deinstallieren(arena *a, const char *id, bool nur_pruefen)
 {
     if (!strcmp(id, SO_ID) || !strcmp(id, "PSCL00002")) return sony_antwort(a, 550, "550 PS5 Cleanup läuft gerade über diese App");   /* eigener Startordner */
@@ -316,7 +310,11 @@ static antwort sony_deinstallieren(arena *a, const char *id, bool nur_pruefen)
      * 31.10.2026 21:50, Punkt 4), also nur PS5Upload - mit Einbindung (PS5-Test 01.11.2026, FW 12.00, PS5Upload 10: 2 Aufträge nötig)
      * und auch ohne Einbindung (PS5Upload läuft gerade nicht, z. B. nach einem Neustart), wenn sein eigener Kachel-Ordner da ist.
      * Alle anderen Kacheln: EIN Auftrag (PS5-Test 8/9 am 30.10.2026: 21 Kacheln, je ein Auftrag genügte). */
-    bool mehrfach = ps5upload || (em == 0 && !strcmp(id, "PSUP00001") && ps5upload_ordner_da());
+    /* NEU 1.0.8 (PS5-Test 07.11.2026 17:40): auch ohne den eigenen Kachel-Ordner von ps5upload - der war auf da_Chris86s PS5 schon gelöscht,
+     * PS5 Cleanup beauftragte Sony darum nur einmal, die Kachel blieb eingetragen (FW 12.00 braucht zwei Aufträge, Test 01.11.2026) und Sony
+     * entfernte die Dateien danach im Hintergrund - übrig blieb eine Kachel ohne App. Jede andere Einbindung bleibt wie bisher unangetastet
+     * (em == 0: keine Einbindung). */
+    bool mehrfach = ps5upload || (em == 0 && !strcmp(id, "PSUP00001"));
     int versuche = mehrfach ? 3 : 1, gemacht = 0;
     bool einbindung_abbruch = false;
     for (int versuch = 1; versuch <= versuche; versuch++) {
@@ -363,29 +361,7 @@ static int system_ex_oeffnen(arena *a, const char **text)
     return r;
 }
 static volatile int selbst_uebergeben_ok = 0;   /* NEU 1.0.7: dann stellt der Hintergrundteil /system_ex zurück */
-/* NEU 1.0.6 (da_Chris86 29.10.2026 23:08): Auftrag an den Hintergrundteil von ps5cleanup.elf (127.0.0.1:9099, start/ps5cleanup.c).
- * 1 = Antwort enthält "erwartet", 0 = keine Verbindung, -1 = andere Antwort (Text in t) */
-static int hintergrund_fragen(const char *pfad, const char *erwartet, char *t, size_t tl)
-{
-    t[0] = 0;
-    int c = socket(AF_INET, SOCK_STREAM, 0);
-    if (c < 0) { snprintf(t, tl, "kein Socket (%s)", strerror(errno)); return 0; }
-    struct timeval z = { 3, 0 };
-    setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, &z, sizeof z); setsockopt(c, SOL_SOCKET, SO_SNDTIMEO, &z, sizeof z);
-    struct sockaddr_in a; memset(&a, 0, sizeof a);
-    a.sin_family = AF_INET; a.sin_port = htons(9099); a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    if (connect(c, (struct sockaddr *)&a, sizeof a)) { snprintf(t, tl, "keine Verbindung zu 127.0.0.1:9099 (%s)", strerror(errno)); close(c); return 0; }
-    char anf[400]; snprintf(anf, sizeof anf, "GET %s HTTP/1.0\r\n\r\n", pfad);
-    if (send(c, anf, strlen(anf), 0) < 0) { snprintf(t, tl, "Senden fehlgeschlagen (%s)", strerror(errno)); close(c); return 0; }
-    char p[1024]; size_t n = 0;
-    for (;;) { ssize_t r = recv(c, p + n, sizeof p - 1 - n, 0); if (r <= 0) break; n += (size_t)r; if (n >= sizeof p - 1) break; }
-    p[n] = 0; close(c);
-    if (strstr(p, erwartet)) { snprintf(t, tl, "%s", erwartet); return 1; }
-    const char *k = strstr(p, "\r\n\r\n");
-    snprintf(t, tl, "Antwort ohne Bestätigung: %.80s%s%.60s", n ? p : "(leer)", k && k[4] ? " / " : "", k && k[4] ? k + 4 : "");
-    for (char *q = t; *q; q++) if (*q == '\r' || *q == '\n') *q = ' ';
-    return -1;
-}
+static int hintergrund_fragen(const char *pfad, const char *erwartet, char *t, size_t tl);   /* weiter unten (seit 1.0.8 in allen Fassungen) */
 static int selbst_uebergeben(arena *a, bool kachel, bool startordner, const char **text)
 {
     char t[300], pfad[320];
@@ -660,6 +636,7 @@ static void diagnose_klog(const char *t) { klog_printf("PS5 Cleanup: %s\n", t ? 
 /* NEU 1.0.7 (Hänger 31.10.2026: Speicher der Konsole voll): Messung - alle 2 s ins Kernel-Protokoll, wie viel Speicher die
  * Konsole frei hat und wie viel PS5 Cleanup selbst belegt. Nur lesen (sysctl). Nur in den Testfassungen. */
 extern int sceKernelAvailableFlexibleMemorySize(size_t *) __attribute__((weak));   /* Sony: verfügbarer Speicher */
+#ifndef KERN_LOESCHEN   /* 1.0.8: Messung und Abfragen nur in den Testfassungen (die echte Fassung meldete sie als unbenutzt) */
 static int sysctl_fehler;            /* errno der letzten fehlgeschlagenen Abfrage */
 /* 31.10.2026: Puffer 8 Byte - je nach Kernel sind die Zähler 4 oder 8 Byte groß (4 Byte Puffer bei 8-Byte-Zähler = Fehler) */
 static long long sysctl_wert(const char *n)
@@ -726,6 +703,7 @@ static void *speicher_messung(void *x)
     }
     return NULL;
 }
+#endif
 
 /* NEU 1.0.7 (Hänger 31.10.2026): Sicherheitsbremse für den Kern (zugriff_speicher_knapp). Höchstens alle 0,5 s neu gemessen.
  * Auslöser: PS5 Cleanup selbst über 150 MB (gemessen: bei 281 MB war die Konsole kurz vorm Einfrieren) oder Sonys freier Speicher
@@ -764,6 +742,42 @@ void plattform_start(void)
     zugriff_system_ex_oeffnen = system_ex_oeffnen;   /* NEU 1.0.7: nur die echte Fassung */
 #endif
 }
+/* NEU 1.0.6 (da_Chris86 29.10.2026 23:08; seit 1.0.8 in allen Fassungen, auch zum Beenden): Auftrag an den Hintergrundteil von ps5cleanup.elf (127.0.0.1:9099, start/ps5cleanup.c).
+ * 1 = Antwort enthält "erwartet", 0 = keine Verbindung, -1 = andere Antwort (Text in t) */
+static int hintergrund_fragen(const char *pfad, const char *erwartet, char *t, size_t tl)
+{
+    t[0] = 0;
+    int c = socket(AF_INET, SOCK_STREAM, 0);
+    if (c < 0) { snprintf(t, tl, "kein Socket (%s)", strerror(errno)); return 0; }
+    struct timeval z = { 3, 0 };
+    setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, &z, sizeof z); setsockopt(c, SOL_SOCKET, SO_SNDTIMEO, &z, sizeof z);
+    struct sockaddr_in a; memset(&a, 0, sizeof a);
+    a.sin_family = AF_INET; a.sin_port = htons(9099); a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (connect(c, (struct sockaddr *)&a, sizeof a)) { snprintf(t, tl, "keine Verbindung zu 127.0.0.1:9099 (%s)", strerror(errno)); close(c); return 0; }
+    char anf[400]; snprintf(anf, sizeof anf, "GET %s HTTP/1.0\r\n\r\n", pfad);
+    if (send(c, anf, strlen(anf), 0) < 0) { snprintf(t, tl, "Senden fehlgeschlagen (%s)", strerror(errno)); close(c); return 0; }
+    char p[1024]; size_t n = 0;
+    for (;;) { ssize_t r = recv(c, p + n, sizeof p - 1 - n, 0); if (r <= 0) break; n += (size_t)r; if (n >= sizeof p - 1) break; }
+    p[n] = 0; close(c);
+    if (strstr(p, erwartet)) { snprintf(t, tl, "%s", erwartet); return 1; }
+    const char *k = strstr(p, "\r\n\r\n");
+    snprintf(t, tl, "Antwort ohne Bestätigung: %.80s%s%.60s", n ? p : "(leer)", k && k[4] ? " / " : "", k && k[4] ? k + 4 : "");
+    for (char *q = t; *q; q++) if (*q == '\r' || *q == '\n') *q = ' ';
+    return -1;
+}
+/* NEU 1.0.8 (Arbeitsplan 3.2, PLAN 1.0.8 Punkt 8): sauber beenden. Bis 1.0.7 beendete sich die Oberfläche wie der SDL-Baukasten mit
+ * sceSystemServiceLoadExec("exit") - die App wurde vollständig beendet, nur das Starten des Nachfolgers "exit" meldete die PS5 als Fehler
+ * ("Exit spawn failed ... ELF path=exit"). Jetzt bittet sie den Hintergrundteil (start/ps5cleanup.c), sie von außen zu beenden
+ * (sceSystemServiceKillApp, wie ps5-payload-dev/websrv hbldr.c beim Wechsel der App). Antwortet er nicht (z. B. ein älterer Hintergrundteil
+ * oder keiner) oder läuft sie nach 5 s noch: wie bisher LoadExec("exit"). */
+static bool hintergrund_beendet_uns(void)
+{
+    char pfad[64], t[300];
+    snprintf(pfad, sizeof pfad, "/ps5cleanup-schliessen?pid=%d", (int)getpid());
+    int r = hintergrund_fragen(pfad, "PS5CLEANUP-BEENDE-JETZT", t, sizeof t);
+    klog_printf("PS5 Cleanup: Beenden über den Hintergrundteil -> %d %s\n", r, t);
+    return r == 1;
+}
 void plattform_ende(void)
 {
     /* NEU 1.0.7: /system_ex zurückstellen, wenn PS5 Cleanup es in dieser Sitzung beschreibbar gemacht hat - außer der
@@ -771,6 +785,10 @@ void plattform_ende(void)
 #ifdef KERN_LOESCHEN   /* nur die echte Fassung verändert etwas (Prüf-/Simulationsfassung: Sony stellt beim Neustart zurück) */
     if (!selbst_uebergeben_ok) { int r = so_zurueck(); klog_printf("PS5 Cleanup: /system_ex zurückstellen am Ende -> %d\n", r); }
 #endif
+    if (hintergrund_beendet_uns()) {
+        for (int i = 0; i < 50; i++) usleep(100000);       /* gleich beendet uns der Hintergrundteil */
+        klog_printf("PS5 Cleanup: nach 5 s noch nicht beendet - beende wie bisher\n");
+    }
     sceSystemServiceLoadExec("exit", NULL);
 }
 const char *plattform_name(void) { return "PS5"; }
@@ -842,13 +860,32 @@ void plattform_konsole(konsole_info *k)
 /* NEU 1.0.7 (da_Chris86 02.11.2026 15:45 / 16:57): Protokoll ohne USB-Stick - eigener Ordner /data/PS5-Cleanup-Protokolle, jeder Lauf
  * eine eigene Datei mit Datum und Uhrzeit (wie auf dem Stick). NICHT im Ordner von PS5 Cleanup - der geht bei der Selbstentfernung weg.
  * Nie angeboten, nie gelöscht (kern_schutz.c, kern_suche.c); der Hintergrundteil hängt bei der Selbstentfernung seine Schlusszeilen
- * an (start/sw_protokoll.c). Nur die echte Fassung legt den Ordner an - einzig dieses mkdir in plattform_ps5.o (app/bauen.sh prüft). */
+ * an (start/sw_protokoll.c). Nur die echte Fassung legt den Ordner an - einzig dieses mkdir in plattform_ps5.o (app/bauen.sh prüft; die Test-Fassung
+ * mit Mitschnitt legt zusätzlich ihren Ordner PS5-Cleanup-Test an, plattform_test_ordner). */
 long long plattform_frei_bytes(const char *pfad)
 {
     struct statfs s;
     if (!pfad || statfs(pfad, &s) != 0 || s.f_blocks == 0) return -1;
     return (long long)s.f_bavail * (long long)s.f_bsize;
 }
+#ifdef MITSCHNITT
+/* NEU 1.0.8 (Arbeitsplan 2.7): nur die Test-Fassung - Ordner PS5-Cleanup-Test für Mitschnitt und Bildschirmbilder: auf dem USB-Laufwerk,
+ * ohne USB-Laufwerk unter /data. Neu angelegt oder schon da und ein echter Ordner (kein Verweis); nie etwas darin gelöscht. */
+const char *plattform_test_ordner(void)
+{
+    static char p[64];
+    const char *o = plattform_stick_ordner();
+    const char *wo[2] = { o, "/data" };
+    for (int i = 0; i < 2; i++) {
+        if (!wo[i]) continue;
+        snprintf(p, sizeof p, "%s/PS5-Cleanup-Test", wo[i]);
+        struct stat st;
+        if (lstat(p, &st) != 0 && mkdir(p, 0755) != 0 && errno != EEXIST) { klog_printf("PS5 Cleanup: %s nicht anlegbar: %s\n", p, strerror(errno)); continue; }
+        if (lstat(p, &st) == 0 && S_ISDIR(st.st_mode)) return p;
+    }
+    return NULL;
+}
+#endif
 /* da_Chris86 02.11.2026 17:23: USB-Stick -> interne Platte -> M.2 (nur wenn die interne Platte voll oder nicht beschreibbar ist) */
 const char *plattform_protokoll_ordner(int nr)
 {
@@ -891,13 +928,42 @@ void plattform_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const
     const char *g = "";
     int r = db_appinfo_angaben(k->a, q, appinfo_cb, &c, &g);
     klog_printf("PS5 Cleanup: appinfo.db (nur lesen) - %d Zeilen mit Zuordnungen/Zusatzinhalt-Angaben%s%s\n", r, g[0] ? " - " : "", g);
+    /* NEU 1.0.8 (PS5-Test 07.11.2026): Sonys Spielstand-Liste je Benutzer (/system_data/savedata/<Benutzer>/db/user/savedata.db), nur lesen -
+     * die Titel der Spielstände nennen meist das Spiel, auch wenn es nicht mehr installiert ist */
+    DIR *d = opendir("/system_data/savedata");
+    struct dirent *e; int nb = 0;
+    while (d && (e = readdir(d)) != NULL && nb < 16) {
+        if (e->d_name[0] == '.') continue;
+        char p[256]; snprintf(p, sizeof p, "/system_data/savedata/%s/db/user/savedata.db", e->d_name);
+        struct stat st;
+        if (stat(p, &st) != 0 || !S_ISREG(st.st_mode)) continue;
+        nb++; g = "";
+        int s = db_spielstand_angaben(k->a, p, appinfo_cb, &c, &g);
+        klog_printf("PS5 Cleanup: %s (nur lesen) - %d Spielstand-Titel%s%s\n", p, s, g[0] ? " - " : "", g);
+    }
+    if (d) closedir(d);
 }
 void plattform_protokoll_zeile(const char *t) { klog_printf("PS5 Cleanup Protokoll: %s\n", t ? t : ""); }
 
+/* Codex-Prüfung 91: alle USB-Laufwerke zusammen - die Funde auf /mnt/usb1 standen sonst am Balken von /mnt/usb0 */
+static int usb_summe(long long *frei, long long *gesamt)
+{
+    int n = 0; long long f = 0, g = 0;
+    for (int i = 0; i < 8; i++) {
+        char p[16]; snprintf(p, sizeof p, "/mnt/usb%d", i);
+        struct statfs s;
+        if (statfs(p, &s) != 0 || strcmp(s.f_mntonname, p) != 0 || s.f_blocks == 0) continue;
+        f += (long long)s.f_bavail * (long long)s.f_bsize; g += (long long)s.f_blocks * (long long)s.f_bsize; n++;
+    }
+    if (n > 0 && frei && gesamt) { *frei = f; *gesamt = g; }
+    return n;
+}
+int plattform_usb_anzahl(void) { return usb_summe(NULL, NULL); }
 bool plattform_speicher(int ort, long long *frei, long long *gesamt)
 {
     static const char *const PFAD[4] = { "/user", "/mnt/ext1", "/mnt/ext0", "/mnt/usb0" };
     if (ort < 0 || ort > 3) return false;
+    if (ort == 3) return usb_summe(frei, gesamt) > 0;
     struct statfs s;
     if (statfs(PFAD[ort], &s) != 0) return false;
     if (ort != 0 && strcmp(s.f_mntonname, PFAD[ort]) != 0) return false;

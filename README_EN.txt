@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.7 by da_Chris86
+﻿PS5 CLEANUP 1.0.8 by da_Chris86
 ===============================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
@@ -8,14 +8,15 @@ licenses, system software or the disc drive pairing. For all PS5 models
 
 WHICH FILE IS WHICH? - PLEASE READ FIRST!
 -----------------------------------------
-  ps5cleanup_v1.0.7.elf ......... PS5 app. DELETES - but only after you
-                                  explicitly confirm!
-  PS5-Cleanup-Test_v1.0.7.elf ... PS5 app for trying it out safely (e.g.
-                                  on a new firmware). Shows everything,
-                                  "TEST" at the top. TECHNICALLY CANNOT
-                                  DELETE ANYTHING!
-  Not sure, other model or other firmware? Start with the test file!
-  (separate download on GitHub)
+  ps5cleanup_v1.0.8.elf ... the PS5 app. It starts in TEST MODE ("TEST
+                            MODE" at the top): it shows everything and
+                            deletes nothing. It only deletes once you
+                            switch test mode off in the Options menu AND
+                            explicitly confirm the deletion.
+  New in 1.0.8: there is only this one file. Test mode replaces the
+  former test file (PS5-Cleanup-Test_v1.0.7.elf).
+  Not sure, other model or other firmware? Leave test mode on and first
+  take your time to look at what is offered.
   From 1.0.7 on there is no Windows version (PS5-Cleanup.exe) any more -
   see "WHY NO WINDOWS VERSION ANY MORE?" below.
 
@@ -45,12 +46,11 @@ TWO WAYS
 
 TESTED on a PS5 Pro (CFI-7021) with firmware 12.00 and an M.2.
 Other models and firmwares are not blocked but have not been tested yet -
-there, please start PS5-Cleanup-Test_v1.0.7.elf first and check that
-the list is right.
+there, please check in test mode first that the list is right.
 
 FEEDBACK
-  Easiest via QR code: at the end and in the log view (Options), PS5
-  Cleanup shows a QR code. Scan it with your phone, tap "It worked" or
+  Easiest via QR code: at the end and under Options, "Log & feedback",
+  PS5 Cleanup shows a QR code. Scan it with your phone, tap "It worked" or
   "Problem", done - no account and no PC needed. What is sent is
   described under "Feedback via QR code" in DETAILS. For more detail use
   GitHub (issues or discussions) or psxtools.de - ideally with model,
@@ -60,15 +60,19 @@ FEEDBACK
 
 HOW TO USE (PS5 app, directly on the PS5)
 -----------------------------------------
-1. Load your jailbreak and start ps5cleanup_v1.0.7.elf with your payload
+1. Load your jailbreak and start ps5cleanup_v1.0.8.elf with your payload
    loader or Payload Manager. No USB drive needed - if one is plugged in,
    the log is saved there.
 2. On first start the "PS5 Cleanup" tile appears. The interface starts
    right away: use the controller (Cross = select, hold Circle = quit,
-   Options = log).
-3. "Scan", then tick entries (Square = delete selection only) or
-   Triangle = full cleanup.
-4. At the end: Cross = restart (recommended, preselected) or
+   Options = options and log).
+3. "Scan" and take your time to look at what was found. Test mode is on,
+   nothing is deleted. If the list is right, switch test mode off in the
+   Options menu.
+4. Tick entries and Square = delete selection only: on the screen "This
+   will be deleted", move right to "Delete" and hold Cross for 1.5
+   seconds (releasing cancels). Or Triangle = full cleanup: type DELETE.
+5. At the end: Cross = restart (recommended, preselected) or
    Circle = quit. After the restart, start your jailbreak as usual.
    Do not rebuild the database (see above).
 
@@ -87,6 +91,51 @@ WHY NO WINDOWS VERSION ANY MORE?
   Payload Manager).
 - The source code of the previous Windows version (1.0.6) stays on GitHub
   in the folder Quellcode, but is no longer developed.
+
+
+NEW IN 1.0.8
+------------
+- New interface on the TV: start screen with console, disc drive pairing,
+  jailbreak and storage per drive. In the selection the areas on the
+  left, the blocks in the middle, a box with image and explanation on the
+  right. Largest entries first or A-Z, L1/R1 page through.
+- Just one file: test mode is part of the app. At start it is on ("TEST
+  MODE" at the top), the app shows everything and deletes nothing. You
+  switch it off in the Options menu. The app does not remember this - it
+  is on again at every start.
+- Confirming on its own screen "This will be deleted": what is gone for
+  good, what you have to download or set up again, what costs nothing and
+  what always stays. Delete selection only: hold Cross on "Delete" for
+  1.5 seconds. Full cleanup: type DELETE as before.
+- Own screens "Scanning" and "Deleting": you see what is happening.
+  Deleting can be stopped after the current entry (hold Circle). The
+  current entry is finished, all others stay unchanged and are listed in
+  the log.
+- Done screen: space freed, what was left over, where the log is, QR code
+  for feedback.
+- Better detection: game files (.exfat) and unpacked games without a tile
+  show the game's name and picture; PKG files on the USB drive with game
+  names; tools without a tile are shown with their data; duplicate games
+  are clearly marked. What the console itself copied to a USB drive
+  (screenshots, videos, saved data) is red: "your data – gone for good".
+- Names for leftovers of deleted games, too: saved data, trophies,
+  screenshots and videos of games that are no longer installed show their
+  name when a source confirms it (for PS5 trophies the list itself,
+  earlier PS5 Cleanup logs, Sony's saved data list, the game's PKG file).
+  Otherwise at least their picture. Nothing is guessed.
+- Apps via ShadowMount are listed under Apps when their own data says
+  they are an app. If the same program also has a tile under Apps (same
+  name), both are shown in one block.
+- Less memory while scanning: with very many files 1.0.7 already stopped
+  while scanning (feedback from a PS5 Slim). Fixed. Folders with very
+  many files are only checked as far as is safe - whatever cannot be
+  checked completely is not offered and is named in the log.
+- Disc drive pairing in plain words: paired online, factory paired, no
+  pairing, pairing or unpairing not finished - instead of "not reliably
+  determinable".
+- New version: scanning the QR code shows you when there is a newer
+  version.
+- Long names are shown in full, English texts reworked.
 
 
 NEW IN 1.0.7
@@ -365,10 +414,11 @@ IMPORTANT
   game with PS5 Cleanup (the entries are repaired first) and install it
   again with an unmodified update.
 - Deleted data is gone for good. So is saved data without a cloud backup.
-- Nothing is deleted until you agree in the final question. The safe
-  choice is preselected in every question. If a size has not been counted yet, the
-  program counts it before the final question - NOTHING is deleted while
-  it does. "Cancel" = nothing happens.
+- Nothing is deleted until you confirm on the screen "This will be
+  deleted" (hold Cross for 1.5 seconds or type DELETE) - and never in
+  test mode. The safe choice is preselected in every question. If a size
+  has not been counted yet, the program counts it first - NOTHING is
+  deleted while it does. "Back to selection" = nothing happens.
 - After a full cleanup you have to set up your jailbreak tools again.
   The jailbreak entry points (e.g. YouTube/Y2JB) are never part of the
   full cleanup - they only go if you tick them individually.
@@ -379,7 +429,8 @@ IMPORTANT
   delete, restart the PS5 instead.
 - Use at your own risk. Errors are possible. Back up
   anything important to you first.
-- If there are problems: Options shows the log. Please send it to us
+- If there are problems: Options, "Log & feedback" shows the log. Please
+  send it to us
   (see "FEEDBACK" and "Log" under DETAILS).
 
 
@@ -391,9 +442,10 @@ Disc drive pairing
   The program reads and shows the pairing status. It never touches system
   software or system settings. The original PS5 has a built-in drive
   without pairing, Digital Editions have none.
-  The display tells apart: "Pairing confirmed", "No pairing", "not
-  reliably determinable" (a status value whose meaning is not confirmed)
-  and "not readable" (no valid answer).
+  The display tells apart: "Paired online", "Factory paired", "Paired",
+  "No pairing", "Pairing not finished" and "Unpairing not finished"
+  (started but not completed) and "Not queried" (no valid answer). The
+  PS5 cannot tell whether a drive was ever paired with another console.
 
 ShadowMount games
   The menu only has a tile; the game itself is on the M.2 or the internal
@@ -438,9 +490,21 @@ Assignment (which data belongs to which tile?)
   Other. ELF files are never assigned via another app's program - a
   program often names other tools it only uses.
 
+Test mode
+  At start, test mode is on and "TEST MODE" is shown at the top. The app
+  shows everything like real deleting, but the delete buttons are locked -
+  if you press them, the app tells you that test mode is on. To switch it
+  off: Options, "Test mode". The app does not remember this.
+
+Stopping a deletion
+  On the "Deleting" screen, holding Circle stops deleting after the
+  current entry. An entry is never cut off halfway. All others stay
+  unchanged and are listed in the log. PS5 Cleanup then does not remove
+  itself, so you can continue later.
+
 Log
   Options shows the log on your TV at any time. As soon as something is
-  deleted, ps5cleanup_v1.0.7.elf also saves it as a file
+  deleted, PS5 Cleanup also saves it as a file
   (ps5cleanup_protokoll_<date>_<time>.txt): on the USB drive; if there is
   none, or it is full or not writable, on the internal storage in the
   folder /data/PS5-Cleanup-Protokolle; if that is full too, on the M.2 in
@@ -449,9 +513,8 @@ Log
   never offered for deletion. Only the full cleanup removes old logs on
   the internal storage - never the current one, never those on the USB
   drive or the M.2. Fetch it e.g. over FTP. In the log view, Square
-  saves the log to the USB drive even without deleting anything. The
-  test file (PS5-Cleanup-Test_v1.0.7.elf) saves nothing - just take a
-  photo of the log view there.
+  saves the log to the USB drive even without deleting anything, also in
+  test mode.
 
 Feedback via QR code (optional)
   The PS5 sends nothing - it only shows a QR code. It contains a link
@@ -479,8 +542,7 @@ Language
   otherwise English). Before the first scan, Square switches it.
 
 Files
-  ps5cleanup_v1.0.7.elf        the PS5 app
-  PS5-Cleanup-Test_v1.0.7.elf  the PS5 app for trying it out - deletes nothing
+  ps5cleanup_v1.0.8.elf        the PS5 app (starts in test mode)
   README_EN.txt                this guide (English)
   LIESMICH.txt                 this guide (German)
   LICENSE.txt                  licenses and components by other authors

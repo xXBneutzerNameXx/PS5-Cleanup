@@ -44,35 +44,37 @@ typedef struct ablauf {
      * damit die Liste danach wieder den echten Stand zeigt. NULL = keine. */
     zugriff *(*neue_verbindung)(void *ctx);
     void *verbindung_ctx;
-    /* NEU 1.0.7 (da_Chris86 31.10.2026 19:28): kurz bevor PS5 Cleanup sich selbst entfernt - Protokoll auf den USB-Stick. NULL = nichts. */
-    /* NEU 1.0.7: direkt vor dem Löschen (nach der Abschlussfrage). Bis 02.11.2026 die Datenbank-Sicherung, seitdem beginnt die
-     * PS5-App hier nur das Protokoll als Datei (da_Chris86 02.11.2026 15:44). false = nicht löschen (Grund im Protokoll). NULL = nichts. */
+    /* NEU 1.0.7: direkt vor dem Löschen (nach der Abschlussfrage). Die PS5-App beginnt hier das Protokoll als Datei (protokoll_beginnen,
+     * da_Chris86 02.11.2026 15:44 - bis dahin stand hier die Datenbank-Sicherung). false = nicht löschen (Grund im Protokoll). NULL = nichts. */
     bool (*vor_loeschen)(void *ctx);
     void *vor_loeschen_ctx;
-    /* NEU 1.0.7: gleich zu Beginn einer Bereinigung (vor allen Fragen) prüfen, ob gelöscht werden darf. false = gar nicht erst
-     * anfangen, *grund wird dem Nutzer angezeigt. NULL = nichts (die PS5-App setzt seit 02.11.2026 nichts mehr: kein USB-Stick
-     * und keine Sicherung als Bedingung). */
-    bool (*loeschen_moeglich)(void *ctx, const char **grund);
-    void *loeschen_moeglich_ctx;
+    /* NEU 1.0.7 (da_Chris86 31.10.2026 19:28): kurz bevor PS5 Cleanup sich selbst entfernt - das Protokoll sichern. NULL = nichts. */
     void (*vor_selbstweg)(void *ctx);
     void *vor_selbstweg_ctx;
+    /* NEU 1.0.8 (Codex-Prüfung 74): direkt vor dem erneuten Nachschauen nach dem Löschen - die Test-Fassung beginnt dort im Mitschnitt
+     * eine neue Suche, damit der PC-Nachbau sie getrennt wiedergeben kann. NULL = nichts */
+    void (*vor_neusuche)(void *ctx);
+    void *vor_neusuche_ctx;
     volatile bool abbrechbar;            /* gerade läuft Suchen/Zählen: Abbrechen erlaubt (btAbbrechen in 1.0.5) */
     volatile bool loescht;               /* LAEUFT: gerade wird gelöscht - nicht beenden */
+    volatile bool anhaltbar;             /* NEU 1.0.8 (3.4): der Löschlauf selbst läuft (nicht die Selbstentfernung) - Anhalten möglich */
+    /* NEU 1.0.8 (4.5): Stand des Löschlaufs für die Seite "Löschen läuft" - nur Anzeige (im Arbeitsfaden gesetzt, von der Oberfläche gelesen) */
+    unsigned lf_seq;                     /* NEU 1.0.8 (Codex-Prüfung 76): Zähler um die lf_-Angaben (ungerade = wird gerade geschrieben) */
+    volatile int lf_nr, lf_n;            /* gerade Eintrag lf_nr von lf_n (lf_nr 0 = noch keiner) */
+    volatile int lf_fehler, lf_unv;      /* NEU 1.0.8 (Codex-Prüfung 77): Fehler und Unverändertes bis vor diesen Eintrag (für die Anzeige je Zeile) */
+    const eintrag *volatile lf_f;        /* der Eintrag, der gerade gelöscht wird */
+    volatile long long lf_frei, lf_gesamt;   /* bisher frei geräumt / zusammen (Byte; lf_gesamt -1 = nicht alle Größen bekannt) */
     const char *protokoll_datei;         /* für FehlerMelden ("Das Protokoll liegt hier: ...") */
     const char *sim_hinweis;             /* NEU 1.1: statt "SIMULATION - es wird nichts gelöscht." in Statuszeile/Protokoll (NULL = so lassen) */
     arena *ta;                           /* Speicher der Anzeige-Texte (Oberflächen-Faden), siehe ablauf_texte_frei */
     bool leeren_m2, leeren_usb;          /* NEU 1.0.6: vollständige Bereinigung - wurden M.2/USB mit geleert? (für das Selbst-Entfernen) */
     int selbst_modus;                    /* NEU 28.10.2026: 1 = vollständige Bereinigung (PS5 Cleanup am Ende ohne Frage entfernen), 2 = Auswahl (am Ende fragen) */
-    /* NEU 1.0.6 (da_Chris86 28.10.2026 23:19): nach der letzten Bestätigung fragen, ob die PS5 am Ende automatisch neu starten soll.
-     * NULL = keine Frage (Windows-Vergleich, Tests). Das Ergebnis steht in auto_neustart (die Oberfläche führt es aus). */
-    bool (*neustart_frage)(void *ctx);
-    void *neustart_ctx;
-    bool auto_neustart;
     /* NEU 1.0.7 (da_Chris86 03.11.2026 19:09, Rückmeldung per QR-Code): Zahlen des letzten Löschlaufs (bei der Simulation: so wäre es
      * gelaufen) - nur für die Anzeige im QR-Code, keine Namen. rm_da = es gab schon einen Lauf in dieser Sitzung. */
     bool rm_da;
     int rm_gewaehlt, rm_fehler, rm_teilweise, rm_geschuetzt, rm_unveraendert;
     bool rm_abgebrochen;
+    groesse rm_frei;                     /* NEU 1.0.8 (4.5): im letzten Lauf frei geräumt ("X frei geräumt") */
 } ablauf;
 
 void ablauf_init(ablauf *a, kern *k, const ablauf_ui *ui);
@@ -94,10 +96,12 @@ const char *ablauf_bereich_kopf(ablauf *a, int kat);                 /* "[1] Spi
 const char *ablauf_eintrag_groesse(ablauf *a, const eintrag *f);     /* "   1,2 GB" oder "" */
 const char *ablauf_stand_text(ablauf *a);                            /* AktualisiereStand */
 const char *ablauf_zusammenfassung(ablauf *a, bool komplett);        /* Zusammenfassung(komplett) */
+const char *ablauf_block_schluessel(arena *ar, const eintrag *f);    /* NEU 1.0.8: Block, zu dem ein Eintrag beim Zählen gehört */
 
 /* Größen im Hintergrund (HintergrundStarten/-Anhalten) */
 void ablauf_hintergrund_starten(ablauf *a);
 void ablauf_hintergrund_anhalten(ablauf *a);
+bool ablauf_loeschen_anhalten(ablauf *a);   /* NEU 1.0.8 (3.4): Löschen nach dem laufenden Eintrag anhalten - false, wenn gerade nichts gelöscht wird */
 
 /* Abläufe - laufen im Arbeits-Faden, fragen über ui.frage_*.
  * Immer über ablauf_starte() aufrufen (wie Starte() in 1.0.5: Abbruch und Fehler). */

@@ -110,6 +110,33 @@ int main(int argc, char **argv)
         printf("FEHLERZAHL %d\n", fehler);
         return fehler ? 1 : 0;
     }
+    if (!strcmp(FALL, "protokoll_intern")) {   /* NEU 1.0.8 (Plan 1.0.8 4a): ohne USB-Stick /data/PS5-Cleanup-Protokolle - nur anhängen, nie anlegen */
+        const char *p = "/data/PS5-Cleanup-Protokolle/ps5cleanup_protokoll_2026-11-04_220000.txt";
+        const char *datei = SO_WURZEL "/data/PS5-Cleanup-Protokolle/ps5cleanup_protokoll_2026-11-04_220000.txt";
+        pruefe(selbstweg_protokoll_setzen(p, strlen(p)), "angenommen: /data/PS5-Cleanup-Protokolle/ps5cleanup_protokoll_<Datum>.txt");
+        selbstweg_log("Zeile ohne Ordner");
+        pruefe(!da(SO_WURZEL "/data/PS5-Cleanup-Protokolle"), "Ordner fehlt: der Hintergrundteil legt weder Ordner noch Datei an");
+        mkdir(SO_WURZEL "/data", 0755); mkdir(SO_WURZEL "/data/PS5-Cleanup-Protokolle", 0755);
+        selbstweg_log("Zeile ohne Datei");
+        pruefe(!da(datei), "Datei fehlt: wird NICHT angelegt");
+        FILE *f = fopen(datei, "w"); if (f) { fputs("Kopf\r\nZeile der Oberfläche\r\n", f); fclose(f); }
+        selbstweg_log("Kachel %s - Test", "PSCL00001");
+        selbstweg_log("zweite Zeile");
+        char b[800] = {0}; f = fopen(datei, "r"); if (f) { size_t n = fread(b, 1, sizeof b - 1, f); b[n] = 0; fclose(f); }
+        const char *z1 = strstr(b, "Selbstentfernung: Kachel PSCL00001 - Test\r\n"), *z2 = strstr(b, "Selbstentfernung: zweite Zeile\r\n");
+        pruefe(!strncmp(b, "Kopf\r\nZeile der Oberfläche\r\n", strlen("Kopf\r\nZeile der Oberfläche\r\n")) && z1 && z2 && z1 < z2 && !strstr(b, "ohne Datei"),
+               "an die Datei der Oberfläche angehängt: ihr Inhalt bleibt, beide Zeilen in Reihenfolge, nichts aus der Zeit davor");
+        /* eine Verknüpfung statt der Datei: nicht folgen (O_NOFOLLOW), die fremde Datei bleibt unverändert */
+        const char *p2 = "/data/PS5-Cleanup-Protokolle/ps5cleanup_protokoll_2026-11-04_220100.txt";
+        f = fopen(SO_WURZEL "/data/fremd.txt", "w"); if (f) { fputs("fremd\n", f); fclose(f); }
+        pruefe(symlink(SO_WURZEL "/data/fremd.txt", SO_WURZEL "/data/PS5-Cleanup-Protokolle/ps5cleanup_protokoll_2026-11-04_220100.txt") == 0, "Verknüpfung angelegt (Voraussetzung für die nächste Prüfung, Codex-Prüfung 70)");
+        pruefe(selbstweg_protokoll_setzen(p2, strlen(p2)), "angenommen: zweiter Pfad (ist eine Verknüpfung)");
+        selbstweg_log("darf nicht ankommen");
+        char c[100] = {0}; f = fopen(SO_WURZEL "/data/fremd.txt", "r"); if (f) { size_t n = fread(c, 1, sizeof c - 1, f); c[n] = 0; fclose(f); }
+        pruefe(!strcmp(c, "fremd\n"), "Verknüpfung: nicht gefolgt, die fremde Datei ist unverändert");
+        printf("FEHLERZAHL %d\n", fehler);
+        return fehler ? 1 : 0;
+    }
     if (!strcmp(FALL, "sitzung_offen")) {   /* Codex 67: direkt die Startordner-Funktion prüfen - selbstweg_ausfuehren() verschluckt ihren Fehlertext */
         char g[400] = "x";
         int s = selbstweg_startordner(g, sizeof g);

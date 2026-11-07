@@ -50,6 +50,19 @@ static bool ist_weg(sz *s, const char *v)
     }
     return false;
 }
+/* Codex-Prüfung 73: wird ein Pfad "gelöscht", gehen auch die "geschriebenen" Dateien darin mit (vorher blieben sie lesbar) */
+static void virtuell_weg(sz *s, const char *v)
+{
+    size_t l = strlen(v);
+    int m = 0;
+    for (int i = 0; i < s->virtuell.n; i++) {
+        const char *k = s->virtuell.e[i].k;
+        if (strncmp(k, v, l) == 0 && (k[l] == 0 || k[l] == '/' || (l == 1 && v[0] == '/'))) continue;
+        s->virtuell.e[m++] = s->virtuell.e[i];
+    }
+    s->virtuell.n = m;
+}
+static void weg_setzen(sz *s, arena *a, const char *v) { mt_setze(s->a, &s->weg, v, (void *)1); virtuell_weg(s, v); (void)a; }
 static const char *kind(arena *a, const char *v, const char *name) { return strcmp(v, "/") == 0 ? VERB(a, "/", name) : VERB(a, v, "/", name); }
 static const char *eltern(arena *a, const char *v) { int i = txt_letzter(v, '/'); return i <= 0 ? "/" : a_kopie_n(a, v, (size_t)i); }
 static const char *blatt(const char *v) { return v + txt_letzter(v, '/') + 1; }
@@ -131,6 +144,22 @@ static antwort s_stuecke(zugriff *z, arena *a, const char *pfad, size_t stueck, 
     if (r.code < 400) { bool los = true; for (size_t o = 0; los && o < n; o += stueck) los = weiter(c, d + o, n - o < stueck ? n - o : stueck); if (los) weiter(c, NULL, 0); }
     return r;
 }
+/* NEU 1.0.8 (Arbeitsplan 2.1): n Bytes ab Stelle ab - an den inneren Zugriff weiterreichen */
+static antwort s_lies_ab(zugriff *z, arena *a, const char *pfad, long long ab, size_t n, unsigned char *ziel, size_t *len)
+{
+    sz *s = z->zustand;
+    const char *v = norm(a, pfad);
+    *len = 0;
+    if (ab < 0) return A(a, 501, "501 Stelle");
+    sdaten *vd = mt_hole(&s->virtuell, v);
+    if (vd) {
+        if ((unsigned long long)ab < vd->n) { size_t m = vd->n - (size_t)ab; if (m > n) m = n; memcpy(ziel, vd->d + ab, m); *len = m; }
+        return A(a, 226, "226 done");
+    }
+    if (ist_weg(s, v)) return A(a, 550, "550 no");
+    if (!s->innen->lies_ab) return A(a, 502, "502 no");
+    return s->innen->lies_ab(s->innen, a, v, ab, n, ziel, len);
+}
 static antwort s_kopf(zugriff *z, arena *a, const char *pfad, size_t n, const unsigned char **d, size_t *len)
 {
     sz *s = z->zustand;
@@ -178,9 +207,9 @@ static antwort s_befehl(zugriff *z, arena *a, const char *befehl, const char *pf
         antwort r = s->innen->befehl(s->innen, a, "SITE UNINSTALL?", v);
         if (r.code != 200) return r;
         sl_add(s->a, &s->buch, VERB(s->a, "SITE UNINSTALL ", v));
-        mt_setze(s->a, &s->weg, v, (void *)1);
-        mt_setze(s->a, &s->weg, VERB(a, "/user/appmeta/", id), (void *)1);
-        mt_setze(s->a, &s->weg, VERB(a, "/system_data/priv/appmeta/", id), (void *)1);
+        weg_setzen(s, a, v);
+        weg_setzen(s, a, VERB(a, "/user/appmeta/", id));
+        weg_setzen(s, a, VERB(a, "/system_data/priv/appmeta/", id));
         return A(a, 200, "200 OK");
     }
     /* NEU 1.0.7: Bilder/Videos (Sonys Löschdienst) und Spielstand-Liste - Prüfungen gehen an die echte Zugriffsschicht, der Auftrag
@@ -198,10 +227,10 @@ static antwort s_befehl(zugriff *z, arena *a, const char *befehl, const char *pf
         if (medium) {
             const char *bl = blatt(v), *pk = strrchr(bl, '.');
             const char *stamm = pk && pk > bl ? a_kopie_n(a, v, (size_t)(pk - v)) : v;
-            mt_setze(s->a, &s->weg, v, (void *)1);
-            mt_setze(s->a, &s->weg, VERB(a, stamm, ".meta"), (void *)1);
-            mt_setze(s->a, &s->weg, VERB(a, stamm, ".dat"), (void *)1);
-            mt_setze(s->a, &s->weg, VERB(a, "/user/av_contents/thumbnails/", v + 18, ".jxr"), (void *)1);
+            weg_setzen(s, a, v);
+            weg_setzen(s, a, VERB(a, stamm, ".meta"));
+            weg_setzen(s, a, VERB(a, stamm, ".dat"));
+            weg_setzen(s, a, VERB(a, "/user/av_contents/thumbnails/", v + 18, ".jxr"));
         }
         return A(a, 200, "200 OK");
     }
@@ -219,7 +248,7 @@ static antwort s_befehl(zugriff *z, arena *a, const char *befehl, const char *pf
         if (vi >= 0) {               /* virtuelle Datei: aus der Tabelle nehmen */
             for (int i = vi; i < s->virtuell.n - 1; i++) s->virtuell.e[i] = s->virtuell.e[i + 1];
             s->virtuell.n--;
-        } else mt_setze(s->a, &s->weg, v, (void *)1);
+        } else weg_setzen(s, a, v);
         return A(a, 250, "250 OK");
     }
     if (strcmp(befehl, "RMD") == 0) {
@@ -228,13 +257,13 @@ static antwort s_befehl(zugriff *z, arena *a, const char *befehl, const char *pf
         int echt = 0; for (int i = 0; i < l.n; i++) if (strcmp(l.e[i].name, ".") && strcmp(l.e[i].name, "..")) echt++;
         if (echt) return A(a, 550, "550 Directory not empty");
         sl_add(s->a, &s->buch, VERB(s->a, "RMD ", v));
-        mt_setze(s->a, &s->weg, v, (void *)1);
+        weg_setzen(s, a, v);
         return A(a, 250, "250 OK");
     }
     if (strcmp(befehl, "RMDA") == 0) {
         if (!e || !e->ordner || e->link) return A(a, 550, "550 no");
         sl_add(s->a, &s->buch, VERB(s->a, "RMDA ", v));
-        mt_setze(s->a, &s->weg, v, (void *)1);
+        weg_setzen(s, a, v);
         return A(a, 250, "250 OK");
     }
     return A(a, 502, "502 no");
@@ -251,6 +280,7 @@ zugriff *zugriff_sim(zugriff *lesen)
     z->art = "sim";
     z->cwd = s_cwd; z->liste = s_liste; z->lies = s_lies; z->kopf = s_kopf; z->enthaelt = s_enthaelt; z->schreibe = s_schreibe; z->befehl = s_befehl;
     z->stuecke = s_stuecke;
+    z->lies_ab = s_lies_ab;   /* NEU 1.0.8 */
     z->schliessen = s_schliessen; z->zustand = s;
     return z;
 }

@@ -4,7 +4,7 @@
  * 1. nachgebaute appinfo.db (Text, Zahl 0, NULL, kaputter Wert)  2. fehlende appinfo.db  3. da_Chris86s Kopie vom 02.11.2026 18:25
  * (falls vorhanden): GTA V PPSA04264 -> PPSA03420 und 7 kaputte Werte bei CUSA08519, dann durch den Kern bis zur Zeile. */
 #include "../../kern/kern.h"
-#include "../../db/db_sicherung.h"
+#include "../../db/db_lesen.h"
 #include "../../db/db_pruefen.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +41,17 @@ int main(int argc, char **argv)
     NZ = 0; g = "";
     r = db_appinfo_angaben(A0, a_fmt(A0, "%s/gibtsnicht", argv[1]), sammle, NULL, &g);
     pruefe(r == -1 && strstr(g, "fehlt"), a_fmt(A0, "-1 mit Grund (%d, %s)", r, g));
+    /* NEU 1.0.8 (PS5-Test 07.11.2026, L.A. Noire): Sonys Spielstand-Liste nur lesen */
+    printf("== nachgebaute savedata.db (Spielstand-Liste)\n");
+    NZ = 0; g = "";
+    r = db_spielstand_angaben(A0, a_fmt(A0, "%s/sd/savedata.db", argv[1]), sammle, NULL, &g);
+    pruefe(r == 3, a_fmt(A0, "3 Spielstände gemeldet (%d, %s)", r, g));
+    pruefe(finde("CUSA70010", "SPIELSTAND_TITEL", "Testspiel") == 2, "Titel je Spielstand");
+    pruefe(finde("CUSA70011", NULL, NULL) == 0, "Titel gleich Untertitel wird nicht gemeldet (wie L.A. Noire: \"Benutzereinstellungen & Freischaltobjekte\")");
+    pruefe(finde("CUSA70012", "SPIELSTAND_TITEL", "Ohne Untertitel") == 1, "ohne Untertitel wird gemeldet");
+    NZ = 0; g = "";
+    r = db_spielstand_angaben(A0, a_fmt(A0, "%s/sd/gibtsnicht.db", argv[1]), sammle, NULL, &g);
+    pruefe(r == -1 && strstr(g, "fehlt"), a_fmt(A0, "fehlende savedata.db: -1 mit Grund (%d, %s)", r, g));
     if (strcmp(argv[2], "-") != 0) {
         printf("== da_Chris86s appinfo.db (Kopie 02.11.2026 18:25, nur gelesen)\n");
         NZ = 0; g = "";

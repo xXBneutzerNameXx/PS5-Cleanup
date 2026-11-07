@@ -13,6 +13,8 @@ static int fehler = 0;
 static void pruefe(bool ok, const char *was) { printf("%s%s\n", ok ? "OK   " : "FAIL ", was); if (!ok) fehler++; }
 static void melde_log(void *c, const char *t) { (void)c; (void)t; }
 static kern *K; static arena *A0;
+static bool nie_stopp(void *c) { (void)c; return false; }          /* NEU 1.0.8 (2.6): alles zählen wie die App im Hintergrund */
+static void nichts_tun(void *c, eintrag *e) { (void)c; (void)e; }
 static eintrag *mit_pfad(const char *p)
 {
     for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; for (int j = 0; j < f->PfadeBasis.n; j++) if (!strcmp(f->PfadeBasis.e[j], p)) return f; }
@@ -67,7 +69,12 @@ int main(int argc, char **argv)
         unter("/mnt/usb0/Rennspiel - CUSA31001 - v1.04 - EU - Update.pkg", "CUSA31001", 1, "Update-PKG des PS4-Spiels auf dem Stick");
         eintrag *pk = mit_pfad("/mnt/usb0/Rennspiel - CUSA31001 - v1.00 - EU.pkg");
         pruefe(pk && pk->Art == ART_PAKET_DATEI && pk->KatHer == 5, a_fmt(A0, "PKG bleibt Installationsdatei (Art %d, vorher Bereich %d)", pk ? pk->Art : -1, pk ? pk->KatHer : -1));
-        frei_stehend("/mnt/usb0/Anderes Spiel - CUSA39999 - v1.00 - EU.pkg", 5, "PKG eines nicht installierten Spiels bleibt unter Sonstiges");
+        {   /* 1.0.8 (PS5-Test 06.11.2026, Befund 12): PKG eines nicht installierten Spiels - eigener Block "<Spiel> · nicht installiert" unter Spiele, rot */
+            eintrag *an = mit_pfad("/mnt/usb0/Anderes Spiel - CUSA39999 - v1.00 - EU.pkg");
+            pruefe(an && an->Kat == 1 && an->KatHer == 5 && an->PkgOhneSpiel && an->BlockName && !strcmp(an->BlockName, "Anderes Spiel · nicht installiert")
+                   && !an->ToolKachel && kern_ampel(an) == AMPEL_ROT && !strcmp(kern_folge_kurz(an), "endgültig weg"),
+                   a_fmt(A0, "PKG eines nicht installierten Spiels: Block \"%s\" unter Spiele, rot (%s, Bereich %d)", an && an->BlockName ? an->BlockName : "-", an ? kern_zeile(A0, an) : "-", an ? an->Kat : -1));
+        }
         unter("/user/data/homebrew/FAKE71001", "FAKE71001", 1, "homebrew/<Kennung> unter ihrer Kachel");
         unter("/user/data/homebrew/PPSA71003", "PPSA71003", 1, "homebrew/<Kennung> unter ihrer Kachel");
         printf("== Ein Block pro Kachel: über den Namen der App\n");
@@ -82,6 +89,18 @@ int main(int argc, char **argv)
         unter("/user/data/SpectrumLibrary", "SLIB71005", 6, "SpectrumLibrary unter der App (Apps)");
         unter("/user/data/orbit-store", "ORBT71006", 6, "orbit-store unter der Tool-Kachel");
         unter("/mnt/usb0/orbit_store_v1.2.elf", "ORBT71006", 6, "ELF auf dem Stick unter der Tool-Kachel");
+        printf("== Tool-Kachel, die sich bei Sony als Spiel meldet (Spielekompressor)\n");
+        {   /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 17:35/19:13): wie im PS5-Menü unter Spiele, bleibt aber eine Tool-Kachel */
+            eintrag *sk = mit_pfad("/user/app/PSGC50001");
+            pruefe(sk && sk->Kat == 1 && sk->KatHer == 6 && sk->Art == ART_TOOL_KACHEL && !sk->ToolKachel,
+                   a_fmt(A0, "Spielekompressor: Kachel unter Spiele, Art Tool-Kachel (%s, Bereich %d, vorher %d, Art %d)", sk ? kern_zeile(A0, sk) : "nicht gefunden", sk ? sk->Kat : -1, sk ? sk->KatHer : -1, sk ? sk->Art : -1));
+            unter("/user/data/GameCompressor", "PSGC50001", 1, "Spielekompressor: Daten-Ordner unter seiner Kachel (Spiele)");
+            unter("/mnt/usb0/game-compressor_v1.0.4.elf", "PSGC50001", 1, "Spielekompressor: Programmdatei unter seiner Kachel (Spiele)");
+            eintrag *gd = mit_pfad("/user/data/GameCompressor");
+            pruefe(gd && gd->Art != ART_UNBEKANNT && gd->Art != ART_ABBILD && gd->Art != ART_SPIEL, a_fmt(A0, "Spielekompressor: Daten bleiben Tool-Daten (Art %d)", gd ? gd->Art : -1));
+            eintrag *pm = mit_pfad("/user/app/PLDM00001");
+            pruefe(pm && pm->Kat == 6 && !pm->KatHer && pm->Art == ART_TOOL_KACHEL, a_fmt(A0, "Payload Manager (meldet sich als App) bleibt unter Apps (Bereich %d)", pm ? pm->Kat : -1));
+        }
         eintrag *pl = mit_pfad("/user/data/playden-games");
         pruefe(pl && pl->Art != ART_UNBEKANNT, a_fmt(A0, "Daten unter ihrer Kachel sind nicht mehr \"Inhalt unbekannt\" (Art %d)", pl ? pl->Art : -1));
         printf("== Nicht raten\n");
@@ -191,6 +210,151 @@ int main(int argc, char **argv)
           const char *satz = kern_endgueltig_satz(K, A0);
           pruefe(eh && strstr(satz, "vermutlich eigene Spiele, Spielstände oder Sicherungen (EMU9DATA)") && !strstr(satz, "deine vermutlich"), a_fmt(A0, "%s", satz));
           for (int i = 0; i < K->Funde.n; i++) ((eintrag *)K->Funde.e[i])->Wahl = false; }
+        printf("== 1.0.8 (Arbeitsplan 2.3): Tools ohne Kachel - Payload-Datei unter dem Daten-Ordner\n");
+        {
+            struct { const char *elf, *ordner, *name; } F[] = {
+                { "/mnt/usb0/nanoDNS_0.4.elf", "/user/data/nanodns", "nanoDNS" },
+                { "/mnt/usb0/zftpd-ps5-v1.6.0.elf", "/user/data/zftpd", "zftpd" },
+                { "/mnt/usb0/garlic-savemgr_v1.14.elf", "/user/data/garlic", "garlic" },
+                { "/mnt/usb0/Werkbank_v2.elf", "/user/data/Werkbank", "Werkbank" },
+                { "/mnt/usb0/ps5-kompass_v1.0.elf", "/user/data/kompass", "kompass" } };
+            for (size_t i = 0; i < sizeof F / sizeof F[0]; i++) {
+                eintrag *e = mit_pfad(F[i].elf), *o = mit_pfad(F[i].ordner);
+                kblock *bb = NULL; { kblock *b; int nb = kern_bloecke(K, A0, 6, SORT_GROESSTE, &b); for (int x = 0; x < nb; x++) if (o && b[x].kopf == o) bb = &b[x]; }
+                pruefe(e && o && e->Begleit == o && !e->ToolKachel && !o->ToolKachel && e->Kat == 6 && o->Kat == 6 && bb && bb->ohne_kachel && bb->teile.n == 2 && bb->teile.e[1] == e && !strcmp(bb->name, F[i].name),
+                       a_fmt(A0, "%s unter %s: Block \"%s\", ohne Kachel, %d Zeilen (Bereich %d und %d)", F[i].elf, F[i].ordner, bb ? bb->name : "-", bb ? bb->teile.n : 0, e ? e->Kat : -1, o ? o->Kat : -1));
+            }
+            eintrag *wb = mit_pfad("/user/data/Werkbank"), *we = mit_pfad("/mnt/usb0/Werkbank_v2.elf");
+            pruefe(wb && wb->KatHer == 5 && wb->Art != ART_UNBEKANNT && we && we->Kat == 6,
+                   a_fmt(A0, "unbekannter Ordner mit passender Payload-Datei: beide unter Apps, nicht mehr \"Inhalt unbekannt\" (%s; Ordner vorher Bereich %d, Datei vorher %d, Art %d)",
+                         wb ? kern_zeile(A0, wb) : "-", wb ? wb->KatHer : -1, we ? we->KatHer : -1, wb ? wb->Art : -1));
+            eintrag *ab = mit_pfad("/mnt/usb0/alpha-beta-tool_v1.elf"), *ac = mit_pfad("/mnt/usb0/abc.elf"), *oa1 = mit_pfad("/user/data/alpha"), *oa3 = mit_pfad("/user/data/abc");
+            pruefe(ab && !ab->Begleit && !ab->KatHer && oa1 && !oa1->OhneKachel && !oa1->KatHer,
+                   a_fmt(A0, "Datei beginnt mit zwei unbekannten Ordnernamen (alpha, alphabeta): nicht raten, nichts verschoben (Datei Bereich %d, Ordner Bereich %d)", ab ? ab->Kat : -1, oa1 ? oa1->Kat : -1));
+            /* Codex-Prüfung 73: nie umgekehrt (Ordner länger als die Datei), und ein unbekannter Ordner nur bei gleichem Namen */
+            eintrag *wa = mit_pfad("/user/data/Werkbank-Archiv"), *sw = mit_pfad("/user/data/Spielwiese"), *se = mit_pfad("/mnt/usb0/Spielwiese-ps5_v1.elf");
+            pruefe(wa && !wa->OhneKachel && !wa->KatHer && wa->Kat == 5, a_fmt(A0, "Werkbank-Archiv bleibt unter Sonstiges, gehört nicht zu Werkbank_v2.elf (Bereich %d)", wa ? wa->Kat : -1));
+            pruefe(sw && se && !se->Begleit && !sw->OhneKachel && sw->Kat == 5, "unbekannter Ordner, Datei beginnt nur mit seinem Namen (Spielwiese-ps5_v1.elf): nicht zugeordnet");
+            pruefe(ac && !ac->Begleit && !ac->KatHer && oa3 && !oa3->OhneKachel && !oa3->KatHer,
+                   a_fmt(A0, "zu kurzer Ordnername (abc): nicht raten (Datei Bereich %d, Ordner Bereich %d)", ac ? ac->Kat : -1, oa3 ? oa3->Kat : -1));
+            eintrag *nd = mit_pfad("/user/data/nanodns"), *ne = mit_pfad("/mnt/usb0/nanoDNS_0.4.elf");
+            pruefe(nd && ne && kern_kopf_von(K, ne, 6) == nd && kern_kopf_von(K, nd, 6) == NULL, "kern_kopf_von: Payload-Datei steht unter dem Daten-Ordner");
+            pruefe(ne && strstr(kern_zeile(A0, ne), "nanoDNS_0.4.elf") && !strstr(kern_zeile(A0, ne), "   – "), a_fmt(A0, "Zeile der Payload-Datei: %s", ne ? kern_zeile(A0, ne) : "-"));
+        }
+        printf("== 1.0.8 (Arbeitsplan 2.4): doppelte Spiele\n");
+        {
+            eintrag *rs = mit_pfad_anfang("/user/app/CUSA31001"), *ra = mit_pfad("/mnt/usb0/CUSA31001.exfat");
+            eintrag *z1 = mit_pfad("/mnt/usb0/Zweimal - PPSA31777.exfat"), *z2 = mit_pfad("/mnt/ext1/Zweimal - PPSA31777.exfat");
+            pruefe(rs && ra && rs->Doppelt.n == 1 && rs->Doppelt.e[0] == ra && strstr(kern_zeile(A0, rs), " – doppelt: auch als Spieldatei auf dem USB-Laufwerk"),
+                   a_fmt(A0, "installiertes Spiel mit Spieldatei auf dem Stick: %s", rs ? kern_zeile(A0, rs) : "-"));
+            pruefe(ra && ra->Art == ART_ABBILD && strstr(kern_zeile(A0, ra), " – doppelt: auch installiert auf der internen SSD"),
+                   a_fmt(A0, "die Spieldatei sagt, dass das Spiel installiert ist: %s (Art %d)", ra ? kern_zeile(A0, ra) : "-", ra ? ra->Art : -1));
+            pruefe(z1 && z2 && z1->Doppelt.n == 1 && z2->Doppelt.n == 1 && strstr(kern_zeile(A0, z1), "auch als Spieldatei auf der M.2-SSD") && strstr(kern_zeile(A0, z2), "auch als Spieldatei auf dem USB-Laufwerk"),
+                   a_fmt(A0, "zwei Spieldateien desselben Spiels: %s | %s", z1 ? kern_zeile(A0, z1) : "-", z2 ? kern_zeile(A0, z2) : "-"));
+            eintrag *pk2 = mit_pfad("/mnt/usb0/Rennspiel - CUSA31001 - v1.00 - EU.pkg"), *pk3 = mit_pfad("/mnt/ext1/OrbitStore/Rennspiel - CUSA31001 - v1.00 - EU.pkg");
+            bool pk_kopie = false; for (int i = 0; rs && i < rs->Doppelt.n; i++) if (((eintrag *)rs->Doppelt.e[i])->PkgArt) pk_kopie = true;
+            pruefe(rs && !pk_kopie, "Installationsdatei (PKG) zählt nicht als Kopie des installierten Spiels");
+            /* 1.0.8 (Befund 12): dieselbe PKG-Datei (gleicher Name, gleiche Größe) auf USB-Laufwerk und M.2 - beide Zeilen sagen "doppelt" */
+            pruefe(pk2 && pk3 && pk2->Doppelt.n == 1 && pk2->Doppelt.e[0] == pk3 && pk3->Doppelt.n == 1 && strstr(kern_zeile(A0, pk2), "Rennspiel – Installationsdatei – doppelt: auch auf der M.2-SSD")
+                   && strstr(kern_zeile(A0, pk3), "doppelt: auch auf dem USB-Laufwerk"),
+                   a_fmt(A0, "dieselbe PKG-Datei auf zwei Speichern: %s | %s", pk2 ? kern_zeile(A0, pk2) : "-", pk3 ? kern_zeile(A0, pk3) : "-"));
+            /* dazu aus dem Nachbau (ref105 download_v1): "Testspiel Fünf" ist intern UND auf der M.2 installiert - auch doppelt */
+            int nd = 0, n5 = 0; const char *wel = "";
+            for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (!f->Doppelt.n) continue; nd++;
+                if (strstr(kern_zeile(A0, f), "Testspiel Fünf – Spiel – doppelt: auch installiert auf der ")) n5++;
+                else if (f != rs && f != ra && f != z1 && f != z2 && f != pk2 && f != pk3) wel = a_fmt(A0, "%s; %s", wel, kern_zeile(A0, f)); }
+            pruefe(nd == 8 && n5 == 2 && !wel[0], a_fmt(A0, "genau diese 4 Zeilen, die beiden PKG-Dateien und die beiden Kopien von \"Testspiel Fünf\" (intern und M.2) als doppelt markiert (%d, %d%s)", nd, n5, wel));
+        }
+        printf("== 1.0.8 (Arbeitsplan 2.6): Blöcke je Kachel, Gesamtgröße, größte zuerst und A–Z\n");
+        {
+            kern_groessen_zuruecksetzen(K);
+            bool einmal = true, kopf_vorn = true, fundreihe = true; const char *wo = "";
+            for (int ki = 0; ki < KAT_ANZ; ki++) {
+                int kat = ALLE_KAT[ki]; kblock *b; int nb = kern_bloecke(K, A0, kat, SORT_GROESSTE, &b);
+                for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->Kat != kat) continue;
+                    int c = 0; for (int x = 0; x < nb; x++) for (int j = 0; j < b[x].teile.n; j++) if (b[x].teile.e[j] == f) c++;
+                    if (c != 1) { einmal = false; wo = f->TextBasis; } }
+                int vor = -1;
+                for (int x = 0; x < nb; x++) {
+                    if (b[x].teile.n < 1 || b[x].teile.e[0] != b[x].kopf || kern_kopf_von(K, b[x].kopf, kat)) { kopf_vorn = false; wo = b[x].kopf ? b[x].kopf->TextBasis : "?"; }
+                    int ix = -1; for (int i = 0; i < K->Funde.n; i++) if (K->Funde.e[i] == b[x].kopf) ix = i;
+                    if (ix < vor || b[x].groesse_da) fundreihe = false;
+                    vor = ix;
+                }
+            }
+            pruefe(einmal, a_fmt(A0, "jede Zeile steht in genau einem Block (%s)", wo));
+            pruefe(kopf_vorn, a_fmt(A0, "jeder Block beginnt mit seinem Kopf, der selbst unter keinem anderen steht (%s)", wo));
+            pruefe(fundreihe, "solange nicht alles gezählt ist: Blöcke in Fundreihenfolge und ohne Größe (die Liste springt nur einmal)");
+            eintrag *ob = mit_pfad("/user/data/orbit-store"), *oe = mit_pfad("/mnt/usb0/orbit_store_v1.2.elf");
+            kblock *bo = NULL; { kblock *b; int nb = kern_bloecke(K, A0, 6, SORT_GROESSTE, &b); for (int x = 0; x < nb; x++) if (ob && b[x].kopf == ob->ToolKachel) bo = &b[x]; }
+            bool hat_o = false, hat_e = false; if (bo) for (int j = 1; j < bo->teile.n; j++) { if (bo->teile.e[j] == ob) hat_o = true; if (bo->teile.e[j] == oe) hat_e = true; }
+            pruefe(bo && hat_o && hat_e && !strcmp(bo->name, "Orbit Store"), a_fmt(A0, "Block \"%s\": Kachel, Daten-Ordner und ELF zusammen (%d Zeilen)", bo ? bo->name : "-", bo ? bo->teile.n : 0));
+            eintrag *t1 = mit_pfad("/user/trophy/conf/NPWR31001_00"), *t2 = mit_pfad("/user/trophy/conf/NPWR31002_00"), *tf = mit_pfad("/user/home/1234abcd/trophy/data/NPWR31001_00");
+            kblock *bt = NULL; { kblock *b; int nb = kern_bloecke(K, A0, 3, SORT_GROESSTE, &b); for (int x = 0; x < nb; x++) if (b[x].kopf == t1) bt = &b[x]; }
+            int i2 = -1, ifo = -1; if (bt) for (int j = 0; j < bt->teile.n; j++) { if (bt->teile.e[j] == t2) i2 = j; if (bt->teile.e[j] == tf) ifo = j; }
+            pruefe(bt && i2 == 1 && ifo > i2 && !strcmp(bt->name, "Rennspiel"), a_fmt(A0, "Trophäen \"%s\": Liste 1 oben, dann Liste 2, dann der Fortschritt (%d, %d)", bt ? bt->name : "-", i2, ifo));
+            /* jetzt alles zählen (wie im Hintergrund der App) */
+            kern_groessen_im_hintergrund(K, nie_stopp, NULL, nichts_tun, NULL);
+            bool summe = true, groesste = true, teile_ok = true, az = true, gleich_viele = true; const char *wo2 = "";
+            for (int ki = 0; ki < KAT_ANZ; ki++) {
+                int kat = ALLE_KAT[ki]; kblock *b, *z; int nb = kern_bloecke(K, A0, kat, SORT_GROESSTE, &b), nz = kern_bloecke(K, A0, kat, SORT_AZ, &z);
+                if (nb != nz) gleich_viele = false;
+                for (int x = 0; x < nb; x++) {
+                    long long su = 0; bool da = true;
+                    for (int j = 0; j < b[x].teile.n; j++) { groesse *g = kern_eintrag_groesse_in(K, A0, b[x].teile.e[j], true); if (!g) da = false; else su += g->Bytes; }
+                    if (!da || !b[x].groesse_da || su != b[x].bytes) { summe = false; wo2 = b[x].name; }
+                    if (x > 0 && b[x - 1].bytes < b[x].bytes) { groesste = false; wo2 = b[x].name; }
+                    for (int j = 2; j < b[x].teile.n; j++) {
+                        eintrag *v = b[x].teile.e[j - 1], *w = b[x].teile.e[j];
+                        bool lv = v->Art == ART_TR_LISTE || v->Art == ART_TR_LISTE_REST, lw = w->Art == ART_TR_LISTE || w->Art == ART_TR_LISTE_REST;
+                        groesse *gv = kern_eintrag_groesse_in(K, A0, v, true), *gw = kern_eintrag_groesse_in(K, A0, w, true);
+                        if ((!lv && lw) || (lv == lw && gv && gw && gv->Bytes < gw->Bytes)) { teile_ok = false; wo2 = b[x].name; }
+                    }
+                }
+                for (int x = 1; x < nz; x++) if (kern_vergleich_namen(z[x - 1].name, z[x].name) > 0) { az = false; wo2 = z[x].name; }
+            }
+            pruefe(summe, a_fmt(A0, "Gesamtgröße je Block = Summe seiner Zeilen (%s)", wo2));
+            pruefe(groesste, a_fmt(A0, "größte zuerst nach der Größe des ganzen Blocks (%s)", wo2));
+            pruefe(teile_ok, a_fmt(A0, "im Block: weitere Trophäen-Listen zuerst, sonst größte zuerst (%s)", wo2));
+            pruefe(az, a_fmt(A0, "A–Z: jeder Bereich nach Namen (%s)", wo2));
+            pruefe(gleich_viele, "A–Z und größte zuerst zeigen dieselben Blöcke");
+            {
+                kblock *b, *z; int nb = kern_bloecke(K, A0, 6, SORT_GROESSTE, &b), nz = kern_bloecke(K, A0, 6, SORT_AZ, &z);
+                long long ko = -1, kmax = -1;
+                for (int x = 0; x < nb; x++) { groesse *g = kern_eintrag_groesse_in(K, A0, b[x].kopf, true); long long v = g ? g->Bytes : -1;
+                    if (!strcmp(b[x].name, "Orbit Store")) ko = v; else if (v > kmax) kmax = v; }
+                pruefe(nb > 0 && !strcmp(b[0].name, "Orbit Store") && kmax > ko && ko >= 0,
+                       a_fmt(A0, "oben steht \"%s\": die Kachel allein ist kleiner als eine andere (%lld zu %lld Byte), mit ihren Daten ist sie die größte", nb > 0 ? b[0].name : "-", ko, kmax));
+                int pa = -1, po = -1, pp = -1;
+                for (int x = 0; x < nz; x++) { if (!strcmp(z[x].name, "Ablage")) pa = x; if (!strcmp(z[x].name, "Orbit Store")) po = x; if (!strcmp(z[x].name, "Payload Manager")) pp = x; }
+                pruefe(pa >= 0 && pa < po && po < pp, a_fmt(A0, "A–Z: Ablage (%d) vor Orbit Store (%d) vor Payload Manager (%d)", pa, po, pp));
+                printf("   Apps, größte zuerst:"); for (int x = 0; x < nb; x++) printf(" %s (%lld)%s", b[x].name, b[x].bytes, x + 1 < nb ? "," : "\n");
+                printf("   Apps, A–Z:"); for (int x = 0; x < nz; x++) printf(" %s%s", z[x].name, x + 1 < nz ? "," : "\n");
+            }
+            eintrag *lu = mit_pfad("/user/appmeta/LUMI71008"), *sp = mit_pfad_anfang("/user/app/CUSA31001");
+            pruefe(lu && !strcmp(kern_name(A0, lu), "Lumina Library"), a_fmt(A0, "Name ohne \"– Kachel\": %s", lu ? kern_name(A0, lu) : "-"));
+            pruefe(sp && !strcmp(kern_name(A0, sp), "Rennspiel"), a_fmt(A0, "Name eines Spiels: %s (Zeile: %s)", sp ? kern_name(A0, sp) : "-", sp ? kern_zeile(A0, sp) : "-"));
+            pruefe(kern_vergleich_namen("Ägypten", "Apfel") < 0 && kern_vergleich_namen("apfel", "Birne") < 0 && kern_vergleich_namen("Zeta", "alpha") > 0
+                   && kern_vergleich_namen("Ölfass", "Orange") < 0 && kern_vergleich_namen("Élan", "Ende") < 0, "A–Z: Groß/klein egal, Ä wie A, Akzente wie der Grundbuchstabe");
+            pruefe(kern_vergleich_namen("Teil 2", "Teil 10") < 0 && kern_vergleich_namen("Teil 007", "Teil 10") < 0 && kern_vergleich_namen("Teil 10", "Teil 9") > 0, "A–Z: Zahlen nach Wert");
+            pruefe(kern_vergleich_namen("Straße A", "Strasse B") < 0 && kern_vergleich_namen("Strasse A", "Straße B") < 0, "A–Z: ß wie ss");
+            pruefe(kern_vergleich_namen("'Splosion Man", "Rayman") > 0 && kern_vergleich_namen("[Beta] Zoo", "Apfel") > 0, "A–Z: Satzzeichen ganz vorne zählen nicht");
+            pruefe(kern_vergleich_namen("Mortal Kombat™ 1", "Mortal Kombat 2") < 0 && kern_vergleich_namen("Assassin’s Creed A", "Assassin's Creed B") < 0, "A–Z: ™ zählt nicht, ’ wie '");
+            pruefe(kern_vergleich_namen("Rennspiel", "Rennspiel") == 0 && kern_vergleich_namen("Zoo", "Apfel") == -kern_vergleich_namen("Apfel", "Zoo")
+                   && kern_vergleich_namen("Straße", "Strasse") == -kern_vergleich_namen("Strasse", "Straße") && kern_vergleich_namen("Straße", "Strasse") != 0, "A–Z: gleiche Namen 0, sonst immer dieselbe Reihenfolge");
+            pruefe(kern_vergleich_namen(NULL, "a") < 0 && kern_vergleich_namen("\xC3", "a") > 0 && kern_vergleich_namen("a\xE2\x80", "a") > 0, "A–Z: leer und kaputtes UTF-8 ohne Absturz");
+            {   /* Codex-Prüfung 73: eine echte Ordnung - antisymmetrisch und transitiv, auch mit ®, Zahlen, ß, Œ und führenden Nullen */
+                const char *W[] = { "A®2", "A3", "A10", "A2", "A02", "a2", "A®10", "A™3", "Straße", "Strasse", "Strasse2", "Straße10", "Ä1", "A1", "'A1", "™A1",
+                                    "a 1", "a1b", "a10b", "ß", "ss", "s", "Œuvre", "Oeuvre", "Ouvre", "", "1", "01", "001", "10", "x®", "x", "Zoo", "zoo", "ä", "a" };
+                int nw = (int)(sizeof W / sizeof *W), bad = 0; const char *wo3 = "";
+                for (int i = 0; i < nw; i++) for (int j = 0; j < nw; j++) {
+                    int c1 = kern_vergleich_namen(W[i], W[j]), c2 = kern_vergleich_namen(W[j], W[i]);
+                    if ((c1 > 0) - (c1 < 0) != -((c2 > 0) - (c2 < 0)) || (i == j && c1 != 0)) { bad++; wo3 = a_fmt(A0, "%s / %s", W[i], W[j]); }
+                    for (int l = 0; l < nw; l++) if (c1 < 0 && kern_vergleich_namen(W[j], W[l]) < 0 && kern_vergleich_namen(W[i], W[l]) >= 0) { bad++; wo3 = a_fmt(A0, "%s < %s < %s", W[i], W[j], W[l]); }
+                }
+                pruefe(bad == 0 && kern_vergleich_namen("A®2", "A10") < 0, a_fmt(A0, "A–Z ist eine echte Ordnung (%d Widersprüche%s%s)", bad, bad ? ", z. B. " : "", wo3));
+            }
+        }
     } else {
         printf("== Selbstschutz: nicht lesbare Einzeldatei\n");
         pruefe(K->SCHUTZ.aktiv && !K->SCHUTZ.unsicher, a_fmt(A0, "Selbstschutz an und sicher (aktiv %d, unsicher %d)", K->SCHUTZ.aktiv, K->SCHUTZ.unsicher));

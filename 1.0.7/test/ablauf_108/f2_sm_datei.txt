@@ -1,0 +1,14 @@
+# 1.0.8 (Arbeitsplan 5.1a, F2): die Spieldatei eines ShadowMount-Spiels auf der M.2 (Abbild, eine Datei) - wie jede einzelne Datei
+# ERWARTET_DE: DIALOG Außerhalb der internen SSD
+# ERWARTET_DE: Du hast 1 Eintrag außerhalb der internen SSD gewählt (M.2, erweiterter Speicher, USB-Laufwerk):
+# ERWARTET_DE: Diese Datei wird endgültig gelöscht.
+# ERWARTET_DE: Abgebrochen - nichts verändert.
+# NICHT_DE: Alles, was darin liegt
+# ERWARTET_EN: DIALOG Outside the internal SSD
+# ERWARTET_EN: You selected 1 entry outside the internal SSD (M.2, extended storage, USB drive):
+# ERWARTET_EN: This file will be deleted permanently.
+# ERWARTET_EN: Cancelled - nothing changed.
+# NICHT_EN: Everything in them
+WAEHLE TEXT M.2 – Top Game (PPSA99999) - Spieldatei|M.2 – Top Game (PPSA99999) - game file
+ABLAUF AUSWAHL
+ANTWORT N

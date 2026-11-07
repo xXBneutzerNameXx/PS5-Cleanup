@@ -236,7 +236,7 @@ static antwort d_stuecke(zugriff *z, arena *a, const char *pfad, size_t stueck, 
     if (stirbt(d, VERB(a, "RETR ", pfad))) return TOT;
     if (stueck == 0) return A(a, 501, "501 Stück");
     const char *r = echt(d, a, norm(a, pfad));
-    int fd = open(r, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    int fd = open(r, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC);   /* Codex-Prüfung 73: eine FIFO blockiert sonst schon beim Öffnen */
     if (fd < 0) return A(a, 550, VERB(a, "550 ", strerror(errno)));
     struct stat st;
     if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) { close(fd); return A(a, 550, "550 no"); }
@@ -251,13 +251,39 @@ static antwort d_stuecke(zugriff *z, arena *a, const char *pfad, size_t stueck, 
     if (los) weiter(c, NULL, 0);
     return A(a, 226, "226 done");
 }
+/* NEU 1.0.8 (Arbeitsplan 2.1): n Bytes ab Stelle ab lesen (Spielname im exFAT-Abbild). Nur lesen, Verknüpfung am Ende nicht verfolgen. */
+static antwort d_lies_ab(zugriff *z, arena *a, const char *pfad, long long ab, size_t n, unsigned char *ziel, size_t *len)
+{
+    dz *d = z->zustand;
+    *len = 0;
+    if (stirbt(d, VERB(a, "RETR ", pfad))) return TOT;
+    if (ab < 0) return A(a, 501, "501 Stelle");
+    const char *r = echt(d, a, norm(a, pfad));
+    int fd = open(r, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC);   /* Codex-Prüfung 73: eine FIFO blockiert sonst schon beim Öffnen */
+    if (fd < 0) return A(a, 550, VERB(a, "550 ", strerror(errno)));
+    struct stat st;
+    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) { close(fd); return A(a, 550, "550 no"); }
+    if (lseek(fd, (off_t)ab, SEEK_SET) == (off_t)-1) { int f = errno; close(fd); return A(a, 451, VERB(a, "451 ", strerror(f))); }
+    size_t got = 0; ssize_t k = 0;
+    while (got < n) {
+        k = read(fd, ziel + got, n - got);
+        if (k < 0 && errno == EINTR) continue;
+        if (k <= 0) break;
+        got += (size_t)k;
+    }
+    int fehler = k < 0 ? errno : 0;
+    close(fd);
+    if (fehler) return A(a, 451, VERB(a, "451 ", strerror(fehler)));
+    *len = got;
+    return A(a, 226, "226 done");
+}
 static antwort d_kopf(zugriff *z, arena *a, const char *pfad, size_t n, const unsigned char **daten, size_t *len)
 {
     dz *d = z->zustand;
     *daten = NULL; *len = 0;
     if (stirbt(d, VERB(a, "KOPF ", pfad))) return TOT;
     const char *r = echt(d, a, norm(a, pfad));
-    int fd = open(r, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    int fd = open(r, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC);   /* Codex-Prüfung 73: eine FIFO blockiert sonst schon beim Öffnen */
     if (fd < 0) return A(a, 550, VERB(a, "550 ", strerror(errno)));
     struct stat st;
     if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) { close(fd); return A(a, 550, "550 no"); }
@@ -741,6 +767,7 @@ zugriff *zugriff_datei(const datei_optionen *o)
     z->art = "datei";
     z->cwd = d_cwd; z->liste = d_liste; z->lies = d_lies; z->kopf = d_kopf; z->enthaelt = d_enthaelt; z->schreibe = d_schreibe; z->befehl = d_befehl;
     z->stuecke = d_stuecke;
+    z->lies_ab = d_lies_ab;   /* NEU 1.0.8 */
     z->schliessen = d_schliessen; z->zustand = d;
 #ifdef KERN_LOESCHEN
     if (o->test_einspielungen) {

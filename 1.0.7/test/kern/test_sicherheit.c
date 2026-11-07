@@ -51,6 +51,11 @@ static bool angeboten_frei(const char *p)
             if (!strcmp(q, p) || (m < l && !strncmp(p, q, m) && p[m] == '/') || (l < m && !strncmp(q, p, l) && q[l] == '/')) return true; } }
     return false;
 }
+/* NEU 1.0.8 (Arbeitsplan 3.5): Meldungen sammeln; "warten" legt einen gelöschten Tool-Ordner wieder an (wie ein laufendes Tool) */
+static sliste MELD; static const char *WIEDER = NULL;
+static void melde_sammeln(void *c, const char *t) { (void)c; sl_add(A0, &MELD, a_kopie(A0, t ? t : "")); }
+static void warte_und_anlegen(void *c, int ms) { (void)c; (void)ms; if (WIEDER) mkdir(WIEDER, 0755); }
+static bool gemeldet(const char *was) { for (int i = 0; i < MELD.n; i++) if (strstr(MELD.e[i], was)) return true; return false; }
 static bool geschuetzt(const char *p) { for (int i = 0; i < K->SCHUTZ.pfade.n; i++) if (!strcmp(K->SCHUTZ.pfade.e[i], p)) return true; return false; }
 static const char *w(const char *p) { return VERB(A0, W, p); }
 static void komplett(void)
@@ -163,6 +168,19 @@ int main(int argc, char **argv)
          * er wird still übersprungen und bleibt geschützt (auch der Stick nie als Ganzes), der Rest ist einzeln wählbar */
         pruefe(angeboten_frei("/mnt/usb1/datei.txt") && !angeboten("/mnt/usb1/kaputt") && !genau_angeboten("/mnt/usb1"),
                "USB-Stick mit privatem Ordner: übrige Dateien wählbar, privater Ordner still übersprungen, Stick nie als Ganzes");
+        /* NEU 1.0.8 (Arbeitsplan 2.5): beide Arten werden gezählt und fürs Protokoll unterschieden; zu tief Verschachteltes bleibt geschützt */
+        pruefe(h_hat(&K->SCHUTZ.unlesbar, "/mnt/usb1/kaputt") && !h_hat(&K->SCHUTZ.zu_tief, "/mnt/usb1/kaputt"), "privater Ordner: als nicht lesbar gezählt, nicht als zu tief");
+        pruefe(h_hat(&K->SCHUTZ.unlesbar, "/mnt/usb1/tief/a/b/c/d/e/f/g") && h_hat(&K->SCHUTZ.zu_tief, "/mnt/usb1/tief/a/b/c/d/e/f/g"),
+               a_fmt(A0, "zu tief verschachtelter Ordner: gezählt und als zu tief vermerkt (%d nicht lesbar oder zu tief, davon %d zu tief)", K->SCHUTZ.unlesbar.n, K->SCHUTZ.zu_tief.n));
+        pruefe(!angeboten_frei("/mnt/usb1/tief/a/b/c/d/e/f/g") && geschuetzt("/mnt/usb1/tief/a/b/c/d/e/f/g"), "zu tiefer Ordner: geschützt, weder er noch ein Ordner darüber wählbar");
+        pruefe(h_hat(&K->SCHUTZ.diag, "/mnt/usb1/kaputt") && h_hat(&K->SCHUTZ.diag, "/mnt/usb1/tief/a/b/c/d/e/f/g"), "Protokoll-Liste (diag): beide Ordner aus dieser Suche");
+        {   /* Codex-Prüfung 71: zweite Suche, der private Ordner ist inzwischen lesbar - die Protokoll-Liste zeigt ihn nicht mehr */
+            chmod(w("/mnt/usb1/kaputt"), 0755);
+            kern_selbstschutz_ermitteln(K);
+            pruefe(!h_hat(&K->SCHUTZ.diag, "/mnt/usb1/kaputt") && h_hat(&K->SCHUTZ.diag, "/mnt/usb1/tief/a/b/c/d/e/f/g") && K->SCHUTZ.zu_tief.n == 1 && K->SCHUTZ.diag.n == 1,   /* Codex-Prüfung 72: genau 1, sonst wäre nicht zurückgesetzt */
+                   a_fmt(A0, "zweite Suche: Protokoll-Liste neu (%d Ordner, davon %d zu tief), alter Fund nicht mehr drin", K->SCHUTZ.diag.n, K->SCHUTZ.zu_tief.n));
+            chmod(w("/mnt/usb1/kaputt"), 0);
+        }
         pruefe(el && el->Gesperrt && strstr(el->Text, "USB-Laufwerk, bleibt") != NULL, "Kopie von PS5 Cleanup auf dem USB-Stick: gesperrt mit eigenem Hinweis");
         if (el) printf("  Text: %s\n", el->Text);
         pruefe(!angeboten("/user/appmeta/push_resource") && !angeboten("/system_data/priv/appmeta/push_resource") && !angeboten("/user/download/push_resource"),
@@ -192,6 +210,48 @@ int main(int argc, char **argv)
         pruefe(da(w("/user/data/homebrew")) && da(w("/user/app")), "nur Eigenes entfernt (Elternordner bleiben)");
         int f2 = kern_selbst_entfernen(K, true, false);
         pruefe(f2 == 0 && !da(w("/mnt/ext1/meinordner/ohne_endung")), "M.2 mit geleert: eigene Kopie auf der M.2 entfernt");
+    }
+    else if (!strcmp(art, "testordner")) {   /* NEU 1.0.8 (Codex-Prüfung 74): Ordner der Test-Fassung - nie angeboten, nie gelöscht, auch nicht von der Selbstentfernung */
+        datei_optionen o = { .wurzel = W, .sortiert = true, .ordnergroesse_null = true, .test_einspielungen = true, .test_hier = "." };
+        K = kern_neu(zugriff_datei(&o)); K->melde = melde_log;
+        sl_add(A0, &K->TEST_ORDNER, "/user/data/PS5-Cleanup-Test"); sl_add(A0, &K->TEST_ORDNER, "/mnt/usb0/PS5-Cleanup-Test"); sl_add(A0, &K->TEST_ORDNER, "/mnt/usb1/PS5-Cleanup-Test");
+        such_fehler = 0;
+        VERSUCHE { kern_selbstschutz_eigener_pfad(K, "/user/data/homebrew/PS5Cleanup"); kern_selbstschutz_ermitteln(K); kern_suche_funde(K); }
+        FANGE { such_fehler = 1; such_text = a_kopie(A0, ausn_text); } ENDE_VERSUCHE;
+        pruefe(!such_fehler, "Suche läuft");
+        pruefe(!angeboten("/user/data/PS5-Cleanup-Test") && !angeboten("/mnt/usb0/PS5-Cleanup-Test"), "Ordner der Test-Fassung nicht angeboten (intern und USB-Laufwerk)");
+        pruefe(!kern_erlaubt(K, "/user/data/PS5-Cleanup-Test") && !kern_erlaubt(K, "/user/data/PS5-Cleanup-Test/bild_0001.png") && !kern_erlaubt(K, "/mnt/usb0"),
+               "nie löschbar: der Ordner, alles darin und ein Ordner darüber");
+        pruefe(kern_erlaubt(K, "/user/data/irgendwas") && kern_erlaubt(K, "/user/data/PS5-Cleanup-Testx"), "andere Ordner wie bisher (auch mit ähnlichem Namen)");
+        /* Codex-Prüfung 75: auf dem USB-Laufwerk (exFAT) ist groß/klein egal - "ps5-cleanup-test" ist derselbe Ordner */
+        pruefe(!angeboten("/mnt/usb1/ps5-cleanup-test") && !kern_erlaubt(K, "/mnt/usb1/ps5-cleanup-test/bild_0002.png") && !kern_erlaubt(K, "/mnt/usb1/PS5-CLEANUP-TEST"),
+               "auch in anderer Schreibweise (ps5-cleanup-test) nicht angeboten und nie löschbar");
+        komplett();
+        pruefe(da(w("/user/data/PS5-Cleanup-Test/mitschnitt.txt")) && da(w("/user/data/PS5-Cleanup-Test/ps5c.elf")) && da(w("/mnt/usb0/PS5-Cleanup-Test/bild_0001.png"))
+               && da(w("/mnt/usb1/ps5-cleanup-test/bild_0002.png")),
+               "vollständige Bereinigung: alles darin steht noch");
+        int f1 = kern_selbst_entfernen(K, true, true);
+        pruefe(da(w("/user/data/PS5-Cleanup-Test/ps5c.elf")) && !da(w("/user/data/pldmgr/local/ps5c/ps5c.elf")),
+               a_fmt(A0, "Selbstentfernung: die Kopie im Test-Ordner bleibt, die andere eigene Kopie ist weg (%d Fehler gemeldet)", f1));
+    }
+    else if (!strcmp(art, "teilweise")) {    /* NEU 1.0.8 (Arbeitsplan 3.5): Freigeräumt bei teilweise gelöschtem Ordner, Hinweis "Tool läuft gerade" */
+        neu(true);
+        pruefe(!such_fehler, "Suche läuft");
+        eintrag *z = NULL, *n = NULL;
+        for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; if (f->PfadeBasis.n == 1 && !strcmp(f->PfadeBasis.e[0], "/user/data/zftpd")) z = f; if (f->PfadeBasis.n == 1 && !strcmp(f->PfadeBasis.e[0], "/user/data/nanodns")) n = f; }
+        pruefe(z && n && z->Kat == 6 && n->Kat == 6, "Daten-Ordner der Tools zftpd und nanoDNS gefunden (Apps)");
+        if (z && n) {
+            for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; f->Wahl = f == z || f == n; }
+            kern_ermittle_groessen(K);                /* wie der Ablauf vor dem Löschen (groesse_ermitteln) */
+            K->melde = melde_sammeln; K->warte = warte_und_anlegen; WIEDER = w("/user/data/nanodns");
+            ergebnis e = kern_fuehre_loeschung(K, nein, NULL);
+            printf("ERG Fehler=%d Frei=%lld Byte (zftpd vorher %lld, nanodns %lld)\n", e.Fehler, e.Frei.Bytes, z->Bytes, n->Bytes);
+            pruefe(e.Fehler == 1 && da(w("/user/data/zftpd/fest/x.bin")) && !da(w("/user/data/zftpd/a.bin")), "zftpd nur teilweise gelöscht (eine Datei ließ sich nicht löschen)");
+            pruefe(e.Frei.Bytes == 1000 + n->Bytes, a_fmt(A0, "Freigeräumt zählt das wirklich Gelöschte mit (%lld = 1000 von zftpd + %lld von nanoDNS)", e.Frei.Bytes, n->Bytes));
+            pruefe(gemeldet("    davon gelöscht: "), "Protokoll: wie viel vom teilweise gelöschten Ordner weg ist");
+            pruefe(gemeldet("Läuft dieses Tool gerade?"), "Protokoll: Hinweis, dass das Tool laufen könnte");
+            pruefe(gemeldet(" ist gleich wieder da - das Tool läuft vermutlich gerade"), "Protokoll: gelöschter Tool-Ordner gleich wieder da - Hinweis");
+        }
     }
     else if (!strcmp(art, "u17")) {          /* Spiel auf der USB-Erweiterung gilt als installiert */
         neu(schutz);

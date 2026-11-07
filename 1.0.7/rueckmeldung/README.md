@@ -28,6 +28,7 @@ in den Editor kopiert werden kann.
 | `TURNSTILE_SECRET` | ja | Secret Key des Turnstile-Widgets |
 | `UEBERSICHT_PASSWORT` | für `/uebersicht` | ohne → Übersicht und Export immer gesperrt |
 | `HA_WEBHOOK_URL` | nein | Home-Assistant-Webhook (muss mit `https://` beginnen); ohne → keine Benachrichtigung |
+| `NEUESTE_VERSION` | nein | neueste veröffentlichte Version, z. B. `1.0.8` (steht unter `[vars]` in `wrangler.toml`). Ist die Version im Link älter, zeigt `/r` oben einen Hinweis mit Link zu GitHub (Releases). Ohne oder ungültig → kein Hinweis. Bei jeder Veröffentlichung hochsetzen und neu hochladen. |
 
 Fehlen Turnstile-Schlüssel oder D1, zeigt `/r` einen Hinweis „noch nicht fertig eingerichtet“ (503) statt des Formulars.
 

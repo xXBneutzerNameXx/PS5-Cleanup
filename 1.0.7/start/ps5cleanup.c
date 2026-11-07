@@ -36,6 +36,10 @@
 #include "selbstweg.h"
 #include <sys/select.h>
 int sceSystemServiceRequestReboot(void);
+int sceSystemServiceGetAppIdOfRunningBigApp(void);                   /* NEU 1.0.8 (3.2): Oberfläche sauber beenden */
+int sceSystemServiceKillApp(int app_id, int how, int reason, int core_dump);
+int sceKernelGetAppState(int app_id, int *a, int *b);
+int sceKernelGetAppInfo(int pid, void *info);                       /* NEU 1.0.8 (Codex-Prüfung 75): zu welcher App gehört ein Prozess */
 #define SO_DIR_TEXT "/system_ex/app/PSCL00002"
 
 #define EINBINDEN(name, datei)                                              \
@@ -64,6 +68,16 @@ static void melde(const char *t)
 }
 
 #define UI_NAME "ps5cleanup_ui"     /* Prozessname der Oberfläche (max. 15 Zeichen) */
+
+/* NEU 1.0.8 (Codex-Prüfung 75): App-Kennung eines Prozesses (sceKernelGetAppInfo, die Kennung steht vorne; großzügiger Puffer, falls der
+ * Aufbau länger ist). -1 = unbekannt - dann wird nichts beendet. */
+static int app_von_prozess(int pid)
+{
+    uint64_t info[64]; memset(info, 0, sizeof info);
+    if (sceKernelGetAppInfo(pid, info) != 0) return -1;
+    uint32_t id; memcpy(&id, info, sizeof id);
+    return id ? (int)id : -1;
+}
 
 static int oberflaeche_starten(void)
 {
@@ -333,6 +347,36 @@ int main(void)
             if (auftrag) { hinweis = strstr(puf, "art=2") ? 2 : 1; hinweis_en = strstr(puf, "en=1") != NULL; }
             (void)send(c, auftrag ? JA : NEIN, (auftrag ? sizeof JA : sizeof NEIN) - 1, 0); close(c);
             selbstweg_log("Hinweis nach Abbruch (%d): %s", hinweis, auftrag ? "übernommen" : "abgelehnt (kein Auftrag)");
+            continue;
+        }
+        /* NEU 1.0.8 (Arbeitsplan 3.2): die Oberfläche bittet, sie zu beenden (statt LoadExec("exit"), das die PS5 als Fehler meldet).
+         * Nur, wenn genau diese Oberfläche läuft (Prozess "ps5cleanup_ui" mit der genannten Nummer) und sie die laufende App ist. Erst
+         * antworten, dann beenden - sie hat dann schon alles gespeichert und wartet nur noch. */
+        if (!strncmp(puf, "GET /ps5cleanup-schliessen?", 27)) {
+            const char *pp = strstr(puf, "pid="); int pid = pp ? atoi(pp + 4) : 0;
+            pid_t ui = start_hbldr_find_pid(UI_NAME);
+            int app = sceSystemServiceGetAppIdOfRunningBigApp();
+            /* Codex-Prüfung 75: die laufende App muss genau der Prozess der Oberfläche sein - sonst nichts beenden (die Oberfläche
+             * beendet sich dann nach 5 s wie bisher selbst) */
+            int von = pid > 0 ? app_von_prozess(pid) : -1;
+            int ok = pid > 0 && ui == pid && app > 0 && von == app;
+            static const char JA[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\nPS5CLEANUP-BEENDE-JETZT";
+            static const char NEIN[] = "HTTP/1.1 409 Conflict\r\nConnection: close\r\n\r\nPS5CLEANUP-KEIN-BEENDEN";
+            (void)send(c, ok ? JA : NEIN, (ok ? sizeof JA : sizeof NEIN) - 1, 0); close(c);
+            if (ok) {
+                usleep(300000);
+                /* Codex-Prüfung 75: direkt vor dem Beenden nochmal prüfen - läuft inzwischen etwas anderes, nichts tun */
+                int app2 = sceSystemServiceGetAppIdOfRunningBigApp();
+                if (app2 != app || start_hbldr_find_pid(UI_NAME) != pid || app_von_prozess(pid) != app) {
+                    klog_printf("PS5 Cleanup: Beenden abgebrochen - inzwischen läuft eine andere App (0x%x statt 0x%x)\n", app2, app);
+                    continue;
+                }
+                int e = sceSystemServiceKillApp(app, -1, 0, 0);
+                int w = 0;
+                while (!e && !sceKernelGetAppState(app, 0, 0) && w < 50) { usleep(100000); w++; }
+                klog_printf("PS5 Cleanup: Oberfläche beendet (KillApp 0x%08X, nach %d ms %s)\n", (unsigned)e, w * 100, w < 50 ? "weg" : "noch da");
+                if (auftrag) selbstweg_log("Oberfläche auf ihren Wunsch beendet (0x%08X)", (unsigned)e);
+            } else klog_printf("PS5 Cleanup: Beenden abgelehnt (Prozess %d, Oberfläche %d, laufende App 0x%x, App des Prozesses 0x%x)\n", pid, (int)ui, app, von);
             continue;
         }
         if (!strncmp(puf, "GET /ps5cleanup-ende", 20)) {  /* neuere Fassung übernimmt */

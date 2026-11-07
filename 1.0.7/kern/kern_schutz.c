@@ -188,8 +188,35 @@ static bool erlaubt_innen(kern *k, arena *a, const char *p)
     return false;
 }
 
+/* NEU 1.0.8 (Codex-Prüfung 74): Ordner der Test-Fassung (Mitschnitt, Bilder) - weder er noch etwas darin noch ein Ordner darüber wird
+ * angeboten oder gelöscht, auch nicht von der Selbstentfernung (alle Löschwege fragen kern_erlaubt). Die Oberfläche füllt die Liste in
+ * jeder Fassung (Codex-Prüfung 75). Groß/klein egal (Codex-Prüfung 75): auf dem USB-Laufwerk (exFAT) ist "ps5-cleanup-test" derselbe Ordner. */
+static bool gleich_ci_n(const char *a, const char *b, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        unsigned char x = (unsigned char)a[i], y = (unsigned char)b[i];
+        if (x >= 'A' && x <= 'Z') x = (unsigned char)(x + 32);
+        if (y >= 'A' && y <= 'Z') y = (unsigned char)(y + 32);
+        if (x != y) return false;
+        if (x == 0) return true;
+    }
+    return true;
+}
+bool kern_test_ordner(const kern *k, const char *p)
+{
+    if (!p || k->TEST_ORDNER.n == 0) return false;
+    size_t l = strlen(p);
+    if (l == 1 && p[0] == '/') return true;
+    for (int i = 0; i < k->TEST_ORDNER.n; i++) {
+        const char *t = k->TEST_ORDNER.e[i]; size_t tl = strlen(t);
+        if (l >= tl && gleich_ci_n(p, t, tl) && (p[tl] == 0 || p[tl] == '/')) return true;   /* der Ordner selbst oder etwas darin */
+        if (l < tl && gleich_ci_n(t, p, l) && t[l] == '/') return true;                       /* ein Ordner darüber */
+    }
+    return false;
+}
 bool kern_erlaubt(kern *k, const char *p)
 {
+    if (kern_test_ordner(k, p)) return false;
     arena *a = arena_neu();
     bool r = erlaubt_innen(k, a, p);
     arena_frei(a);

@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     if (schutz) {
         printf("SCHUTZ unsicher=%s eigen=%s launcher=%s\n", B(K->SCHUTZ.unsicher), B(K->SCHUTZ.eigen_gefunden), B(K->SCHUTZ.launcher_gefunden));
         for (int i = 0; i < K->SCHUTZ.pfade.n; i++) printf("SCHUTZ %s\n", K->SCHUTZ.pfade.e[i]);
-        printf("SCHUTZ Hinweis: %s\n", kern_selbstschutz_hinweis(K));
+        printf("SCHUTZ Hinweis: %s\n", kern_selbstschutz_hinweis(K, !strcmp(art, "komplettm2")));   /* 1.0.8 (F1): Hinweis je Ablauf */
     }
     if (!strcmp(art, "detail")) {
         for (int i = 0; i < K->Funde.n; i++) printf("DETAIL %s\n", zeile(A, K->Funde.e[i]));

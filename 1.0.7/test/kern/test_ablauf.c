@@ -163,11 +163,15 @@ int main(int argc, char **argv)
                 ablauf_eintrag_setzen(&A, f, an);
             }
         }
-        else if (txt_beginnt(zl, "ABLAUF ")) {
+        else if (txt_beginnt(zl, "ABLAUF ") || txt_beginnt(zl, "ABLAUF_UNGEZAEHLT ")) {
             printf("> %s\n", zl);
+            /* NEU 1.0.8 (Arbeitsplan 5.1a): ABLAUF_UNGEZAEHLT startet, bevor die Größen im Hintergrund gezählt sind - wie ein schneller
+             * Druck auf Löschen gleich nach dem Nachschauen (die Frage "Außerhalb der internen SSD" kennt dann keine Größen) */
+            bool ungezaehlt = txt_beginnt(zl, "ABLAUF_UNGEZAEHLT ");
+            const char *was = strchr(zl, ' ') + 1;
             ablauf_hintergrund_anhalten(&A);
-            kern_groessen_im_hintergrund(K, nie, NULL, nichts, NULL);   /* wie 1.0.5: warten, bis die Hintergrund-Zählung fertig ist */
-            if (!strcmp(zl + 7, "KOMPLETT")) ablauf_starte(&A, (void (*)(void *))ablauf_komplett, &A);
+            if (!ungezaehlt) kern_groessen_im_hintergrund(K, nie, NULL, nichts, NULL);   /* wie 1.0.5: warten, bis die Hintergrund-Zählung fertig ist */
+            if (!strcmp(was, "KOMPLETT")) ablauf_starte(&A, (void (*)(void *))ablauf_komplett, &A);
             else ablauf_starte(&A, (void (*)(void *))ablauf_auswahl, &A);
             ablauf_hintergrund_anhalten(&A);
             printf("> ABLAUF ENDE verbunden=%s\n", ablauf_verbunden(&A) ? "True" : "False");
