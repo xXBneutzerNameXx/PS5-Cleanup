@@ -1,1 +1,19 @@
-{"name":"PS5 Cleanup","payloads":[{"id":"ps5cleanup","name":"PS5 Cleanup","filename":"ps5cleanup_v1.0.8.elf","url":"https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/download/v1.0.8/ps5cleanup_v1.0.8.elf","description":"Räumt eine PS5 mit Jailbreak auf wie frisch eingerichtet – ohne Neuinstallation. Startet im Testmodus. / Cleans up a jailbroken PS5 like new, no reinstall. Starts in test mode.","version":"v1.0.8","last_update":"2026-11-08","category":"Tools","checksum":"5ac20609caac40e82ee74e0d60a5c92ea013e26394618473b1a992da488d5e77","author":"da_Chris86","details_url":"https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/README.md","source":"https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases"}]}
+{
+  "name": "PS5 Cleanup",
+  "payloads": [
+    {
+      "id": "ps5cleanup",
+      "name": "PS5 Cleanup",
+      "filename": "ps5cleanup_v1.0.8.elf",
+      "url": "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/download/v1.0.8/ps5cleanup_v1.0.8.elf",
+      "description": "Räumt eine PS5 mit Jailbreak auf wie frisch eingerichtet – ohne Neuinstallation. Startet im Testmodus. / Cleans up a jailbroken PS5 like new, no reinstall. Starts in test mode.",
+      "version": "v1.0.8",
+      "last_update": "2026-11-07",
+      "category": "Tools",
+      "checksum": "5ac20609caac40e82ee74e0d60a5c92ea013e26394618473b1a992da488d5e77",
+      "author": "da_Chris86",
+      "details_url": "https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/README.md",
+      "source": "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases"
+    }
+  ]
+}
