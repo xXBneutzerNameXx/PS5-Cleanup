@@ -5,6 +5,7 @@ import hashlib, json, os, re, sys, urllib.request
 REPO = "xXBneutzerNameXx/PS5-Cleanup"
 ASSET = re.compile(r"^ps5cleanup_v[\w.\-]+\.elf$", re.I)
 OUT = "payloads.json"
+ICONS = "icons.json"   # Kachelbild fuer den Payload Manager (Schluessel = erster Eintrag)
 
 
 def get(url, accept="application/vnd.github+json"):
@@ -25,6 +26,11 @@ digest = (asset.get("digest") or "").removeprefix("sha256:")
 if not re.fullmatch(r"[0-9a-f]{64}", digest):
     digest = hashlib.sha256(get(asset["browser_download_url"], "application/octet-stream")).hexdigest()
 
+icon_key = ""
+if os.path.exists(ICONS):
+    with open(ICONS, encoding="utf-8") as f:
+        icon_key = next(iter(json.load(f).get("icons", {})), "")
+
 catalog = {
     "name": "PS5 Cleanup",
     "payloads": [{
@@ -43,6 +49,9 @@ catalog = {
         "source": f"https://github.com/{REPO}/releases",
     }],
 }
+if icon_key:
+    catalog["icons_url"] = ICONS
+    catalog["payloads"][0]["icon_key"] = icon_key
 
 with open(OUT, "w", encoding="utf-8") as f:
     json.dump(catalog, f, ensure_ascii=False, indent=2)
