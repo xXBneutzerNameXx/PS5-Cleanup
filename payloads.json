@@ -13,7 +13,9 @@
       "checksum": "5ac20609caac40e82ee74e0d60a5c92ea013e26394618473b1a992da488d5e77",
       "author": "da_Chris86",
       "details_url": "https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/README.md",
-      "source": "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases"
+      "source": "https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases",
+      "icon_key": "e3f302ebbe55d69beec9bbd9adc161cfe23ebd5d271b2b1ebf2d23ea98bef30b"
     }
-  ]
+  ],
+  "icons_url": "icons.json"
 }
