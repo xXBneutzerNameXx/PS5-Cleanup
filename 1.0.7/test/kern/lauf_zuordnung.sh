@@ -20,6 +20,16 @@ rm -rf $T/w2; cp -r $RF/root9 $T/w2; python3 -I $KK/test/kern/zuordnung_baum.py 
 gcc -O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-format-truncation -Wno-missing-field-initializers -Wno-clobbered -DKERN_LOESCHEN -DPKG_DATEIEN_MAX=1000 -I$KK/bau/pcre2-pc/include -I$KK/bau/cjson \
    $KERN $KK/bau/cjson/cJSON.c $KK/test/kern/test_zuordnung.c -L$KK/bau/pcre2-pc/lib -lpcre2-8 -lpthread -o $B/test_zuordnung_1000 || { echo BAU FEHLGESCHLAGEN; exit 1; }
 (cd $T; RMDA=1 FAKESM=1 $B/test_zuordnung_1000 $T 3) | grep -v "^LOG:" || RC=1
+# Lauf 4 (NEU 1.0.9, #145): ProsperoStore mit unlesbarem journal.json - nichts wird herausgelöst (wie bis 1.0.8)
+# (Codex-Prüfung 138: gültiger Inhalt hinter einer Verknüpfung, die PS5 Cleanup nie öffnet - ein Lesefehler auch unter root)
+rm -rf $T/w2; cp -r $RF/root9 $T/w2; python3 -I $KK/test/kern/zuordnung_baum.py $T/w2 store_kaputt || { echo "FAIL Testbaum Lauf 4"; exit 1; }
+(cd $T; RMDA=1 FAKESM=1 $B/test_zuordnung $T 4) | grep -v "^LOG:" || RC=1
+# Lauf 5 (Codex-Prüfung 137): ProsperoStore ohne journal.json - auch die Teile von PPSA99713 werden herausgelöst
+rm -rf $T/w2; cp -r $RF/root9 $T/w2; python3 -I $KK/test/kern/zuordnung_baum.py $T/w2 store_ohne_journal || { echo "FAIL Testbaum Lauf 5"; exit 1; }
+(cd $T; RMDA=1 FAKESM=1 $B/test_zuordnung $T 5) | grep -v "^LOG:" || RC=1
+# Lauf 6 (Codex-Prüfung 138): ProsperoStore mit journal.json, das kein JSON ist - ebenfalls nichts herausgelöst
+rm -rf $T/w2; cp -r $RF/root9 $T/w2; python3 -I $KK/test/kern/zuordnung_baum.py $T/w2 store_json_kaputt || { echo "FAIL Testbaum Lauf 6"; exit 1; }
+(cd $T; RMDA=1 FAKESM=1 $B/test_zuordnung $T 6) | grep -v "^LOG:" || RC=1
 rm -rf $T/w2
 date "+%Y-%m-%d %H:%M:%S FERTIG"
 [ $RC -ne 0 ] && echo "FAIL Testprogramm meldet Fehler (Rückgabewert)"

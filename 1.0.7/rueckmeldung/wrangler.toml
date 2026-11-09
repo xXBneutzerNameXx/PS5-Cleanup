@@ -24,7 +24,7 @@ TURNSTILE_SITEKEY = "0x4AAAAAAFydoTstizvqgD8b"
 # Neueste veröffentlichte Version von PS5 Cleanup. Steht im QR-Link eine ältere Version,
 # zeigt die Seite oben „Es gibt eine neuere Version“ mit Link zu GitHub (Releases).
 # Bei jeder Veröffentlichung hier hochsetzen und neu hochladen: npx wrangler deploy
-NEUESTE_VERSION = "1.0.7"
+NEUESTE_VERSION = "1.0.8"
 
 # Datenbank (D1). Die database_id bekommst du von:  npx wrangler d1 create ps5cleanup-feedback
 [[d1_databases]]

@@ -4,6 +4,9 @@
  * Copyright (C) 2026 da_Chris86 - Lizenz: GPL-3.0-or-later
  *   test_zuordnung <hier> 0   Fälle (Testbaum zuordnung_baum.py), danach ein Löschlauf auf dem Testbaum
  *   test_zuordnung <hier> 2   2000 PKG-Dateien: alle gefunden, zusammengefasst, Laufzeit
+ *   test_zuordnung <hier> 4   NEU 1.0.9 (#145): ProsperoStore mit unlesbarem journal.json (Testbaum zuordnung_baum.py store_kaputt)
+ *   test_zuordnung <hier> 5   NEU 1.0.9 (Codex-Prüfung 137): ProsperoStore ohne journal.json (store_ohne_journal)
+ *   test_zuordnung <hier> 6   NEU 1.0.9 (Codex-Prüfung 138): ProsperoStore mit journal.json ohne gültiges JSON (store_json_kaputt)
  * Nur nachgebildete Dateisysteme - nie eine PS5. Jede Prüfung druckt OK/FAIL, am Ende FEHLERZAHL. */
 #include "../../kern/ablauf.h"   /* kern.h und ablauf_block_schluessel */
 #include <stdio.h>
@@ -63,6 +66,31 @@ int main(int argc, char **argv)
         pruefe(!dp, a_fmt(A0, "kein Pfad in zwei Einträgen (%s)", dp ? dp : "-"));
     }
 
+    if (lauf == 5) {   /* Codex-Prüfung 137: ProsperoStore ohne journal.json - keine angefangene Arbeit, auch PPSA99713 wird herausgelöst */
+        printf("== ProsperoStore ohne journal.json\n");
+        eintrag *z1 = mit_pfad("/user/data/prosperostore/staging/PPSA99713.zip"), *z2 = mit_pfad("/user/data/prosperostore/staging/PPSA99713");
+        eintrag *fa = mit_pfad("/user/data/prosperostore/previous/PPSA99708");
+        pruefe(z1 && z1->StoreTeil == STORE_REST && !z1->ToolKachel && z2 && z2 != z1 && z2->StoreTeil == STORE_REST && fa && fa->StoreTeil == STORE_FASSUNG,
+               a_fmt(A0, "ohne journal.json werden auch die Teile von PPSA99713 herausgelöst (%s | %s)", z(z1), z(z2)));
+        printf("FEHLERZAHL %d\n", fehler);
+        return fehler ? 1 : 0;
+    }
+    if (lauf == 4 || lauf == 6) {   /* NEU 1.0.9 (#145): journal.json von ProsperoStore nicht lesbar (4) oder kein JSON (6, Codex-Prüfung 138) - nichts herausgelöst, wie bis 1.0.8 */
+        printf("%s\n", lauf == 4 ? "== ProsperoStore mit unlesbarem journal.json (gültiger Inhalt hinter einer Verknüpfung)" : "== ProsperoStore mit journal.json ohne gültiges JSON");
+        if (lauf == 4) {   /* Codex-Prüfung 138: der Lesefehler tritt wirklich ein (auch unter root) - gelesen nennte der Inhalt eine gültige Kennung */
+            const unsigned char *d = NULL; size_t n = 0;
+            bool lesbar = s_kopf(K->S, "/user/data/prosperostore/journal.json", 64, &d, &n);
+            bool gueltig = s_kopf(K->S, "/user/data/prosperostore/journal_daten.json", 4096, &d, &n) && d && strstr(a_kopie_n(A0, (const char *)d, n), "\"titleId\":\"PPSA99713\"") != NULL;
+            pruefe(!lesbar && gueltig, a_fmt(A0, "Voraussetzung: journal.json lässt sich nicht lesen (%s), dahinter steht gültig PPSA99713 (%s)", lesbar ? "lesbar!" : "Lesefehler", gueltig ? "ja" : "nein"));
+        }
+        int teile = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->StoreTeil) teile++;
+        eintrag *ps = kachel("PPSA99000"), *g = mit_pfad("/user/data/prosperostore"), *m = mit_pfad("/mnt/ext1/prosperostore/previous/PPSA99709");
+        eintrag *ms = mit_pfad("/mnt/ext1/prosperostore/staging");
+        pruefe(teile == 0 && g && g->ToolKachel == ps && g->PfadeBasis.n == 1 && m && ms && ms->PfadeBasis.n == 1,
+               a_fmt(A0, "nichts herausgelöst: der Ordner ist EIN Eintrag bei ProsperoStore, auf der M.2 wie bisher aufgeklappt (%d Teile | %s | %s | %s)", teile, z(g), z(m), z(ms)));
+        printf("FEHLERZAHL %d\n", fehler);
+        return fehler ? 1 : 0;
+    }
     if (lauf == 3) {   /* Codex-Prüfung 96: übersetzt mit -DPKG_DATEIEN_MAX=1000 - Ordner, deren PKG-Dateien nicht mehr hineinpassen, bleiben rot */
         printf("== Grenze der PKG-Dateien je Suche (Test: 1000) bei 2000 PKG-Dateien in 4 Ordnern\n");
         static const char *const ORD[4] = { "/mnt/usb0/PS4", "/mnt/usb0/DLC", "/mnt/ext1/PKG", "/user/data/pkg" };
@@ -341,10 +369,89 @@ int main(int argc, char **argv)
            a_fmt(A0, "etaHEN ohne Datei mit Inhalt: gelb, nur Einstellungen (%s)", z(et)));
     pruefe(ga && ga->Art == ART_TOOL_DATEN_WICHTIG && kern_ampel(ga) == AMPEL_ROT, a_fmt(A0, "garlic mit Spielstand-Sicherung bleibt rot (%s)", z(ga)));
 
+    printf("== NEU 1.0.9 (#145): ProsperoStore - Beleg, aufgehobene Fassung und Reste bei ihrer App, der Rest bei ProsperoStore\n");
+    eintrag *st_mo = NULL;
+    {
+        const char *S = "/user/data/prosperostore", *M = "/mnt/ext1/prosperostore";
+        eintrag *ps = kachel("PPSA99000"), *eh = kachel("PPSA99708"), *ki = kachel("PPSA99716");
+        eintrag *bl = mit_pfad(a_fmt(A0, "%s/receipts/PPSA99708.json", S)), *fa = mit_pfad(a_fmt(A0, "%s/previous/PPSA99708", S)), *tr = mit_pfad(a_fmt(A0, "%s/trash/PPSA99708", S));
+        pruefe(eh && bl && bl->StoreTeil == STORE_BELEG && bl->ToolKachel == eh && bl->Art == ART_REST && kern_ampel(bl) == AMPEL_GRUEN && strstr(z(bl), "Beleg von ProsperoStore")
+               && strstr(kern_art_info(A0, bl), "Beleg"), a_fmt(A0, "Beleg steht bei seiner App, grün (%s)", z(bl)));
+        pruefe(fa && fa->StoreTeil == STORE_FASSUNG && fa->ToolKachel == eh && fa->Art == ART_STORE_FASSUNG && kern_ampel(fa) == AMPEL_ROT && fa->Rot
+               && strstr(z(fa), "ältere Fassung, von ProsperoStore aufgehoben") && !strstr(z(fa), "Eichenhain") && strstr(kern_art_info(A0, fa), "vorige Fassung")
+               && !strcmp(kern_folge_kurz(fa), "endgültig weg"), a_fmt(A0, "aufgehobene Fassung samt selbst hineingelegter Dateien steht bei ihrer App, rot (%s)", z(fa)));
+        pruefe(tr && tr->StoreTeil == STORE_REST && tr->ToolKachel == eh && tr->Art == ART_REST && strstr(z(tr), "Rest einer Deinstallation durch ProsperoStore"),
+               a_fmt(A0, "nicht fertig gelöschte App (trash) steht bei ihrer App, grün (%s)", z(tr)));
+        eintrag *kp = mit_pfad(a_fmt(A0, "%s/previous/PPSA99716/pakete/Wolkenreise - CUSA40001 - v1.07 - EU - Update.pkg", S)), *kn = mit_pfad(a_fmt(A0, "%s/previous/PPSA99716/notiz.txt", S));
+        eintrag *kz = mit_pfad(a_fmt(A0, "%s/staging/PPSA99716.zip", S));
+        pruefe(ki && kp && kp->PkgArt == PKG_UPDATE && kp->ToolKachel == sp && !kp->StoreTeil && kn && kn->StoreTeil == STORE_FASSUNG && kn->ToolKachel == ki
+               && kz && kz->StoreTeil == STORE_REST && kz->ToolKachel == ki && strstr(z(kz), "angefangener Download von ProsperoStore"),
+               a_fmt(A0, "PKG-Datei in einer aufgehobenen Fassung steht bei ihrem Spiel, der Rest der Fassung und der Download bei der App (%s | %s | %s)", z(kp), z(kn), z(kz)));
+        eintrag *mo = mit_pfad(a_fmt(A0, "%s/previous/PPSA99709", M)), *mz = mit_pfad(a_fmt(A0, "%s/staging/PPSA99709.zip", M));
+        pruefe(mo && mo->StoreTeil == STORE_FASSUNG && !mo->ToolKachel && mo->Art == ART_STORE_FASSUNG && kern_ampel(mo) == AMPEL_ROT && strstr(z(mo), "M.2") && strstr(z(mo), "Moosgarten"),
+               a_fmt(A0, "App gelöscht: ihre aufgehobene Fassung steht für sich, rot, mit dem Namen der App (%s)", z(mo)));
+        pruefe(mz && mz->StoreTeil == STORE_REST && !mz->ToolKachel && mz->Art == ART_REST && strstr(z(mz), "angefangener Download"),
+               a_fmt(A0, "angefangener Download einer gelöschten App steht für sich (%s)", z(mz)));
+        st_mo = mo;
+        eintrag *ko = mit_pfad(a_fmt(A0, "%s/settings.txt", S));
+        static const char *const IM_REST[] = { "journal.json", "logs", "staging/PPSA99713.zip", "staging/PPSA99713", "receipts/PPSA99710.json",
+                                               "receipts/PPSA99712.json", "previous/notiz.txt", "previous/ppsa99715", "previous/PPSA99714", NULL };
+        const char *fehlt = NULL;
+        for (int i = 0; IM_REST[i]; i++) if (!ko || mit_pfad(a_fmt(A0, "%s/%s", S, IM_REST[i])) != ko) fehlt = IM_REST[i];
+        pruefe(ko && !ko->StoreTeil && ko->ToolOrdner && !strcmp(ko->ToolOrdner, S) && ko->ToolKachel == ps && !fehlt,
+               a_fmt(A0, "der Rest (Einstellungen, falscher und kaputter Beleg, Verknüpfung, Kleinschreibung, angefangene Arbeit laut journal.json) ist EIN Eintrag bei ProsperoStore (%s%s%s)",
+                     z(ko), fehlt ? " | nicht darin: " : "", fehlt ? fehlt : ""));
+        eintrag *cp = mit_pfad(a_fmt(A0, "%s/cache/pakete/Notizbuch - CUSA40003 - v1.01 - Update.pkg", S)), *cr = mit_pfad(a_fmt(A0, "%s/cache/bild.png", S));
+        pruefe(cp && cp->PkgArt == PKG_UPDATE && cp->ToolKachel == ap && cr && cr != ko && cr == mit_pfad(a_fmt(A0, "%s/cache/pakete/info.txt", S)) && !cr->StoreTeil
+               && cr->ToolOrdner && !strcmp(cr->ToolOrdner, S) && cr->ToolKachel == ps,
+               a_fmt(A0, "PKG-Datei im Rest steht bei ihrem Spiel, der Rest ihres Unterordners bleibt bei ProsperoStore (Codex-Prüfung 137) (%s | %s)", z(cp), z(cr)));
+        {   /* Codex-Prüfung 137: kein Pfad eines Eintrags liegt in einem Pfad eines anderen (bei den Ordnern von ProsperoStore) */
+            const char *ueber = NULL;
+            for (int i = 0; i < K->Funde.n && !ueber; i++) { eintrag *f = K->Funde.e[i];
+                for (int j = 0; j < f->PfadeBasis.n && !ueber; j++) { const char *a = f->PfadeBasis.e[j]; size_t la = strlen(a);
+                    if (!strstr(a, "/prosperostore")) continue;
+                    for (int i2 = 0; i2 < K->Funde.n && !ueber; i2++) { eintrag *g = K->Funde.e[i2]; if (g == f) continue;
+                        for (int j2 = 0; j2 < g->PfadeBasis.n; j2++) if (!strncmp(g->PfadeBasis.e[j2], a, la) && g->PfadeBasis.e[j2][la] == '/') { ueber = g->PfadeBasis.e[j2]; break; } } } }
+            pruefe(!ueber, a_fmt(A0, "kein Teil von ProsperoStore liegt in einem anderen Eintrag (Codex-Prüfung 137) (%s)", ueber ? ueber : "-"));
+        }
+        eintrag *mk = mit_pfad(a_fmt(A0, "%s/staging/teil.tmp", M));
+        pruefe(mk && mk == mit_pfad(a_fmt(A0, "%s/backup", M)) && !mk->StoreTeil && mk->ToolKachel == ps, a_fmt(A0, "der Rest auf der M.2 ist EIN Eintrag bei ProsperoStore (%s)", z(mk)));
+        int ia = -1, ib = -1, ic = -1;
+        for (int i = 0; i < K->AUFGEKLAPPT.n; i++) { const char *o = K->AUFGEKLAPPT.e[i];
+            if (!strcmp(o, S)) ia = i; if (!strcmp(o, a_fmt(A0, "%s/previous", S))) ib = i; if (!strcmp(o, a_fmt(A0, "%s/receipts", S))) ic = i; }
+        pruefe(ia >= 0 && ib > ia && ic > ia, a_fmt(A0, "aufgeteilte Ordner von ProsperoStore stehen in AUFGEKLAPPT, äußere vor inneren (%d %d %d)", ia, ib, ic));
+        for (int i = 0; i < K->Funde.n; i++) ((eintrag *)K->Funde.e[i])->Wahl = false;
+        if (fa) fa->Wahl = true;
+        const char *s = kern_endgueltig_satz(K, A0);
+        pruefe(strstr(s, "1 ältere Fassung einer App (ProsperoStore)") != NULL, a_fmt(A0, "Satz vor dem Löschen: %s", s));
+        if (fa) fa->Wahl = false;
+    }
+
+    printf("== NEU 1.0.9 (#146): Daten-Ordner bekannter Apps (aus ihrem Quellcode)\n");
+    {
+        eintrag *pc = kachel("PPSA11018"), *pw = mit_pfad("/user/data/prospero-win"), *sw = mit_pfad("/user/data/savagewind");
+        eintrag *vl = mit_pfad("/user/data/vlc"), *vx = mit_pfad("/user/data/vlcx");
+        pruefe(pc && pw && pw->ToolKachel == pc && kern_ampel(pw) == AMPEL_ROT && strstr(z(pw), "deine Windows-Spiele") && !strstr(z(pw), "gehört zu"),
+               a_fmt(A0, "prospero-win steht bei PC5, obwohl es anders heißt - rot, eigene Spiele und Schlüssel (%s)", z(pw)));
+        pruefe(sw && !sw->ToolKachel && sw->Kat == 6 && sw->Art == ART_TOOL_DATEN_WICHTIG && kern_ampel(sw) == AMPEL_ROT && strstr(z(sw), "gehört zu Breath of the Wild")
+               && strstr(kern_art_info(A0, sw), "Spieldateien aus deinem eigenen Dump"),
+               a_fmt(A0, "App nicht installiert: savagewind bleibt unter Apps, rot, mit dem Namen der App (%s)", z(sw)));
+        pruefe(vl && !vl->ToolKachel && vl->Kat == 6 && vl->Art == ART_TOOL_DATEN && strstr(z(vl), "vlc – Einstellungen – gehört zu VLC"),
+               a_fmt(A0, "App nicht installiert, nur Einstellungen: gelb, mit dem Namen der App (%s)", z(vl)));
+        pruefe(vx && vx->Kat == 5 && !strstr(z(vx), "gehört zu"), a_fmt(A0, "Gegenprobe: unbekannter Ordner bleibt unter Sonstiges (%s, Bereich %d)", z(vx), vx ? vx->Kat : -1));
+        eintrag *hp = mit_pfad("/user/data/homebrew/prospero-win");
+        pruefe(hp && hp->ToolKachel != pc && !strstr(z(hp), "gehört zu"),
+               a_fmt(A0, "gleichnamiger Ordner in homebrew ist nicht belegt - nicht fest bei PC5, kein \"gehört zu\" (Codex-Prüfung 137) (%s)", z(hp)));
+        eintrag *pmk = kachel("ILNY26228"), *pmu = mit_pfad("/user/data/user");   /* PS5-Test 09.11.2026: Patch Manager (ps-patch-system) */
+        pruefe(pmk && pmu && pmu->ToolKachel == pmk && kern_ampel(pmu) == AMPEL_ROT && strstr(z(pmu), "Deine Spiel-Patches und ihre Sicherungen") && !strstr(z(pmu), "ps-patch-system") && !strstr(z(pmu), "user –"),
+               a_fmt(A0, "Ordner \"user\" steht beim Patch Manager - rot, deine Spiel-Patches (%s)", z(pmu)));
+    }
+
     printf("== Löschlauf: 8 Zusatzinhalte (eine Zeile) und der Rest des Ordners PS4\n");
     for (int i = 0; i < K->Funde.n; i++) ((eintrag *)K->Funde.e[i])->Wahl = false;
     if (ndl && rest) {
         ndl->Wahl = rest->Wahl = true;
+        if (st_mo) st_mo->Wahl = true;   /* NEU 1.0.9 (#145) */
         ergebnis r = kern_fuehre_loeschung(K, ja, NULL);
         int weg = 0; for (int i = 0; i < 8; i++) if (!da(a_fmt(A0, "/mnt/usb0/DLC/EP0001-CUSA40002_00-NEBELDLC0000000%d.pkg", i))) weg++;
         pruefe(weg == 8 && r.Fehler == 0, a_fmt(A0, "alle 8 Dateien der Zeile gelöscht (%d, Fehler %d)", weg, r.Fehler));
@@ -352,6 +459,8 @@ int main(int argc, char **argv)
         pruefe(!da("/mnt/usb0/PS4/Cover/bild.jpg") && !da("/mnt/usb0/PS4/liesmich.txt"), "Rest des Ordners PS4 gelöscht");
         pruefe(da("/mnt/usb0/PS4/Wolkenreise - CUSA40001 - v1.00 - EU.pkg") && da("/mnt/usb0/PS4/Nebelpfad - CUSA40002 - v1.05 - EU - Update.pkg") && da("/mnt/usb0/PS4/unbekannt.pkg"),
                "die PKG-Dateien im Ordner PS4 bleiben (nicht gewählt)");
+        pruefe(st_mo && !da("/mnt/ext1/prosperostore/previous/PPSA99709") && da("/mnt/ext1/prosperostore/staging/PPSA99709.zip") && da("/user/data/prosperostore/receipts/PPSA99708.json"),
+               "aufgehobene Fassung einer gelöschten App gelöscht - ihr angefangener Download und die Belege bleiben (nicht gewählt) (NEU 1.0.9, #145)");
     } else pruefe(false, "Löschlauf: Einträge fehlen");
     printf("FEHLERZAHL %d\n", fehler);
     return fehler ? 1 : 0;

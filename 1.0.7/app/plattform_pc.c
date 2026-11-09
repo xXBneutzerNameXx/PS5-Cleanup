@@ -65,6 +65,19 @@ void plattform_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const
     if (s && s[0]) { g = ""; int r = db_spielstand_angaben(k->a, s, appinfo_cb, &c, &g); (void)r; }
 }
 void (*plattform_meldung)(const char *t) = NULL;
+/* NEU 1.0.9 (Update-Hinweis): die PC-Vorschau fragt nie im Netz nach. VORSCHAU_NEUESTE gibt die Antwort vor (z. B. "v1.0.10"),
+ * VORSCHAU_NEUESTE_MS wartet vorher so viele Millisekunden (wie eine langsame Antwort). Ohne VORSCHAU_NEUESTE: wie ohne Netz. */
+#include <time.h>
+bool plattform_neueste_version(const char *eigene, char *tag, size_t n, char *grund, size_t gn)
+{
+    (void)eigene;
+    const char *w = getenv("VORSCHAU_NEUESTE_MS");
+    if (w && atoi(w) > 0) { struct timespec ts = { atoi(w) / 1000, (long)(atoi(w) % 1000) * 1000000L }; nanosleep(&ts, NULL); }
+    const char *v = getenv("VORSCHAU_NEUESTE");
+    if (!v || !v[0]) { snprintf(grund, gn, "PC-Vorschau: keine Abfrage im Netz"); return false; }
+    snprintf(tag, n, "%s", v);
+    return true;
+}
 const char *plattform_eigener_ort(void) { const char *s = getenv("VORSCHAU_ORT"); return s ? s : "/data/homebrew/PS5Cleanup"; }
 void plattform_konsole(konsole_info *k)
 {

@@ -72,8 +72,8 @@ namespace PS5Cleanup
                     var tbInfo = (TextBlock)o.W.FindName("tbInfo"); var tbIp = (TextBox)o.W.FindName("tbIp"); var tbLeer = (TextBlock)o.W.FindName("tbLeer");
                     tbLeer.Visibility = Visibility.Collapsed;
                     K.DDD_STATUS = 1; K.MODELL_TYP = "pro"; K.MODELL_DIGITAL = true;
-                    tbInfo.Text = T("Verbunden mit ", "Connected to ") + "192.168.1.50" + T(" (Port ", " (port ") + "2121).";
-                    tbIp.Text = "192.168.1.50";
+                    tbInfo.Text = T("Verbunden mit ", "Connected to ") + "192.168.178.78" + T(" (Port ", " (port ") + "2121).";
+                    tbIp.Text = "192.168.178.78";
                     o.F_MODELL = "CFI-7021 B01Y"; o.F_REIHE = "PS5 Pro"; o.F_FIRMWARE = "12.00"; o.F_QUELLE = T("automatisch (ps5info)", "automatic (ps5info)"); o.F_PORT = 2121; o.F_SCAN = true; o.F_SCAN_TEST = true;
                     o.ZeigeKonsole("CFI-7021 B01Y", "PS5 Pro", "12.00", o.F_QUELLE, 2121);
                     o.VERBUNDEN = true; o.ZeigeBereiche(); o.ZeigeSpeicher();

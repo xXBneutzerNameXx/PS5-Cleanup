@@ -37,7 +37,7 @@ bau() {
   # (Startordner-Teil, wird über nm unten geprüft). Datenbank-Prüfung (db/) mit SQLite ohne Dateizugriff in allen Fassungen.
   NL=""; [ $ECHT != 1 ] && NL="-include $KK/bau/nurlesen.h"
   export CC D O KK NL
-  printf '%s\n' $KK/kern/*.c $KK/db/db_pruefen.c $KK/db/db_lesen.c $KK/db/db_sqlite.c $KK/bau/cjson/cJSON.c app.c plattform_ps5.c qrcodegen.c $X $SD | xargs -P "$(nproc)" -I{} bash -c \
+  printf '%s\n' $KK/kern/*.c $KK/db/db_pruefen.c $KK/db/db_lesen.c $KK/db/db_sqlite.c $KK/bau/cjson/cJSON.c app.c plattform_ps5.c qrcodegen.c fern.c $X $SD | xargs -P "$(nproc)" -I{} bash -c \
     'F="$NL"; case "$(basename "{}")" in plattform_ps5.c) F="";; spielstand_db.c) F="-D_BSD_SOURCE -std=gnu11";; app.c|pruefen.c) [ -n "$NL" ] && F="$NL -DNURLESEN_MIT_SDL -DNURLESEN_OHNE_UNISTD";; esac; $CC -c -O2 -Wall -Wno-missing-field-initializers $D $F -I$KK/bau/sdl2/include -I$KK/bau/pcre2-ps5/include -I$KK/bau/cjson "{}" -o $O/$(basename "{}" .c).o'
   if [ $ECHT != 1 ]; then   # NEU 1.0.7: jedes fopen lesend (außer plattform_ps5.c - siehe nm-Prüfung)
     FF=0; for q in $KK/kern/*.c $KK/db/db_pruefen.c $KK/db/db_lesen.c app.c $X; do

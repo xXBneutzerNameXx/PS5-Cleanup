@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.8 by da_Chris86
+﻿PS5 CLEANUP 1.0.9 by da_Chris86
 ===============================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
@@ -8,34 +8,19 @@ und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 
 WELCHE DATEI IST WAS? - BITTE ZUERST LESEN!
 -------------------------------------------
-  ps5cleanup_v1.0.8.elf ... die PS5-App. Sie startet im TESTMODUS (oben
+  ps5cleanup_v1.0.9.elf ... die PS5-App. Sie startet im TESTMODUS (oben
                             steht "TESTMODUS"): Sie zeigt alles an und
                             löscht nichts. Gelöscht wird erst, wenn du den
                             Testmodus im Options-Menü ausschaltest UND das
                             Löschen ausdrücklich bestätigst.
-  Neu in 1.0.8: Es gibt nur noch diese eine Datei. Die frühere Test-Datei
-  (PS5-Cleanup-Test_v1.0.7.elf) ersetzt der Testmodus.
   Unsicher, anderes Modell oder andere Firmware? Lass den Testmodus an
   und schau dir zuerst in Ruhe an, was angeboten wird.
-  Eine Windows-Fassung (PS5-Cleanup.exe) gibt es ab 1.0.7 nicht mehr -
-  warum, steht unten unter "WARUM KEINE WINDOWS-FASSUNG MEHR?".
 
-WICHTIG: KEIN "DATENBANK NEU AUFBAUEN" MEHR
--------------------------------------------
+WICHTIG: KEIN "DATENBANK NEU AUFBAUEN"
+--------------------------------------
 - Sonys "Datenbank neu aufbauen" (abgesicherter Modus) löscht installierte
-  PS4-Spiele aus Fake-PKGs auf der internen SSD und auf dem erweiterten
-  Speicher (USB-Festplatte). Die PKG-Dateien bleiben, die Spiele müssen
-  aber neu installiert werden. Beobachtet am 31.10.2026 auf einer PS5 Pro mit
-  Firmware 12.00; andere Tools (elf-arsenal, ps5-db-backup) beschreiben
-  dasselbe. PS4-Spiele auf der M.2 sollen laut diesen Tools erhalten
-  bleiben - von PS5 Cleanup nicht geprüft.
-- Frühere Fassungen dieser Anleitung haben den Neuaufbau empfohlen. Bitte
-  nicht mehr machen. Ab 1.0.7 ist er auch nicht mehr nötig: Die PS5-App
-  entfernt Apps, Spiele, Bilder, Videos und Spielstände so, dass keine
-  leere Kachel und kein leerer Eintrag zurückbleibt. Was nicht sauber
-  geht, bleibt unverändert und wird am Ende genannt. Bleibt trotzdem
-  eine leere Kachel stehen, schick uns bitte das Protokoll (siehe
-  "RÜCKMELDUNGEN") - dann beheben wir das.
+  PS4-Spiele aus Fake-PKGs - sie müssen danach neu installiert werden.
+  Mit PS5 Cleanup ist der Neuaufbau nicht nötig.
 - NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen.
 
 ZWEI WEGE
@@ -63,9 +48,12 @@ RÜCKMELDUNGEN
 
 SO GEHT'S (PS5-App, direkt auf der PS5)
 ---------------------------------------
-1. Jailbreak laden und ps5cleanup_v1.0.8.elf über deinen Payload-Lader
+1. Jailbreak laden und ps5cleanup_v1.0.9.elf über deinen Payload-Lader
    oder den Payload Manager starten. Ein USB-Laufwerk ist nicht nötig -
    steckt eins, kommt das Protokoll darauf.
+   Im Payload Manager geht es auch als eigene Quelle: Settings -> Manage
+   Sources -> Add Source, dann eintragen:
+   https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json
 2. Beim ersten Start erscheint die Kachel "PS5 Cleanup". Die Oberfläche
    startet sofort: mit dem Controller bedienen (Kreuz = wählen, Kreis
    halten = beenden, Options = Optionen und Protokoll).
@@ -80,307 +68,42 @@ SO GEHT'S (PS5-App, direkt auf der PS5)
    Kreis = Beenden. Nach dem Neustart den Jailbreak wie gewohnt starten.
    Keinen Datenbank-Neuaufbau machen (siehe oben).
 
-
-WARUM KEINE WINDOWS-FASSUNG MEHR?
----------------------------------
-- Die Windows-Fassung arbeitet über FTP. Über FTP lassen sich Kacheln
-  und die Einträge in Mediengalerie und Spielstand-Liste nicht sauber
-  austragen - genau das macht 1.0.7 aus. Sie hätte also nur halb
-  aufräumen können: Leere Kacheln und leere Einträge wären geblieben.
-- Wer auf der PS5 einen FTP-Server starten kann, kann dort genauso die
-  PS5-App starten. Sie kann alles, was die Windows-Fassung konnte, und
-  mehr.
-- Geplant für die nächste Version: PS5 Cleanup auch vom PC oder Handy
-  aus über den Browser bedienen, wie es inzwischen viele PS5-Tools
-  anbieten (z. B. ShadowMount oder der Payload Manager).
-- Der Quellcode der bisherigen Windows-Fassung (1.0.6) bleibt auf GitHub
-  im Ordner Quellcode, wird aber nicht weiterentwickelt.
+IM BROWSER BEDIENEN (am Handy oder PC)
+  Alles geht auch im Browser - mit Maus, Tastatur oder Finger. Die
+  Adresse steht unten auf der Startseite (z. B.
+  http://192.168.178.20:9100), im Options-Menü unter "Browser-Bedienung"
+  auch als QR-Code. Handy oder PC müssen im selben Heimnetz sein wie die
+  PS5. Keine Anmeldung, nichts zu installieren.
+  Es ist dieselbe App wie am Fernseher: dieselben Schritte, derselbe
+  Testmodus, dieselben Bestätigungen ("Löschen" 1,5 Sekunden gedrückt
+  halten, bei der vollständigen Bereinigung LÖSCHEN eintippen). Was du im
+  Browser anhakst, sieht man auch am Fernseher; dort steht oben
+  "IM BROWSER", solange jemand im Browser ist. Mit dem Ende von
+  PS5 Cleanup ist auch die Seite weg.
 
 
-NEU IN 1.0.8
+NEU IN 1.0.9
 ------------
-- Neue Oberfläche am Fernseher: Startseite mit Konsole, Laufwerks-
-  Kopplung, Jailbreak und Speicher je Laufwerk. In der Auswahl links die
-  Bereiche, in der Mitte die Blöcke, rechts ein Kasten mit Bild und
-  Erklärung. Größte Einträge zuerst oder A-Z, L1/R1 blättern seitenweise.
-- Nur noch eine Datei: Der Testmodus ist in der App. Beim Start ist er an
-  (oben "TESTMODUS"), die App zeigt alles und löscht nichts. Im
-  Options-Menü schaltest du ihn aus. Die App merkt sich das nicht - bei
-  jedem Start ist er wieder an.
-- Bestätigen auf einer eigenen Seite "Das wird gelöscht": was endgültig
-  weg ist, was du neu laden oder einrichten musst, was nichts kostet und
-  was immer bleibt. Nur Auswahl löschen: Kreuz auf "Löschen" 1,5 Sekunden
-  halten. Vollständige Bereinigung: wie bisher LÖSCHEN eintippen.
-- Eigene Seiten "Nachschauen läuft" und "Löschen läuft": du siehst, was
-  gerade passiert. Das Löschen lässt sich nach dem laufenden Eintrag
-  anhalten (Kreis halten). Der laufende Eintrag wird fertig, alle übrigen
-  bleiben unverändert und stehen im Protokoll.
-- Fertig-Seite: freigeräumter Platz, was übrig blieb, wo das Protokoll
-  liegt, QR-Code für die Rückmeldung.
-- Besser erkannt: Spieldateien (.exfat) und entpackte Spiele ohne Kachel
-  zeigen Namen und Bild des Spiels; PKG-Dateien auf dem USB-Laufwerk mit
-  Spielnamen; Tools ohne Kachel stehen bei ihren Daten; doppelte Spiele
-  sind deutlich markiert. Was die Konsole selbst auf ein USB-Laufwerk
-  kopiert hat (Screenshots, Videos, Spielstände), steht rot da als
-  "deine Daten – endgültig weg".
-- Namen auch bei Resten gelöschter Spiele: Spielstände, Trophäen, Bilder
-  und Videos von Spielen, die nicht mehr installiert sind, zeigen ihren
-  Namen, wenn eine Quelle ihn belegt (bei PS5-Trophäen die Liste selbst,
-  frühere Protokolle von PS5 Cleanup, Sonys Spielstand-Liste, die
-  PKG-Datei des Spiels). Sonst wenigstens ihr Bild. Geraten wird nie.
-- Apps über ShadowMount stehen unter Apps, wenn ihre eigenen Angaben sie
-  als App ausweisen. Hat dasselbe Programm zusätzlich eine Kachel unter
-  Apps (gleicher Name), stehen beide in einem Block.
-- Weniger Arbeitsspeicher beim Nachschauen: Bei sehr vielen Dateien hielt
-  1.0.7 schon beim Nachschauen an (Rückmeldung von einer PS5 Slim).
-  Behoben. Ordner mit sehr vielen Dateien prüft PS5 Cleanup nur so weit,
-  wie es sicher geht - was es nicht ganz prüfen kann, bietet es nicht an
-  und nennt es im Protokoll.
-- Laufwerks-Kopplung in klaren Worten: online gekoppelt, ab Werk
-  gekoppelt, keine Kopplung, Koppeln oder Entkoppeln nicht fertig - statt
-  "nicht sicher bestimmbar".
-- Neue Version: Wer den QR-Code scannt, sieht, wenn es eine neuere Version
-  gibt.
-- Lange Namen werden ganz gezeigt, englische Texte überarbeitet.
+- Bedienung im Browser am Handy oder PC (siehe "IM BROWSER BEDIENEN").
+- Hinweis auf neue Versionen direkt in der App: Beim Start fragt
+  PS5 Cleanup bei GitHub nach der neuesten Versionsnummer. Gibt es eine
+  neuere, steht das auf der Startseite (siehe "Datenschutz" bei DETAILS).
+- Im Payload Manager als eigene Quelle (siehe "SO GEHT'S"). Neue
+  Versionen kommen dort von selbst an. Idee und Vorlage: Strongt1me.
+- Mehr Spiel-Abbilder mit Name und Bild: .ffpkg, .ufs, .img (UFS2),
+  .ffpfs, .ffpfsc und .pfs, auch wenn das Abbild in Stücken liegt, dazu
+  das Bild aus PS4-PKG-Dateien.
+- Kachelbilder im JPEG-Format werden jetzt auch angezeigt (z. B. beim
+  Payload Manager).
+- Besser zugeordnet: Teile von Apps aus dem ProsperoStore stehen bei
+  ihrer App, Daten-Ordner bekannter Apps bei ihrem Programm. Leere
+  Aufnahme-Zwischenordner werden nur noch angeboten, wenn ihre App nicht
+  mehr da ist.
+- Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2:
+  Löschen am Fernseher und im Browser, einzeln und vollständig.
 
-
-NEU IN 1.0.7
-------------
-PS5-App - alles in einem Rutsch, ohne leere Kacheln, ohne leere Einträge
-und ohne Datenbank-Neuaufbau. Getestet vom 01. bis 03.11.2026 auf einer
-PS5 Pro (CFI-7021) mit Firmware 12.00, M.2, mit und ohne USB-Laufwerk:
-- Apps, Tool-Kacheln und Spiele trägt Sony selbst aus, wie beim Löschen
-  im PS5-Menü - auch PS4-Spiele aus Fake-PKGs und ShadowMount-Kacheln.
-  Die Daten einer App gehen mit ihrer Kachel. Bleibt eine Kachel stehen,
-  bleiben auch ihre Daten (nichts wird halb gelöscht).
-- Spiele, die sich weder im PS5-Menü noch über "Speicher" löschen
-  lassen: Kaputte Angaben zu Zusatzinhalten (z. B. aus einem umgebauten
-  Patch) repariert PS5 Cleanup vorher selbst, danach trägt Sony das
-  Spiel sauber aus. Getestet mit Red Dead Redemption 2, das sich vorher
-  gar nicht löschen ließ.
-- Solche Spiele erkennt PS5 Cleanup schon beim Nachschauen: In der Zeile
-  steht "ACHTUNG: kaputte Zusatzinhalt-Angaben", dazu eine Erklärung und
-  eine Zeile im Protokoll (siehe WICHTIG).
-- Neu: freiwillige Rückmeldung per QR-Code - am Ende und in der
-  Protokoll-Ansicht (Options). Ohne Konto und ohne PC, keine
-  persönlichen Daten (siehe "Rückmeldung per QR-Code" unter DETAILS).
-- Jede App und jedes Tool steht als ein Block da: oben die Kachel,
-  darunter alles, was dazugehört - Daten- und Einstellungsordner,
-  Dateien auf M.2 und USB-Laufwerk, ELF- und PKG-Dateien. Neu: PS5
-  Cleanup schaut auch in das Programm der App selbst. Nennt es einen
-  Ordner oder eine Datei (z. B. /data/PCSX2), gehört das zu dieser App.
-  Das klappt auch bei Tools, die PS5 Cleanup nicht kennt. Ohne sicheren
-  Beleg steht ein Eintrag unter Sonstiges - geraten wird nie (siehe
-  "Zuordnung" unter DETAILS).
-- Kacheln ohne App-Ordner, die nur auf ein Tool auf der Konsole zeigen
-  (z. B. Spectrum Library), stehen jetzt als Tool-Kachel unter Apps statt
-  als Rest unter Sonstiges.
-- Daten-Ordner von Tools mit eigenen Spielen, Spielständen oder
-  Sicherungen (z. B. Ordner roms, saves, keys, backups oder
-  Speicherkarten eines Emulators) stehen rot da, mit Hinweis, was
-  gefunden wurde. "Ganzen Bereich wählen" hakt sie nicht mit an.
-- Trophäen: je Spiel ein Block - oben die Trophäen-Liste, darunter der
-  Fortschritt aller Konten (siehe "Trophäen" unter DETAILS).
-- Namen auch für Reste: Spielstände, Trophäen, Lizenzen und Aufnahmen
-  tragen den Namen ihres Spiels oder ihrer App - auch wenn das Spiel
-  schon gelöscht ist. Der Name kommt nur aus Angaben der Konsole selbst.
-  Gibt es keinen Beleg, steht "Spiel/App unbekannt" da.
-- Daten, die ein installiertes Spiel unter einer anderen Kennung ablegt
-  (z. B. GTA V), stehen mit dem Namen des Spiels da und werden nicht als
-  Rest angeboten.
-- Bilder und Videos löscht Sonys eigener Löschdienst, wie "Löschen" in
-  der Mediengalerie. Die Mediengalerie ist danach sauber, ohne leere
-  Einträge.
-- Spielstände gehen zusammen mit ihrem Eintrag in Sonys Spielstand-Liste.
-  Läuft das Spiel gerade, bleibt der Spielstand.
-- Trophäen von PS4-Spielen werden dem richtigen Spiel zugeordnet.
-- Reste ohne Kachel (App-Ordner, die nicht mehr im PS5-Menü stehen)
-  werden direkt gelöscht. Auch nach "nur Kachel" bleibt kein leerer
-  Einhängeordner des Spiels zurück.
-- Installierte PS4-Spiele, die du nicht ausgewählt hast, sind geschützt.
-  Deine Jailbreak-Einstiege (z. B. YouTube/Y2JB, WebKit Autoloader)
-  bleiben, solange du sie nicht einzeln anhakst.
-- Was sich nicht sauber entfernen lässt, bleibt unverändert und wird am
-  Ende mit Grund genannt. Bleibt trotzdem eine leere Kachel stehen,
-  schick uns bitte das Protokoll.
-- Kein USB-Laufwerk nötig, keine Datenbank-Sicherungen mehr. Das
-  Protokoll landet auf dem USB-Laufwerk, wenn eins steckt. Fehlt es oder
-  ist es voll oder nicht beschreibbar, kommt es auf die interne Platte
-  (/data/PS5-Cleanup-Protokolle), ist die auch voll, auf die M.2
-  (PS5-Cleanup-Protokolle). Jeder Lauf bekommt eine eigene Datei. Es
-  bleibt auch, wenn sich PS5 Cleanup am Ende selbst entfernt.
-- Die vollständige Bereinigung zeigt im ersten Fenster alles: interne
-  SSD, M.2, erweiterten Speicher (USB-Festplatte für Spiele) und was auf
-  jeden Fall bleibt. Gezählt werden Spiele und Apps, nicht Zeilen. Alte
-  Protokolle auf der internen Platte räumt sie mit weg, die auf dem
-  USB-Laufwerk und der M.2 bleiben.
-- "USB-Laufwerk" heißt: ein USB-Stick oder eine USB-Platte mit Dateien.
-  Der erweiterte Speicher (USB-Festplatte für Spiele) heißt weiter so.
-- Am Ende: Kreuz = Neu starten (empfohlen) oder Kreis = Beenden. Das
-  Ausschalten gibt es nicht mehr.
-- Neue Oberfläche: 7 Bereiche (Spiele, Apps, Spielstände, Trophäen,
-  Bilder & Videos, Sonstiges, Jailbreak), Kachelbilder in der Liste,
-  Apps wie Spiele zusammengefasst (Kachel, darunter ihre Daten und ihre
-  ELF-Datei auf dem USB-Laufwerk - jede Zeile einzeln wählbar), zu jedem
-  Eintrag "Was ist das? / Was wird gelöscht? / Was passiert danach?",
-  keine abgeschnittenen Texte mehr.
-- Updates und Zusatzinhalte stehen eingerückt direkt unter ihrem Spiel.
-  Im Bereich Jailbreak stehen Spielstand, Zusatzinhalt-Infos und
-  App-Daten direkt unter ihrer Kachel (z. B. YouTube).
-- Spiele, die als Ordner auf der M.2 liegen: kstuff hängt sie sofort
-  wieder ein, sobald ShadowMount angehalten ist. PS5 Cleanup löst diese
-  Einbindung - nur wenn sie genau den Spielordner der Kachel zeigt -,
-  danach trägt Sony die Kachel aus. Der Spielordner bleibt, wenn du nur
-  die Kachel anhakst.
-- Keine Windows-Fassung mehr (siehe "WARUM KEINE WINDOWS-FASSUNG MEHR?").
-
-
-UPDATE 30.10.2026 - "1.0.6 Fix"
--------------------------------
-PS5-App:
-- Viel weniger Arbeitsspeicher: Bisher wuchs der Verbrauch mit jeder
-  ELF-Datei auf der Konsole und dem USB-Stick - bei vielen Dateien konnte
-  die App abstürzen. Jetzt bleibt er klein.
-- Nachschauen geht schneller (eine überflüssige zweite Suche ist weg).
-- Tools mit privaten oder sehr tief verschachtelten Ordnern (z. B.
-  Playden) brechen das Nachschauen nicht mehr ab und sperren nichts mehr -
-  diese Ordner werden übersprungen und nicht angefasst.
-- Absturzmelder: Stürzt PS5 Cleanup ab, kommt eine Benachrichtigung mit
-  dem Grund. Bitte ein Foto davon schicken.
-- Gebaut für Firmware bis 14.10.
-- Neu: PS5-Cleanup-Test.elf zum gefahrlosen Ausprobieren (löscht nichts).
-PS5-App und Windows:
-- (Die damalige Anleitung zum Datenbank-Neuaufbau ist überholt - siehe
-  "WICHTIG: KEIN DATENBANK NEU AUFBAUEN" oben.)
-- Die WebKit-Jailbreak-Kachel "JAILBREAK ME" (WKAG00001) wird jetzt
-  ebenfalls als Jailbreak erkannt und geschützt.
-Oben im Programm steht "1.0.6 Fix".
-
-
-NEU IN 1.0.6
-------------
-- PS5 Cleanup läuft jetzt direkt auf der PS5 (ps5cleanup.elf): Bedienung
-  mit dem Controller am Fernseher. Beim ersten Start legt die ELF ihre
-  eigene Kachel "PS5 Cleanup" auf dem Startbildschirm an. Kein Homebrew
-  Launcher und kein websrv nötig.
-- Nachschauen und Anhaken löscht nichts. Gelöscht wird erst, wenn du am
-  Ende ausdrücklich bestätigst - davor kannst du jederzeit abbrechen.
-- PS5-App: Kacheln (Spiele, Apps, Tool-Kacheln) werden über Sonys eigenen
-  Deinstallations-Dienst entfernt - es bleiben keine leeren Kacheln. Wer
-  nur Spiele und Apps löscht, braucht keinen Datenbank-Neuaufbau mehr.
-  Wurden Spielstände, Bilder oder Videos gelöscht, nannte 1.0.6 am Ende
-  "Datenbank neu aufbauen" - das wird nicht mehr empfohlen (siehe oben).
-  Lehnt Sony ab, wird wie
-  bisher gelöscht und der Eintrag als TEILWEISE gemeldet (mit Liste, was
-  weg ist und was übrig bleibt).
-- PS5-App: am Ende wird die PS5 immer ganz ausgeschaltet (kein
-  Ruhemodus) - Knopf "PS5 ausschalten", ohne Zeitdruck, mit X oder O.
-  (Ab 1.0.7: Neu starten oder Beenden.)
-  PS5 Cleanup entfernt sich vorher selbst (vollständige Bereinigung
-  immer, Auswahl auf Wunsch).
-- Jailbreak-Schutz: Die Einstiege, mit denen dein Jailbreak startet,
-  werden erkannt und nie automatisch angehakt - weder über den ganzen
-  Bereich noch bei der vollständigen Bereinigung (dort wird gefragt,
-  "Behalten" ist empfohlen). Beim Anhaken und vor dem Löschen kommt eine
-  Warnung. Erkannt werden: YouTube (Y2JB), Netflix ('N Hack), Lua-
-  Jailbreak (die bekannten Lua-Spiele samt Spielstand), PS2-Spielstand-
-  Jailbreak (Okage, Star Wars Racer Revenge, Jak X), Ren'Py-Jailbreak
-  (yarpe), WebKit-Autoloader (Kachel und Offline-Speicher des Browsers,
-  auch PSH5/Goldengames) und der Browserspeicher. Geschützt wird nur, was
-  der Jailbreak zum Starten braucht. Jailbreak-Tools (etaHEN, Payload
-  Manager, Autoloader-Einstellungen, Update-Pakete, ELF-Dateien) bleiben
-  normal wählbar.
-- Die Konsolen-Übersicht zeigt, welche Jailbreak-Einstiege eingerichtet
-  sind (und eine Blu-ray-Jailbreak-Disc im Laufwerk) und welche Einträge
-  du dafür nicht löschen darfst.
-- Kacheln ohne App-Ordner (z. B. Spectrum Library) kann Sony nicht
-  austragen: Sie werden als TEILWEISE gemeldet und am Ende mit Namen
-  aufgeführt; sie bleiben im Menü stehen.
-- 6 Bereiche (siehe "KANN WEG"), der Speicherort steht vorne am Eintrag.
-- USB-Speicher wie M.2: Spiele auf USB lassen sich auch löschen. Die
-  vollständige Bereinigung fragt für M.2 und USB-Speicher jeweils einzeln
-  ("behalten" ist vorgewählt). Normale USB-Sticks nur einzeln.
-- Spiel-Abbilder (exFAT u. a.) zählen überall als Spiele.
-- Kürzere Zusätze, lange Namen laufen in der PS5-App als Laufschrift.
-- App-Daten (z. B. die Y2JB-Datei) gehen nur noch mit ihrer App.
-- Die Windows-Fassung heißt 1.0.6 (ohne "Beta"). Sie entfernt Kacheln
-  weiterhin über Dateien - leere Kacheln können im Menü stehen bleiben
-  (KEIN Datenbank-Neuaufbau, siehe oben).
-
-
-NEU IN 1.0.5 (Windows-Fassung)
-------------------------------
-- ShadowMount noch vorsichtiger: Gelöscht wird nur, wenn ShadowMount
-  bestätigt angehalten ist oder nachweislich nicht läuft (keine Spiele
-  eingebunden). Sonst kommt eine Rückfrage - "Abbrechen" ist vorbelegt.
-- Verweigert die PS5 beim Lesen eines Ordners den Zugriff, bricht das
-  Programm ab, statt den Ordner als leer zu behandeln.
-- Ordnerlisten und Dateien gelten nur noch als vollständig, wenn die PS5
-  die Übertragung ausdrücklich bestätigt.
-- Testmodus: Der Text sagt jetzt dazu, dass die Modellabfrage kurz ihre
-  eigene Datei /data/ps5info.txt anlegt und wieder entfernt.
-- Laufwerks-Anzeige korrigiert: Liefert die PS5 keine gültige Antwort,
-  steht dort "nicht auslesbar" statt fälschlich "gekoppelt".
-- Erste PS5 (CFI-10xx/11xx/12xx): Es wird immer "fest eingebaut" bzw.
-  "kein Laufwerk (Digital Edition)" angezeigt, egal was der Treiber meldet.
-- Laufwerks-Status 6: neutraler Text, weil die genaue Bedeutung nicht
-  sicher geklärt ist.
-- Neuer Hinweis vor dem Löschen, wenn eine USB-Platte angeschlossen ist
-  oder die M.2 leer bzw. nicht erkannt wird - sonst könnten Lizenzen und
-  Kacheln dieser Spiele als Reste gelten.
-- ps5info.elf neu gebaut.
-- Neue Oberfläche: Konsole, Laufwerks-Kopplung (mit Statuslegende) und
-  Speicher auf einen Blick, farbige Hinweise (grün = geschützt, blau =
-  Info, gelb = Hinweis, rot = endgültig). Passt sich kleineren Bildschirmen
-  an und wird bei großen oder maximierten Fenstern mitvergrößert. Das
-  Programm merkt sich Fenstergröße und -position. Lange Namen in der Liste
-  erscheinen vollständig, wenn du mit der Maus darüberfährst.
-- Protokoll: ein- und ausklappbar, Höhe per Trennlinie verschiebbar,
-  "Alles kopieren" (immer der ganze Inhalt) und "In eigenem Fenster".
-- Der Knopf "KOMPLETT - wie neu installiert" heißt jetzt "Vollständige
-  Bereinigung". Ablauf und Bestätigung mit LÖSCHEN sind unverändert.
-- Neu: "Feedback / Kompatibilität melden" - ein freiwilliger Bericht
-  (Modell, Firmware, Laufwerksstatus mit Rückgabewert, FTP-Server,
-  Ergebnis des Testmodus, Fehlermeldungen). Nicht Erkanntes heißt "Unbekannt". IP-
-  Adressen, Windows-Benutzername und Pfade werden vorher entfernt. Du
-  siehst und änderst den ganzen Text; erst "Auf GitHub öffnen" öffnet
-  deinen Browser mit einem vorausgefüllten Issue, abgeschickt wird nur,
-  wenn du es dort selbst absendest. GitHub-Issues sind öffentlich, zum
-  Absenden brauchst du normalerweise ein GitHub-Konto.
-- Davon getrennt und unverändert: Beim Start fragt das Programm einmal bei
-  GitHub nach, ob es eine neuere Version gibt. Dabei gehen nur die
-  üblichen Verbindungsdaten raus, keine Angaben zu dir oder deiner PS5.
-- "Protokoll speichern": Hinweis, die Datei vor dem Teilen auf
-  persönliche Daten zu prüfen.
-- Verbinden klappt jetzt auch mit FTP-Servern, die eine andere Art der
-  Datenverbindung nutzen (PASV statt EPSV). Klappt es trotzdem nicht, sagt
-  das Programm genauer, woran es liegt - der Grund steht im Protokoll.
-- "PS5 im Netz suchen" findet FTP-Server jetzt auf Port 2121 und 2120
-  (zftpd nutzt 2120). Gibt es mehrere, wählst du aus einer Liste. Gibst du
-  nur die IP ein, probiert das Programm beide Ports von selbst.
-- Das Protokoll nennt den FTP-Server mit Version - nur, was der Server
-  selbst über sich sagt, sonst "Unbekannt" - und ob die Datenverbindung
-  über EPSV oder PASV lief. Beides steht auch im Feedback-Bericht.
-- Einfachere Fehlermeldungen; technische Einzelheiten stehen im Protokoll.
-- Während des Löschens zeigt ein roter Hinweis, dass gerade gelöscht wird,
-  und der Fortschritt steht als "Eintrag X von Y" da. Was schon gelöscht
-  ist, bleibt gelöscht - auch ein Abbruch oder Fehler bringt nichts zurück.
-- Neues Logo.
-
-
-NEU IN 1.0.4 (Windows-Fassung)
-------------------------------
-- Ein echtes Windows-Programm (vorher ein verpacktes PowerShell-Skript) -
-  gleiche Bedienung, gleiche Schutzregeln.
-- Deutsch und Englisch: Die Sprache richtet sich nach Windows, der Knopf
-  oben rechts schaltet um (das Programm startet dazu kurz neu).
-- M.2: Jedes Spiel und jede Datei in den Ordnern der M.2 steht einzeln
-  in der Liste. Die Ordner selbst bleiben stehen.
-- Die Liste zeigt die Größe jedes Eintrags und jedes Bereichs. Gezählt
-  wird gleich nach dem Nachschauen im Hintergrund - das lange Zählen vor
-  dem Löschen entfällt meistens.
-- Knopf "Abbrechen" beim Suchen und Zählen.
-- Hinweis, wenn es auf GitHub eine neuere Version gibt.
+Ältere Neuerungen stehen auf GitHub unter Releases:
+https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases
 
 
 FASST DAS PROGRAMM NICHT AN
@@ -418,10 +141,8 @@ Speicher jeweils, ob sie mit geleert werden.
 
 WICHTIG
 -------
-- KEIN "Datenbank neu aufbauen" - es löscht installierte PS4-Spiele
-  (Fake-PKG) auf interner SSD und erweitertem Speicher (siehe oben). Was
-  die PS5-App unverändert lassen musste, nennt sie am Ende mit Grund.
-  NIE "PS5 zurücksetzen" oder "Systemsoftware neu installieren" wählen!
+- KEIN "Datenbank neu aufbauen" (siehe oben). Was PS5 Cleanup
+  unverändert lassen musste, nennt es am Ende mit Grund.
 - Konsole geht plötzlich von selbst aus? Manche umgebauten PS4-Pakete
   (z. B. Updates mit nachträglich eingebauten DLC) enthalten kaputte
   Angaben zu Zusatzinhalten. Liest die PS5 sie im Hintergrund, stürzt sie
@@ -514,6 +235,19 @@ Zuordnung (welche Daten gehören zu welcher Kachel?)
   ELF-Dateien werden nie über das Programm einer anderen App zugeordnet -
   ein Programm nennt oft fremde Tools, die es nur benutzt.
 
+Jailbreak-Schutz
+  Die Einstiege, mit denen dein Jailbreak startet, werden erkannt und nie
+  automatisch angehakt - weder über den ganzen Bereich noch bei der
+  vollständigen Bereinigung. Beim Anhaken und vor dem Löschen kommt eine
+  Warnung. Erkannt werden: YouTube (Y2JB), Netflix ('N Hack), Lua-
+  Jailbreak (die bekannten Lua-Spiele samt Spielstand), PS2-Spielstand-
+  Jailbreak (Okage, Star Wars Racer Revenge, Jak X), Ren'Py-Jailbreak
+  (yarpe), WebKit-Autoloader (Kachel und Offline-Speicher des Browsers,
+  auch PSH5/Goldengames) und der Browserspeicher. Geschützt wird nur, was
+  der Jailbreak zum Starten braucht. Jailbreak-Tools (etaHEN, Payload
+  Manager, Autoloader-Einstellungen, Update-Pakete, ELF-Dateien) bleiben
+  normal wählbar.
+
 Testmodus
   Beim Start ist der Testmodus an, oben steht "TESTMODUS". Die App zeigt
   alles wie beim echten Löschen, die Löschen-Knöpfe sind aber gesperrt -
@@ -540,6 +274,21 @@ Protokoll
   laufende, nie die auf dem USB-Laufwerk oder der M.2. Abholen z. B. per
   FTP. In der Ansicht des Protokolls speichert Quadrat es auch ohne
   Löschen auf das USB-Laufwerk, auch im Testmodus.
+
+Datenschutz - was PS5 Cleanup speichert und sendet
+  Auf der PS5 legt PS5 Cleanup nichts ab außer seiner eigenen Kachel und
+  seinen Protokollen (USB-Laufwerk, sonst auf der PS5) - keine
+  Einstellungen, keine Listen, kein Merken zwischen zwei Starts.
+  - Update-Hinweis: Beim Start fragt PS5 Cleanup einmal bei GitHub
+    (api.github.com) nach der neuesten Versionsnummer. Gesendet wird nur
+    diese Anfrage - wie beim Öffnen einer Webseite sieht GitHub dabei die
+    Internet-Adresse. Geladen oder ausgeführt wird nichts, angenommen
+    wird nur eine Versionsnummer. Ohne Internet passiert nichts.
+  - Bedienung im Browser: Die Seite kommt von der PS5 selbst und
+    antwortet nur Geräten aus dem Heimnetz. Ins Internet geht dabei
+    nichts. Im Browser bleibt nichts außer den Kachelbildern im
+    Zwischenspeicher (höchstens 10 Minuten).
+  - Rückmeldung per QR-Code: siehe unten - die PS5 sendet dabei nichts.
 
 Rückmeldung per QR-Code (freiwillig)
   Die PS5 sendet dabei nichts - sie zeigt nur einen QR-Code. Darin steht
@@ -570,7 +319,7 @@ Sprache
   um.
 
 Dateien
-  ps5cleanup_v1.0.8.elf        die PS5-App (startet im Testmodus)
+  ps5cleanup_v1.0.9.elf        die PS5-App (startet im Testmodus)
   LIESMICH.txt                 diese Anleitung
   README_EN.txt                diese Anleitung auf Englisch
   LICENSE.txt                  Lizenzen und Bestandteile anderer Urheber

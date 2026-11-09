@@ -30,12 +30,15 @@ int close(int);       /* aus unistd.h - das ganze unistd.h nicht, weil app.c ein
 #include "../kern/ablauf.h"
 #include "plattform.h"
 #include "qrcodegen.h"        /* NEU 1.0.7 (03.11.2026): QR-Code für die freiwillige Rückmeldung (Project Nayuki, MIT) */
+#include "fern.h"             /* NEU 1.0.9: Bedienung im Browser (doku/PLAN_1.0.9.md) */
+#include "cJSON.h"            /* NEU 1.0.9: Zustand und Liste für den Browser als JSON */
 #include <dirent.h>           /* NEU 1.0.8 (PS5-Test 07.11.2026): Bilder der Spielstände (spielstand_bild) - in jeder Fassung */
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "../probelauf/fremd/stb_truetype.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
+#define STBI_ONLY_JPEG   /* NEU 1.0.9 (da_Chris86 08.11.2026 22:49): Kachelbild des Payload Managers ist ein JPEG namens icon0.png - die PS5 zeigt es, wir bisher nicht */
 #define STBI_NO_STDIO
 #include "../probelauf/fremd/stb_image.h"
 #ifdef MITSCHNITT
@@ -70,20 +73,21 @@ EINBINDEN(logo_png, "../probelauf/logo.png")
 #else
 #ifdef KERN_LOESCHEN
 #ifdef MITSCHNITT   /* NEU 1.0.8 (Arbeitsplan 2.7): Test-Fassung für den Abschlusstest - Bauzeit sichtbar, damit klar ist, welche läuft */
-#define VERSION_TEXT "1.0.8 TESTLAUF · Bau " __DATE__ " " __TIME__
-#define VERSION_TEXT_EN "1.0.8 TEST RUN · Build " __DATE__ " " __TIME__
+#define VERSION_TEXT "1.0.9 TESTLAUF · Bau " __DATE__ " " __TIME__
+#define VERSION_TEXT_EN "1.0.9 TEST RUN · Build " __DATE__ " " __TIME__
 #else
-#define VERSION_TEXT "1.0.8"                 /* 02.11.2026 (da_Chris86, finaler Plan 1.0.7 Punkt 7): ohne "Vorschau"; 06.11.2026: 1.0.8 (Arbeitsplan Phase 5) */
+#define VERSION_TEXT "1.0.9"                 /* 02.11.2026 (da_Chris86, finaler Plan 1.0.7 Punkt 7): ohne "Vorschau"; 06.11.2026: 1.0.8 (Arbeitsplan Phase 5); 08.11.2026: 1.0.9 */
 #endif
 #else
-#define VERSION_TEXT "1.0.8 TEST · Bau " __DATE__ " " __TIME__   /* Testfassung - ohne Löschbefehle gebaut, löscht nie; 31.10.2026: Bauzeit sichtbar (welche Fassung läuft?) */
-#define VERSION_TEXT_EN "1.0.8 TEST · Build " __DATE__ " " __TIME__   /* NEU 1.0.8: englische Oberfläche "Build" statt "Bau" */
+#define VERSION_TEXT "1.0.9 TEST · Bau " __DATE__ " " __TIME__   /* Testfassung - ohne Löschbefehle gebaut, löscht nie; 31.10.2026: Bauzeit sichtbar (welche Fassung läuft?) */
+#define VERSION_TEXT_EN "1.0.9 TEST · Build " __DATE__ " " __TIME__   /* NEU 1.0.8: englische Oberfläche "Build" statt "Bau" */
 #endif
 #endif
 #ifndef VERSION_TEXT_EN
 #define VERSION_TEXT_EN VERSION_TEXT
 #endif
 #define VERSION_ANZEIGE (SP_EN ? VERSION_TEXT_EN : VERSION_TEXT)   /* NEU 1.0.8: Kopf, Protokoll-Datei und Absturzmeldung in der eingestellten Sprache */
+#define VERSION_NUMMER "1.0.9"   /* NEU 1.0.9: nur die Nummer - damit vergleicht der Update-Hinweis (in allen Fassungen gleich) */
 
 /* Farben wie 1.0.5 (Fenster.xaml) */
 #define F_HG        0x141519
@@ -296,15 +300,21 @@ static zeilen umbrechen(int f, int gr, const char *t, int breite)
         const char *p = a;
         if (!*p && r.n < 4096) r.z[r.n++] = "";
         while (*p && r.n < 4096) {
-            const char *start = p, *letzt_leer = NULL, *letzt_strich = NULL, *q = p; int b = 0;
+            const char *start = p, *letzt_leer = NULL, *letzt_strich = NULL, *letzt_bind = NULL, *q = p; int b = 0;
             while (*q) {
                 const char *v = q; int c = cp_naechstes(&q);
                 Glyph *g = glyph(f, gr, c); b += g ? g->vorschub : 0;
                 if (b > breite && v > start) { q = v; break; }
                 if (c == ' ') letzt_leer = q;
                 else if (c == '/') letzt_strich = q;
+                else if (c == '-' && v > start && v[-1] != ' ' && *q && *q != ' ') letzt_bind = q;   /* nur mitten im Wort (Codex-Prüfung 127) */
             }
             if (*q && letzt_leer && letzt_leer > start) q = letzt_leer;
+            /* NEU 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8: "Aufnahme-Zwischenordn" / "er"): hat die Zeile kein Leerzeichen, bricht ein Wort
+             * mit Bindestrich nach dem Bindestrich um ("Aufnahme-" / "Zwischenordner") statt mitten im Wort - nur ein Bindestrich mitten im Wort
+             * (Codex-Prüfung 127) und nicht in einem Pfad (dort wie in 1.0.8 nach dem "/"). Text mit Leerzeichen bricht wie bisher um
+             * (Vorschau Kette 38: sonst "Jailbreak-Start: WebKit-" / "Autoloader" statt "Jailbreak-Start:" / "WebKit-Autoloader"). */
+            else if (*q && letzt_bind && !letzt_strich && letzt_bind - start > 1) q = letzt_bind;
             /* NEU 1.0.8 (Arbeitsplan 4.6): ein Pfad ohne Leerzeichen bricht nach einem "/" um ("/system_data/priv/appmeta/" + "ORBT00001")
              * statt mitten im Wort - nur wenn die Zeile kein Leerzeichen hat, Text mit Leerzeichen bricht wie bisher um */
             else if (*q && letzt_strich && letzt_strich - start > 1) q = letzt_strich;
@@ -449,12 +459,13 @@ static void logo_laden(void)
  * Gibt es kein Bild, bleiben die zwei Buchstaben. */
 static unsigned char *datei_lesen(const char *pfad, size_t *n)
 {
-    char p[1024];
+    char p[1024]; int pl;
 #ifdef VORSCHAU
-    const char *w = getenv("VORSCHAU_WURZEL"); snprintf(p, sizeof p, "%s%s", w ? w : "", pfad);
+    const char *w = getenv("VORSCHAU_WURZEL"); pl = snprintf(p, sizeof p, "%s%s", w ? w : "", pfad);
 #else
-    snprintf(p, sizeof p, "%s", pfad);
+    pl = snprintf(p, sizeof p, "%s", pfad);
 #endif
+    if (pl < 0 || (size_t)pl >= sizeof p) return NULL;          /* Codex-Prüfung 132: nie einen gekürzten Pfad öffnen */
     FILE *f = fopen(p, "rb"); if (!f) return NULL;
     unsigned char *d = NULL; long l = -1;
     if (fseek(f, 0, SEEK_END) == 0) l = ftell(f);
@@ -491,9 +502,18 @@ static unsigned char *bild_entpacken(unsigned char *d, size_t n, int *w, int *h)
 {
     int iw = 0, ih = 0, ic = 0;
     if (!d || n == 0 || n > 4u * 1024 * 1024 || !stbi_info_from_memory(d, (int)n, &iw, &ih, &ic) || iw <= 0 || ih <= 0 || iw > 4096 || ih > 4096) { free(d); return NULL; }
+    /* NEU 1.0.9 (Codex-Prüfung 145, P2): JPEG (Kachelbild des Payload Managers) nur bis 1024 x 1024 Pixel und 2 MB - ein großes,
+     * progressives JPEG bräuchte beim Entpacken ein Vielfaches an Speicher und Zeit im Hauptfaden. Kachelbilder sind 512 oder 1024 groß. */
+    if (n >= 2 && d[0] == 0xFF && d[1] == 0xD8 && (n > 2u * 1024 * 1024 || iw > 1024 || ih > 1024)) { free(d); return NULL; }
     int c; unsigned char *px = stbi_load_from_memory(d, (int)n, w, h, &c, 4);
     free(d);
-    if (px && *w > 0 && *h > 0) return px;
+    if (px && *w > 0 && *h > 0) {
+        /* NEU 1.0.9 (PS5-Test 09.11.2026 18:58, Patch Manager ILNY26228: icon0.png 128 x 128, nur Schwarz): ein Bild aus einer einzigen
+         * Farbe zeigt nichts - dann wie ohne Bild (das Symbol bzw. die nächste Bildquelle), am Fernseher und im Browser */
+        const uint32_t *q = (const uint32_t *)px; size_t m = (size_t)*w * (size_t)*h, i = 1;
+        while (i < m && q[i] == q[0]) i++;
+        if (i < m) return px;
+    }
     if (px) stbi_image_free(px);
     return NULL;
 }
@@ -505,12 +525,13 @@ static uint32_t bild_be32(const unsigned char *p) { return (uint32_t)p[0] << 24 
 static unsigned long long bild_be64(const unsigned char *p) { return (unsigned long long)bild_be32(p) << 32 | bild_be32(p + 4); }
 static unsigned char *datei_stueck(const char *pfad, unsigned long long ab, size_t n)
 {
-    char p[1024];
+    char p[1024]; int pl;
 #ifdef VORSCHAU
-    const char *w = getenv("VORSCHAU_WURZEL"); snprintf(p, sizeof p, "%s%s", w ? w : "", pfad);
+    const char *w = getenv("VORSCHAU_WURZEL"); pl = snprintf(p, sizeof p, "%s%s", w ? w : "", pfad);
 #else
-    snprintf(p, sizeof p, "%s", pfad);
+    pl = snprintf(p, sizeof p, "%s", pfad);
 #endif
+    if (pl < 0 || (size_t)pl >= sizeof p) return NULL;          /* Codex-Prüfung 132: nie einen gekürzten Pfad öffnen */
     /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): das Bild einer Spieldatei liegt oft weit hinten im Abbild - bis LONG_MAX (PS5: 64 Bit) */
     if (n == 0 || n > 4u * 1024 * 1024 || ab > (unsigned long long)LONG_MAX) return NULL;
     FILE *f = fopen(p, "rb"); if (!f) return NULL;
@@ -579,22 +600,28 @@ static unsigned char *ucp_bild(const char *npwr, size_t *n)
 }
 static kern *K;
 /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Spieldatei oder Spiel-Ordner ohne Kachel - das Bild aus dem Spiel selbst. Wo es liegt, hat die
- * Suche gemerkt (BILD_ORT: "Pfad\nAnfang\nLänge", Länge 0 = die ganze Datei icon0.png eines Spiel-Ordners); gelesen wird es nur hier. */
+ * Suche gemerkt (BILD_ORT: "Pfad\nAnfang\nLänge", Länge 0 = die ganze Datei icon0.png eines Spiel-Ordners); gelesen wird es nur hier.
+ * NEU 1.0.9 (#144): vierte Zeile "pfsc <Anfang> <Länge>" - das Bild liegt in einem gepackten Abbild (.ffpfsc), Anfang ist dann die Stelle
+ * im entpackten Abbild; gelesen wird es über kern_pfsc (nur die nötigen 64-KB-Blöcke). Zerlegt wird BILD_ORT seit der Codex-Prüfung 130
+ * im Kern (kern_bild_ort_lesen, dort im Test geprüft). NEU #149: Zeile "teile ..." - das Bild liegt in Stücken; gepackt oder in Stücken
+ * liest es der Kern (kern_bild_lesen, ebenfalls im Test geprüft). */
 static unsigned char *spiel_bild(const char *id, size_t *n)
 {
-    if (!K || !mt_hat(&K->BILD_ORT, id)) return NULL;
-    const char *o = mt_hole(&K->BILD_ORT, id);
-    const char *z1 = o ? strchr(o, '\n') : NULL, *z2 = z1 ? strchr(z1 + 1, '\n') : NULL;
-    if (!z1 || !z2 || z1 == o || (size_t)(z1 - o) >= 1000) return NULL;
-    char pfad[1024]; memcpy(pfad, o, (size_t)(z1 - o)); pfad[z1 - o] = 0;
-    char *ende = NULL;
-    unsigned long long ab = strtoull(z1 + 1, &ende, 10);
-    if (ende != z2) return NULL;
-    unsigned long long len = strtoull(z2 + 1, &ende, 10);
-    if (!ende || *ende) return NULL;
+    kern_bild_ort b;
+    if (!K || !mt_hat(&K->BILD_ORT, id) || !kern_bild_ort_lesen(mt_hole(&K->BILD_ORT, id), &b)) return NULL;
     size_t m = 0; unsigned char *d;
-    if (len == 0) d = datei_lesen(pfad, &m);
-    else { if (len < 8 || len > 4u * 1024 * 1024) return NULL; d = datei_stueck(pfad, ab, (size_t)len); m = (size_t)len; }
+    if (b.gepackt || b.teile_n) {                               /* NEU 1.0.9: im gepackten Abbild und/oder in Stücken (#149) */
+        char p[1100]; int pl;
+#ifdef VORSCHAU
+        const char *w = getenv("VORSCHAU_WURZEL"); pl = snprintf(p, sizeof p, "%s%s", w ? w : "", b.pfad);
+#else
+        pl = snprintf(p, sizeof p, "%s", b.pfad);
+#endif
+        if (pl < 0 || (size_t)pl >= sizeof p) return NULL;          /* Codex-Prüfung 131: nie einen gekürzten Pfad öffnen */
+        d = kern_bild_lesen(p, &b); m = (size_t)b.len;
+    }
+    else if (b.len == 0) d = datei_lesen(b.pfad, &m);
+    else { if (b.len < 8 || b.len > 4u * 1024 * 1024) return NULL; d = datei_stueck(b.pfad, b.ab, (size_t)b.len); m = (size_t)b.len; }
     if (d && (m < 8 || memcmp(d, "\x89PNG", 4) != 0)) { free(d); d = NULL; }
     if (d) *n = m;
     return d;
@@ -684,7 +711,10 @@ static const char *bild_kennung(const eintrag *f)
     const char *pid = NULL;
     for (int j = 0; j < f->PfadeBasis.n; j++) {
         m = h_mt(fa, f->PfadeBasis.e[j], "/((?:CUSA|PPSA)\\d{5})(?:/|$)");
-        if (!m.ok) continue;
+        /* NEU 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8: "Leere Aufnahme-Zwischenordner" mit PPSA01650 und PSCL00002 zeigte das Bild
+         * von Y2JB): ein Ordner mit einer anderen Kennung (PS5 Cleanup, Homebrew, Systemprogramm) gehört zu einem anderen Programm - dann
+         * hier kein Bild (bis 1.0.8 wurde er übersprungen). Kachel, Spielname, Tool und Trophäen oben gehen weiter vor. */
+        if (!m.ok) { if (h_m(f->PfadeBasis.e[j], "/[A-Z]{4}\\d{5}(?:/|$)")) return NULL; continue; }
         if (pid && strcmp(pid, m.gr[1])) return NULL;
         pid = m.gr[1];
     }
@@ -882,6 +912,7 @@ static void ui_log(void *c, const char *t)
     pthread_mutex_unlock(&G.m);
     printf("PS5 Cleanup: %s\n", t ? t : ""); fflush(stdout);
     plattform_protokoll_zeile(t);                  /* NEU 1.0.7: auch ins Kernel-Protokoll */
+    fern_zeile(t);                                 /* NEU 1.0.9: auch für die Seite "Protokoll" im Browser */
 #ifdef MITSCHNITT
     ms_zeile('P', t ? t : "", NULL, NULL);         /* NEU 1.0.8 (2.7): jede Zeile des Protokolls auch in den Mitschnitt */
 #endif
@@ -1386,6 +1417,9 @@ static void lauf_suchen(void *x)
     pruefausgabe();
     speicher_zeile(T("Nachschauen fertig", "scan finished"));
 }
+static volatile int such_nr = 0;   /* NEU 1.0.9 (Browser): zählt jedes fertige Nachschauen - Befehle zu einer alten Liste gelten nicht */
+static volatile int nachschau_nr = 0;   /* NEU 1.0.9 (Codex-Prüfung 145, P3): zählt nur fertige Nachschauen (Auftrag "Nachschauen") - danach
+                                         * zeigt der Browser erst die Übersicht, wie der Fernseher; unabhängig davon, wann er nachfragt */
 static void *arbeit(void *x)
 {
     auftrag a = (auftrag)(intptr_t)x;
@@ -1416,6 +1450,9 @@ static void *arbeit(void *x)
         pthread_mutex_unlock(&rm_m);
     } else { K->RM_ERFASSEN = false; rm_loeschen_merken(); }   /* auch nach einem Abbruch (dann gibt es keinen Endbildschirm) */
     basis_schritt = T("Liste/Menü", "list/menu");
+    if (a == AUF_SUCHEN && GESUCHT) __atomic_add_fetch(&nachschau_nr, 1, __ATOMIC_ACQ_REL);
+    __atomic_add_fetch(&such_nr, 1, __ATOMIC_ACQ_REL);   /* NEU 1.0.9: neue Liste für den Browser - nach jeder Arbeit, auch nach dem Löschen (danach
+                                                          * schaut der Kern neu nach; Codex-Prüfung 140, P2) */
     G.beschaeftigt = false; neu_zeichnen();
     return NULL;
 }
@@ -1451,7 +1488,8 @@ static SDL_Window *fenster;
 
 /* Codex-Prüfung 80: 0 heißt "keine Meldung" - fiele das Ende beim Überlauf der Uhr genau auf 0, stünde dort 1 */
 static void hinweis_dauer(Uint32 ms) { hinweis_bis = SDL_GetTicks() + ms; if (!hinweis_bis) hinweis_bis = 1; }
-static void kurz(const char *t) { snprintf(hinweis_kurz, sizeof hinweis_kurz, "%s", t); hinweis_dauer(4000); neu_zeichnen(); }
+static int hinweis_nr = 0;   /* NEU 1.0.9: zählt die kurzen Meldungen (die Seite im Browser zeigt jede einmal) */
+static void kurz(const char *t) { snprintf(hinweis_kurz, sizeof hinweis_kurz, "%s", t); hinweis_dauer(4000); hinweis_nr++; neu_zeichnen(); }
 /* NEU 1.0.8 (Arbeitsplan 3.6, da_Chris86 05.11.2026 20:33/20:41): Testmodus wie der Haken der Windows-Fassung - beim Start an, dann wird nur
  * angeschaut; Löschen geht erst, wenn er im Options-Menü aus ist. Die App merkt sich das nicht (bei jedem Start wieder an). Damit gibt es
  * beim Veröffentlichen nur noch eine ELF. */
@@ -1519,6 +1557,52 @@ static void ecken_maske(int x, int y, int w, int h, int r, uint32_t hg)
     }
 }
 /* Kopf: Logo, Name, Version, Hinweis-Abzeichen der Testfassungen, Schritte 1-2-3 rechts. schritt = aktueller Schritt (1..3), 4 = alle erledigt */
+/* =================================================================== NEU 1.0.9: Update-Hinweis (da_Chris86 08.11.2026 01:16: bei jedem Start)
+ * Beim Start fragt ein eigener Faden GitHub nach der neuesten veröffentlichten Version (plattform_neueste_version, nur lesen). Ist sie
+ * neuer, steht auf der Startseite oben "Neue Version x" und einmal kommt eine kurze Meldung, wo es sie gibt. Ohne Netz oder ohne Antwort
+ * passiert nichts (nur eine Zeile im Protokoll). Gespeichert wird nichts. */
+static pthread_mutex_t upd_m = PTHREAD_MUTEX_INITIALIZER;
+static char upd_neu[32];                /* neuere Version laut GitHub (ohne "v"), "" = keine oder unbekannt - unter upd_m */
+static bool upd_gezeigt = false;        /* kurze Meldung schon gezeigt (nur Hauptfaden) */
+static const char *kopf_update = NULL;  /* setzt schirm_start für kopf_neu (nur auf der Startseite) */
+static void upd_holen(char *v, size_t n) { pthread_mutex_lock(&upd_m); snprintf(v, n, "%s", upd_neu); pthread_mutex_unlock(&upd_m); }
+static void *upd_faden(void *x)
+{
+    (void)x;
+    char tag[64] = "", grund[400] = "", z[700];   /* 1.0.9 (Codex-Prüfung 145): Platz für die Rückgabewerte des zweiten Versuchs */
+    bool ok = plattform_neueste_version(VERSION_NUMMER, tag, sizeof tag, grund, sizeof grund);
+    const char *v = tag[0] == 'v' || tag[0] == 'V' ? tag + 1 : tag;
+    if (!ok) snprintf(z, sizeof z, T("Update-Prüfung: keine Antwort (%s).", "Update check: no answer (%s)."), grund);
+    else if (!kern_version_gueltig(tag) || strlen(v) >= sizeof upd_neu) snprintf(z, sizeof z, "%s", T("Update-Prüfung: unbekannte Versionsangabe von GitHub.", "Update check: unknown version from GitHub."));
+    else if (kern_version_neuer(tag, VERSION_NUMMER)) {
+        pthread_mutex_lock(&upd_m); snprintf(upd_neu, sizeof upd_neu, "%.31s", v); pthread_mutex_unlock(&upd_m);   /* Länge oben geprüft */
+        snprintf(z, sizeof z, T("Update-Prüfung: Es gibt eine neuere Version: PS5 Cleanup %s (github.com/xXBneutzerNameXx/PS5-Cleanup).",
+                                "Update check: a newer version is available: PS5 Cleanup %s (github.com/xXBneutzerNameXx/PS5-Cleanup)."), v);
+    } else snprintf(z, sizeof z, T("Update-Prüfung: keine neuere Version (bei GitHub: %s).", "Update check: no newer version (on GitHub: %s)."), v);
+    if (ok && grund[0]) {   /* NEU 1.0.9: z. B. zweiter Versuch ohne Zertifikatsprüfung (plattform_ps5.c) - offen ins Protokoll */
+        size_t l = strlen(z); snprintf(z + l, sizeof z - l, " (%s)", grund);
+    }
+    ui_log(NULL, z);
+    neu_zeichnen();
+    return NULL;
+}
+static void upd_starten(void)
+{
+    pthread_t t;
+    if (basis_faden(&t, upd_faden, NULL) == 0) pthread_detach(t);
+    else ui_log(NULL, T("Update-Prüfung: nicht gestartet (kein Faden).", "Update check: not started (no thread)."));
+}
+static void upd_anzeigen(void)   /* aus der Hauptschleife: einmal eine kurze Meldung, solange die Startseite vor dem ersten Nachschauen zu sehen ist */
+{
+    if (upd_gezeigt || G.beschaeftigt || G.art != D_KEINER || GESUCHT || optionen_offen || protokoll_offen) return;
+    char v[32]; upd_holen(v, sizeof v);
+    if (!v[0]) return;
+    upd_gezeigt = true;
+    char t[300];
+    snprintf(t, sizeof t, T("Es gibt eine neuere Version: PS5 Cleanup %s. Zu finden auf GitHub (xXBneutzerNameXx/PS5-Cleanup).",
+                            "A newer version is available: PS5 Cleanup %s. You can find it on GitHub (xXBneutzerNameXx/PS5-Cleanup)."), v);
+    kurz(t); hinweis_dauer(10000);
+}
 static void kopf_neu(int schritt, const char *satz)
 {
     int lg = satz ? 72 : 64, cy = RAND_O + lg / 2;
@@ -1544,13 +1628,32 @@ static void kopf_neu(int schritt, const char *satz)
     if (testmodus) {   /* NEU 1.0.8 (3.6): solange er an ist, immer sichtbar */
         const char *h = T("TESTMODUS", "TEST MODE"); int hb = textbreite(1, 22, h) + 28;
         rund(hx, ty - 29, hb, 36, 18, farbmisch(N_GELB, N_HG, .16f)); text(hx + 14, ty - 4, 1, 22, N_GELB, h);
+        hx += hb + 12;
     }
 #endif
-    if (satz) text(x, RAND_O + 76, 0, 24, N_GRAU, kuerzen(0, 24, satz, BREITE - x - 860));
+    if (kopf_update) {   /* NEU 1.0.9: neuere Version bei GitHub (nur auf der Startseite) */
+        const char *h = a_fmt(fa, T("Neue Version %s", "New version %s"), kopf_update); int hb = textbreite(1, 22, h) + 28;
+        rund(hx, ty - 29, hb, 36, 18, farbmisch(N_GRUEN, N_HG, .16f)); text(hx + 14, ty - 4, 1, 22, N_GRUEN, h);
+        hx += hb + 12;
+    }
     const char *sn[3] = { T("Nachschauen", "Scan"), T("Auswählen", "Select"), T("Bestätigen", "Confirm") };
     int ges = 0;
     for (int i = 0; i < 3; i++) ges += 44 + 12 + textbreite(i + 1 == schritt ? 1 : 0, 24, sn[i]) + (i < 2 ? 14 + 40 + 14 : 0);
     int sx = BREITE - RAND_X - ges;
+    if (fern_aktiv(8000)) {   /* NEU 1.0.9: solange jemand im Browser bedient (die Seite fragt laufend nach) */
+        /* da_Chris86 08.11.2026 21:39 (Bild): mit der langen Testlauf-Versionsangabe und TESTMODUS lag die Pille über "1 Nachschauen" -
+         * nur so viel zeichnen, wie vor den Schritten Platz hat: ganz, kurz, nur ein Punkt oder gar nicht */
+        const char *h = T("IM BROWSER", "IN BROWSER"); int hb = textbreite(1, 22, h) + 28, platz = sx - 24 - hx;
+        int py = ty;
+        if (hb > platz && satz) {   /* zweite Zeile, hinter dem Satz */
+            int sb = textbreite(0, 24, kuerzen(0, 24, satz, BREITE - x - 860));
+            hx = x + sb + 20; py = RAND_O + 76 + 3; platz = sx - 24 - hx;
+        }
+        if (hb > platz) { h = "BROWSER"; hb = textbreite(1, 22, h) + 28; }
+        if (hb <= platz) { rund(hx, py - 29, hb, 36, 18, farbmisch(N_FOKUS, N_HG, .16f)); text(hx + 14, py - 4, 1, 22, N_FOKUS, h); }
+        else if (36 <= platz) { rund(hx, py - 29, 36, 36, 18, farbmisch(N_FOKUS, N_HG, .16f)); kreis(hx + 18, py - 11, 7, N_FOKUS); }
+    }
+    if (satz) text(x, RAND_O + 76, 0, 24, N_GRAU, kuerzen(0, 24, satz, BREITE - x - 860));
     for (int i = 0; i < 3; i++) {
         int nr = i + 1; char z[4]; snprintf(z, sizeof z, "%d", nr);
         if (nr < schritt) { kreis(sx + 22, cy, 22, N_BLAU); symbol(SYM_HAKEN, sx + 11, cy - 11, 22, 0xFFFFFF); }
@@ -1712,18 +1815,28 @@ static const char *testmodus_satz(void)
                      : T("Löschen möglich, die App fragt vorher nach. ✕ schaltet ihn wieder ein.", "Deleting possible, the app asks first. ✕ switches it on again.");
 #endif
 }
-static void start_optionen(void)   /* Startseite: Testmodus, Protokoll & Rückmeldung */
+/* NEU 1.0.9: Bedienung im Browser - Zeile im Options-Menü (Startseite und Auswahl, immer als letzte) */
+static const char *fern_zeile_opt(void) { return T("Browser-Bedienung", "Browser control"); }
+static const char *fern_satz(void)
 {
-    const char *z[2] = { testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback") };
-    const char *u[2] = { testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback") };
-    const float *sy[2] = { SYM_SCHILD_HAKEN, SYM_DOKUMENT };
-    optionen_zeichnen(z, u, sy, 2);
+    if (!fern_an()) return T("Nicht verfügbar - der Grund steht im Protokoll.", "Not available - the reason is in the log.");
+    char a[64]; fern_adresse(a, sizeof a);
+    return a_fmt(fa, T("%s · ✕ zeigt die Adresse als QR-Code", "%s · ✕ shows the address as a QR code"), a);
+}
+static void start_optionen(void)   /* Startseite: Testmodus, Protokoll & Rückmeldung, Browser-Bedienung (1.0.9) */
+{
+    const char *z[3] = { testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback"), fern_zeile_opt() };
+    const char *u[3] = { testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback"), fern_satz() };
+    const float *sy[3] = { SYM_SCHILD_HAKEN, SYM_DOKUMENT, SYM_KONSOLE };
+    optionen_zeichnen(z, u, sy, 3);
 }
 static void schirm_start(void)
 {
     rechteck(0, 0, BREITE, HOEHE, N_HG);
     bool fertig = GESUCHT && ablauf_verbunden(&A);
+    { char un[32]; upd_holen(un, sizeof un); kopf_update = un[0] ? a_kopie(fa, un) : NULL; }   /* NEU 1.0.9 */
     kopf_neu(fertig ? 2 : 1, T("Löscht nur, was du auswählst. System, Konto und Lizenzen bleiben.", "Deletes only what you select. System, account and licenses stay."));
+    kopf_update = NULL;
     /* drei Karten: Konsole, Laufwerks-Kopplung, Jailbreak */
     int ky = RAND_O + 78 + 32, kh = 146, kw = (BREITE - 2 * RAND_X - 48) / 3;
     const char *reihe = K->MODELL_TYP[0] ? kern_modell_reihe(K->MODELL_TYP, K->MODELL_DIGITAL) : T("Unbekanntes Modell", "Unknown model");
@@ -1871,6 +1984,11 @@ static void schirm_start(void)
     fussknopf kn[3] = { { KN_OPT, T("Optionen", "Options"), false }, { KN_O, T("halten: Beenden", "hold: Quit"), false },
                         { KN_QUADRAT, SP_EN ? "Deutsch" : "English", true } };
     fuss_neu(kn, fertig ? 2 : 3);
+    if (fern_an() && !optionen_offen && !(hinweis_bis && (Sint32)(hinweis_bis - SDL_GetTicks()) > 0)) {   /* NEU 1.0.9: Adresse der Browser-Bedienung */
+        char ad[64]; fern_adresse(ad, sizeof ad); const char *t1 = T("Im Browser: ", "In a browser: ");
+        int w1 = textbreite(0, 24, t1), w2 = textbreite(1, 24, ad), x0 = BREITE / 2 - (w1 + w2) / 2, cy = HOEHE - RAND_U - 32;
+        text(x0, cy + 9, 0, 24, N_GRAU, t1); text(x0 + w1, cy + 9, 1, 24, N_FOKUS, ad);
+    }
     if (optionen_offen) start_optionen();
 }
 
@@ -1898,6 +2016,26 @@ static eintrag *al_markiert(void)
 }
 /* Blöcke des Bereichs k; Harmloses ("es geht nichts verloren") als ein Block "Reste" ganz unten (ab zwei, nie bei Spielen und
  * Jailbreak - wie bis 1.0.7). Der markierte Eintrag bleibt beim Umsortieren markiert. */
+static int bloecke_holen(arena *ar, int k, int sort, kblock **aus)   /* NEU 1.0.9: aus al_ordnen (auch für den Browser) */
+{
+    kblock *bl = NULL; int nb = kern_bloecke(K, ar, k, sort, &bl), nr = 0;
+#define ALS_REST(x) (!kern_bereiche_106() && k != 1 && k != 7 && (x)->teile.n == 1 && ist_rest((x)->kopf))
+    for (int b = 0; b < nb; b++) if (ALS_REST(&bl[b])) nr++;
+    if (nr >= 2) {
+        kblock *neu = a_hole(ar, sizeof(kblock) * (size_t)(nb - nr + 1));
+        kblock r; memset(&r, 0, sizeof r); r.kopf = &RESTE_ZEILE; r.groesse_da = true; r.name = T("Reste", "Leftovers");
+        int n = 0;
+        for (int b = 0; b < nb; b++) {
+            if (!ALS_REST(&bl[b])) { neu[n++] = bl[b]; continue; }
+            pl_add(ar, &r.teile, bl[b].kopf);
+            if (!bl[b].groesse_da) r.groesse_da = false; else r.bytes += bl[b].bytes;
+            if (bl[b].gekappt) r.gekappt = true;
+        }
+        neu[n++] = r; bl = neu; nb = n;
+    }
+#undef ALS_REST
+    *aus = bl; return nb;
+}
 static void al_ordnen(int k)
 {
     if (k == AL.k && AL.funde_n == K->Funde.n && AL.funde_e == (void *)K->Funde.e && AL.hg == A.hg_n && AL.sort == sortierung) return;
@@ -1909,22 +2047,7 @@ static void al_ordnen(int k)
     if (k != AL.k) { al_b = 0; al_t = -1; al_py = 0; }
     if (AL.a) arena_frei(AL.a);
     AL.a = arena_neu();
-    kblock *bl = NULL; int nb = kern_bloecke(K, AL.a, k, sortierung, &bl), nr = 0;
-#define ALS_REST(x) (!kern_bereiche_106() && k != 1 && k != 7 && (x)->teile.n == 1 && ist_rest((x)->kopf))
-    for (int b = 0; b < nb; b++) if (ALS_REST(&bl[b])) nr++;
-    if (nr >= 2) {
-        kblock *neu = a_hole(AL.a, sizeof(kblock) * (size_t)(nb - nr + 1));
-        kblock r; memset(&r, 0, sizeof r); r.kopf = &RESTE_ZEILE; r.groesse_da = true; r.name = T("Reste", "Leftovers");
-        int n = 0;
-        for (int b = 0; b < nb; b++) {
-            if (!ALS_REST(&bl[b])) { neu[n++] = bl[b]; continue; }
-            pl_add(AL.a, &r.teile, bl[b].kopf);
-            if (!bl[b].groesse_da) r.groesse_da = false; else r.bytes += bl[b].bytes;
-            if (bl[b].gekappt) r.gekappt = true;
-        }
-        neu[n++] = r; bl = neu; nb = n;
-    }
-#undef ALS_REST
+    kblock *bl = NULL; int nb = bloecke_holen(AL.a, k, sortierung, &bl);
     AL.bl = bl; AL.n = nb; AL.k = k; AL.funde_n = K->Funde.n; AL.funde_e = (void *)K->Funde.e; AL.hg = A.hg_n; AL.sort = sortierung;
     if (merk) {
         bool da = false;
@@ -1973,10 +2096,10 @@ static void eintrag_umschalten(eintrag *f)
 /* Teile, die ✕ auf dem Kopf nicht mit anhakt: was endgültig weg ist oder nur einzeln geht (wie bei "ganzen Bereich wählen") */
 static bool nur_einzeln_teil(int b, const eintrag *f) { (void)b; return f->Rot || f->NurEinzeln || f->Paket; }   /* Paket: Codex-Prüfung 90; Codex-Prüfung 98: auch bei den Resten */
 /* ✕ auf dem Kopf eines Blocks: alle anderen Teile an bzw. aus. Abwählen nimmt alles raus. Bei den Resten geht alles. */
-static void al_block_setzen(int b)
+static void block_setzen_p(const pliste *p, bool reste, bool browser)   /* NEU 1.0.9: aus al_block_setzen (auch für den Browser) */
 {
-    const pliste *p = &AL.bl[b].teile; const char *g;
-    if (p->n == 1 && AL.bl[b].kopf != &RESTE_ZEILE) { eintrag_umschalten(p->e[0]); return; }
+    const char *g; const int b = 0;
+    if (p->n == 1 && !reste) { eintrag_umschalten(p->e[0]); return; }
     int frei = 0, an = 0, alle_an = 0;
     for (int i = 0; i < p->n; i++) {
         eintrag *f = p->e[i]; if (ablauf_eintrag_gesperrt(&A, f, &g)) continue;
@@ -1984,7 +2107,11 @@ static void al_block_setzen(int b)
         if (nur_einzeln_teil(b, f)) continue;
         frei++; if (f->Wahl) an++;
     }
-    if (frei == 0 && alle_an == 0) { kurz(T("Diese Teile nur einzeln anhaken: mit ↓ in den Block, dann ✕.", "Tick these parts one by one: ↓ into the block, then ✕.")); return; }
+    if (frei == 0 && alle_an == 0) {
+        kurz(browser ? T("Diese Teile nur einzeln anhaken: den Block aufklappen und einzeln wählen.", "Tick these parts one by one: open the block and select them individually.")
+                     : T("Diese Teile nur einzeln anhaken: mit ↓ in den Block, dann ✕.", "Tick these parts one by one: ↓ into the block, then ✕."));
+        return;
+    }
     bool ein = frei > 0 && an < frei;
     for (int i = 0; i < p->n; i++) {
         eintrag *f = p->e[i]; if (ablauf_eintrag_gesperrt(&A, f, &g)) continue;
@@ -1992,6 +2119,7 @@ static void al_block_setzen(int b)
         if (f->Wahl != ein) ablauf_eintrag_setzen(&A, f, ein);
     }
 }
+static void al_block_setzen(int b) { block_setzen_p(&AL.bl[b].teile, AL.bl[b].kopf == &RESTE_ZEILE, false); }
 static void al_schritt(int d)
 {
     if (AL.n <= 0) return;
@@ -2312,17 +2440,17 @@ static void leisten_knopf(int x, int y, int w, int h, bool an, bool rot, knopfar
     text(gx + 50, cy + 9, 1, 26, tf, t);
 }
 static int leisten_knopf_breite(const char *t) { return 36 + 14 + textbreite(1, 26, t) + 2 * 26; }
-static void al_optionen(void)   /* Auswahl: Reihenfolge, Ordner anzeigen, Testmodus, Protokoll & Rückmeldung */
+static void al_optionen(void)   /* Auswahl: Reihenfolge, Ordner anzeigen, Testmodus, Protokoll & Rückmeldung, Browser-Bedienung (1.0.9) */
 {
-    const char *z[4] = { sortierung == SORT_AZ ? T("Reihenfolge: A–Z", "Order: A–Z") : T("Reihenfolge: größte zuerst", "Order: largest first"),
+    const char *z[5] = { sortierung == SORT_AZ ? T("Reihenfolge: A–Z", "Order: A–Z") : T("Reihenfolge: größte zuerst", "Order: largest first"),
                          ordner_zeigen ? T("Ordner anzeigen: an", "Show folders: on") : T("Ordner anzeigen: aus", "Show folders: off"),
-                         testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback") };
-    const char *u[4] = { sortierung == SORT_AZ ? T("✕ stellt um auf: größte zuerst", "✕ switches to: largest first") : T("✕ stellt um auf: A–Z", "✕ switches to: A–Z"),
+                         testmodus_zeile(), T("Protokoll & Rückmeldung", "Log & feedback"), fern_zeile_opt() };
+    const char *u[5] = { sortierung == SORT_AZ ? T("✕ stellt um auf: größte zuerst", "✕ switches to: largest first") : T("✕ stellt um auf: A–Z", "✕ switches to: A–Z"),
                          ordner_zeigen ? T("✕ blendet die Ordner im Kasten rechts wieder aus", "✕ hides the folders in the box on the right again")
                                        : T("✕ zeigt im Kasten rechts, in welchen Ordnern es liegt", "✕ shows in the box on the right which folders it is in"),
-                         testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback") };
-    const float *sy[4] = { SYM_SORTIEREN, SYM_SSD, SYM_SCHILD_HAKEN, SYM_DOKUMENT };
-    optionen_zeichnen(z, u, sy, 4);
+                         testmodus_satz(), T("Was bisher passiert ist, dazu die freiwillige Rückmeldung", "What happened so far, plus the optional feedback"), fern_satz() };
+    const float *sy[5] = { SYM_SORTIEREN, SYM_SSD, SYM_SCHILD_HAKEN, SYM_DOKUMENT, SYM_KONSOLE };
+    optionen_zeichnen(z, u, sy, 5);
 }
 /* ---- eine Zeile der Liste: Kopf eines Blocks (zweizeilig) bzw. Teil eines aufgeklappten Blocks */
 /* Schildchen eines Blocks ohne Auswahl (Kopf bzw. einzige Zeile) - und ob es im ganzen Bereich gleich ist */
@@ -2395,7 +2523,9 @@ static void al_kopf_zeile(int ox, int ow, int ry, int b, int k, bool fok, const 
     if (!zeigen && !was[0] && textbreite(1, 24, name) <= b1) {   /* nichts für die zweite Zeile: der Name steht in der Mitte */
         int nb = name_zeichnen(nx, cy + 10, 1, 26, 24, nf, name, b1, fok, f0);
         if (ok[0]) ort_schild(nx + nb + 12, cy, ok);
-    } else if (textbreite(1, 24, name) > b1) {   /* langer Name: auf beide Zeilen verteilt (der Zusatz steht dann im Kasten rechts) */
+    } else if (textbreite(1, 24, name) > b1 && !was[0]) {   /* langer Name ohne Zusatz: auf beide Zeilen verteilt */
+        /* 1.0.9 (PS5-Test 09.11.2026 20:15, da_Chris86: bei Vice City fehlte "1 Screenshot, 1 Video" bzw. "2 Teile"): mit Zusatz bleibt der
+         * Name auf der ersten Zeile (gekürzt, im Fokus als Laufschrift ganz) und der Zusatz steht darunter - er geht nicht mehr verloren */
         zeilen zl = umbrechen(1, 24, name, b1);
         const char *rest = "";
         if (zl.n > 1) { rest = name + strlen(zl.z[0]); while (*rest == ' ') rest++; }
@@ -2422,7 +2552,10 @@ static void al_teil_zeile(int ox, int ow, int ry, int b, int t, int k, bool fok,
     int gw = textbreite(0, 24, gr);
     text(gx - gw, cy + 9, 0, 24, N_TEXT2, gr);
     int rechts = gx - (gw > 96 ? gw : 96) - 18;
-    const char *sch = schild_text(f, k); int sa = kern_ampel(f), sw = gleich && !strcmp(sch, gleich) ? -14 : schild_breite(sch);   /* steht schon oben */
+    /* NEU 1.0.9 (da_Chris86 09.11.2026 15:55): aufgeklappt hat jeder Teil sein Schild, auch wenn es oben schon steht ("Wo nichts anderes
+     * steht") - rechts im Kasten stand es, in der Liste fehlte es (ShadowMount-Kachel "kommt wieder"). Die zugeklappte Zeile bleibt ruhig. */
+    const char *sch = schild_text(f, k); int sa = kern_ampel(f), sw = sch && sch[0] ? schild_breite(sch) : -14;
+    (void)gleich;
     if (sw > 0) schild(rechts - sw, cy, sa, sch, hg);
     const char *ok = ort_kurz(anzeige_ort(f)); int ow2 = ok[0] ? ort_breite(ok) + 12 : 0;
     const char *name = bl->kopf == &RESTE_ZEILE ? ohne_ort_vorne(kern_zeile(fa, f)) : ohne_jb_start(teil_name(b, f), k);
@@ -2563,6 +2696,7 @@ static void schirm_liste(void)
  * (Loslassen bricht ab). Die Frage selbst stellt der Kern wie bisher (frage_wahl) - Mitschnitt und Nachbau bleiben gleich. */
 #define HALTEN_MS 1500
 static Uint32 x_seit = 0;   /* ✕ auf "Löschen" gehalten seit (0 = nicht) */
+static bool tv_geschluckt[SDL_CONTROLLER_BUTTON_MAX];           /* NEU 1.0.9: Taste am Controller verbraucht (tv_vorrang) - ihr Loslassen auch */
 static bool x_vom_pad = false;   /* NEU 1.0.8 (Codex-Prüfung 76): das Halten kam vom Controller (dann wird sein Zustand mitgeprüft) */
 static SDL_GameController *pad;  /* (steht weiter unten bei pad_oeffnen) */
 static bool bestaetigen_aktiv(void) { return (G.art == D_WAHL || G.art == D_TEXT) && G.bestaetigen; }   /* Codex-Prüfung 76: ohne G.titel (der Arbeitsfaden kann ihn freigeben) */
@@ -2574,7 +2708,7 @@ static bool halten_start(void)   /* ✕ gedrückt: auf "Löschen" beginnt das Ha
     if (!bestaetigen_aktiv() || G.art != D_WAHL || dlg_fokus != 1 || G.dlg_nr != dlg_gesehen || SDL_GetTicks() - dlg_seit < 400) return false;
     if (protokoll_offen || optionen_offen) return false;   /* Codex-Prüfung 76: nie unter der Protokoll-Ansicht bestätigen */
     x_seit = SDL_GetTicks(); if (!x_seit) x_seit = 1;
-    x_vom_pad = false;
+    x_vom_pad = false;   /* wer hält, setzt der Aufrufer danach */
     neu_zeichnen();
     return true;
 }
@@ -2908,7 +3042,7 @@ static void schirm_arbeit(void)
 #ifndef RUECKMELDUNG_ADRESSE
 #define RUECKMELDUNG_ADRESSE "https://feedback.ps5cleanup.workers.dev/r"
 #endif
-#define RUECKMELDUNG_VERSION "1.0.8"                  /* 06.11.2026: 1.0.8 - die Rückmeldeseite vergleicht damit (NEUESTE_VERSION in rueckmeldung/wrangler.toml) */
+#define RUECKMELDUNG_VERSION VERSION_NUMMER          /* 06.11.2026: 1.0.8 - die Rückmeldeseite vergleicht damit (NEUESTE_VERSION in rueckmeldung/wrangler.toml); 1.0.9: VERSION_NUMMER */
 #ifdef KERN_LOESCHEN
 #define RUECKMELDUNG_FASSUNG 'r'             /* normale ELF */
 #else
@@ -3636,6 +3770,39 @@ static void vor_selbstweg_app(void *c)
                     : T("Das Protokoll ließ sich nicht als Datei speichern - es steht nur in der Ansicht.", "The log could not be saved as a file - it is only in the log view."));
 }
 
+/* =================================================================== NEU 1.0.9: Bedienung im Browser (fern.c) - am Fernseher
+ * Neu am 08.11.2026 (da_Chris86 16:09-16:12: eigene Seite mit Maus, Tastatur und Touch, kein Fernsehbild, keine Freigabe, "Immer gleich an"):
+ * die Browser-Bedienung läuft ab dem Start; die Adresse steht unten auf der Startseite, im Options-Menü zeigt ✕ sie groß mit QR-Code und
+ * darunter, ob vom Browser schon etwas angekommen ist (da_Chris86 15:48). Bedient jemand im Browser, steht oben "IM BROWSER". */
+static bool fern_info_offen = false;
+static void fern_log(const char *t) { ui_log(NULL, t); }
+static void fern_info_zeigen(void)
+{
+    if (fern_an()) { optionen_offen = false; fern_info_offen = true; neu_zeichnen(); return; }
+    kurz(T("Die Browser-Bedienung ist nicht verfügbar - der Grund steht im Protokoll.", "Browser control is not available - the reason is in the log."));
+}
+static void fern_karte(int w, int h, int *x, int *y) { abdunkeln(); *x = (BREITE - w) / 2; *y = (HOEHE - h) / 2; karte_rund(*x, *y, w, h, 22, 1, N_RAND, N_KARTE); }
+static void schirm_fern_info(void)
+{
+    char a[64]; fern_adresse(a, sizeof a);
+    char st[300]; int sk = fern_kontakt(st, sizeof st);   /* (da_Chris86 08.11.2026 15:48): Port offen - kommt vom Browser etwas an? */
+    int w = 1280, h = 600, x, y; fern_karte(w, h, &x, &y);
+    text(x + 44, y + 72, 1, 34, N_TEXT, T("Bedienung im Browser", "Control in a browser"));
+    int n = qr_kodieren(a), m = n > 0 ? 360 / (n + 8) : 0, qs = n > 0 && m >= 3 ? m * (n + 8) : 0;
+    if (qs) qr_malen(x + 44, y + 112, n, m);
+    int tx = x + 44 + (qs ? qs + 44 : 0), tw = x + w - 44 - tx, yy = y + 146;
+    text(tx, yy, 0, 26, N_GRAU, T("Im Browser am Handy oder PC öffnen:", "Open in a browser on your phone or PC:"));
+    text_passend(tx, yy + 62, 1, 44, 28, N_FOKUS, a, tw);
+    yy += 122;
+    if (st[0]) yy += absatz(tx, yy, 0, 24, sk == 1 ? N_GRUEN : sk == 2 ? N_GELB : N_GRAU, st, tw, 34) + 18;
+    yy += absatz(tx, yy, 0, 24, N_TEXT, T("Einfach öffnen - ohne Anmeldung. Bedienen mit Maus, Tastatur oder Finger. Am Handy geht es auch über den QR-Code.",
+                                          "Just open it - no sign-in. Use mouse, keyboard or touch. On a phone you can also scan the QR code."), tw, 34) + 14;
+    absatz(tx, yy, 0, 24, N_GRAU, T("Gelöscht wird nur nach denselben Fragen wie am Fernseher. Die Seite gibt es nur im Heimnetz und nur, solange PS5 Cleanup läuft.",
+                                    "Deleting needs the same confirmations as on the TV. The page is only available in the home network and only while PS5 Cleanup is running."), tw, 34);
+    int kx = x + 44, ky = y + h - 42;
+    knopf_glyph(KN_O, kx, ky, N_GRAU2, 0xE6EAF0); kx += knopf_breite(KN_O) + 12; text(kx, ky + 9, 0, 24, N_GRAU, T("schließen", "close"));
+}
+
 static void zeichnen(void)
 {
     if (fa) arena_frei(fa);
@@ -3654,6 +3821,8 @@ static void zeichnen(void)
         if (G.art != D_KEINER) schirm_dialog();   /* altes Fenster nur noch: Texteingabe außer der vollständigen Bereinigung, Fertig im Vergleichsmodus 1.0.6 */
     }
     if (protokoll_offen) schirm_protokoll();   /* NEU 1.0.7: auch über einer Frage / dem Abschluss (Options) */
+    if (fern_info_offen && !fern_an()) fern_info_offen = false;   /* NEU 1.0.9: Adresse der Browser-Bedienung mit QR-Code */
+    if (fern_info_offen) schirm_fern_info();
 }
 
 /* =================================================================== Tasten */
@@ -3724,12 +3893,13 @@ static void taste_liste(int t)
     if (optionen_offen) {   /* NEU 1.0.8 (4.3): Options-Menü der Auswahl - Reihenfolge und Protokoll */
         switch (t) {
         case T_HOCH: if (opt_fokus > 0) opt_fokus--; break;
-        case T_RUNTER: if (opt_fokus < 3) opt_fokus++; break;
+        case T_RUNTER: if (opt_fokus < 4) opt_fokus++; break;
         case T_X:
             if (opt_fokus == 0) { sortierung = sortierung == SORT_AZ ? SORT_GROESSTE : SORT_AZ; al_py = 0; }
             else if (opt_fokus == 1) ordner_zeigen = !ordner_zeigen;
             else if (opt_fokus == 2) testmodus_aus_menue();
-            else { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; }
+            else if (opt_fokus == 3) { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; }
+            else fern_info_zeigen();   /* NEU 1.0.9 */
             break;
         case T_KREIS: case T_OPTIONS: optionen_offen = false; break;
         default: break;
@@ -3800,8 +3970,8 @@ static void taste(int t)
     if (fertig && AUSWAHL_OFFEN) { taste_liste(t); return; }
     if (optionen_offen) {   /* NEU 1.0.8 (3.6): Options-Menü der Startseite */
         if (t == T_HOCH && opt_fokus > 0) opt_fokus--;
-        else if (t == T_RUNTER && opt_fokus < 1) opt_fokus++;
-        else if (t == T_X) { if (opt_fokus == 0) testmodus_aus_menue(); else { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; } }
+        else if (t == T_RUNTER && opt_fokus < 2) opt_fokus++;
+        else if (t == T_X) { if (opt_fokus == 0) testmodus_aus_menue(); else if (opt_fokus == 1) { optionen_offen = false; protokoll_offen = true; prot_scroll = 1 << 20; } else fern_info_zeigen(); }
         else if (t == T_KREIS || t == T_OPTIONS) optionen_offen = false;
         return;
     }
@@ -3822,6 +3992,449 @@ static void kreis_gehalten(void)
     if (G.beschaeftigt || A.loescht) { kurz(T("Bitte warten, bis die laufende Arbeit fertig ist.", "Please wait until the current task has finished.")); return; }
     if (G.art != D_KEINER) return;
     laeuft = false;
+}
+/* =================================================================== NEU 1.0.9: Bedienung im Browser - Daten und Befehle
+ * (da_Chris86 08.11.2026 16:09-16:12: "mit Maus und Tastatur ... am Handy mit Touch", "Wieso wird es gestreamt? Das ist doch Quatsch",
+ * keine Freigabe, immer an.) Der Browser bekommt den Zustand der App und die Liste als JSON (fern.c), seine Seite (fern_seite.html) baut
+ * sich daraus selbst auf. Seine Befehle führt der Hauptfaden aus wie einen Tastendruck am Controller - mit denselben Prüfungen: Testmodus,
+ * gesperrte Einträge, "nur einzeln", die Frage muss die gerade gestellte sein (Nummer), "Löschen" erst nach 1,5 s Halten (auch hier
+ * gezählt: frühestens 1,5 s nachdem die Frage erschienen ist), bei der vollständigen Bereinigung genau das Wort LÖSCHEN.
+ * Am Fernseher läuft alles mit: was im Browser passiert, sieht man dort (dieselbe App, derselbe Zustand). */
+static bool tv_vorrang(int t)   /* Tasten am Controller zuerst hierher: die Info-Seite der Browser-Bedienung schließen */
+{
+    if (fern_info_offen) { if (t == T_KREIS || t == T_X || t == T_OPTIONS) fern_info_offen = false; neu_zeichnen(); return true; }
+    return false;
+}
+static int fd_liste_v = 0, fd_info_i = -1, fd_info_fg = -1;
+static bool fd_liste_ok(void) { return GESUCHT && ablauf_verbunden(&A) && !G.beschaeftigt; }
+static void fj_s(cJSON *o, const char *k, const char *v) { cJSON_AddStringToObject(o, k, v ? v : ""); }
+static void fj_n(cJSON *o, const char *k, double v) { cJSON_AddNumberToObject(o, k, v); }
+static void fj_b(cJSON *o, const char *k, bool v) { cJSON_AddBoolToObject(o, k, v); }
+static const char *ampel_t(int a) { return a == AMPEL_ROT ? "r" : a == AMPEL_GELB ? "y" : "g"; }
+/* Zeiger -> Nummer in K->Funde (offene Adressierung, einmal je Liste) */
+typedef struct { const eintrag **k; int *v; int cap; } fd_nr_t;
+static void fd_nr_bauen(fd_nr_t *t, arena *a)
+{
+    t->cap = 16; while (t->cap < K->Funde.n * 2 + 2) t->cap *= 2;
+    t->k = a_hole(a, sizeof(eintrag *) * (size_t)t->cap); t->v = a_hole(a, sizeof(int) * (size_t)t->cap);
+    memset(t->k, 0, sizeof(eintrag *) * (size_t)t->cap);
+    for (int i = 0; i < K->Funde.n; i++) {
+        size_t h = ((uintptr_t)K->Funde.e[i] >> 4) & (size_t)(t->cap - 1);
+        while (t->k[h]) h = (h + 1) & (size_t)(t->cap - 1);
+        t->k[h] = K->Funde.e[i]; t->v[h] = i;
+    }
+}
+static int fd_nr(const fd_nr_t *t, const eintrag *f)
+{
+    if (!f || f == &RESTE_ZEILE) return -1;
+    size_t h = ((uintptr_t)f >> 4) & (size_t)(t->cap - 1);
+    while (t->k[h]) { if (t->k[h] == f) return t->v[h]; h = (h + 1) & (size_t)(t->cap - 1); }
+    return -1;
+}
+/* die Liste: alle Einträge (Nummer = Stelle in K->Funde) und je Bereich die Blöcke wie am Fernseher (größte zuerst, "Reste" unten) */
+static char *fd_liste_json(void)
+{
+    cJSON *o = cJSON_CreateObject();
+    fj_n(o, "fg", such_nr); fj_n(o, "lv", fd_liste_v);
+    cJSON *e = cJSON_AddArrayToObject(o, "e");
+    for (int i = 0; i < K->Funde.n; i++) {
+        eintrag *f = K->Funde.e[i]; cJSON *x = cJSON_CreateObject(); const char *g = NULL;
+        const char *nm, *ws; zeile_teilen(f, f->Kat, &nm, &ws);
+        fj_s(x, "n", nm); if (ws[0]) fj_s(x, "w", ws);
+        fj_s(x, "z", ohne_ort_vorne(kern_zeile(fa, f)));
+        const char *gr = h_trim(fa, ablauf_eintrag_groesse(&A, f)); if (gr[0]) fj_s(x, "g", gr);
+        groesse *gg = kern_eintrag_groesse_in(K, fa, f, true); fj_n(x, "b", gg ? (double)gg->Bytes : -1);
+        fj_s(x, "a", ampel_t(kern_ampel(f))); fj_s(x, "s", schild_text(f, f->Kat));
+        const char *ok = ort_kurz(anzeige_ort(f)); if (ok[0]) fj_s(x, "o", ok);
+        if (ablauf_eintrag_gesperrt(&A, f, &g)) { fj_b(x, "x", true); if (g && g[0]) fj_s(x, "xg", g); }
+        if (f->Jailbreak) fj_b(x, "j", true);
+        if (nur_einzeln_teil(0, f)) fj_b(x, "e", true);
+        const char *bid = bild_kennung(f); if (bid && strlen(bid) < 16) fj_s(x, "i", bid);
+        fj_n(x, "k", f->Kat);
+        cJSON_AddItemToArray(e, x);
+    }
+    fd_nr_t nr; fd_nr_bauen(&nr, fa);
+    cJSON *br = cJSON_AddArrayToObject(o, "bereiche");
+    for (int ki = 0; ki < KAT_ANZ; ki++) {
+        int k = ALLE_KAT[ki]; cJSON *b = cJSON_CreateObject();
+        fj_n(b, "k", k); fj_s(b, "name", kern_kat_name(k)); fj_s(b, "info", kern_kat_info(k)); fj_b(b, "einzeln", ablauf_bereich_nur_einzeln(&A, k));
+        cJSON *bl = cJSON_AddArrayToObject(b, "bl");
+        kblock *x = NULL; int nb = bloecke_holen(fa, k, SORT_GROESSTE, &x);
+        for (int i = 0; i < nb; i++) {
+            cJSON *y = cJSON_CreateObject(); bool reste = x[i].kopf == &RESTE_ZEILE;
+            fj_n(y, "kopf", reste ? -1 : fd_nr(&nr, x[i].kopf));
+            fj_s(y, "name", x[i].name ? x[i].name : "");
+            fj_s(y, "g", x[i].groesse_da ? groesse_von(fa, x[i].bytes, x[i].gekappt) : "…");
+            fj_n(y, "b", x[i].groesse_da ? (double)x[i].bytes : -1);
+            if (x[i].ohne_kachel) fj_b(y, "ok", true);
+            if (reste) { fj_s(y, "s", T("nichts geht verloren", "nothing is lost")); fj_s(y, "a", "g"); }
+            else {
+                fj_s(y, "s", schild_text(x[i].kopf, k)); fj_s(y, "a", ampel_t(kern_ampel(x[i].kopf)));
+                const char *bid = bild_kennung(x[i].kopf); if (bid && strlen(bid) < 16) fj_s(y, "i", bid);
+                const char *da = kern_art_info(fa, x[i].kopf); if (!da[0]) da = kern_folge(x[i].kopf);
+                fj_s(y, "da", da);
+            }
+            cJSON *t = cJSON_AddArrayToObject(y, "t");
+            for (int j = 0; j < x[i].teile.n; j++) {
+                int n = fd_nr(&nr, x[i].teile.e[j]); if (n < 0) continue;
+                cJSON *u = cJSON_CreateObject(); fj_n(u, "e", n);
+                fj_s(u, "n", reste ? ohne_ort_vorne(kern_zeile(fa, x[i].teile.e[j])) : ohne_jb_start(nach_name(ohne_ort_vorne(kern_zeile(fa, x[i].teile.e[j])), x[i].name)
+                                                                                                        ? nach_name(ohne_ort_vorne(kern_zeile(fa, x[i].teile.e[j])), x[i].name)
+                                                                                                        : ohne_ort_vorne(kern_zeile(fa, x[i].teile.e[j])), k));
+                cJSON_AddItemToArray(t, u);
+            }
+            cJSON_AddItemToArray(bl, y);
+        }
+        cJSON_AddItemToArray(br, b);
+    }
+    char *s = cJSON_PrintUnformatted(o); cJSON_Delete(o);
+    return s;
+}
+/* der Kasten zu einem Eintrag (wie rechts in der Auswahl am Fernseher) */
+static void fd_info(cJSON *o, eintrag *f)
+{
+    cJSON *x = cJSON_AddObjectToObject(o, "info"); const char *grund = NULL;
+    int k = f->Kat; bool gesp = ablauf_eintrag_gesperrt(&A, f, &grund);
+    const char *nm, *ws; zeile_teilen(f, k, &nm, &ws);
+    const char *gr = h_trim(fa, ablauf_eintrag_groesse(&A, f)); int o2 = anzeige_ort(f);
+    fj_s(x, "titel", nm); fj_s(x, "unter", VERB(fa, gr, o2 != ORT_INTERN ? VERB(fa, gr[0] ? " · " : "", kern_ort_name(o2)) : ""));
+    const char *bid = bild_kennung(f); if (bid && strlen(bid) < 16) fj_s(x, "i", bid);
+    cJSON *ab = cJSON_AddArrayToObject(x, "abs");
+    #define ABS(fr, tx, fa_) do { cJSON *z_ = cJSON_CreateObject(); if (fr) fj_s(z_, "f", fr); fj_s(z_, "t", tx); fj_s(z_, "c", fa_); cJSON_AddItemToArray(ab, z_); } while (0)
+    ABS(T("Was wird gelöscht?", "What is deleted?"), ohne_ort_vorne(kern_zeile(fa, f)), "t");
+    int a = kern_ampel(f); const char *da = kern_art_info(fa, f); if (!da[0]) da = kern_folge(f);
+    bool nie = gesp && grund && grund[0] && (f->Gesperrt || kern_nur_mit_spiel(K, f));
+    if (nie) ABS(T("Warum nicht wählbar?", "Why can't I select it?"), grund, "y");
+    else {
+        ABS(T("Was passiert danach?", "What happens then?"), da, ampel_t(a));
+        if (gesp && grund && grund[0]) ABS(NULL, grund, "y");
+        else if (f->Jailbreak) ABS(NULL, kern_jb_hinweis(fa, f), "o");
+    }
+    ABS(f->Pfade.n == 1 ? T("Ordner", "Folder") : T("Ordner", "Folders"), ordner_text(f), "d");
+    #undef ABS
+    fj_n(x, "e", fd_info_i);
+}
+static struct { Uint32 zeit; bool da[4]; long long frei[4], ges[4]; int usb_n; } fd_sp;
+static char *fd_zustand_json(void)
+{
+    cJSON *o = cJSON_CreateObject();
+    bool fertig = GESUCHT && ablauf_verbunden(&A);
+    fj_s(o, "sprache", SP_EN ? "en" : "de"); fj_s(o, "version", VERSION_ANZEIGE); fj_b(o, "testmodus", testmodus); fj_b(o, "sim", K->simulation);
+#ifdef NUR_LESEN
+    fj_b(o, "nur_lesen", true);
+#endif
+    { char a[64]; fern_adresse(a, sizeof a); fj_s(o, "adresse", a); char u[32]; upd_holen(u, sizeof u); if (u[0]) fj_s(o, "update", u); }
+    /* Kopf: Konsole, Laufwerks-Kopplung, Jailbreak, Speicher (wie die Startseite) */
+    {
+        cJSON *x = cJSON_AddObjectToObject(o, "konsole");
+        const char *reihe = K->MODELL_TYP[0] ? kern_modell_reihe(K->MODELL_TYP, K->MODELL_DIGITAL) : T("Unbekanntes Modell", "Unknown model");
+        fj_s(x, "titel", KI.firmware[0] ? VERB(fa, reihe, " · Firmware ", KI.firmware) : reihe);
+        fj_s(x, "unter", KI.modell[0] ? kern_modell_zeile(fa, KI.modell) : T("Modell nicht erkannt", "Model not detected"));
+        kopplungsart ks = kern_kopplungs_stufe(K);
+        const char *t = kern_laufwerk_text(K), *dp = strstr(t, ": ");
+        cJSON *y = cJSON_AddObjectToObject(o, "kopplung");
+        fj_s(y, "titel", dp ? a_kopie_n(fa, t, (size_t)(dp - t)) : t); fj_s(y, "c", ks == KOPPLUNG_BESTAETIGT ? "g" : ks == KOPPLUNG_UNKLAR ? "y" : "d");
+        cJSON *z = cJSON_AddObjectToObject(o, "jailbreak");
+        const char *warn = NULL, *jbt = fertig && !G.beschaeftigt ? kern_jailbreak_erkannt(K, fa, &warn) : NULL;
+        fj_b(z, "geprueft", fertig && !G.beschaeftigt); if (jbt) fj_s(z, "titel", jbt);
+        if (!fd_sp.zeit || SDL_GetTicks() - fd_sp.zeit > 5000) {
+            for (int i = 0; i < 4; i++) fd_sp.da[i] = plattform_speicher(i, &fd_sp.frei[i], &fd_sp.ges[i]) && fd_sp.ges[i] > 0;
+            fd_sp.usb_n = plattform_usb_anzahl(); fd_sp.zeit = SDL_GetTicks();
+        }
+        long long gef[4] = { 0, 0, 0, 0 }; if (fertig && !G.beschaeftigt) kern_bytes_je_ort(K, gef);
+        const char *nm[4] = { T("Interne SSD", "Internal SSD"), T("M.2-SSD", "M.2 SSD"), T("Erweiterter Speicher", "Extended storage"),
+                              fd_sp.usb_n > 1 ? a_fmt(fa, T("USB-Laufwerke (%d)", "USB drives (%d)"), fd_sp.usb_n) : T("USB-Laufwerk", "USB drive") };
+        cJSON *sp = cJSON_AddArrayToObject(o, "speicher");
+        for (int i = 0; i < 4; i++) if (fd_sp.da[i]) {
+            cJSON *w = cJSON_CreateObject(); fj_s(w, "name", nm[i]); fj_n(w, "ges", (double)fd_sp.ges[i]); fj_n(w, "frei", (double)fd_sp.frei[i]); fj_n(w, "gef", (double)gef[i]);
+            fj_s(w, "ges_t", kern_groesse_text(fa, fd_sp.ges[i])); fj_s(w, "frei_t", kern_groesse_text(fa, fd_sp.frei[i])); fj_s(w, "gef_t", kern_groesse_text(fa, gef[i]));
+            cJSON_AddItemToArray(sp, w);
+        }
+    }
+    if (hinweis_bis && (Sint32)(hinweis_bis - SDL_GetTicks()) > 0) { cJSON *h = cJSON_AddObjectToObject(o, "hinweis"); fj_s(h, "t", hinweis_kurz); fj_n(h, "nr", hinweis_nr); }
+    fj_n(o, "fg", such_nr); fj_n(o, "sn", nachschau_nr);
+    /* welche Seite */
+    const char *seite = G.art != D_KEINER ? "frage" : G.beschaeftigt ? (loeschseite ? "loeschen" : "arbeit") : fertig ? "liste" : "start";
+    fj_s(o, "seite", seite);
+    if (fd_liste_ok()) {
+        fj_n(o, "lv", fd_liste_v);
+        char *w = a_hole(fa, (size_t)K->Funde.n + 1);
+        for (int i = 0; i < K->Funde.n; i++) w[i] = ((eintrag *)K->Funde.e[i])->Wahl ? '1' : '0';
+        w[K->Funde.n] = 0; fj_s(o, "wahl", w);
+        cJSON *br = cJSON_AddArrayToObject(o, "bereiche");
+        long long summe = 0; bool alle_da = true, gekappt = false;
+        for (int ki = 0; ki < KAT_ANZ; ki++) {
+            int k = ALLE_KAT[ki], z = ablauf_bereich_zustand(&A, k);
+            if (z == 2) { int m = 0, ww = 0; for (int j = 0; j < K->Funde.n; j++) { eintrag *f = K->Funde.e[j]; if (f->Kat == k && !f->Gesperrt) { m++; if (f->Wahl) ww++; } } if (ww < m) z = 1; }
+            int n = 0; long long b = 0; bool da = true, gek = false;
+            for (int j = 0; j < K->Funde.n; j++) { eintrag *f = K->Funde.e[j]; if (f->Kat != k) continue; n++; groesse *g = kern_eintrag_groesse_in(K, fa, f, true); if (!g) da = false; else { b += g->Bytes; if (g->Gekappt) gek = true; } }
+            summe += b; if (!da) alle_da = false; if (gek) gekappt = true;
+            cJSON *x = cJSON_CreateObject(); fj_n(x, "k", k); fj_n(x, "z", z); fj_n(x, "n", n); fj_s(x, "unter", bereich_unter(k, 0));
+            fj_s(x, "g", !n ? "–" : (da || !zaehlen_laeuft()) ? groesse_von(fa, b, gek || !da) : T("zählt …", "counting …"));
+            cJSON_AddItemToArray(br, x);
+        }
+        bool zl = zaehlen_laeuft();
+        fj_s(o, "summe", VERB(fa, (!alle_da ? !zl : gekappt) ? T("mind. ", "min. ") : "", kern_groesse_text(fa, summe)));
+        if (!alle_da && zl) fj_s(o, "zaehlt", a_fmt(fa, T("Größen werden gezählt (%d von %d) …", "Counting sizes (%d of %d) …"), A.hg_n, A.hg_gesamt));
+        /* Auswahl-Leiste wie am Fernseher */
+        int gw = 0; long long gb = 0; bool galle = true, ggek = false, rot = false, jbw = false;
+        for (int i = 0; i < K->Funde.n; i++) {
+            eintrag *f = K->Funde.e[i]; if (!f->Wahl) continue;
+            gw++; if (kern_ampel(f) == AMPEL_ROT) rot = true; if (f->Jailbreak) jbw = true;
+            groesse *g = kern_eintrag_groesse_in(K, fa, f, true); if (!g) galle = false; else { gb += g->Bytes; if (g->Gekappt) ggek = true; }
+        }
+        cJSON *l = cJSON_AddObjectToObject(o, "leiste");
+        fj_n(l, "n", gw);
+        fj_s(l, "t1", gw == 0 ? T("Nichts ausgewählt.", "Nothing selected.") : VERB(fa, T("Ausgewählt: ", "Selected: "), a_fmt(fa, "%d", gw), EINTRAEGE(gw), galle ? VERB(fa, " · ", groesse_von(fa, gb, ggek)) : ""));
+        const char *eg = kern_bereiche_106() ? "" : kern_endgueltig_satz(K, fa), *t2 = NULL, *c2 = "d";
+        if (rot && eg[0]) { t2 = VERB(fa, T("Achtung: ", "Caution: "), eg); c2 = "r"; }
+        else if (rot) { t2 = jbw ? T("Achtung: Jailbreak-Einstieg gewählt - dein Jailbreak startet danach nicht mehr so wie bisher.", "Caution: jailbreak entry selected - your jailbreak will no longer start the way it did.")
+                                 : T("Achtung: rot markierte Einträge sind danach endgültig weg.", "Caution: entries marked red are gone for good afterwards."); c2 = "r"; }
+        else { const char *sh = kern_selbstschutz_hinweis(K, false); t2 = sh[0] ? sh : T("Gelöscht wird erst nach dem Bestätigen.", "Nothing is deleted before you confirm."); }
+        bool auswahl = gw > 0, komplett = K->Funde.n > 0;
+#ifdef NUR_LESEN
+        auswahl = komplett = false;
+#else
+        if (testmodus) { auswahl = komplett = false; t2 = testmodus_hinweis(); c2 = "y"; }
+#endif
+        fj_s(l, "t2", t2); fj_s(l, "c2", c2); fj_b(l, "auswahl", auswahl); fj_b(l, "komplett", komplett);
+        if (fd_info_i >= 0 && fd_info_fg == such_nr && fd_info_i < K->Funde.n) fd_info(o, K->Funde.e[fd_info_i]);
+    }
+    if (G.beschaeftigt && G.art == D_KEINER) {   /* "Nachschauen läuft" bzw. "Löschen läuft" */
+        cJSON *x = cJSON_AddObjectToObject(o, "arbeit");
+        pthread_mutex_lock(&G.m); char st[1024]; snprintf(st, sizeof st, "%s", G.stand); double p = G.prozent; bool unb = G.unbestimmt; pthread_mutex_unlock(&G.m);
+        bool suchen = auftrag_jetzt == AUF_SUCHEN || nach_loeschen, ab = K->abbruch;
+        fj_b(x, "suchen", suchen); fj_n(x, "seit", arbeit_seit ? (double)((SDL_GetTicks() - arbeit_seit) / 1000) : 0);
+        fj_n(x, "prozent", unb ? -1 : p); fj_b(x, "abbrechbar", A.abbrechbar && !ab);
+        if (loeschseite) {
+            lz_nachfuehren();
+            int nr = lf_jetzt.nr, n = lf_jetzt.n; bool sim = K->simulation, durch = n > 0 && nr >= n && !A.anhaltbar;
+            fj_s(x, "titel", sim ? T("Simulation läuft …", "Simulation running …") : durch ? T("Fast fertig …", "Almost done …") : T("Wird gelöscht …", "Deleting …"));
+            fj_n(x, "nr", nr); fj_n(x, "n", n);
+            if (n > 0) { fj_s(x, "frei_l", sim ? T("Würde frei geräumt", "Would be freed") : T("Bisher frei geräumt", "Freed so far")); fj_s(x, "frei", groesse_von(fa, lf_jetzt.frei, lf_jetzt.gesamt < 0 && lf_jetzt.frei > 0)); }
+            cJSON *zl = cJSON_AddArrayToObject(x, "zeilen");
+            for (int i = 0; i < lz_n; i++) {
+                cJSON *z = cJSON_CreateObject(); fj_s(z, "n", lz[i].name); fj_n(z, "z", lz[i].zustand); if (lz[i].hat_b) fj_s(z, "g", groesse_von(fa, lz[i].b, false));
+                const char *bid = bild_kennung(lz[i].f); if (bid && strlen(bid) < 16) fj_s(z, "i", bid);
+                if (lz[i].f) fj_n(z, "k", lz[i].f->Kat);   /* 1.0.9 (09.11.2026): Symbol des Bereichs, wenn kein Bild da ist - wie am Fernseher */
+                cJSON_AddItemToArray(zl, z);
+            }
+            int rest = n - nr; fj_n(x, "rest", rest < 0 ? 0 : rest);
+            fj_b(x, "anhaltbar", A.loescht && A.anhaltbar && !anhalten_gewuenscht); fj_b(x, "haelt_an", anhalten_gewuenscht && A.anhaltbar);
+            const char *wo = protokoll_wo();
+            fj_s(x, "unten", sim ? T("Simulation: Es wird nichts gelöscht.", "Simulation: nothing is deleted.")
+                               : VERB(fa, T("Bitte die Konsole nicht ausschalten.", "Please do not turn off the console."), wo[0] ? VERB(fa, T(" Das Protokoll wird ", " The log is being written "), wo, T(" mitgeschrieben.", ".")) : ""));
+        } else {
+            fj_s(x, "titel", ab ? T("Wird abgebrochen …", "Cancelling …") : nach_loeschen ? T("Schaue nach, was übrig ist …", "Checking what is left …") : suchen ? T("Schaue nach …", "Scanning …")
+                         : txt_beginnt(st, T("Zähle", "Only counting")) ? T("Zähle die Größe …", "Counting the size …") : T("Einen Moment …", "One moment …"));
+            fj_s(x, "stand", st[0] ? st : T("Wird vorbereitet …", "Preparing …"));
+            fj_s(x, "unten", suchen ? T("Nur lesen - es wird nichts verändert.", "Read only - nothing is changed.") : T("Es wird noch nichts gelöscht - vorher kommt immer die Abschlussfrage.", "Nothing is deleted yet - the final question always comes first."));
+        }
+    }
+    if (G.art != D_KEINER) {   /* eine Frage: Bestätigen, LÖSCHEN eintippen, Frage, Fehler oder Fertig */
+        cJSON *x = cJSON_AddObjectToObject(o, "frage");
+        pthread_mutex_lock(&G.m);
+        dialogart art = G.art;
+        const char *titel = a_kopie(fa, G.titel ? G.titel : ""), *txt = a_kopie(fa, G.text ? G.text : ""), *si = a_kopie(fa, G.sicher ? G.sicher : ""), *ge = a_kopie(fa, G.gef ? G.gef : "");
+        const char *fk = a_kopie(fa, G.f_kopf ? G.f_kopf : ""), *ff = a_kopie(fa, G.f_frei ? G.f_frei : ""), *fs = a_kopie(fa, G.f_sm ? G.f_sm : ""); bool fok = G.f_ok;
+        int dnr = G.dlg_nr;   /* Codex-Prüfung 140: Nummer und Art aus demselben Augenblick */
+        pthread_mutex_unlock(&G.m);
+        fj_n(x, "nr", dnr);
+        fj_s(x, "art", art == D_WAHL ? "wahl" : art == D_TEXT ? "text" : art == D_FEHLER ? "fehler" : "fertig");
+        fj_b(x, "bestaetigen", bestaetigen_aktiv()); fj_b(x, "tippen", tippen_aktiv());
+        if (art == D_FEHLER && !strcmp(titel, "PS5 Cleanup")) { const char *v = T("Es ist ein Fehler aufgetreten:\n", "An error occurred:\n"); titel = T("Es ist ein Fehler aufgetreten", "An error occurred"); if (txt_beginnt(txt, v)) txt += strlen(v); }
+        fj_s(x, "titel", titel); fj_s(x, "text", txt); fj_s(x, "sicher", si); fj_s(x, "gef", ge); fj_s(x, "wort", T("LÖSCHEN", "DELETE"));
+        if (bestaetigen_aktiv()) {   /* wie schirm_bestaetigen: Gruppen rot/gelb/grün, größte zuerst */
+            int nges = 0; long long gbs[3] = { 0, 0, 0 }; int gn[3] = { 0, 0, 0 }; bool galle[3] = { true, true, true }, ggek[3] = { false, false, false }, jb_gew = false, jb_da = false;
+            cJSON *gr = cJSON_AddArrayToObject(x, "gruppen"), *ga[3];
+            for (int g = 0; g < 3; g++) ga[g] = cJSON_CreateArray();
+            int nmax = 0; for (int i = 0; i < K->Funde.n; i++) if (((eintrag *)K->Funde.e[i])->Wahl) nmax++;
+            b_zeile *gz[3]; for (int g = 0; g < 3; g++) gz[g] = a_hole(fa, sizeof(b_zeile) * (size_t)(nmax + 1));
+            for (int i = 0; i < K->Funde.n; i++) {
+                eintrag *f = K->Funde.e[i]; if (f->Jailbreak) jb_da = true;
+                if (!f->Wahl || f->Gesperrt) continue;
+                if (f->Jailbreak) jb_gew = true;
+                int a = kern_ampel(f), g = a == AMPEL_ROT ? 0 : a == AMPEL_GELB ? 1 : 2;
+                groesse *gg = kern_eintrag_groesse_in(K, fa, f, true);
+                gz[g][gn[g]++] = (b_zeile){ f, gg ? gg->Bytes : -1, gg != NULL, gg ? gg->Gekappt : false };
+                if (gg) { gbs[g] += gg->Bytes; if (gg->Gekappt) ggek[g] = true; } else galle[g] = false;
+            }
+            for (int g = 0; g < 3; g++) {
+                if (!gn[g]) { cJSON_Delete(ga[g]); continue; }
+                qsort(gz[g], (size_t)gn[g], sizeof(b_zeile), b_vergleich); nges += gn[g];
+                cJSON *y = cJSON_CreateObject(); fj_s(y, "a", g == 0 ? "r" : g == 1 ? "y" : "g");
+                fj_s(y, "titel", g == 0 ? T("Endgültig weg", "Gone for good") : g == 1 ? T("Neu laden oder einrichten", "Download or set up again") : T("Es geht nichts verloren", "Nothing is lost"));
+                fj_s(y, "unter", VERB(fa, a_fmt(fa, "%d", gn[g]), EINTRAEGE(gn[g]), galle[g] ? VERB(fa, " · ", groesse_von(fa, gbs[g], ggek[g])) : ""));
+                for (int i = 0; i < gn[g] && i < 200; i++) {
+                    cJSON *z = cJSON_CreateObject(); fj_s(z, "n", ohne_ort_vorne(kern_zeile(fa, gz[g][i].f))); fj_n(z, "k", gz[g][i].f->Kat);   /* 1.0.9: Symbol des Bereichs */
+                    if (gz[g][i].da) fj_s(z, "g", groesse_von(fa, gz[g][i].b, gz[g][i].gek));
+                    const char *ok = ort_kurz(anzeige_ort(gz[g][i].f)); if (ok[0]) fj_s(z, "o", ok);
+                    const char *bid = bild_kennung(gz[g][i].f); if (bid && strlen(bid) < 16) fj_s(z, "i", bid);
+                    cJSON_AddItemToArray(ga[g], z);
+                }
+                if (gn[g] > 200) fj_n(y, "mehr", gn[g] - 200);
+                cJSON_AddItemToObject(y, "e", ga[g]); cJSON_AddItemToArray(gr, y);
+            }
+            const char *sub = VERB(fa, a_fmt(fa, "%d", nges), EINTRAEGE(nges));
+            if (A.GROSS.Bytes > 0) sub = VERB(fa, sub, " · ", groesse_von(fa, A.GROSS.Bytes, A.GROSS.Gekappt), T(" werden frei", " will be freed"));
+            if (tippen_aktiv()) sub = VERB(fa, T("Vollständige Bereinigung · ", "Full cleanup · "), sub);
+            fj_s(x, "sub", sub);
+            b_hinweis hw[16]; int nh = bestaetigen_hinweise(hw, 16);
+            cJSON *h = cJSON_AddArrayToObject(x, "hinweise");
+            for (int i = 0; i < nh; i++) { cJSON *z = cJSON_CreateObject(); fj_s(z, "t", hw[i].t); fj_s(z, "c", hw[i].f == N_ROT ? "r" : hw[i].f == N_GELB ? "y" : "d"); cJSON_AddItemToArray(h, z); }
+            if (jb_gew) fj_s(x, "jb", T("Jailbreak-Einstieg ausgewählt", "Jailbreak entry selected")); else if (jb_da) fj_s(x, "jb_bleibt", T("Jailbreak bleibt (nicht ausgewählt)", "Jailbreak stays (not selected)"));
+            if (tippen_aktiv()) { pthread_mutex_lock(&G.m); fj_s(x, "eingabe", G.eingabe); pthread_mutex_unlock(&G.m); }
+        }
+        if (art == D_FERTIG) {
+            bool sim = K->simulation; const char *gt = groesse_von(fa, A.rm_frei.Bytes, A.rm_frei.Gekappt);
+            fj_s(x, "gross", sim ? VERB(fa, gt, T(" würden frei", " would be freed")) : VERB(fa, gt, T(" frei geräumt", " freed")));
+            fj_b(x, "ok", fok); fj_s(x, "kopf", fk); fj_s(x, "frei", ff); fj_s(x, "sm", fs);
+            const char *rt = kern_rest_text(K, fa); fj_s(x, "rest", (fok && !rt[0]) ? "" : rt[0] ? rt : T("Nicht alles - was übrig ist, steht im Protokoll.", "Not everything - the log shows what is left."));
+            const char *wo = protokoll_wo(), *pd = A.protokoll_datei ? A.protokoll_datei : "", *dp = strchr(pd, ':');
+            fj_s(x, "prot", wo[0] ? VERB(fa, T("Gespeichert ", "Saved "), wo) : T("Nur in der Protokoll-Ansicht", "Only in the log view")); if (wo[0] && dp) fj_s(x, "prot_wo", dp + 2);
+            rueckmeldung r = rueckmeldung_daten(); fj_s(x, "rueckmeldung", rueckmeldung_link(fa, &r));
+            fj_b(x, "sim", sim);
+        }
+    }
+    char *s = cJSON_PrintUnformatted(o); cJSON_Delete(o);
+    return s;
+}
+/* ---- Befehle aus dem Browser */
+static void fd_block_setzen(int k, int kopf)
+{
+    kblock *x = NULL; int nb = bloecke_holen(fa, k, SORT_GROESSTE, &x);
+    for (int b = 0; b < nb; b++) {
+        bool reste = x[b].kopf == &RESTE_ZEILE;
+        if (kopf < 0 ? reste : (!reste && kopf < K->Funde.n && x[b].kopf == K->Funde.e[kopf])) { block_setzen_p(&x[b].teile, reste, true); return; }
+    }
+    kurz(T("Die Liste hat sich geändert - bitte noch einmal.", "The list has changed - please try again."));
+}
+static int jzahl(const cJSON *j, const char *k, int nein) { const cJSON *v = cJSON_GetObjectItemCaseSensitive(j, k); return cJSON_IsNumber(v) ? (int)v->valuedouble : nein; }
+static bool jja(const cJSON *j, const char *k) { return cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(j, k)); }
+static const char *jtext(const cJSON *j, const char *k) { const cJSON *v = cJSON_GetObjectItemCaseSensitive(j, k); return cJSON_IsString(v) && v->valuestring ? v->valuestring : NULL; }
+/* Codex-Prüfung 140 (P1): Antwort nur, wenn sie zur gerade gestellten Frage gehört - Prüfen und Annehmen zusammen unter G.m, jede Frage
+ * nur einmal (der Arbeitsfaden kann zwischen zwei Befehlen schon die nächste Frage stellen). eingabe: Text der Eingabe (oder NULL). */
+static bool fd_antworten(int nr, dialogart art, bool wahl, bool eingabe_ok, const char *eingabe)
+{
+    pthread_mutex_lock(&G.m);
+    bool ok = G.art == art && G.dlg_nr == nr && !G.beantwortet;
+    if (ok && eingabe) snprintf(G.eingabe, sizeof G.eingabe, "%s", eingabe);
+    if (ok && eingabe_ok && tippen_aktiv() && !eingabe_passt()) ok = false;
+    if (ok) { G.wahl = wahl; G.eingabe_ok = eingabe_ok; G.beantwortet = true; pthread_cond_broadcast(&G.c); }
+    pthread_mutex_unlock(&G.m);
+    if (ok) { dlg_fokus = 0; dlg_scroll = 0; x_seit = 0; }
+    return ok;
+}
+static void fd_befehl(const cJSON *j)
+{
+    const char *b = jtext(j, "b"); if (!b) return;
+    int fg = jzahl(j, "fg", -1), i = jzahl(j, "i", -1), k = jzahl(j, "k", -1), nr = jzahl(j, "nr", -1);
+    bool frei = !G.beschaeftigt && G.art == D_KEINER, liste = fd_liste_ok() && G.art == D_KEINER && fg == such_nr;
+    bool frage = G.art != D_KEINER && nr == G.dlg_nr && G.dlg_nr == dlg_gesehen;
+    if (!strcmp(b, "info")) { if (fg == such_nr && i >= 0 && i < K->Funde.n) { fd_info_i = i; fd_info_fg = fg; } else fd_info_i = -1; return; }
+    if (!strcmp(b, "protokoll_stick")) { protokoll_auf_stick(prot_meldung, sizeof prot_meldung); kurz(prot_meldung); return; }
+    /* was den Zustand ändert, schließt am Fernseher das Options-Menü, das Protokoll und die Info-Seite (sonst läge dort etwas Altes) */
+    optionen_offen = false; protokoll_offen = false; fern_info_offen = false; neu_zeichnen();
+    if (!strcmp(b, "nachschauen")) { if (frei) { AUSWAHL_OFFEN = false; starte(AUF_SUCHEN); } }
+    else if (!strcmp(b, "auswahl")) { if (frei && GESUCHT && ablauf_verbunden(&A) && !AUSWAHL_OFFEN) { AUSWAHL_OFFEN = true; fokus_zone = 0; fokus_bereich = 0; AL.k = -1; al_b = 0; al_t = -1; al_py = 0; } }
+    else if (!strcmp(b, "sprache")) { if (frei && !GESUCHT) { SP_EN = !SP_EN; sim_hinweis_setzen(); plattform_absturzmelder(SP_EN ? "PS5 Cleanup " VERSION_TEXT_EN : "PS5 Cleanup " VERSION_TEXT); fern_sprache(SP_EN); } }
+    else if (!strcmp(b, "testmodus")) { if (frei) testmodus_umschalten(); }
+    else if (liste && (!strcmp(b, "wahl") || !strcmp(b, "block") || !strcmp(b, "bereich")) && !AUSWAHL_OFFEN) {   /* der Fernseher geht mit zur Auswahl */
+        AUSWAHL_OFFEN = true; fokus_zone = 0; fokus_bereich = 0; AL.k = -1; al_b = 0; al_t = -1; al_py = 0; fd_befehl(j); return;
+    }
+    else if (!strcmp(b, "wahl")) { if (liste && i >= 0 && i < K->Funde.n) eintrag_umschalten(K->Funde.e[i]); else if (!liste) kurz(T("Die Liste hat sich geändert - bitte noch einmal.", "The list has changed - please try again.")); }
+    else if (!strcmp(b, "block")) { if (liste) fd_block_setzen(k, jzahl(j, "kopf", -2)); }
+    else if (!strcmp(b, "bereich")) {
+        if (liste && k >= 1 && k <= KAT_ANZ) {
+            int n = bereich_anzahl(k);
+            if (n > 0 && ablauf_bereich_nur_einzeln(&A, k) && ablauf_bereich_zustand(&A, k) == 0)
+                kurz(T("Hier nur einzeln wählbar: die Einträge einzeln anhaken.", "Individually only here: tick the entries one by one."));
+            else if (n > 0) ablauf_bereich_setzen(&A, k, ablauf_bereich_zustand(&A, k) != 2);
+        }
+    }
+    else if (!strcmp(b, "auswahl_loeschen") || !strcmp(b, "komplett")) {
+        if (!liste) return;
+#ifdef NUR_LESEN
+        kurz(T("In dieser Testversion gesperrt - es wird nur nachgeschaut.", "Locked in this test version - only looking."));
+#else
+        if (testmodus) { kurz(testmodus_hinweis()); hinweis_dauer(6000); return; }
+        if (!strcmp(b, "auswahl_loeschen")) { if (gewaehlt_anzahl() > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_AUSWAHL); } else kurz(T("Erst etwas auswählen.", "Select something first.")); }
+        else if (K->Funde.n > 0) { dlg_fokus = 0; dlg_scroll = 0; starte(AUF_KOMPLETT); }
+#endif
+    }
+    else if (!strcmp(b, "antwort")) {   /* Frage mit zwei Knöpfen; "Löschen" auf der Seite Bestätigen nur gehalten und frühestens 1,5 s nach dem Erscheinen */
+        if (!frage || G.art != D_WAHL || SDL_GetTicks() - dlg_seit < 400) return;   /* wie am Fernseher: kurz nach dem Erscheinen zählt nichts */
+        bool ja = jja(j, "ja");
+        if (bestaetigen_aktiv() && ja && (!jja(j, "gehalten") || SDL_GetTicks() - dlg_seit < HALTEN_MS)) { kurz(T("Zum Löschen „Löschen“ gedrückt halten, bis der Kreis voll ist.", "To delete, hold 'Delete' until the circle is full.")); return; }
+        fd_antworten(nr, D_WAHL, ja, false, NULL);
+    }
+    else if (!strcmp(b, "eingabe")) {   /* LÖSCHEN eintippen (vollständige Bereinigung) bzw. eine Texteingabe */
+        if (!frage || G.art != D_TEXT) return;
+        if (jja(j, "zurueck")) { fd_antworten(nr, D_TEXT, false, false, NULL); return; }
+        const char *t = jtext(j, "t"); if (!t) return;
+        if (!fd_antworten(nr, D_TEXT, false, true, t) && tippen_aktiv()) { kurz(T("Bitte genau LÖSCHEN eintippen, in Großbuchstaben.", "Please type DELETE exactly, in capital letters.")); hinweis_dauer(5000); }
+    }
+    else if (!strcmp(b, "ok")) { if (frage) fd_antworten(nr, D_FEHLER, false, false, NULL); }
+    else if (!strcmp(b, "ende")) {
+        if (frage && G.art == D_FERTIG) { const char *a = jtext(j, "a"); int na = a && !strcmp(a, "neustart") ? 2 : 1; if (fd_antworten(nr, D_FERTIG, false, false, NULL)) nach_aktion = na; }
+    }
+    else if (!strcmp(b, "abbrechen")) { if (G.beschaeftigt && G.art == D_KEINER && A.abbrechbar && !K->abbruch) { K->abbruch = true; ui_stand(NULL, T("Breche ab ...", "Cancelling ..."), ABLAUF_BALKEN_GLEICH); } }
+    else if (!strcmp(b, "anhalten")) { if (A.loescht && A.anhaltbar && G.art == D_KEINER && !anhalten_gewuenscht && ablauf_loeschen_anhalten(&A)) { anhalten_gewuenscht = true; kurz(T("Wird nach diesem Eintrag angehalten.", "Stopping after this entry.")); } }
+    else if (!strcmp(b, "beenden")) { if (frei && !A.loescht) { ui_log(NULL, T("PS5 Cleanup beendet sich (im Browser gewählt).", "PS5 Cleanup quits (chosen in the browser).")); laeuft = false; } }
+}
+static void fern_befehle(void)   /* aus der Hauptschleife */
+{
+    char t[2100]; int n = 0;
+    while (n++ < 16 && fern_befehl_holen(t, sizeof t)) {
+        cJSON *j = cJSON_Parse(t);
+        if (j) { arena *alt = fa; fa = arena_neu(); fd_befehl(j); arena_frei(fa); fa = alt; ablauf_texte_frei(&A); }
+        cJSON_Delete(j);
+    }
+}
+/* Bilder der Kacheln für den Browser - im Hauptfaden geladen wie am Fernseher (nicht während des Nachschauens: dann ändert der Kern sie) */
+static void fern_bilder(void)
+{
+    if (G.beschaeftigt && !A.loescht) return;
+    char id[24]; int n = 0;
+    while (n++ < 4 && fern_bild_wunsch(id, sizeof id)) {
+        int w = 0, h = 0; unsigned char *px = kachelbild_laden(id, &w, &h);
+        if (!px) { fern_bild_geben(id, NULL, 0, 0); continue; }
+        const int s = 144; unsigned char *o = malloc((size_t)s * s * 3);   /* 1.0.9 (da_Chris86 22:30, 4K): 144 statt 96 - auf Handy und 4K-Bildschirm (2-fache Pixeldichte) scharf, rund 7 KB je Bild */
+        const unsigned hr = (N_KARTE >> 16) & 255, hg = (N_KARTE >> 8) & 255, hb = N_KARTE & 255;
+        for (int y = 0; o && y < s; y++) for (int x = 0; x < s; x++) {   /* Flächenmittel wie bild_verkleinert, auf den Kartengrund gelegt */
+            int x0 = x * w / s, x1 = (x + 1) * w / s, y0 = y * h / s, y1 = (y + 1) * h / s;
+            if (x1 <= x0) x1 = x0 + 1;
+            if (y1 <= y0) y1 = y0 + 1;
+            unsigned long r = 0, g = 0, b = 0, a = 0, m = 0;
+            for (int yy = y0; yy < y1; yy++) for (int xx = x0; xx < x1; xx++) { const unsigned char *q = px + ((size_t)yy * (size_t)w + (size_t)xx) * 4; r += (unsigned long)q[0] * q[3]; g += (unsigned long)q[1] * q[3]; b += (unsigned long)q[2] * q[3]; a += q[3]; m++; }
+            unsigned long am = a / m; unsigned char *z = o + ((size_t)y * s + (size_t)x) * 3;
+            z[0] = (unsigned char)((r / m + hr * (255 - am)) / 255); z[1] = (unsigned char)((g / m + hg * (255 - am)) / 255); z[2] = (unsigned char)((b / m + hb * (255 - am)) / 255);
+        }
+        stbi_image_free(px);
+        fern_bild_geben(id, o, o ? s : 0, o ? s : 0); free(o);
+    }
+}
+/* aus der Hauptschleife: Zustand und Liste für den Browser - nur wenn einer fragt; der Zustand höchstens alle 120 ms, die Liste bei einer
+ * neuen Suche, beim Umschalten der Sprache und während des Zählens höchstens alle 1,5 s (dann ändern sich die Größen) */
+static Uint32 fd_zeit, fd_l_zeit; static int fd_l_fg = -1, fd_l_hg = -1, fd_l_en = -1; static bool fd_l_da = false, fd_dringend = true;
+static void fern_daten_raus(void)
+{
+    fern_bilder();
+    static bool im_browser = false;   /* Codex-Prüfung 140 (P3): Pille "IM BROWSER" an bzw. aus, auch wenn sich sonst nichts ändert */
+    if (fern_aktiv(8000) != im_browser) { im_browser = !im_browser; neu_zeichnen(); }
+    if (!fern_will_daten()) { fd_l_da = false; return; }
+    Uint32 jetzt = SDL_GetTicks();
+    if (!fd_dringend && jetzt - fd_zeit < 120) return;
+    arena *alt = fa; fa = arena_neu();
+    if (fd_liste_ok() && (!fd_l_da || fd_l_fg != such_nr || fd_l_en != SP_EN || (fd_l_hg != A.hg_n && jetzt - fd_l_zeit >= 1500))) {
+        fd_liste_v++;
+        char *l = fd_liste_json();
+        if (l) { fern_liste_geben(l); fd_l_da = true; fd_l_fg = such_nr; fd_l_en = SP_EN; fd_l_hg = A.hg_n; fd_l_zeit = jetzt; }
+    }
+    char *z = fd_zustand_json();
+    arena_frei(fa); fa = alt; ablauf_texte_frei(&A);
+    if (z) fern_zustand_geben(z);
+    fd_zeit = jetzt; fd_dringend = false;
 }
 static int tastennr(int sdl)
 {
@@ -3904,6 +4517,19 @@ static void skript_schritt(void)
             if (G.art == D_KEINER || G.dlg_nr != dlg_gesehen || SDL_GetTicks() - dlg_seit < 450) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 100; return; }
             continue;
         }
+        /* NEU 1.0.9: Bedienung im Browser in der PC-Vorschau (test/kern/lauf_fern_vorschau.sh) */
+        if (!strcmp(z, "WARTEBROWSER")) { if (!fern_aktiv(3000)) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 50; return; } continue; }
+        if (!strncmp(z, "WARTEZEILE ", 11)) {   /* bis diese Zeile im Protokoll steht (der Browser hat etwas getan) */
+            bool da = false; pthread_mutex_lock(&G.m); for (int i = 0; i < G.log_n && !da; i++) if (strstr(G.log[i], z + 11)) da = true; pthread_mutex_unlock(&G.m);
+            if (!da) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 50; return; }
+            continue;
+        }
+        if (!strncmp(z, "WARTEDATEI ", 11)) {   /* bis die Gegenstelle (Test) diese Datei angelegt hat */
+            struct stat st;
+            if (stat(z + 11, &st) != 0) { fseek(skript, -(long)strlen(z) - 1, SEEK_CUR); skript_warte = SDL_GetTicks() + 50; return; }
+            continue;
+        }
+        if (!strncmp(z, "CONTROLLER ", 11)) { int tc = tasten_name(z + 11); if (!tv_vorrang(tc)) taste(tc); skript_warte = SDL_GetTicks() + 60; return; }   /* wie ein Druck am Controller */
         if (!strcmp(z, "ENDE")) { laeuft = false; return; }
     }
 }
@@ -3967,6 +4593,9 @@ static int programm(void)
     /* 02.11.2026 (da_Chris86 15:44/15:45): die Protokoll-Datei beginnt erst direkt vor dem ersten Löschen (protokoll_beginnen) -
      * wer nur nachschaut, hinterlässt keine Datei. Bis dahin steht alles in der Ansicht (Options). */
     A.vor_selbstweg = vor_selbstweg_app; A.vor_selbstweg_ctx = NULL;
+    upd_starten();   /* NEU 1.0.9: Update-Hinweis - fragt im Hintergrund, die Oberfläche wartet nicht darauf */
+    fern_einrichten(fern_log, neu_zeichnen);   /* NEU 1.0.9: Bedienung im Browser - ab dem Start an (da_Chris86 08.11.2026: "Immer gleich an") */
+    { char ff[160] = ""; if (!fern_starten(SP_EN, ff, sizeof ff)) ui_log(NULL, VERB(K->a, T("Browser-Bedienung nicht verfügbar: ", "Browser control not available: "), ff)); }
 #ifdef MITSCHNITT
     if (ms_f) A.vor_neusuche = ms_neusuche;      /* NEU 1.0.8 (Codex-Prüfung 74): das Nachschauen nach dem Löschen als eigene Suche */
 #endif
@@ -3986,11 +4615,13 @@ static int programm(void)
                 neu_zeichnen(); break;
             case SDL_CONTROLLERBUTTONDOWN: {
                 int t = tastennr(e.cbutton.button);
+                if (tv_vorrang(t)) { if (e.cbutton.button < SDL_CONTROLLER_BUTTON_MAX) tv_geschluckt[e.cbutton.button] = true; break; }   /* NEU 1.0.9 */
                 if (t == T_KREIS) { kreis_seit = SDL_GetTicks(); neu_zeichnen(); break; }   /* erst beim Loslassen (kurz) */
                 if (t == T_X && halten_start()) { x_vom_pad = true; SDL_ClearError(); break; }   /* NEU 1.0.8 (4.4): ✕ auf "Löschen" wird gehalten */
                 taste(t); break;
             }
             case SDL_CONTROLLERBUTTONUP:
+                if (e.cbutton.button < SDL_CONTROLLER_BUTTON_MAX && tv_geschluckt[e.cbutton.button]) { tv_geschluckt[e.cbutton.button] = false; break; }   /* NEU 1.0.9: gehört zur verbrauchten Taste */
                 if (tastennr(e.cbutton.button) == T_KREIS && kreis_seit) { kreis_seit = 0; taste(T_KREIS); }
                 if (tastennr(e.cbutton.button) == T_X) halten_ende();
                 break;
@@ -4038,7 +4669,9 @@ static int programm(void)
 #endif
         }
         if (kreis_seit) { if (SDL_GetTicks() - bild_zeit >= 33) neu_zeichnen(); if (SDL_GetTicks() - kreis_seit >= 1000) { kreis_seit = 0; kreis_gehalten(); neu_zeichnen(); } }
+        fern_befehle();                                                   /* NEU 1.0.9: Befehle aus dem Browser */
         halten_pruefen();                                                 /* NEU 1.0.8 (4.4): ✕ lange genug gehalten? */
+        upd_anzeigen();                                                   /* NEU 1.0.9: Update-Hinweis einmal als kurze Meldung */
         /* NEU 1.0.8 (Arbeitsplan 4.7): nur neu zeichnen, wenn sich etwas ändert. Bisher lief bei jeder Frage und bei "Fertig" alle 60 ms ein
          * ganzes Bild, solange der Arbeitsfaden auf die Antwort wartete - dort bewegt sich aber nichts (Halten, ○ und Laufschrift zeichnen
          * selbst). Regelmäßig gezeichnet wird nur noch auf den Arbeits-Seiten ("Nachschauen läuft", "Löschen läuft": Balken, Zeit). */
@@ -4090,7 +4723,9 @@ static int programm(void)
         skript_schritt();
 #endif
         /* Codex-Prüfung 78: beide Merker atomar zurücksetzen, BEVOR gezeichnet wird - was ein anderer Faden währenddessen meldet, kommt ins nächste Bild */
-        if (__atomic_exchange_n(&G.neu, false, __ATOMIC_ACQ_REL)) { __atomic_store_n(&neu_bald, false, __ATOMIC_RELEASE); zeichnen(); SDL_UpdateWindowSurface(fenster); bild_zeit = SDL_GetTicks(); }
+        bool gezeichnet = false;
+        if (__atomic_exchange_n(&G.neu, false, __ATOMIC_ACQ_REL)) { __atomic_store_n(&neu_bald, false, __ATOMIC_RELEASE); zeichnen(); SDL_UpdateWindowSurface(fenster); bild_zeit = SDL_GetTicks(); gezeichnet = true; }
+        (void)gezeichnet; fern_daten_raus();       /* NEU 1.0.9: Zustand, Liste und Bilder für den Browser */
 #ifdef MITSCHNITT
         ms_bild_vielleicht();                      /* NEU 1.0.8 (2.7) */
 #endif
@@ -4103,6 +4738,7 @@ static int programm(void)
         const char *hw = T("PS5 Cleanup: Fertig. Empfohlen: die PS5 bei Gelegenheit neu starten.", "PS5 Cleanup: Done. Recommended: restart the PS5 when convenient.");
         if (!(K->SELBST_UEBERGEBEN && plattform_hinweis_uebergeben(ende_hinweis, SP_EN))) plattform_melden(hw);
     }
+    fern_stoppen();                                /* NEU 1.0.9: Browser-Bedienung endet mit der App */
     ablauf_hintergrund_anhalten(&A);
 #ifdef MITSCHNITT
     ms_ende("BEENDET");                            /* NEU 1.0.8 (2.7): letzte Bilder vor dem Beenden */

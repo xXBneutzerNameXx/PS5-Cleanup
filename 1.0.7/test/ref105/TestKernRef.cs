@@ -563,7 +563,7 @@ namespace PS5Cleanup
                 Pruefe(b0.Contains(en ? "Scan:** not done" : "Scan:** nicht durchgeführt"), sp + ": ohne Scan als 'nicht durchgeführt' markiert");
                 Pruefe(b0.Contains(en ? "none (not queried" : "keiner (nicht abgefragt"), sp + ": ohne Laufwerksabfrage kein Rückgabewert");
                 // 2 persönliche Daten werden entfernt, technische Angaben bleiben
-                string roh = "FEHLER: 192.168.1.50:2121 antwortet nicht; Datei C:\\Users\\da_Chris86\\Desktop\\PS5-Cleanup.log; NAS \\\\NAS\\Filme\\x; /user/home/1a2b3c4d/savedata_prospero/PPSA01325; mail max@example.com; PC WORKSTATION-PC; Version 1.0.5 Beta, Firmware 12.00, CFI-7021 B01Y";
+                string roh = "FEHLER: 192.168.178.78:2121 antwortet nicht; Datei C:\\Users\\da_Chris86\\Desktop\\PS5-Cleanup.log; NAS \\\\NAS\\Filme\\x; /user/home/1a2b3c4d/savedata_prospero/PPSA01325; mail max@example.com; PC WORKSTATION-PC; Version 1.0.5 Beta, Firmware 12.00, CFI-7021 B01Y";
                 string sauber = Feedback.Bereinigen(roh, namen);
                 Console.WriteLine("  " + sp + " bereinigt: " + sauber);
                 Pruefe(!sauber.Contains("192.168") && !sauber.Contains("da_Chris86") && !sauber.Contains("Users") && !sauber.Contains("NAS") && !sauber.Contains("1a2b3c4d") && !sauber.Contains("max@example.com") && !sauber.Contains("WORKSTATION"), sp + ": IP, Pfade, Benutzer, PC-Name, E-Mail, PS5-Benutzerkennung entfernt");
@@ -571,7 +571,7 @@ namespace PS5Cleanup
                 // 3 voller Bericht
                 var d = new FeedbackDaten { Modell = "CFI-2016", Reihe = "PS5 Slim", ModellQuelle = "automatisch (ps5info)", Firmware = "11.00", DddRoh = 6, LaufwerkText = "Kopplung nicht sicher bestimmbar: Statuswert 6", Port = 2121, ScanGemacht = true, ScanImTestmodus = true, M2 = "erkannt", Usb = "nicht gefunden", ShadowMountSpiele = 2, Windows = "Windows 11 (Build 22631)", PersoenlicheNamen = namen };
                 for (int k = 1; k <= 7; k++) d.AnzahlJeBereich[k] = k;
-                for (int i = 0; i < 14; i++) d.Fehler.Add("FEHLER " + i + " bei C:\\Users\\da_Chris86\\x.log von 192.168.1.50");
+                for (int i = 0; i < 14; i++) d.Fehler.Add("FEHLER " + i + " bei C:\\Users\\da_Chris86\\x.log von 192.168.178.78");
                 string b1 = Feedback.Bericht(d);
                 Console.WriteLine("---- " + sp + " voller Bericht:\n" + b1);
                 Pruefe(b1.Contains("CFI-2016 (PS5 Slim)") && b1.Contains("11.00") && b1.Contains(":** 6\n") && b1.Contains("2121") && b1.Contains("28 "), sp + ": Modell, Firmware, Rückgabewert, Port, Summe der Einträge");

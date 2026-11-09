@@ -54,4 +54,10 @@ const char *h_ohne_bom(const char *s);
 /* Fehlertext der letzten Muster-Übersetzung (für die Tests) */
 const char *h_musterfehler(void);
 
+/* NEU 1.0.9 (Update-Hinweis beim Start, da_Chris86 08.11.2026): Versionsnummern wie "1.0.10" oder "v1.0.9" vergleichen. Gültig sind
+ * 1 bis 4 Zahlen (je höchstens 5 Ziffern) mit Punkten dazwischen, davor höchstens ein v oder V - alles andere (z. B. "1.0.9-beta") ist
+ * ungültig. kern_version_neuer: true nur, wenn beide gültig sind und neu größer ist als alt (fehlende Stellen zählen als 0). */
+bool        kern_version_gueltig(const char *v);
+bool        kern_version_neuer(const char *neu, const char *alt);
+
 #endif

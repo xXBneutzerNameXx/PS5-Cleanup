@@ -9,10 +9,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static int fehler = 0;
 static void pruefe(bool ok, const char *was) { printf("%s%s\n", ok ? "OK   " : "FAIL ", was); if (!ok) fehler++; }
-static void melde_log(void *c, const char *t) { (void)c; (void)t; }
+static int zw_weg = 0, zw_wuerde = 0;   /* 1.0.9: Zeilen zum mitgelöschten Aufnahme-Zwischenordner */
+static void melde_log(void *c, const char *t)
+{
+    (void)c;
+    if (!t || !strstr(t, "Aufnahme-Zwischenordner")) return;
+    printf("PROT %s\n", t);
+    if (strstr(t, "  gelöscht      – leerer Aufnahme-Zwischenordner /user/av_contents/content_tmp/PPSA10001")) zw_weg++;
+    if (strstr(t, "  würde gelöscht – leerer Aufnahme-Zwischenordner /user/av_contents/content_tmp/PPSA10002")) zw_wuerde++;
+}
+static bool nein(void *c) { (void)c; return false; }
 static kern *K; static arena *A0;
 static eintrag *mit_pfad(const char *p)
 {
@@ -172,6 +182,8 @@ int main(int argc, char **argv)
         pruefe(s1 && mit_pfad(sm) == s1 && s1->Art == ART_SPIELSTAND, a_fmt(A0, "Spielstand nimmt seine Meta-Daten mit (%s)", s1 ? sl_join(A0, &s1->PfadeBasis, ", ") : "nicht gefunden"));
         pruefe(kern_erlaubt(K, sm) && !kern_erlaubt(K, "/user/home/1234abcd/savedata_prospero_meta/user/NPXS40001") && !kern_erlaubt(K, "/user/home/1234abcd/savedata_prospero_meta"), "Spielstand-Meta: nur je Kennung erlaubt, nie NPXS, nie der Ordner");
         pruefe(!kern_erlaubt(K, "/user/temp/share/PSCL00002"), "eigene PS5-Ordner nur während der Selbstentfernung erlaubt");
+        pruefe(!kern_erlaubt(K, "/user/av_contents/content_tmp/PSCL00002") && !kern_erlaubt(K, "/user/av_contents/content_tmp/PSCL00001") && kern_erlaubt(K, "/user/av_contents/content_tmp/PPSA12000"),
+               "1.0.9: eigener Aufnahme-Zwischenordner nur während der Selbstentfernung, der anderer Apps wie bisher");
         eintrag *sx = mit_pfad("/system_ex/app/PPSA88801");
         /* 03.11.2026 (da_Chris86 15:11): Playden selbst (FAKE77031) ist nicht installiert - sein leerer Ordner geht jetzt mit */
         pruefe(sx && sx->NurLeer && sx->Kat == 5 && sx->Art == ART_REST && kern_ampel(sx) == AMPEL_GRUEN && sx->PfadeBasis.n == 2 && mit_pfad("/system_ex/app/FAKE77031") == sx,
@@ -187,6 +199,50 @@ int main(int argc, char **argv)
         eintrag *t1 = mit_pfad("/user/home/1234abcd/trophy/data/NPWR09412_00"), *t2 = mit_pfad("/user/trophy/conf/NPWR09412_00");
         pruefe(t1 && strstr(t1->Text, "Old Game (NPWR09412_00)") && !strstr(t1->Text, "nicht mehr"), a_fmt(A0, "Trophaeen-Fortschritt gehoert zum PS4-Spiel (%s)", t1 ? t1->Text : "nicht gefunden"));
         pruefe(t2 && strstr(t2->Text, "Old Game (NPWR09412_00)") && strstr(t2->Text, "Spiel noch da"), a_fmt(A0, "Trophaeen-Liste: Spiel noch da (%s)", t2 ? t2->Text : "nicht gefunden"));
+    }
+    printf("== 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8): leere Aufnahme-Zwischenordner nur von Apps, die nicht mehr da sind\n");
+    {
+        eintrag *z = NULL;
+        for (int i = 0; i < K->Funde.n && !z; i++) { eintrag *f = K->Funde.e[i]; if (strstr(f->Text, "Leere Aufnahme-Zwischenordner")) z = f; }
+        pruefe(z && z->PfadeBasis.n == 1 && !strcmp(z->PfadeBasis.e[0], "/user/av_contents/content_tmp/PPSA12345"),
+               a_fmt(A0, "angeboten nur der Ordner einer App, die nicht mehr da ist (%s)", z ? sl_join(A0, &z->PfadeBasis, ", ") : "nicht gefunden"));
+        pruefe(!mit_pfad("/user/av_contents/content_tmp/PPSA10001") && !mit_pfad("/user/av_contents/content_tmp/PSCL00002") && !mit_pfad("/user/av_contents/content_tmp/PSCL00001")
+               && !mit_pfad("/user/av_contents/content_tmp/NPXS40001") && !mit_pfad("/user/av_contents/content_tmp/PPSA10002"),
+               "nicht angeboten: installierte Apps, PS5 Cleanup (auch nicht leer), Systemprogramm");
+        pruefe(!mit_pfad("/user/av_contents/content_tmp/PPSA55501") && !mit_pfad("/user/av_contents/content_tmp/PPSA55502"), "nicht angeboten: nur Kachel-Infos (appmeta bzw. system_data) zählen als noch da");
+        {   /* Testmodus: würde mitgelöscht, bleibt aber */
+            datei_optionen o2 = { .wurzel = W, .sortiert = true, .ordnergroesse_null = true, .test_einspielungen = true, .test_hier = "." };
+            kern *K0 = K; K = kern_neu(zugriff_sim(zugriff_datei(&o2))); K->melde = melde_log;
+            volatile int fe2 = 0;
+            VERSUCHE { kern_suche_funde(K); } FANGE { printf("FAIL Suche (Testmodus) abgebrochen: %s\n", ausn_text); fe2 = 1; } ENDE_VERSUCHE;
+            eintrag *v = NULL;
+            for (int i = 0; !fe2 && i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; f->Wahl = false; if (f->KachelId && !strcmp(f->KachelId, "PPSA10002")) v = f; }
+            pruefe(v != NULL, "Testmodus: Eintrag der App PPSA10002 mit Kachel");
+            if (v) {
+                K->simulation = true; v->Wahl = true; kern_abhaengige_mitnehmen(K);
+                ergebnis es = kern_fuehre_loeschung(K, nein, NULL);
+                struct stat s2;
+                pruefe(es.Frei.Ordner == (v->HatGroesse ? v->Ordner : 0) + 1, a_fmt(A0, "Testmodus: würde frei zählt den Ordner mit (%lld)", (long long)es.Frei.Ordner));
+                pruefe(es.Fehler == 0 && zw_wuerde == 1 && lstat(VERB(A0, W, "/user/av_contents/content_tmp/PPSA10002"), &s2) == 0 && lstat(VERB(A0, W, "/user/app/PPSA10002"), &s2) == 0,
+                       a_fmt(A0, "Testmodus: \"würde gelöscht – leerer Aufnahme-Zwischenordner\", nichts gelöscht (Zeilen %d, Fehler %d)", zw_wuerde, es.Fehler));
+            }
+            K = K0;
+        }
+        eintrag *g = NULL;
+        for (int i = 0; i < K->Funde.n; i++) { eintrag *f = K->Funde.e[i]; f->Wahl = false; if (f->KachelId && !strcmp(f->KachelId, "PPSA10001")) g = f; }
+        pruefe(g != NULL, a_fmt(A0, "Eintrag der App PPSA10001 mit Kachel (%s)", g ? g->Text : "nicht gefunden"));
+        struct stat st;
+        if (g) {
+            g->Wahl = true;
+            kern_abhaengige_mitnehmen(K);
+            ergebnis e = kern_fuehre_loeschung(K, nein, NULL);
+            pruefe(e.Fehler == 0 && lstat(VERB(A0, W, "/user/app/PPSA10001"), &st) != 0, a_fmt(A0, "App PPSA10001 gelöscht (Fehler %d)", e.Fehler));
+            pruefe(lstat(VERB(A0, W, "/user/av_contents/content_tmp/PPSA10001"), &st) != 0 && zw_weg == 1, a_fmt(A0, "ihr leerer Aufnahme-Zwischenordner ist im selben Durchgang mit weg, im Protokoll (%d)", zw_weg));
+            pruefe(e.Frei.Ordner == (g->HatGroesse ? g->Ordner : 0) + 1, a_fmt(A0, "Freigeräumt zählt den Ordner mit (%lld Ordner, Eintrag %s %lld)", (long long)e.Frei.Ordner,
+                   g->HatGroesse ? "mit Größe" : "ohne Größe", (long long)g->Ordner));
+            pruefe(lstat(VERB(A0, W, "/user/av_contents/content_tmp/PSCL00002"), &st) == 0 && lstat(VERB(A0, W, "/user/av_contents/content_tmp/PPSA12345"), &st) == 0
+                   && lstat(VERB(A0, W, "/user/av_contents/content_tmp/NPXS40001"), &st) == 0, "die anderen Ordner bleiben (nicht gewählt, PS5 Cleanup, Systemprogramm)");
+        }
     }
     printf("FEHLERZAHL %d\n", fehler);
     return fehler ? 1 : 0;

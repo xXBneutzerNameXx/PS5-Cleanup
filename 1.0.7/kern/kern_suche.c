@@ -850,10 +850,10 @@ const char *kern_mehrfach_grund(void) { return T("Gesperrt - mehrere Kacheln zei
 #define JB_BROWSER "^/user/home/[^/]+/webkit/shell/(local|appcache)$"
 /* Codex-Prüfung 36: Spiel-Abbild eines Einstiegs (z. B. "Raspberry Cube - CUSA16074.exfat"), auch als eigener Eintrag ohne Kachel */
 #define JB_KENNUNG(x) "(^|[^A-Z0-9])(" x ")([^0-9]|$)"
-#define JB_ABBILD "^(?=.*" JB_KENNUNG(JB_IDS) ").*\\.(?i:exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$"
+#define JB_ABBILD "^(?=.*" JB_KENNUNG(JB_IDS) ").*\\.(?i:" ABBILD_ENDUNGEN ")$"
 static bool jb_pfad(const char *p) { return h_m(p, JB_MUSTER) || h_m(p, JB_ABBILD); }
 bool kern_jb_abbild(const char *p) { return h_m(p, JB_ABBILD); }   /* Codex-Prüfung 37: für den Nachkommenschutz beim Löschen */
-static bool ist_abbild(const char *p) { return h_m(p, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$"); }
+static bool ist_abbild(const char *p) { return h_m(p, "(?i)\\.(" ABBILD_ENDUNGEN ")$"); }
 bool kern_jb_einstieg(const char *id) { return h_m(id, "^(" JB_IDS ")$"); }
 const char *kern_jb_grund(void) { return T("Möglicher Jailbreak-Einstieg.", "Possible jailbreak entry."); }
 /* NEU 1.0.6: zu welchem Jailbreak ein Pfad gehört - NULL = zu keinem */
@@ -1236,10 +1236,22 @@ static int sm_neue_orte(kern *k, const char *q, const char *id, sliste *treffer)
     sliste orte = {0};
     for (int j = 0; SM_ORTE[j]; j++) sl_add(A, &orte, SM_ORTE[j]);
     sliste z = r_split(A, s_text(k->S, SM_ORDNER "/config.ini"), "\r?\n");
+    /* NEU 1.0.9 (08.11.2026, ShadowMountPlus 1.7 src/sm_config_file.c): Einstellungen im Format 2 ("[config] version = 2") haben Abschnitte -
+     * eigene Suchorte stehen dort als "path = ..." unter [scan], der Wert auch in Anführungszeichen (darin \\ und \"). Abschnitt und
+     * Schlüssel ohne Rücksicht auf Groß- und Kleinschreibung wie dort. Das alte "scanpath=" gilt weiter. */
+    const char *abschnitt = "";
     for (int j = 0; j < z.n; j++) {
-        htreffer t = h_mt(A, z.e[j], "^\\s*scanpath\\s*=\\s*(/[^#;]*?)\\s*([#;].*)?$");   /* Kommentar nach # oder ; wie ShadowMountPlus */
-        if (!t.ok) continue;
-        const char *o = t.gr[1];
+        htreffer ab = h_mt(A, z.e[j], "^\\s*\\[\\s*([^\\]]*?)\\s*\\]\\s*([#;].*)?$");
+        if (ab.ok) { abschnitt = ab.gr[1]; continue; }
+        const char *o = NULL;
+        htreffer t = h_mt(A, z.e[j], "^\\s*(?i:scanpath)\\s*=\\s*(/[^#;]*?)\\s*([#;].*)?$");   /* Kommentar nach # oder ; wie ShadowMountPlus */
+        if (t.ok) o = t.gr[1];
+        else if (txt_gleich_ci(abschnitt, "scan")) {
+            htreffer q = h_mt(A, z.e[j], "^\\s*(?i:path)\\s*=\\s*\"((?:[^\"\\\\]|\\\\[\\\\\"])*)\"\\s*([#;].*)?$");
+            if (q.ok) o = h_r(A, q.gr[1], "\\\\([\\\\\"])", "$1");
+            else { htreffer u = h_mt(A, z.e[j], "^\\s*(?i:path)\\s*=\\s*([^#;\"]*?)\\s*([#;].*)?$"); if (u.ok) o = u.gr[1]; }
+        }
+        if (!o || o[0] != '/') continue;
         if (h_like(o, "/data/*")) o = VERB(A, "/user", o);
         while (strlen(o) > 1 && o[strlen(o) - 1] == '/') o = a_kopie_n(A, o, strlen(o) - 1);
         if (!h_m(o, "//|(^|/)\\.\\.?(/|$)") && !h_hat(&orte, o)) sl_add(A, &orte, o);
@@ -1350,7 +1362,7 @@ static bool enthaelt_spiel(kern *k, const char *p)
         for (int i = 0; u && i < u->n && !ja; i++) {
             const datei *d = &u->e[i];
             if (d->ist_link || ist_zwischendatei(d->name)) continue;
-            if (!d->ist_ordner && (h_m(d->name, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")
+            if (!d->ist_ordner && (h_m(d->name, "(?i)\\.(" ABBILD_ENDUNGEN ")$")
                                    || (h_m(d->name, "(?i)\\.iso$") && h_m(d->name, "(?i)(^|[^a-z])[a-z]{4}[-_]?\\d{5}")))) ja = true;
             else if (d->ist_ordner && h_m(d->name, "(^|[^A-Z0-9])[A-Z]{4}\\d{5}([^0-9]|$)") && spiel_ordner(k, VERB(A, p, "/", d->name))) ja = true;
         }
@@ -1422,26 +1434,32 @@ static bool pkg_lies(kern *k, const char *p, unsigned long long ab, size_t n, un
 /* NEU 1.0.8 (PS5-Test 07.11.2026 17:32, DRIVECLUB BIKES NPWR09396_00): ein PKG kann mehrere Trophäen-Dateien tragen (0x1400 trophy00.trp,
  * 0x1401 trophy01.trp, ...) - im Update von DRIVECLUB steckt die Liste von DRIVECLUB BIKES als 0x1401. Gelesen werden die ersten 8. */
 #define PKG_TRP_MAX 8
-typedef struct { const char *id, *titel, *ver; int art; int trp_n; unsigned char trp[PKG_TRP_MAX][96]; } pkginfo;
+/* NEU 1.0.9 (da_Chris86 08.11.2026 01:19: Bilder auch für nicht installierte Spiele): dazu, wo in der PKG-Datei das Bild des Spiels liegt
+ * (icon0.png, Eintrag 0x1200). Nur wenn es nicht verschlüsselt ist und wie jede PNG-Datei beginnt - gelesen werden davon hier nur 8 Byte,
+ * das Bild selbst liest die Oberfläche (spiel_bild). */
+#define PKG_BILD_MAX (4u * 1024 * 1024)   /* wie die Oberfläche */
+typedef struct { const char *id, *titel, *ver; int art; int trp_n; unsigned char trp[PKG_TRP_MAX][96]; uint32_t bild_ab, bild_len; } pkginfo;
 static const char *pkg_zusatz_info(kern *k, const char *p, pkginfo *pi);
 static const char *pkg_zusatz(kern *k, const char *p) { return pkg_zusatz_info(k, p, NULL); }
 static const char *pkg_zusatz_info(kern *k, const char *p, pkginfo *pi)
 {
-    if (pi) *pi = (pkginfo){ NULL, "", "", PKG_KEINE, 0, {{0}} };
+    if (pi) *pi = (pkginfo){ NULL, "", "", PKG_KEINE, 0, {{0}}, 0, 0 };
     unsigned char kopf[PKG_KOPF], trp[PKG_TRP_MAX][96];
     unsigned char *volatile tab = NULL, *volatile sb = NULL;
     volatile size_t sn = 0, g = 0;
     volatile int trp_n = 0;
+    volatile uint32_t bild_ab = 0, bild_len = 0;
     pkg_zuletzt = 0;
     VERSUCHE {
         size_t gl = 0;
         if (pkg_lies(k, p, 0, sizeof kopf, kopf, &gl) && memcmp(kopf, "\x7F" "CNT", 4) == 0) {
             uint32_t anz = pkg_be32(kopf + 0x10), to = pkg_be32(kopf + 0x18);
             if (anz > 0 && anz <= PKG_EINTRAEGE_MAX && to >= PKG_KOPF && (tab = malloc((size_t)anz * 32)) != NULL && pkg_lies(k, p, to, (size_t)anz * 32, tab, &gl)) {
-                int i_sfo = -1, i_trp[PKG_TRP_MAX], n_trp = 0;
+                int i_sfo = -1, i_trp[PKG_TRP_MAX], n_trp = 0, i_bild = -1;
                 for (uint32_t i = 0; i < anz; i++) {
                     uint32_t eid = pkg_be32(tab + (size_t)i * 32);
                     if (eid == 0x1000 && i_sfo < 0) i_sfo = (int)i;
+                    else if (eid == 0x1200 && i_bild < 0) i_bild = (int)i;   /* NEU 1.0.9: icon0.png */
                     else if (eid >= 0x1400 && eid <= 0x1463 && n_trp < PKG_TRP_MAX) i_trp[n_trp++] = (int)i;   /* trophy00.trp bis trophy99.trp */
                 }
                 if (i_sfo >= 0) {
@@ -1456,11 +1474,19 @@ static const char *pkg_zusatz_info(kern *k, const char *p, pkginfo *pi)
                     if (!(pkg_be32(e + 8) & 0x80000000u) && s >= 96 && pkg_lies(k, p, o, 96, z, &gl)
                         && z[0] == 0xDC && z[1] == 0xA2 && z[2] == 0x4D && z[3] == 0x00) trp_n++;
                 }
+                if (i_bild >= 0 && !kern_bereiche_106()) {   /* NEU 1.0.9: nur nicht verschlüsselt und wirklich eine PNG-Datei */
+                    const unsigned char *e = tab + (size_t)i_bild * 32;
+                    uint32_t o = pkg_be32(e + 16), s = pkg_be32(e + 20);
+                    unsigned char sig[8];
+                    if (!(pkg_be32(e + 8) & 0x80000000u) && s >= 8 && s <= PKG_BILD_MAX && pkg_lies(k, p, o, sizeof sig, sig, &gl)
+                        && !memcmp(sig, "\x89PNG\r\n\x1a\n", 8)) { bild_ab = o; bild_len = s; }
+                }
             }
         }
         g = gl;
-    } FANGE { free(tab); free(sb); if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); tab = sb = NULL; sn = 0; trp_n = 0; } ENDE_VERSUCHE;
+    } FANGE { free(tab); free(sb); if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); tab = sb = NULL; sn = 0; trp_n = 0; bild_ab = bild_len = 0; } ENDE_VERSUCHE;
     if (pi && trp_n > 0) { pi->trp_n = trp_n; memcpy(pi->trp, trp, sizeof trp[0] * (size_t)trp_n); }
+    if (pi && bild_len) { pi->bild_ab = bild_ab; pi->bild_len = bild_len; }
     const char *z = "";
     if (sn > 0) {
         char f_ti[128], f_id[16], f_kat[8], f_ver[16];   /* Titel wie kern_sfo_titel: TITLE_04, TITLE_01, TITLE */
@@ -1507,6 +1533,14 @@ static void merke_pkg(kern *k, const char *p, const char *anzeige, long long gr)
                 mt_setze(A, &k->PKG_TRP, a_kopie(A, hex), (void *)a_kopie(A, pi.titel));
                 if (pi.trp_n > 1) mt_setze(A, &k->PKG_TRP_NR, a_kopie(A, hex), (void *)(intptr_t)(j + 1));   /* "Trophäen-Liste 2" wie bei installierten Spielen */
             }
+        }
+        /* NEU 1.0.9 (da_Chris86 08.11.2026 01:19): das Bild aus der PKG-Datei für die Kachel-Vorschau, wenn das Spiel nicht installiert ist.
+         * Die Spiel- oder App-PKG geht vor einem Update (dessen Bild ist meist dasselbe); ein Zusatzinhalt trägt sein eigenes Bild und zählt
+         * nicht (oben ausgeschlossen). Ein Zeilenumbruch im Pfad würde die Angabe "Pfad\nAnfang\nLänge" zerlegen - dann kein Bild. */
+        bool vom_upd = mt_hat(&k->BILD_UPD, pi.id) && mt_hole(&k->BILD_UPD, pi.id);
+        if (pi.bild_len && !strchr(p, '\n') && (!mt_hat(&k->BILD_ORT, pi.id) || (vom_upd && pi.art != PKG_UPDATE))) {
+            mt_setze(A, &k->BILD_ORT, a_kopie(A, pi.id), (void *)a_fmt(A, "%s\n%u\n%u", p, (unsigned)pi.bild_ab, (unsigned)pi.bild_len));
+            mt_setze(A, &k->BILD_UPD, a_kopie(A, pi.id), (void *)(intptr_t)(pi.art == PKG_UPDATE));
         }
     }
     sliste l = L1(A, p);
@@ -1730,11 +1764,13 @@ static void pkg_doppelt(kern *k)
  * Spielnummer hat. Gelesen werden nur kleine Stücke an festen Stellen: der Kopf (512 Byte), die nötigen Verzeichnisse (je höchstens
  * 256 KB) und param.json bzw. param.sfo (höchstens 64 KB), nie das ganze Abbild. sce_sys wird im Hauptverzeichnis gesucht, sonst in
  * einem einzigen Unterordner. Jeder Wert aus der Datei wird geprüft; passt etwas nicht (kein exFAT, kaputt, nicht lesbar), gibt es
- * keinen Namen und es bleibt beim Dateinamen wie bisher. Andere Abbild-Arten (z. B. ffpkg) erkennt der Kopf nicht, sie bleiben beim Dateinamen. */
+ * keinen Namen und es bleibt beim Dateinamen wie bisher. UFS2-Abbilder (.ffpkg, .ufs) liest seit 1.0.9 ufs_innen (unten), PFS-Abbilder
+ * (.ffpfs, .ffpfsc, .pfs) pfs_innen (unten). */
 #define EXF_VERZ_MAX (256 * 1024)
 #define EXF_DATEI_MAX (64 * 1024)
-#define ABBILD_NUR_NUMMER "(?i)^[a-z]{4}\\d{5}([-_ .]*(app|v?\\d[\\d._-]*))?\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$"
-typedef struct { kern *k; const char *p; arena *t; unsigned long long fat, heap, cl, groesse; uint32_t anz; size_t gelesen; } exf;
+#define ABBILD_NUR_NUMMER "(?i)^[a-z]{4}\\d{5}([-_ .]*(app|v?\\d[\\d._-]*))?\\.(" ABBILD_ENDUNGEN ")$"
+typedef struct { kern *k; const char *p; arena *t; unsigned long long fat, heap, cl, groesse; uint32_t anz; size_t gelesen;
+                 unsigned long long basis; kern_pfsc *pfsc; } exf;   /* 1.0.9: Abbild im PFS-Abbild - ab Stelle basis oder gepackt (pfsc) */
 typedef struct { bool ordner, am_stueck; uint32_t c; unsigned long long laenge; char name[64]; } exf_eintrag;
 static unsigned long long exf_le64(const unsigned char *b) { return (unsigned long long)pkg_le32(b) | (unsigned long long)pkg_le32(b + 4) << 32; }
 static bool exf_gleich(const char *a, const char *b)   /* ASCII, ohne Groß/Klein */
@@ -1749,9 +1785,92 @@ static bool exf_lies(exf *x, unsigned long long ab, size_t n, unsigned char *zie
 {
     size_t len = 0;
     if (x->groesse && (ab > x->groesse || n > x->groesse - ab)) return false;
-    if (ab > (unsigned long long)INT64_MAX - n) return false;
-    if (!s_lies_ab(x->k->S, x->p, (long long)ab, n, ziel, &len) || len != n) return false;
+    if (x->pfsc) return kern_pfsc_lies(x->pfsc, ab, n, ziel);   /* 1.0.9: gepackt - gezählt wird, was wirklich gelesen wird (pfs_lies) */
+    if (ab > (unsigned long long)INT64_MAX - n || x->basis > (unsigned long long)INT64_MAX - n - ab) return false;
+    if (!s_lies_ab(x->k->S, x->p, (long long)(x->basis + ab), n, ziel, &len) || len != n) return false;
     x->gelesen += n;
+    return true;
+}
+/* NEU 1.0.9: wo das Bild liegt, für die Oberfläche (BILD_ORT "Pfad\nAnfang\nLänge"); in einem gepackten Abbild (.ffpfsc) mit der vierten
+ * Zeile "pfsc <Anfang> <Länge>" des Behälters - Anfang ist dann die Stelle im entpackten Abbild. "" = kein Bild. In Stücken: bild_ort_teile. */
+static const char *bild_ort(exf *x, unsigned long long ab, unsigned long long len)
+{
+    kern *k = x->k;   /* für A */
+    if (strchr(x->p, '\n')) return "";
+    if (x->pfsc) return a_fmt(A, "%s\n%llu\n%llu\npfsc %llu %llu", x->p, ab, len, x->pfsc->ab, x->pfsc->gr);
+    return a_fmt(A, "%s\n%llu\n%llu", x->p, x->basis + ab, len);
+}
+/* NEU 1.0.9 (#149): ein Bild in n Stücken (t[i] = Anfang und Länge im Abbild, n = 1 bis KERN_BILD_TEILE, zusammen len): bei einem Stück wie
+ * bild_ort, sonst dazu die Zeile "teile n a1 l1 ..." (Anfang = das erste Stück). Gelesen wird es dann über kern_bild_lesen. */
+static const char *bild_ort_teile(exf *x, unsigned long long (*t)[2], int n, unsigned long long len)
+{
+    kern *k = x->k;   /* für A */
+    if (n < 1 || n > KERN_BILD_TEILE) return "";
+    const char *o = bild_ort(x, t[0][0], len);
+    if (n == 1 || !o[0]) return o;
+    unsigned long long b = x->pfsc ? 0 : x->basis;
+    const char *s = a_fmt(A, "%s\nteile %d", o, n);
+    for (int i = 0; i < n; i++) s = a_fmt(A, "%s %llu %llu", s, b + t[i][0], t[i][1]);
+    return s;
+}
+/* NEU 1.0.9 (Codex-Prüfung 130): BILD_ORT zerlegen - vorher in app.c spiel_bild, jetzt hier (und im Test geprüft). Zahlen nur aus Ziffern
+ * (nicht leer, ohne Vorzeichen und Leerzeichen, ohne Überlauf), Pfad 1 bis 999 Zeichen; danach nur genau "pfsc <Anfang> <Länge>" und/oder
+ * (NEU #149) "teile <n> <Anfang> <Länge> ..." (in dieser Reihenfolge, n = 2 bis KERN_BILD_TEILE, das erste Stück bei Anfang, keines leer,
+ * zusammen Länge), das Bild dann 8 Byte bis 4 MB. false = nicht genau in dieser Form. */
+static bool bild_zahl(const char *s, const char *e, unsigned long long *v)
+{
+    *v = 0;
+    if (s >= e) return false;
+    for (; s < e; s++) {
+        if (*s < '0' || *s > '9' || *v > (~0ULL - (unsigned)(*s - '0')) / 10) return false;   /* bis 18446744073709551615 (Codex-Prüfung 131) */
+        *v = *v * 10 + (unsigned)(*s - '0');
+    }
+    return true;
+}
+/* die Zahlen einer Zeile von s bis e, durch genau ein Leerzeichen getrennt (nicht davor, nicht dahinter); Anzahl, -1 = nicht so */
+static int bild_zahlen(const char *s, const char *e, unsigned long long *v, int max)
+{
+    int n = 0;
+    while (s < e) {
+        const char *lz = memchr(s, ' ', (size_t)(e - s)), *z = lz ? lz : e;
+        if (n >= max || !bild_zahl(s, z, &v[n])) return -1;
+        n++;
+        if (!lz) break;
+        s = lz + 1;
+        if (s == e) return -1;
+    }
+    return n;
+}
+bool kern_bild_ort_lesen(const char *o, kern_bild_ort *b)
+{
+    memset(b, 0, sizeof *b);
+    const char *z1 = o ? strchr(o, '\n') : NULL, *z2 = z1 ? strchr(z1 + 1, '\n') : NULL, *z3 = z2 ? strchr(z2 + 1, '\n') : NULL;
+    if (!z1 || !z2 || z1 == o || (size_t)(z1 - o) >= sizeof b->pfad) return false;
+    if (!bild_zahl(z1 + 1, z2, &b->ab) || !bild_zahl(z2 + 1, z3 ? z3 : z2 + 1 + strlen(z2 + 1), &b->len)) return false;
+    memcpy(b->pfad, o, (size_t)(z1 - o)); b->pfad[z1 - o] = 0;
+    const char *s = z3 ? z3 + 1 : NULL;
+    if (s && !strncmp(s, "pfsc ", 5)) {                               /* gepackt: der Behälter in der Datei */
+        const char *e = strchr(s, '\n');
+        unsigned long long v[2];
+        if (bild_zahlen(s + 5, e ? e : s + strlen(s), v, 2) != 2) return false;
+        b->cab = v[0]; b->cgr = v[1]; b->gepackt = true;
+        s = e ? e + 1 : NULL;
+    }
+    if (s && !strncmp(s, "teile ", 6) && !strchr(s, '\n')) {         /* NEU #149: in Stücken */
+        unsigned long long v[1 + 2 * KERN_BILD_TEILE], summe = 0;
+        int z = bild_zahlen(s + 6, s + strlen(s), v, 1 + 2 * KERN_BILD_TEILE);
+        if (z < 5 || v[0] < 2 || v[0] > KERN_BILD_TEILE || (unsigned long long)z != 1 + 2 * v[0] || v[1] != b->ab) return false;
+        for (int i = 0; i < (int)v[0]; i++) {
+            unsigned long long a = v[1 + 2 * i], l = v[2 + 2 * i];
+            if (l == 0 || l > b->len - summe || a > ~0ULL - l) return false;
+            summe += l; b->teile[i][0] = a; b->teile[i][1] = l;
+        }
+        if (summe != b->len) return false;
+        b->teile_n = (int)v[0];
+        s = NULL;
+    }
+    if (s) return false;                                               /* sonst nichts */
+    if ((b->gepackt || b->teile_n) && (b->len < 8 || b->len > 4u * 1024 * 1024)) return false;
     return true;
 }
 static uint32_t exf_fat(exf *x, uint32_t c)   /* nächster Cluster der Kette; 0 = Ende oder ungültig */
@@ -1807,7 +1926,8 @@ static size_t exf_naechster(const unsigned char *v, size_t n, size_t i, exf_eint
     }
     return 0;
 }
-/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): dazu die Kennung aus param.json/param.sfo (*tid) und, wenn icon0.png am Stück liegt, wo
+/* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): dazu die Kennung aus param.json/param.sfo (*tid) und, wenn icon0.png lesbar liegt (seit #149 auch
+ * in Stücken), wo
  * (*bild = "Pfad\nAnfang\nLänge" für die Oberfläche - sie liest das Bild selbst, die Suche nicht) */
 static const char *exf_innen(exf *x, const char **tid, const char **bild)
 {
@@ -1865,7 +1985,8 @@ static const char *exf_innen(exf *x, const char **tid, const char **bild)
             if (pkg_sfo_feld(f, n, "TITLE_ID", ti, sizeof ti) && r_m(ti, "^[A-Z]{4}\\d{5}$")) *tid = a_kopie(A, ti);
         }
     }
-    /* icon0.png nur, wenn es am Stück liegt (ohne FAT-Kette oder Cluster für Cluster hintereinander) - dann liest die Oberfläche es direkt */
+    /* icon0.png am Stück (ohne FAT-Kette oder Cluster für Cluster hintereinander) oder - NEU 1.0.9 (#149) - in Stücken entlang der FAT-Kette
+     * (höchstens 1024 Cluster, KERN_BILD_TEILE Stücke); lesen tut es die Oberfläche */
     if (titel[0] && ic_da && ic.laenge >= 8 && ic.laenge <= 4u * 1024 * 1024 && ic.c >= 2 && ic.c - 2 < x->anz) {
         unsigned long long cls = (ic.laenge + x->cl - 1) / x->cl;
         bool stueck = cls <= (unsigned long long)(x->anz - (ic.c - 2));
@@ -1877,9 +1998,360 @@ static const char *exf_innen(exf *x, const char **tid, const char **bild)
         }
         unsigned long long ab = x->heap + (unsigned long long)(ic.c - 2) * x->cl;
         if (stueck && (!x->groesse || (ab <= x->groesse && ic.laenge <= x->groesse - ab)))
-            *bild = a_fmt(A, "%s\n%llu\n%llu", x->p, ab, ic.laenge);
+            *bild = bild_ort(x, ab, ic.laenge);
+        else if (!stueck && !ic.am_stueck && cls <= 1024) {   /* NEU 1.0.9 (#149): der FAT-Kette folgen, Stücke merken */
+            unsigned long long t[KERN_BILD_TEILE][2], rest = ic.laenge; int n = 0; uint32_t c = ic.c; bool ok = true;
+            for (unsigned long long i = 0; ok && i < cls; i++) {
+                unsigned long long a = x->heap + (unsigned long long)(c - 2) * x->cl, l = rest < x->cl ? rest : x->cl;
+                for (int j = 0; j < n; j++) if (a < t[j][0] + t[j][1] && t[j][0] < a + l) ok = false;   /* Codex-Prüfungen 134, 135: kein Cluster zweimal (Kreis), nichts überschneidet sich */
+                if (!ok || (x->groesse && (a > x->groesse || l > x->groesse - a))) ok = false;
+                else if (n > 0 && t[n - 1][0] + t[n - 1][1] == a) t[n - 1][1] += l;
+                else if (n < KERN_BILD_TEILE) { t[n][0] = a; t[n][1] = l; n++; }
+                else ok = false;
+                rest -= l;
+                if (ok && i + 1 < cls && !(c = exf_fat(x, c))) ok = false;
+            }
+            unsigned char sig[8];
+            if (ok && n >= 2 && exf_lies(x, t[0][0], sizeof sig, sig) && !memcmp(sig, "\x89PNG\r\n\x1a\n", 8)) *bild = bild_ort_teile(x, t, n, ic.laenge);
+        }
     }
     return titel;
+}
+/* NEU 1.0.9 (08.11.2026, da_Chris86 01:19 "außer Exfat auch noch andere Dateiformate", Nachprüfung 07:45: ShadowMountPlus empfiehlt
+ * .ffpkg): Name, Kennung und Bild auch aus UFS2-Abbildern - .ffpkg, .ufs (kstuff-lite) und UFS2Tool-.img. Aufbau nach FreeBSD
+ * sys/ufs/ffs/fs.h, sys/ufs/ufs/dinode.h und dir.h: Superblock bei 64 KB (Kennung 0x19540119 an Stelle 1372, Werte little-endian),
+ * Inodes zu 256 Byte, Verzeichnisse in Stücken zu 512 Byte (ein Eintrag überspannt nie ein Stück). ShadowMountPlus legt .ffpkg mit
+ * newfs -O 2 -b 65536 -f 65536 an (mkufs2.sh), sce_sys liegt im Hauptverzeichnis. Gelesen werden nur der Superblock, wenige Inodes,
+ * die nötigen Verzeichnisse (je höchstens 256 KB) und param.json bzw. param.sfo (höchstens 64 KB), nie das ganze Abbild. Jeder Wert
+ * aus der Datei wird geprüft (Größen, Grenzen, Inode- und Blocknummern innerhalb des Dateisystems); passt etwas nicht, gibt es keinen
+ * Namen und es bleibt beim Dateinamen. icon0.png nur, wenn es mit der PNG-Kennung beginnt - am Stück oder (#149) in Stücken; dann liest
+ * die Oberfläche das Bild selbst (BILD_ORT), die Suche nicht. */
+#define UFS2_SB_AB   65536ULL
+#define UFS2_KENNUNG 0x19540119u
+#define UFS2_WURZEL  2ULL
+#define UFS_NICHT    (~0ULL)   /* Blocknummer nicht lesbar oder außerhalb */
+typedef struct { unsigned long long fsize, bsize, frag, inopb, ipg, fpg, iblkno, ncg, frags; } ufs_sb;
+typedef struct { unsigned art; unsigned long long laenge, db[12], ib0; } ufs_inode;   /* art: 4 Ordner, 8 Datei, 0 sonst */
+typedef struct { unsigned long long ino; unsigned typ; char name[64]; } ufs_eintrag;
+static bool ufs_zweierpotenz(unsigned long long v) { return v && !(v & (v - 1)); }
+static bool ufs_sb_lesen(exf *x, ufs_sb *s)
+{
+    unsigned char b[1376];
+    if (!exf_lies(x, UFS2_SB_AB, sizeof b, b) || pkg_le32(b + 1372) != UFS2_KENNUNG) return false;
+    s->iblkno = pkg_le32(b + 16); s->ncg = pkg_le32(b + 44); s->bsize = pkg_le32(b + 48); s->fsize = pkg_le32(b + 52);
+    s->frag = pkg_le32(b + 56); s->inopb = pkg_le32(b + 120); s->ipg = pkg_le32(b + 184); s->fpg = pkg_le32(b + 188);
+    s->frags = exf_le64(b + 1080);   /* fs_size: Fragmente im Dateisystem */
+    if (!ufs_zweierpotenz(s->fsize) || s->fsize < 512 || !ufs_zweierpotenz(s->bsize) || s->bsize < 4096 || s->bsize > 65536
+        || s->fsize > s->bsize || s->frag != s->bsize / s->fsize || s->frag > 8 || s->inopb != s->bsize / 256) return false;
+    if (s->ipg == 0 || s->ipg % s->inopb || s->ncg == 0 || s->fpg == 0 || s->fpg % s->frag || s->iblkno >= s->fpg) return false;
+    return s->frags > 0 && s->frags <= (1ULL << 40) && s->frags <= s->ncg * s->fpg;
+}
+static bool ufs_inode_lesen(exf *x, const ufs_sb *s, unsigned long long ino, ufs_inode *i)
+{
+    if (ino < UFS2_WURZEL || ino / s->ipg >= s->ncg) return false;
+    unsigned long long cg = ino / s->ipg, rest = ino % s->ipg;
+    unsigned long long fsba = s->fpg * cg + s->iblkno + (rest / s->inopb) * s->frag;   /* ino_to_fsba (UFS2: cgstart = cgbase) */
+    if (fsba >= s->frags || s->frags - fsba < s->frag) return false;
+    unsigned char b[256];
+    if (!exf_lies(x, fsba * s->fsize + (ino % s->inopb) * 256, sizeof b, b)) return false;
+    unsigned mode = (unsigned)b[0] | (unsigned)b[1] << 8;
+    i->art = (mode & 0170000) == 0040000 ? 4 : (mode & 0170000) == 0100000 ? 8 : 0;
+    i->laenge = exf_le64(b + 16);
+    for (int j = 0; j < 12; j++) i->db[j] = exf_le64(b + 112 + 8 * j);
+    i->ib0 = exf_le64(b + 208);
+    return i->art != 0;
+}
+/* Fragment-Nummer von Block lbn der Datei (0 = Loch, UFS_NICHT = nicht lesbar) - nur die direkten Blöcke und die erste Stufe (ib[0]) */
+static unsigned long long ufs_block(exf *x, const ufs_sb *s, const ufs_inode *i, unsigned long long lbn, unsigned char **ind)
+{
+    unsigned long long a, n = s->bsize / 8;
+    if (lbn < 12) a = i->db[lbn];
+    else if (lbn - 12 >= n) return UFS_NICHT;
+    else {
+        if (i->ib0 == 0) return 0;
+        if (!*ind) {
+            if (i->ib0 >= s->frags || s->frags - i->ib0 < s->frag) return UFS_NICHT;
+            unsigned char *b = a_hole(x->t, (size_t)s->bsize);
+            if (!exf_lies(x, i->ib0 * s->fsize, (size_t)s->bsize, b)) return UFS_NICHT;
+            *ind = b;
+        }
+        a = exf_le64(*ind + 8 * (lbn - 12));
+    }
+    return a != 0 && a >= s->frags ? UFS_NICHT : a;
+}
+/* höchstens max Byte der Datei, mit 0 am Ende; NULL = ein Stück nicht lesbar */
+static unsigned char *ufs_daten(exf *x, const ufs_sb *s, const ufs_inode *i, size_t max, size_t *n)
+{
+    *n = 0;
+    unsigned long long laenge = i->laenge < max ? i->laenge : max;
+    unsigned char *b = a_hole(x->t, (size_t)laenge + 1), *ind = NULL;
+    size_t got = 0;
+    for (unsigned long long lbn = 0; got < laenge; lbn++) {
+        size_t m = laenge - got < s->bsize ? (size_t)(laenge - got) : (size_t)s->bsize;
+        unsigned long long a = ufs_block(x, s, i, lbn, &ind);
+        if (a == UFS_NICHT) return NULL;
+        if (a == 0) memset(b + got, 0, m);                     /* Loch: liest sich als Nullen */
+        else if ((m + s->fsize - 1) / s->fsize > s->frags - a || !exf_lies(x, a * s->fsize, m, b + got)) return NULL;
+        got += m;
+    }
+    b[got] = 0; *n = got;
+    return b;
+}
+/* nächsten Eintrag ab Stelle i lesen; liefert die Stelle danach, 0 = keiner mehr. Kaputter Eintrag: Rest seines 512-Byte-Stücks überspringen */
+static size_t ufs_naechster(const unsigned char *v, size_t n, size_t i, ufs_eintrag *e)
+{
+    while (i + 8 <= n) {
+        size_t ende = (i / 512 + 1) * 512;
+        if (ende > n) ende = n;
+        unsigned long long ino = pkg_le32(v + i);
+        size_t rl = (size_t)v[i + 4] | (size_t)v[i + 5] << 8, nl = v[i + 7];
+        if (rl < 12 || rl % 4 || rl > ende - i || 8 + nl > rl) { i = ende; continue; }
+        size_t weiter = i + rl;
+        if (ino == 0 || nl == 0 || nl >= sizeof e->name || memchr(v + i + 8, 0, nl)) { i = weiter; continue; }
+        memcpy(e->name, v + i + 8, nl); e->name[nl] = 0;
+        e->ino = ino; e->typ = v[i + 6];
+        return weiter;
+    }
+    return 0;
+}
+static bool ufs_ordner(exf *x, const ufs_sb *s, const ufs_eintrag *e, ufs_inode *d)   /* d_type 4 = Ordner, 0 = unbekannt: im Inode nachsehen */
+{
+    return (e->typ == 4 || e->typ == 0) && ufs_inode_lesen(x, s, e->ino, d) && d->art == 4;
+}
+static const char *ufs_innen(exf *x, const char **tid, const char **bild)
+{
+    kern *k = x->k;   /* für A */
+    *tid = ""; *bild = "";
+    ufs_sb s; ufs_inode w = {0}, d = {0}, sys = {0}, einzig = {0}; ufs_eintrag e = {0};
+    if (!ufs_sb_lesen(x, &s) || !ufs_inode_lesen(x, &s, UFS2_WURZEL, &w) || w.art != 4) return "";
+    size_t n;
+    unsigned char *v = ufs_daten(x, &s, &w, EXF_VERZ_MAX, &n);
+    if (!v) return "";
+    int ordner = 0; bool sys_da = false;
+    for (size_t i = 0; (i = ufs_naechster(v, n, i, &e)) != 0; ) {
+        if (!strcmp(e.name, ".") || !strcmp(e.name, "..") || !strcmp(e.name, ".snap") || !strcmp(e.name, "lost+found")) continue;
+        if (!ufs_ordner(x, &s, &e, &d)) continue;
+        ordner++; einzig = d;
+        if (exf_gleich(e.name, "sce_sys")) { sys = d; sys_da = true; }
+    }
+    if (!sys_da && ordner == 1) {                             /* Spiel in einem einzigen Unterordner, z. B. PPSA03530-app/sce_sys */
+        unsigned char *u = ufs_daten(x, &s, &einzig, EXF_VERZ_MAX, &n);
+        if (!u) return "";
+        for (size_t i = 0; (i = ufs_naechster(u, n, i, &e)) != 0; )
+            if (exf_gleich(e.name, "sce_sys") && ufs_ordner(x, &s, &e, &d)) { sys = d; sys_da = true; break; }
+    }
+    if (!sys_da) return "";
+    unsigned char *sv = ufs_daten(x, &s, &sys, EXF_VERZ_MAX, &n);
+    if (!sv) return "";
+    ufs_inode pj = {0}, ps = {0}, ic = {0}; bool pj_da = false, ps_da = false, ic_da = false;
+    for (size_t i = 0; (i = ufs_naechster(sv, n, i, &e)) != 0; ) {
+        int was = exf_gleich(e.name, "param.json") ? 1 : exf_gleich(e.name, "param.sfo") ? 2 : exf_gleich(e.name, "icon0.png") ? 3 : 0;
+        if (!was || (e.typ != 8 && e.typ != 0) || !ufs_inode_lesen(x, &s, e.ino, &d) || d.art != 8) continue;
+        if (was == 1) { pj = d; pj_da = true; } else if (was == 2) { ps = d; ps_da = true; } else { ic = d; ic_da = true; }
+    }
+    const char *titel = "";                                   /* Name und Kennung wie exf_innen */
+    if (pj_da && pj.laenge > 0 && pj.laenge <= EXF_DATEI_MAX) {
+        unsigned char *j = ufs_daten(x, &s, &pj, EXF_DATEI_MAX, &n);
+        if (j && n == pj.laenge && !memchr(j, 0, n)) {
+            titel = kern_json_titel(A, (const char *)j);
+            htreffer m = h_mt(x->t, (const char *)j, "(?-i)\"titleId\"\\s*:\\s*\"([A-Z]{4}\\d{5})\"");
+            if (titel[0] && m.ok) *tid = a_kopie(A, m.gr[1]);
+        }
+    }
+    if (!titel[0] && ps_da && ps.laenge >= 20 && ps.laenge <= EXF_DATEI_MAX) {   /* PS4-Spiel im Abbild: Titel wie kern_sfo_titel */
+        unsigned char *f = ufs_daten(x, &s, &ps, EXF_DATEI_MAX, &n);
+        char t[128], ti[16];
+        if (f && n == ps.laenge && ((pkg_sfo_feld(f, n, "TITLE_04", t, sizeof t) && t[0]) || (pkg_sfo_feld(f, n, "TITLE_01", t, sizeof t) && t[0])
+                                    || (pkg_sfo_feld(f, n, "TITLE", t, sizeof t) && t[0]))) {
+            titel = a_kopie(A, t);
+            if (pkg_sfo_feld(f, n, "TITLE_ID", ti, sizeof ti) && r_m(ti, "^[A-Z]{4}\\d{5}$")) *tid = a_kopie(A, ti);
+        }
+    }
+    /* icon0.png, wenn es ein PNG ist und keine Löcher hat - am Stück oder (NEU 1.0.9, #149) in Stücken: Block für Block, direkt
+     * hintereinander liegende Blöcke sind ein Stück (höchstens KERN_BILD_TEILE Stücke) */
+    if (titel[0] && ic_da && ic.laenge >= 8 && ic.laenge <= 4u * 1024 * 1024 && !strchr(x->p, '\n')) {
+        unsigned long long bl = (ic.laenge + s.bsize - 1) / s.bsize, t[KERN_BILD_TEILE][2], rest = ic.laenge;
+        unsigned char *ind = NULL; bool ok = true; int n = 0;
+        for (unsigned long long lbn = 0; ok && lbn < bl; lbn++) {
+            unsigned long long a = ufs_block(x, &s, &ic, lbn, &ind), l = rest < s.bsize ? rest : s.bsize;
+            if (a == 0 || a == UFS_NICHT || (l + s.fsize - 1) / s.fsize > s.frags - a) { ok = false; break; }
+            unsigned long long ab = a * s.fsize;
+            for (int j = 0; j < n; j++) if (ab < t[j][0] + t[j][1] && t[j][0] < ab + l) ok = false;   /* Codex-Prüfungen 134, 135: kein Block zweimal, keine Überschneidung */
+            if (!ok || (x->groesse && (ab > x->groesse || l > x->groesse - ab))) ok = false;
+            else if (n > 0 && t[n - 1][0] + t[n - 1][1] == ab) t[n - 1][1] += l;
+            else if (n < KERN_BILD_TEILE) { t[n][0] = ab; t[n][1] = l; n++; }
+            else ok = false;
+            rest -= l;
+        }
+        unsigned char sig[8];
+        if (ok && n >= 1 && exf_lies(x, t[0][0], sizeof sig, sig) && !memcmp(sig, "\x89PNG\r\n\x1a\n", 8))
+            *bild = bild_ort_teile(x, t, n, ic.laenge);
+    }
+    return titel;
+}
+/* NEU 1.0.9 (08.11.2026, #144 - da_Chris86: "außer Exfat auch noch andere Dateiformate"; .ffpfs und .ffpfsc von ShadowMountPlus): Name,
+ * Kennung und Bild auch aus PFS-Abbildern. Aufbau nach quer3q/ps5-dump-forge (crates/ps5-dump-forge-pfs, GPL-3.0, nur gelesen; Hinweis
+ * da_Chris86 09:42) und an echten Dateien nachgeprüft (Orbit Store als .ffpfs und .ffpfsc, Pegasus DL+ als .ffpfsc): Kopf mit Kennung
+ * 20130315 an Stelle 8, Art (0x1C), Blockgröße (0x20), Zahl der Inodes (0x30), der Blöcke (0x38) und der Inode-Blöcke (0x40); Inodes zu
+ * 0xA8 Byte ab Block 1; Inode 0 ist die Über-Wurzel, darin "uroot" (das eigentliche Hauptverzeichnis). Verzeichniseinträge: Inode, Art
+ * (2 Datei, 3 Ordner), Namenslänge, Eintragslänge (Vielfaches von 8), Name; 16 Null-Byte beenden die Liste. Gelesen wird nur das
+ * übliche Abbild: ohne Signatur, 32-Bit-Inodes, unverschlüsselt, jede Datei am Stück (so legen es die Werkzeuge an) - sonst kein Name.
+ * .ffpfsc: in uroot liegt genau eine Datei - gepackt (PFSC, kern_entpacken.c) oder nicht - und darin das eigentliche Abbild (exFAT, sonst
+ * UFS2); gelesen werden nur die nötigen 64-KB-Blöcke, nie das ganze Abbild. Jeder Wert aus der Datei wird geprüft. */
+#define PFS_KENNUNG 20130315ULL
+#define PFS_INODE   0xA8u
+typedef struct { unsigned long long bs, inodes, bloecke, iblocks; } pfs_kopf;
+typedef struct { unsigned mode, flags; unsigned long long gr, gr_echt, ab; } pfs_inode;   /* gr: gespeichert, gr_echt: entpackt, ab: Daten */
+typedef struct { unsigned long long ino; int typ; char name[64]; bool kaputt; } pfs_eintrag;   /* name "": zu lang oder mit 0 - zählt trotzdem
+                                                   * mit; kaputt: die Liste endete an einem kaputten Eintrag (Codex-Prüfung 131) */
+#define PFS_ORDNER(m) (((m) & 0xF000u) == 0x4000u)   /* Codex-Prüfung 130: die ganze Art vergleichen, nicht ein Bit (0xA000 Verknüpfung, */
+#define PFS_DATEI(m)  (((m) & 0xF000u) == 0x8000u)   /* 0xC000 ...); in den echten Abbildern 0x416d und 0x816d */
+static bool pfs_kopf_lesen(exf *x, pfs_kopf *h)
+{
+    unsigned char b[0x48];
+    if (!exf_lies(x, 0, sizeof b, b)) return false;
+    unsigned long long ver = exf_le64(b), kennung = exf_le64(b + 8);
+    unsigned mode = (unsigned)b[0x1C] | (unsigned)b[0x1D] << 8;
+    h->bs = pkg_le32(b + 0x20); h->inodes = exf_le64(b + 0x30); h->bloecke = exf_le64(b + 0x38); h->iblocks = exf_le64(b + 0x40);
+    if (kennung != PFS_KENNUNG || ver < 1 || ver > 2 || (mode & 0x7)) return false;   /* 0x1 signiert, 0x2 64-Bit-Inodes, 0x4 verschlüsselt */
+    if (h->bs < 4096 || h->bs > (1u << 20) || (h->bs & (h->bs - 1))) return false;
+    if (h->bloecke < 3 || h->bloecke > (1ULL << 40) / h->bs || h->iblocks < 1 || h->iblocks >= h->bloecke - 1) return false;
+    if (x->groesse && h->bloecke * h->bs > x->groesse) return false;
+    if (h->inodes < 3 || h->inodes > h->iblocks * (h->bs / PFS_INODE)) return false;
+    return true;
+}
+static bool pfs_inode_lesen(exf *x, const pfs_kopf *h, unsigned long long n, pfs_inode *i)
+{
+    unsigned long long pro = h->bs / PFS_INODE;
+    unsigned char b[PFS_INODE];
+    if (n >= h->inodes || !exf_lies(x, h->bs * (1 + n / pro) + (n % pro) * PFS_INODE, sizeof b, b)) return false;
+    i->mode = (unsigned)b[0] | (unsigned)b[1] << 8;
+    i->flags = pkg_le32(b + 4);
+    i->gr = exf_le64(b + 8); i->gr_echt = exf_le64(b + 0x10);
+    unsigned long long bl = pkg_le32(b + 0x60);
+    long long db0 = (int32_t)pkg_le32(b + 0x64);
+    /* nur am Stück: db[1..11] alle -1 - bei höchstens einem Block auch alle 0 (so die Über-Wurzel in den echten Abbildern) */
+    int32_t r1 = (int32_t)pkg_le32(b + 0x68);
+    if ((r1 != -1 && (r1 != 0 || bl > 1))) return false;
+    for (int j = 2; j < 12; j++) if ((int32_t)pkg_le32(b + 0x64 + 4 * j) != r1) return false;
+    /* ohne Indirekt-Blöcke: alle 0 oder - NEU 1.0.9 (PS5-Test 09.11.2026 17:06, Spider-Man 2 als .ffpfsc ohne Bild, per FTP nachgesehen) -
+     * alle -1; beides heißt "keiner" (der Bau-Simulator hat 0, Spider-Man 2 -1) */
+    uint32_t i0 = pkg_le32(b + 0x94);
+    if (i0 != 0 && i0 != 0xFFFFFFFFu) return false;
+    for (int j = 1; j < 5; j++) if (pkg_le32(b + 0x94 + 4 * j) != i0) return false;
+    if (db0 < 0 || (unsigned long long)db0 > h->bloecke || bl > h->bloecke - (unsigned long long)db0 || i->gr > bl * h->bs) return false;
+    if (i->gr > 0 && (unsigned long long)db0 <= h->iblocks) return false;                       /* Daten nie im Kopf oder bei den Inodes */
+    i->ab = (unsigned long long)db0 * h->bs;
+    return true;
+}
+/* Einträge eines Ordners der Reihe nach, ohne "." und ".."; 0 = Ende (auch bei einem kaputten Eintrag - dann gilt der Rest nicht und
+ * e->kaputt ist gesetzt; Codex-Prüfung 131: so ist ein kaputter Eintrag vom richtigen Ende der Liste zu unterscheiden; 132: auch ein
+ * angefangener Eintrag ganz am Ende - richtig endet eine Liste mit 16 Null-Byte oder genau am Ende, höchstens mit Nullen dahinter).
+ * Codex-Prüfung 130: jeder andere Eintrag kommt zurück - auch einer mit langem Namen oder fremder Art (dann name ""), damit "genau eine
+ * Datei" in pfs_innen richtig zählt; gesucht wird nur nach kurzen Namen. */
+static size_t pfs_naechster(const unsigned char *v, size_t n, size_t i, pfs_eintrag *e)
+{
+    e->kaputt = false;
+    while (i + 16 <= n) {
+        uint32_t ino = pkg_le32(v + i);
+        int32_t typ = (int32_t)pkg_le32(v + i + 4), nl = (int32_t)pkg_le32(v + i + 8), el = (int32_t)pkg_le32(v + i + 12);
+        if (!ino && !typ && !nl && !el) return 0;
+        if (el < 16 || (el & 7) || (size_t)el > n - i || nl < 1 || nl > el - 16) { e->kaputt = true; return 0; }
+        size_t nx = i + (size_t)el;
+        if (typ == 4 || typ == 5) { i = nx; continue; }                       /* "." und ".." */
+        e->ino = ino; e->typ = typ; e->name[0] = 0;
+        if (nl < (int32_t)sizeof e->name && !memchr(v + i + 16, 0, (size_t)nl)) { memcpy(e->name, v + i + 16, (size_t)nl); e->name[nl] = 0; }
+        return nx;
+    }
+    for (; i < n; i++) if (v[i]) { e->kaputt = true; break; }
+    return 0;
+}
+static unsigned char *pfs_daten(exf *x, const pfs_inode *i, size_t max, size_t *n)   /* ungepackte Daten mit 0 am Ende; NULL = nicht so lesbar */
+{
+    if ((i->flags & 1) || i->gr == 0 || i->gr > max) return NULL;
+    unsigned char *d = a_hole(x->t, (size_t)i->gr + 1);
+    if (!exf_lies(x, i->ab, (size_t)i->gr, d)) return NULL;
+    d[i->gr] = 0; *n = (size_t)i->gr;
+    return d;
+}
+static bool pfs_suchen(exf *x, const pfs_kopf *h, const pfs_inode *ordner, const char *name, int typ, pfs_inode *aus)
+{
+    size_t n; pfs_eintrag e, f = {0}; bool da = false;
+    if (!PFS_ORDNER(ordner->mode)) return false;
+    unsigned char *v = pfs_daten(x, ordner, EXF_VERZ_MAX, &n);
+    if (!v) return false;
+    for (size_t i = 0; (i = pfs_naechster(v, n, i, &e)) != 0; )
+        if (!da && e.typ == typ && exf_gleich(e.name, name)) { f = e; da = true; }
+    /* Codex-Prüfung 132: nur aus einer ganz lesbaren Liste (endet sie an einem kaputten Eintrag, wird ihr nicht getraut) */
+    return da && !e.kaputt && pfs_inode_lesen(x, h, f.ino, aus) && (typ == 3 ? PFS_ORDNER(aus->mode) : PFS_DATEI(aus->mode));
+}
+static bool pfs_lies(void *c, unsigned long long ab, size_t n, unsigned char *ziel)   /* für kern_pfsc: die Datei selbst, Stelle ab Dateianfang */
+{
+    exf *x = c; size_t len = 0;
+    if (ab > (unsigned long long)INT64_MAX - n || (x->groesse && (ab > x->groesse || n > x->groesse - ab))) return false;
+    if (!s_lies_ab(x->k->S, x->p, (long long)ab, n, ziel, &len) || len != n) return false;
+    x->gelesen += n;
+    return true;
+}
+static const char *pfs_innen(exf *x, const char **tid, const char **bild)
+{
+    kern *k = x->k;   /* für A */
+    *tid = ""; *bild = "";
+    pfs_kopf h; pfs_inode sw, ur, d;
+    if (x->pfsc || x->basis || !pfs_kopf_lesen(x, &h) || !pfs_inode_lesen(x, &h, 0, &sw) || !pfs_suchen(x, &h, &sw, "uroot", 3, &ur)) return "";
+    /* uroot einmal lesen (Ordner sind meist einen ganzen Block groß): sce_sys - oder genau eine Datei (.ffpfsc); jeder Eintrag außer "." und
+     * ".." zählt mit, auch einer mit langem Namen oder fremder Art (Codex-Prüfung 130) */
+    size_t n; pfs_eintrag e, ein = {0}, se = {0}; int dateien = 0, andere = 0; bool sys_da = false;
+    unsigned char *uv = pfs_daten(x, &ur, EXF_VERZ_MAX, &n);
+    if (!uv) return "";
+    for (size_t i = 0; (i = pfs_naechster(uv, n, i, &e)) != 0; ) {
+        if (e.typ == 3 && !sys_da && exf_gleich(e.name, "sce_sys")) { se = e; sys_da = true; }
+        if (e.typ == 2) { dateien++; ein = e; } else andere++;
+    }
+    if (e.kaputt) return "";                                   /* Codex-Prüfungen 131, 132: einer kaputten Liste wird nicht getraut */
+    if (sys_da) {
+        pfs_inode sys, pj, ps, ic; bool pj_da = false, ps_da = false, ic_da = false;
+        if (!pfs_inode_lesen(x, &h, se.ino, &sys) || !PFS_ORDNER(sys.mode)) return "";
+        unsigned char *sv = pfs_daten(x, &sys, EXF_VERZ_MAX, &n);
+        for (size_t i = 0; sv && (i = pfs_naechster(sv, n, i, &e)) != 0; ) {   /* sce_sys auch nur einmal lesen */
+            if (e.typ != 2) continue;
+            if (!pj_da && exf_gleich(e.name, "param.json")) pj_da = pfs_inode_lesen(x, &h, e.ino, &pj) && PFS_DATEI(pj.mode);
+            else if (!ps_da && exf_gleich(e.name, "param.sfo")) ps_da = pfs_inode_lesen(x, &h, e.ino, &ps) && PFS_DATEI(ps.mode);
+            else if (!ic_da && exf_gleich(e.name, "icon0.png")) ic_da = pfs_inode_lesen(x, &h, e.ino, &ic) && PFS_DATEI(ic.mode);
+        }
+        if (e.kaputt) return "";                               /* sce_sys ebenso (Codex-Prüfung 132) */
+        const char *titel = "";                                /* Name und Kennung wie exf_innen */
+        unsigned char *j = pj_da ? pfs_daten(x, &pj, EXF_DATEI_MAX, &n) : NULL;
+        if (j && !memchr(j, 0, n)) {
+            titel = kern_json_titel(A, (const char *)j);
+            htreffer m = h_mt(x->t, (const char *)j, "(?-i)\"titleId\"\\s*:\\s*\"([A-Z]{4}\\d{5})\"");
+            if (titel[0] && m.ok) *tid = a_kopie(A, m.gr[1]);
+        }
+        unsigned char *f = !titel[0] && ps_da && ps.gr >= 20 ? pfs_daten(x, &ps, EXF_DATEI_MAX, &n) : NULL;
+        char t[128], ti[16];
+        if (f && ((pkg_sfo_feld(f, n, "TITLE_04", t, sizeof t) && t[0]) || (pkg_sfo_feld(f, n, "TITLE_01", t, sizeof t) && t[0])
+                  || (pkg_sfo_feld(f, n, "TITLE", t, sizeof t) && t[0]))) {   /* PS4-Spiel im Abbild */
+            titel = a_kopie(A, t);
+            if (pkg_sfo_feld(f, n, "TITLE_ID", ti, sizeof ti) && r_m(ti, "^[A-Z]{4}\\d{5}$")) *tid = a_kopie(A, ti);
+        }
+        unsigned char sig[8];                                  /* Bild: ungepackt, am Stück, mit PNG-Kennung - dann liest es die Oberfläche */
+        if (titel[0] && ic_da && !(ic.flags & 1) && ic.gr >= 8 && ic.gr <= 4u * 1024 * 1024 && exf_lies(x, ic.ab, sizeof sig, sig) && !memcmp(sig, "\x89PNG\r\n\x1a\n", 8))
+            *bild = bild_ort(x, ic.ab, ic.gr);
+        return titel;
+    }
+    /* .ffpfsc (und ein ungepacktes Abbild im Abbild): in uroot genau eine Datei, sonst nichts (die Liste ist ganz lesbar, siehe oben) */
+    if (dateien != 1 || andere != 0 || !pfs_inode_lesen(x, &h, ein.ino, &d) || !PFS_DATEI(d.mode) || d.gr == 0) return "";
+    exf y = *x;
+    y.fat = y.heap = y.cl = 0; y.anz = 0; y.gelesen = 0;
+    kern_pfsc *pc = a_hole(x->t, sizeof *pc);
+    if (d.flags & 1) {
+        if (!kern_pfsc_auf(pc, x->t, pfs_lies, x, d.ab, d.gr) || pc->laenge != d.gr_echt) return "";
+        y.pfsc = pc; y.groesse = pc->laenge;
+    } else { y.basis = d.ab; y.groesse = d.gr; }
+    const char *r = exf_innen(&y, tid, bild);
+    if (!r[0]) r = ufs_innen(&y, tid, bild);
+    x->gelesen += y.gelesen;                                   /* gepackt: zählt pfs_lies selbst (y.gelesen bleibt 0) */
+    return r;
 }
 static size_t exf_zuletzt;   /* nur für die PC-Tests: so viele Bytes las der letzte Aufruf */
 static const char *abbild_titel_mit(kern *k, const char *p, long long groesse, const char **tid, const char **bild)
@@ -1889,7 +2361,12 @@ static const char *abbild_titel_mit(kern *k, const char *p, long long groesse, c
     const char *volatile r = "";
     const char *ti = "", *bi = "";
     exf_zuletzt = 0;
-    VERSUCHE { r = exf_innen(&x, &ti, &bi); exf_zuletzt = x.gelesen; }
+    VERSUCHE {
+        r = exf_innen(&x, &ti, &bi);
+        if (!r[0] && !kern_bereiche_106()) r = ufs_innen(&x, &ti, &bi);   /* 1.0.9: sonst UFS2 */
+        if (!r[0] && !kern_bereiche_106()) r = pfs_innen(&x, &ti, &bi);   /* 1.0.9 (#144): sonst PFS */
+        exf_zuletzt = x.gelesen;
+    }
     FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = ""; ti = ""; bi = ""; } ENDE_VERSUCHE;
     if (t) arena_frei(t);
     *tid = r[0] ? ti : ""; *bild = r[0] ? bi : "";
@@ -1951,7 +2428,7 @@ static const char *ordner_titel(kern *k, const char *p, const char **tid, const 
 }
 /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31, da_Chris86: "bei den PS4-Spielen sind die Bilder und die Beschriftung da, bei den PS5-Spielen
  * nicht"): Anzeige-Zusatz "  [Spiel: <Name>]" für eine Spieldatei oder einen Spiel-Ordner ohne Kachel. Der Name kommt aus dem Spiel selbst
- * (Abbild: sce_sys im exFAT; Ordner: sce_sys/param.json bzw. param.sfo), sonst aus den Belegen zur Spielnummer im Namen (Aufnahmen, frühere
+ * (Abbild: sce_sys im exFAT oder, seit 1.0.9, im UFS2; Ordner: sce_sys/param.json bzw. param.sfo), sonst aus den Belegen zur Spielnummer im Namen (Aufnahmen, frühere
  * Protokolle, Spielstände - rest_name, wie bei Resten). Bis hier wurde nur ein Abbild gelesen, dessen Dateiname nichts als die Spielnummer
  * hatte. Die Kennung, zu der der Name gehört, steht immer im Zusatz ("[Spiel: Marvel's Spider-Man 2 (PPSA03016)]") - daran findet die
  * Oberfläche das Bild, auch wenn im Dateinamen keine oder eine andere Nummer steht (Codex-Prüfung 111); Zeile und Name zeigen sie nicht
@@ -1979,6 +2456,193 @@ static const char *spiel_zusatz(kern *k, const char *p, const char *name, long l
 }
 /* NEU 1.0.8: nur für die PC-Tests - Name aus dem Abbild (ohne Prüfung des Dateinamens) und wie viele Bytes gelesen wurden */
 const char *kern_abbild_titel_test(kern *k, const char *p, size_t *gelesen) { const char *t = abbild_titel(k, p, 0); *gelesen = exf_zuletzt; return t; }
+/* NEU 1.0.9 (Codex-Prüfung 125: die selbst gebauten Testabbilder prüfen den Leser nur gegen sich selbst): nur für die PC-Tests - eine
+ * Datei im UFS2-Abbild über ihren Pfad lesen (höchstens 64 KB). Damit wird der Leser an einem fremden, echten UFS2 geprüft
+ * (test/kern/daten/ufs2_dfvfs.raw.gz, mit FreeBSD newfs angelegt). Verknüpfungen und Ordner werden nicht als Datei gelesen. NULL = nicht da. */
+const unsigned char *kern_ufs_datei_test(kern *k, const char *p, const char *innen, size_t *n)
+{
+    *n = 0;
+    arena *volatile t = arena_neu();
+    const unsigned char *volatile r = NULL;
+    volatile size_t rn = 0;
+    VERSUCHE {
+        exf x = { k, p, t, 0, 0, 0, 0, 0, 0 };
+        ufs_sb s; ufs_inode d = {0}; ufs_eintrag e = {0};
+        bool ok = ufs_sb_lesen(&x, &s) && ufs_inode_lesen(&x, &s, UFS2_WURZEL, &d);
+        sliste teile = r_split(t, innen, "/");
+        for (int j = 0; ok && j < teile.n; j++) {
+            if (!teile.e[j][0]) continue;
+            size_t vn; unsigned char *v = d.art == 4 ? ufs_daten(&x, &s, &d, EXF_VERZ_MAX, &vn) : NULL;
+            bool gef = false;
+            for (size_t i = 0; v && (i = ufs_naechster(v, vn, i, &e)) != 0; ) if (!strcmp(e.name, teile.e[j])) { gef = ufs_inode_lesen(&x, &s, e.ino, &d); break; }
+            ok = gef;
+        }
+        size_t m = 0; unsigned char *b = ok && d.art == 8 ? ufs_daten(&x, &s, &d, 64 * 1024, &m) : NULL;
+        if (b && m == d.laenge) { unsigned char *c = a_hole(A, m + 1); memcpy(c, b, m + 1); r = c; rn = m; }
+    }
+    FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = NULL; rn = 0; } ENDE_VERSUCHE;
+    if (t) arena_frei(t);
+    *n = rn;
+    return r;
+}
+/* NEU 1.0.9 (#144): nur für die PC-Tests - eine Datei im PFS-Abbild über ihren Pfad unter uroot lesen (höchstens 64 KB, nur ungepackt). Damit
+ * wird der Leser an echten Abbildern geprüft (am PC, nicht im Projekt: da_Chris86s Testdateien). NULL = nicht da. */
+const unsigned char *kern_pfs_datei_test(kern *k, const char *p, const char *innen, size_t *n)
+{
+    *n = 0;
+    arena *volatile t = arena_neu();
+    const unsigned char *volatile r = NULL;
+    volatile size_t rn = 0;
+    VERSUCHE {
+        exf x = { k, p, t, 0, 0, 0, 0, 0, 0, 0, NULL };
+        pfs_kopf h; pfs_inode sw, d;
+        bool ok = pfs_kopf_lesen(&x, &h) && pfs_inode_lesen(&x, &h, 0, &sw) && pfs_suchen(&x, &h, &sw, "uroot", 3, &d);
+        sliste teile = r_split(t, innen, "/");
+        for (int j = 0; ok && j < teile.n; j++) {
+            if (!teile.e[j][0]) continue;
+            pfs_inode z;
+            ok = pfs_suchen(&x, &h, &d, teile.e[j], j + 1 < teile.n ? 3 : 2, &z);
+            if (ok) d = z;
+        }
+        size_t m = 0; unsigned char *b = ok && PFS_DATEI(d.mode) ? pfs_daten(&x, &d, 64 * 1024, &m) : NULL;
+        if (b) { unsigned char *c = a_hole(A, m + 1); memcpy(c, b, m + 1); r = c; rn = m; }
+    }
+    FANGE { arena_frei(t); t = NULL; if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); r = NULL; rn = 0; } ENDE_VERSUCHE;
+    if (t) arena_frei(t);
+    *n = rn;
+    return r;
+}
+/* NEU 1.0.9 (#145, Recherche doku/recherche_prosperostore_2026-11-08.md; da_Chris86 08.11.2026 08:12: "schau mal wie viele apps es anbietet.
+ * die alle sauber zu löschen dann wieder"): ProsperoStore (darkxex/ProsperoStore @44ae9f6, src/install/transaction.cpp, nur gelesen) legt je
+ * installierter App einen Beleg /data/prosperostore/receipts/<Kennung>.json an ("titleId", "location") und je Laufwerk Arbeitsordner
+ * <Laufwerk>/prosperostore/{previous,backup,trash,staging}/<Kennung> (staging auch <Kennung>.zip): previous ist die vorige Fassung samt allem,
+ * was darin lag (bis zum nächsten Update), backup dasselbe während eines Updates, trash und staging sind Reste einer Arbeit. Deinstalliert
+ * ProsperoStore eine App, bleibt previous liegen. Diese Teile gehören der App mit dieser Kennung, nicht ProsperoStore: jeder ist ein eigener
+ * Eintrag (StoreTeil), steht bei der Kachel mit dieser Kennung (kachel_bloecke) und ohne sie für sich - mit dem Namen der App, wenn er sich
+ * lesen lässt. Der Rest des Ordners bleibt EIN Eintrag bei ProsperoStore - nur ein Unterordner mit PKG-Dateien wird wie überall aufgeteilt
+ * (PKG-Dateien bei ihrem Spiel, sein Rest eine eigene Zeile, auch bei ProsperoStore). Der App-Ordner selbst (homebrew/<Kennung>) steht schon über
+ * seine Kennung bei der Kachel. Ein Beleg zählt nur, wenn er sich lesen lässt und genau seine Kennung nennt. Steht in journal.json eine
+ * angefangene Arbeit, bleiben die Teile dieser Kennung im Rest (ProsperoStore macht sie beim nächsten Start selbst fertig); lässt sich
+ * journal.json nicht lesen, wird nichts herausgelöst (wie bis 1.0.8). PKG-Dateien in den Teilen und im Rest stehen wie überall bei ihrem
+ * Spiel (Befund 12). Nur lesen. */
+#define STORE_JSON_MAX 16384
+typedef struct { const char *pfad, *id, *an; int art; bool ordner; } store_teil;
+/* "titleId" einer kleinen JSON-Datei von ProsperoStore (Beleg, journal.json): "" = keine gültige Kennung, NULL = nicht lesbar */
+static const char *store_kennung(kern *k, const char *p)
+{
+    const unsigned char *volatile d = NULL; volatile size_t n = 0; volatile bool ok = false;
+    VERSUCHE { const unsigned char *dd = NULL; size_t nn = 0; ok = s_kopf(k->S, p, STORE_JSON_MAX + 1, &dd, &nn); d = dd; n = nn; }
+    FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); ok = false; } ENDE_VERSUCHE;
+    if (!ok || !d) return NULL;
+    if (n == 0 || n > STORE_JSON_MAX || memchr((const void *)d, 0, n)) return "";
+    cJSON *o = cJSON_ParseWithOpts(a_kopie_n(A, (const char *)d, n), NULL, true);
+    if (!o) return "";
+    const cJSON *i = cJSON_IsObject(o) ? cJSON_GetObjectItemCaseSensitive(o, "titleId") : NULL;
+    const char *r = (cJSON_IsString(i) && i->valuestring && r_m(i->valuestring, "^[A-Z]{4}[0-9]{5}$")) ? a_kopie(A, i->valuestring) : "";
+    cJSON_Delete(o);
+    return r;
+}
+/* Kennung der angefangenen Arbeit laut /data/prosperostore/journal.json: "" = keine, NULL = unklar (nicht lesbar oder ungültig) */
+static const char *store_offen(kern *k)
+{
+    const char *j = "/user/data/prosperostore/journal.json";
+    volatile int da = -1;
+    VERSUCHE { da = s_existiert(k->S, j) ? 1 : 0; } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); da = -1; } ENDE_VERSUCHE;
+    if (da <= 0) return da == 0 ? "" : NULL;
+    const char *id = store_kennung(k, j);
+    return id && id[0] ? id : NULL;
+}
+/* Zusatz "  [App: <Name> (<Kennung>)]" - der Name aus der aufgehobenen Fassung selbst (sce_sys), sonst wie bei Resten; "" = keiner */
+static const char *store_zusatz(kern *k, const char *p, const char *id, bool ordner)
+{
+    const char *tid = "", *bild = "", *t = ordner ? ordner_titel(k, p, &tid, &bild) : "";
+    if (!t[0] || strcmp(tid, id) != 0) { t = rest_name(k, id); bild = ""; }
+    if (strlen(t) > 100) { char b[101]; memcpy(b, t, 100); b[100] = 0; t = pkg_text(A, b); } else t = pkg_text(A, t);
+    t = h_trim(A, r_r(A, t, "\\s{2,}", " "));   /* im Namen nie "  [" (Codex-Prüfung 113) */
+    if (!t[0]) return "";
+    if (bild[0] && !mt_hat(&k->BILD_ORT, id)) mt_setze(A, &k->BILD_ORT, a_kopie(A, id), (void *)a_kopie(A, bild));
+    return VERB(A, T("  [App: ", "  [app: "), t, " (", id, ")]");
+}
+/* p = .../prosperostore (intern, M.2, USB), anzeige = Name in der Zeile. false = nichts herausgelöst (dann wie bisher) */
+static bool merke_store(kern *k, const char *p, int kat, const char *anzeige)
+{
+    if (kern_bereiche_106() || kern_selbstschutz_enthaelt(k, p)) return false;
+    const char *pz = VERB(A, p, "/");
+    for (int j = 0; j < k->SpielQuellen.n; j++) if (txt_beginnt(k->SpielQuellen.e[j], pz)) return false;   /* ein Spiel darin: wie bisher */
+    dliste *volatile l = NULL;
+    VERSUCHE { l = s_liste(k->S, p, false); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); l = NULL; } ENDE_VERSUCHE;
+    if (!l) return false;
+    const char *offen = store_offen(k);
+    if (!offen) return false;                                           /* angefangene Arbeit unklar: nichts herauslösen */
+    bool intern = !strcmp(p, "/user/data/prosperostore");               /* Belege gibt es nur hier */
+    static const char *const UNTER[5] = { "previous", "backup", "trash", "staging", "receipts" };
+    /* 1. was herausgelöst wird - noch nichts gemerkt */
+    pliste tl = {0}, rest_d = {0}; sliste rest = {0}, auf = {0};
+    for (int i = 0; i < l->n; i++) {
+        const datei *e = &l->e[i];
+        const char *q = VERB(A, p, "/", e->name);
+        int u = -1;
+        for (int j = 0; j < 5; j++) if (!strcmp(e->name, UNTER[j])) u = j;
+        dliste *volatile ul = NULL;
+        if (u >= 0 && !e->ist_link && e->ist_ordner && (u < 4 || intern)) {
+            VERSUCHE { ul = s_liste(k->S, q, false); } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); ul = NULL; } ENDE_VERSUCHE;
+        }
+        int vor = tl.n; sliste ur = {0}; pliste ur_d = {0};
+        for (int j = 0; ul && j < ul->n; j++) {
+            const datei *g = &ul->e[j];
+            const char *gp = VERB(A, q, "/", g->name), *id = NULL;
+            int art = 0;
+            if (g->ist_link) {}
+            else if (u < 4 && g->ist_ordner && r_m(g->name, "^[A-Z]{4}[0-9]{5}$")) { id = g->name; art = u < 2 ? STORE_FASSUNG : STORE_REST; }
+            else if (u == 3 && !g->ist_ordner && r_m(g->name, "^[A-Z]{4}[0-9]{5}\\.zip$")) { id = a_kopie_n(A, g->name, 9); art = STORE_REST; }
+            else if (u == 4 && !g->ist_ordner && r_m(g->name, "^[A-Z]{4}[0-9]{5}\\.json$")) {
+                const char *b = a_kopie_n(A, g->name, 9), *jk = store_kennung(k, gp);
+                if (jk && !strcmp(jk, b)) { id = b; art = STORE_BELEG; }
+            }
+            if (!id || !strcmp(id, offen)) { sl_add(A, &ur, gp); pl_add(A, &ur_d, (void *)g); continue; }
+            store_teil *t = a_hole(A, sizeof *t);
+            t->pfad = gp; t->id = id; t->art = art; t->ordner = g->ist_ordner; t->an = VERB(A, anzeige, "/", e->name, "/", g->name);
+            pl_add(A, &tl, t);
+        }
+        if (tl.n == vor) { sl_add(A, &rest, q); pl_add(A, &rest_d, (void *)e); continue; }   /* nichts herausgelöst: als Ganzes im Rest */
+        sl_add(A, &auf, q);
+        for (int j = 0; j < ur.n; j++) { sl_add(A, &rest, ur.e[j]); pl_add(A, &rest_d, ur_d.e[j]); }
+    }
+    if (tl.n == 0) return false;
+    /* 2. merken: aufgeteilte Ordner (äußere vor inneren, leer nach dem Löschen mit weg), die Teile, der Rest */
+    sl_add(A, &k->AUFGEKLAPPT, p); sl_add_alle(A, &k->AUFGEKLAPPT, &auf);
+    for (int i = 0; i < tl.n; i++) {
+        store_teil *t = tl.e[i];
+        const char *zs = store_zusatz(k, t->pfad, t->id, t->ordner && t->art == STORE_FASSUNG);
+        int vb = k->bau.n, r = t->ordner ? merke_pkg_ordner(k, t->pfad, t->an, kat, NULL) : 0;   /* Befund 12: PKG-Dateien darin bei ihrem Spiel */
+        if (r <= 0) {
+            sliste e1 = L1(A, t->pfad);
+            MERKE(k, &e1, kat, t->an, 0);
+            if (r < 0 && k->MERKE_OK && k->bau.n > vb) ((eintrag *)k->bau.e[k->bau.n - 1])->PkgOffen = true;
+        }
+        for (int b = vb; b < k->bau.n; b++) {
+            eintrag *f = k->bau.e[b];
+            if (f->PkgArt) continue;
+            f->StoreTeil = (unsigned char)t->art; f->Text = VERB(A, f->Text, zs); f->TextBasis = VERB(A, f->TextBasis, zs);
+        }
+    }
+    sliste rest2 = {0}; bool pk_offen = false;
+    const char *wz = intern ? p : NULL;                                 /* wie die Sammelzeile neben PS5 Cleanup (Codex-Prüfung 98) */
+    for (int j = 0; j < rest.n; j++) {
+        const char *q = rest.e[j]; const datei *d = rest_d.e[j];
+        if (!d->ist_link && !ist_zwischendatei(d->name)) {
+            const char *an = VERB(A, anzeige, q + strlen(p));
+            if (!d->ist_ordner && h_m(d->name, "(?i)\\.pkg$")) { merke_pkg(k, q, an, d->groesse); continue; }
+            if (d->ist_ordner) { int r = merke_pkg_ordner(k, q, an, kat, wz); if (r > 0) continue; if (r < 0) pk_offen = true; }
+        }
+        sl_add(A, &rest2, q);
+    }
+    if (rest2.n > 0) {
+        MERKE(k, &rest2, kat, VERB(A, anzeige, T("  (ohne die Teile einzelner Apps)", "  (without the parts of single apps)")), 0);
+        if (k->MERKE_OK && k->bau.n > 0) { eintrag *f = k->bau.e[k->bau.n - 1]; if (pk_offen) f->PkgOffen = true; if (wz && !f->ToolOrdner) f->ToolOrdner = wz; }
+    }
+    return true;
+}
 static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int anz, int kat, const char *vorsatz)
 {
     for (int i = 0; i < anz; i++) {
@@ -2012,6 +2676,9 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
         const char *pz = VERB(A, p, "/");
         bool drin = false;
         for (int j = 0; j < k->SpielQuellen.n; j++) if (txt_beginnt(k->SpielQuellen.e[j], pz)) drin = true;
+        /* NEU 1.0.9 (#145): Ordner von ProsperoStore (intern, USB-Laufwerk) - die Teile einzelner Apps stehen bei ihrer App (merke_store) */
+        if (!drin && !link && e->ist_ordner && h_gleich(x, "prosperostore") && h_m(basis, "^(/user/data|/mnt/(ext|usb)\\d+)$")
+            && merke_store(k, p, kat, VERB(A, vorsatz, x))) continue;
         /* NEU 1.0.6 (PS5-Test 28.10.2026, da_Chris86: "doof, wenn so viele pldmgr-Einträge"): liegt NUR PS5 Cleanup in einem
          * Ordner (kein ShadowMount-Spiel), wird er nicht Datei für Datei aufgeklappt, sondern als EIN Eintrag "alles außer
          * PS5 Cleanup" angeboten; PS5 Cleanup selbst steht gesperrt daneben. Ausnahme: Ordner "homebrew" - dort bleibt jede
@@ -2072,7 +2739,7 @@ static void merke_ordner(kern *k, const char *basis, const datei *eintraege, int
             const char *nm = spiel_zusatz(k, p, x, 0, true);   /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31): Name und Bild aus dem Spiel */
             sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, nm, T("  [Spiel-Ordner ohne Kachel]", "  [game folder, no tile]")), 0);
         }
-        else if (!e->ist_ordner && h_m(x, "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")) {   /* 28.10.2026: Spiel-Abbild ohne Kachel - ein Spiel (Bereich 1) */
+        else if (!e->ist_ordner && h_m(x, "(?i)\\.(" ABBILD_ENDUNGEN ")$")) {   /* 28.10.2026: Spiel-Abbild ohne Kachel - ein Spiel (Bereich 1) */
             const char *zw = zweite_spieldatei(k, p, x);
             const char *nm = spiel_zusatz(k, p, x, e->groesse, false);   /* NEU 1.0.8 (Arbeitsplan 2.1, PS5-Test 07.11.2026 16:31): Spielname aus dem Abbild */
             sliste l = L1(A, p); MERKE(k, &l, 1, VERB(A, vorsatz, x, nm, zw ? zw : T("  [ohne Kachel]", "  [no tile]")), 0);
@@ -2147,6 +2814,9 @@ static void merke_ext_ordner(kern *k, const char *basis, const datei *e)
     const char *p = VERB(A, basis, "/", e->name);
     int kat = ext_kat(e->name);
     if (!e->ist_ordner || e->ist_link || ist_zwischendatei(e->name) || sl_enthaelt(&k->SpielQuellen, p)) { merke_ordner(k, basis, e, 1, kat, ""); return; }
+    /* NEU 1.0.9 (#145): Arbeitsordner von ProsperoStore auf M.2 und USB-Speicher - die Teile einzelner Apps stehen bei ihrer App, der Rest ist
+     * EIN Eintrag (merke_store); ließ sich nichts herauslösen, wie bisher aufgeklappt */
+    if (h_gleich(e->name, "prosperostore") && merke_store(k, p, kat, e->name)) return;
     dliste *unter = s_liste(k->S, p, true);
     /* nicht lesbar: wie bisher als Ganzes anbieten (nie als "leer" ausgeben) */
     if (unter == NULL) { merke_ordner(k, basis, e, 1, kat, ""); return; }
@@ -2318,7 +2988,65 @@ static const char *const BEKANNTE_TOOLS[] = { "pldmgr", "pkgmgr", "bfpilot", "or
                                               /* NEU 1.0.7 (Recherche 31.10.2026, doku/recherche_tools_*.md, recherche_tooldaten_*.md): Daten-Ordner aus dem Quellcode der Tools */
                                               "cheatrunner", "garlic", "liveshell", "neoenabler", "neosettings", "onionhen", "ps4mount", "dumpforge", "ps5dumpforge",
                                               "wfm", "ps5save", "orbitstore", "amprstudio", "ps5appdumper", "elfarsenal", "goldhen", "psxs5", "exfat2ampr",
-                                              "ps5suitefancfg", "user", NULL };   /* "user" = /data/user/patches von ps-patch-system */
+                                              "ps5suitefancfg", "user", NULL };   /* "user" = /data/user/patches von ps-patch-system (Patch Manager, APP_DATEN) */
+/* NEU 1.0.9 (#146, da_Chris86 08.11.2026 08:12 zum ProsperoStore: "die alle sauber zu löschen dann wieder"): Daten-Ordner unter /data der
+ * meistgenutzten Apps aus dem Katalog von ProsperoStore (darkxex/ps5-homebrew-catalog @d22b744, die 50 mit den meisten Likes und
+ * Kommentaren) - je App im Quellcode nachgesehen, nur gelesen; Belege in doku/recherche_prosperostore_2026-11-08.md. Nur der eigene Ordner
+ * der App, keine gemeinsam benutzten Ablagen (games, roms, xbox360, evoplayer, downloads). Gebraucht für: die feste Zuordnung zur Kachel mit
+ * dieser Kennung (kachel_bloecke, vor dem Namensvergleich - "prospero-win" heißt nicht wie "PC5"); "bekannt" (ohne die App unter Apps statt
+ * unter Sonstiges, in der Zeile "gehört zu <App>"); und wo darin nachweislich eigene Dateien liegen, was das ist (rot, "endgültig weg"). Wo
+ * das nur manchmal so ist (games, roms, saves, memcards ...), erkennt es wie bisher wichtiger_inhalt. */
+typedef struct { const char *id, *app, *ordner, *w_de, *w_en; } app_daten;
+static const app_daten APP_DATEN[] = {
+    { "PPSA99008", "ProsperoEden", "prosperoeden", NULL, NULL },
+    { "PPSA99874", "ProsperoCraft", "ProsperoCraft", NULL, NULL },
+    { "PPSA99000", "ProsperoStore", "prosperostore", NULL, NULL },
+    { "PPSA11018", "PC5", "prospero-win", "deine Windows-Spiele, Schlüssel und Spielstände", "your Windows games, keys and saves" },
+    { "PPSA99203", "PS5SX2", "PCSX2", NULL, NULL },
+    { "PPSA99764", "Porpoise", "porpoise", NULL, NULL },
+    { "PPSA99810", "PSBox Cloud Gaming", "psbox", NULL, NULL },
+    { "PPSA99360", "PS5-ECAM", "ps5cemu", NULL, NULL },
+    { "PPSA99515", "Emby5", "Emby5", NULL, NULL },
+    { "PPSA99474", "Twispero", "ps5twitch", NULL, NULL },
+    { "PPSA99002", "ProsperoLight", "prosperolight", NULL, NULL },
+    { "PPSA90212", "Breath of the Wild", "savagewind", "Spieldateien aus deinem eigenen Dump", "game files from your own dump" },
+    { "PPSA90210", "Prospero Themes", "prospero-themes", NULL, NULL },
+    { "PPSA74126", "Stremio Plus", "Stremio", "deine heruntergeladenen Filme und Serien", "your downloaded movies and shows" },
+    { "PPSA92878", "Breeze", "breeze", NULL, NULL },
+    { "PPSA97358", "XPSemu", "xpsemu", NULL, NULL },
+    { "PPSA97358", "XPSemu", "xemu", NULL, NULL },
+    { "PPSA99030", "Forever Launcher", "forever", NULL, NULL },
+    { "PPSA99320", "Ship of Harkinian", "soh", "Spielstände und die Spieldaten aus deinem eigenen ROM", "saves and the game data made from your own ROM" },
+    { "PPSA99350", "Steam Remote Play", "steamlink-ps5", NULL, NULL },
+    { "PPSA99025", "reUndr (NFS: Underground)", "nfsu1", "Spieldateien aus deinem eigenen Disc-Abbild", "game files from your own disc image" },
+    { "PPSA99062", "ORION Media Center", "orion", NULL, NULL },
+    { "PPSA99170", "MihawkOS", "ps5proton", "deine Windows-Umgebung mit Steam-Anmeldung und Spielen", "your Windows environment with Steam sign-in and games" },
+    { "PPSA85300", "VLC", "vlc", NULL, NULL },
+    { "PPSA98510", "SwanStationPS5", "SwanStationPS5", NULL, NULL },
+    { "PPSA99003", "ProsperoTV", "prosperotv", NULL, NULL },
+    { "PPSA99842", "Trophy Manager", "trophy-manager", "Trophäen-Sicherungen", "trophy backups" },
+    { "PPSA99773", "PShare", "pshare", "deine gespeicherten Dateien", "your saved files" },
+    { "PPSA99991", "YouTube Max'd", "youtube-maxd", NULL, NULL },
+    { "PPSA99001", "ProsperoRadio", "prosperoradio", NULL, NULL },
+    { "PPSA96024", "Chiral-FTP", "chiral-ftp", NULL, NULL },
+    { "PPSA99318", "Art Swap", "artswap", NULL, NULL },
+    /* NEU 1.0.9 (PS5-Test 09.11.2026 18:58): Patch Manager = ps-patch-system von illusionyy (github.com/illusionyy/ps-patch-system, nur gelesen):
+     * Kachel ILNY26228 mit deeplinkUri http://127.0.0.1:23900 (laut Anleitung seine Seite), Patches in /data/user/patches (xml_orbis,
+     * xml_prospero), Zwischenspeicher /data/user/patch_backup; auf da_Chris86s PS5 Kachel und Ordner in derselben Minute angelegt */
+    { "ILNY26228", "Patch Manager", "user", "deine Spiel-Patches und ihre Sicherungen", "your game patches and their backups" },
+    { NULL, NULL, NULL, NULL, NULL } };
+const char *kern_bekannte_app(const char *ordner, const char **id, const char **wichtig)
+{
+    if (id) *id = NULL;
+    if (wichtig) *wichtig = NULL;
+    if (!ordner || kern_bereiche_106()) return NULL;
+    for (int i = 0; APP_DATEN[i].id; i++) if (h_gleich(ordner, APP_DATEN[i].ordner)) {
+        if (id) *id = APP_DATEN[i].id;
+        if (wichtig && APP_DATEN[i].w_de) *wichtig = T(APP_DATEN[i].w_de, APP_DATEN[i].w_en);
+        return APP_DATEN[i].app;
+    }
+    return NULL;
+}
 static bool tool_bekannt(kern *k, const char *ordner)
 {
     const char *s = tool_schluessel(k, ordner);
@@ -2677,7 +3405,7 @@ static void beleg_aus_programmen(kern *k, pliste *liste, int n, int *zu, const c
         htreffer mr = h_mt(A, p, "^/mnt/(?:ext\\d+|usb\\d+)/(\\.[^/]+)$");
         if (md.ok) {
             const char *y = md.gr[2];
-            if (h_m(y, "^[A-Z]{4}\\d{5}") || h_gleich(y, "homebrew") || (!md.gr[1][0] && tool_bekannt(k, y))) continue;
+            if (h_m(y, "^[A-Z]{4}\\d{5}") || h_gleich(y, "homebrew") || (!md.gr[1][0] && (tool_bekannt(k, y) || kern_bekannte_app(y, NULL, NULL)))) continue;   /* 1.0.9 (#146): auch bekannte App-Ordner */
             x = VERB(A, md.gr[1], y);                   /* hinter "/data/" */
         } else if (mr.ok) { x = mr.gr[1]; pk = true; }
         if (!x || strlen(x) > 1000 || h_m(h_blatt(A, p), "\\.(elf|self|bin|pkg)$")) continue;
@@ -2838,6 +3566,16 @@ static void kachel_bloecke(kern *k, pliste *liste)
             }
             continue;
         }
+        /* NEU 1.0.9 (#145): ein Teil einer App aus den Ordnern von ProsperoStore (merke_store) gehört nur zu der Kachel mit seiner Kennung -
+         * nie nach Name oder Programm (sonst stünde z. B. die aufgehobene Fassung einer gelöschten App unter ProsperoStore und ginge nur mit
+         * ihm); ohne eindeutige Kachel bleibt er für sich */
+        if (f->StoreTeil) {
+            htreffer ms = h_mt(A, f->PfadeBasis.e[0], "(?-i)/prosperostore/(?:previous|backup|trash|staging|receipts)/([A-Z]{4}[0-9]{5})(?:\\.zip|\\.json)?(?:/|$)");
+            int t1 = -1, a1 = 0;
+            for (int t = 0; ms.ok && t < n; t++) if (kid_ohne_jb[t] && !strcmp(kid_ohne_jb[t], ms.gr[1])) { t1 = t; a1++; }
+            if (a1 == 1) zu[d] = t1;
+            continue;
+        }
         /* NEU 1.0.8 (PS5-Test 07.11.2026, da_Chris86 08:46: "unter Apps gibt es Orbit ... da sind auch zwei Reiter"): der Entpack-Ordner von
          * Orbit Store (".orbit-extract-<Zahl>", auf da_Chris86s M.2 51,3 GB) enthält den Ordner des Spiels, das Orbit gerade entpackt
          * ("LIZARD Marvel's Spider-Man 2 01.004.003 PPSA03016"). Tragen alle Einträge darin dieselbe Spielnummer, gehört der Entpack-Ordner
@@ -2883,7 +3621,7 @@ static void kachel_bloecke(kern *k, pliste *liste)
             for (int j = 0; j < f->PfadeBasis.n && alle; j++) {
                 const char *bl = h_blatt(A, f->PfadeBasis.e[j]);
                 htreffer mb = h_mt(A, bl, "(?-i)(?:^|[^A-Za-z0-9])([A-Z]{4}\\d{5})(?:[^0-9]|$)");
-                if (!mb.ok || !(f->Kat == 1 || h_m(bl, "(?i)\\.(pkg|exfat|ffpkg|ffpfs|ffpfsc|pfs|img|iso)$"))) { alle = false; continue; }
+                if (!mb.ok || !(f->Kat == 1 || h_m(bl, "(?i)\\.(pkg|iso|" ABBILD_ENDUNGEN ")$"))) { alle = false; continue; }
                 if (!bid) bid = mb.gr[1]; else if (strcmp(bid, mb.gr[1]) != 0) alle = false;
             }
             if (alle && bid) {
@@ -2917,6 +3655,17 @@ static void kachel_bloecke(kern *k, pliste *liste)
             continue;                              /* eine Spielnummer, die zu keiner (oder mehreren) Kachel(n) passt: nicht raten */
         }
         if (f->Kat == 1) continue;                 /* Spiele nur über die Kennung */
+        /* 1b. NEU 1.0.9 (#146): Daten-Ordner einer bekannten App unter /data (APP_DATEN, aus ihrem Quellcode) - fest zur Kachel mit dieser
+         * Kennung, vor dem Namensvergleich; ist die App nicht (eindeutig) da, gelten die übrigen Regeln wie bisher */
+        {   /* Codex-Prüfung 137 (P2): nur /user/data/<Ordner> selbst (so ist er belegt) - nie ein gleichnamiger Ordner in homebrew */
+            htreffer mb = h_mt(A, f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.e[0], "^/user/data/([^/]+)(?:/|$)");
+            const char *aid = NULL;
+            if (mb.ok && !h_gleich(mb.gr[1], "homebrew") && h_gleich(mb.gr[1], oc) && kern_bekannte_app(oc, &aid, NULL) && aid) {
+                int ta = -1, aa = 0;
+                for (int t = 0; t < n; t++) if (kid_ohne_jb[t] && !strcmp(kid_ohne_jb[t], aid)) { ta = t; aa++; }
+                if (aa == 1) { zu[d] = ta; continue; }
+            }
+        }
         /* 2. Name (kopf_fuer_besitzer_namen, auch "ps5-" vorne) */
         int t1 = kopf_fuer_besitzer_namen(k, liste, n, kid, ktk, ktt, oc, f->Kat);
         if (t1 >= 0) zu[d] = t1;
@@ -3369,7 +4118,7 @@ static void bereiche_107(kern *k)
             if (!m.ok || h_m(m.gr[2], "(?i)\\.elf$")) continue;   /* ELF-Dateien bleiben unter Apps (Codex-Prüfung 39) */
             /* 02.11.2026: ob der Ordner zu einer Kachel gehört, entscheidet danach kachel_bloecke (gleiche Regeln für alle Kacheln) - er
              * kommt dann von hier aus unter seine Kachel; was zu keiner gehört, bleibt unter "Sonstiges" */
-            if (tool_bekannt(k, m.gr[2])) continue;
+            if (tool_bekannt(k, m.gr[2]) || (!m.gr[1][0] && kern_bekannte_app(m.gr[2], NULL, NULL))) continue;   /* 1.0.9 (#146): bekannte App-Ordner unter /data (nicht homebrew) */
             f->Kat = 5;
         }
     }
@@ -3531,6 +4280,7 @@ void kern_suche_funde(kern *k)
     k->PKG_NAMEN = mt_neu(true); k->PKG_TRP = mt_neu(true); k->NAMEN_OFFEN = mt_neu(true); k->NPWR_OFFEN = mt_neu(true); k->NPWR_PKG = mt_neu(true);
     k->PKG_TRP_NR = mt_neu(true);   /* NEU 1.0.8 */
     k->NPWR_UCP = mt_neu(true); k->BILD_ORT = mt_neu(true);   /* NEU 1.0.8 (PS5-Test 07.11.2026 16:31) */
+    k->BILD_UPD = mt_neu(true);   /* NEU 1.0.9 */
     k->LEER_DANACH = mt_neu(true);
     kern_groessen_zuruecksetzen(k);
     /* NEU 1.1 (S3): konnte der Selbstschutz nicht sicher ermittelt werden, wird gar nichts angeboten */
@@ -3843,6 +4593,15 @@ void kern_suche_funde(kern *k)
             /* NEU 1.1 (U12): Sammel-Eintrag - ein geschützter leerer Ordner (Homebrew Launcher) fällt nur
              * selbst heraus, die übrigen Reste bleiben wählbar (sonst verschwände der ganze Eintrag) */
             if (n == 0 && kern_laufende_aufnahme(pf)) continue;      /* NEU 1.1 (U16): laufende Aufnahme der PS5 - nie anbieten */
+            /* NEU 1.0.9 (da_Chris86 08.11.2026 10:10, Bild aus 1.0.8: "Leere Aufnahme-Zwischenordner (2)" mit content_tmp/PPSA01650 und
+             * content_tmp/PSCL00002 unter dem Bild von Y2JB; an der PS5 nachgesehen): diesen Ordner legt die PS5 beim Start einer App selbst
+             * an - beide waren an diesem Morgen beim Start von Y2JB (YouTube-App) bzw. PS5 Cleanup neu da. Leer und die App noch da
+             * (installiert oder mit Kachel) = kein Rest, wie bei PlayGo und den ShadowMount-Ordnern; geht die App, nimmt das Löschen ihn
+             * mit (kern_loeschen.c zwischenordner_weg). Der von PS5 Cleanup geht nur mit der Selbstentfernung (kern_loeschen.c 2b), der
+             * von Systemprogrammen (NPXS) nie. */
+            if (!kern_bereiche_106() && h_m(ids.e[i], "^PSCL0000[12]$")) continue;   /* Codex-Prüfung 127: der eigene auch nicht leer (kern_schutz.c sperrt ihn) */
+            if (n == 0 && !kern_bereiche_106() && (h_like(ids.e[i], "NPXS*") || h_hat(&apps, ids.e[i]) || h_hat(&m2Apps, ids.e[i])
+                                                   || h_hat(&usbApps, ids.e[i]) || h_hat(&appmeta, ids.e[i]) || h_hat(&sysmeta, ids.e[i]))) continue;
             if (n == 0 && k->SCHUTZ.aktiv) {          /* NEU 1.1 (S3): "leer" nur, wenn das Lesen wirklich klappt */
                 volatile bool ok = false;
                 VERSUCHE { dliste *pl = s_liste(k->S, pf, true); ok = pl == NULL || pl->n == 0; }

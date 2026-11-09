@@ -159,7 +159,10 @@ static bool erlaubt_innen(kern *k, arena *a, const char *p)
     if (spielstand_meta(p)) return true;                         /* NEU 1.0.7: geht nur mit dem Spielstand (eigene Zeile gibt es nicht) */
     if (sm_leerer_ordner(p)) return true;                        /* NEU 1.0.7: leerer Einhängeordner (nur rmdir) */
     /* NEU 1.0.7: leere Arbeitsordner, die die PS5 für unsere eigene App anlegt - nur während der Selbstentfernung */
-    if (!kern_bereiche_106() && k->SCHUTZ.frei && h_m(p, "^/user/(temp/share|av_contents/content_tmp)/PSCL00002$")) return true;
+    if (!kern_bereiche_106() && k->SCHUTZ.frei && h_m(p, "^/user/(temp/share/PSCL00002|av_contents/content_tmp/PSCL0000[12])$")) return true;   /* 1.0.9: auch PSCL00001 */
+    /* NEU 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8): sonst nie - die allgemeine Regel für /user/av_contents erlaubte den eigenen
+     * Aufnahme-Zwischenordner bisher immer, so stand er in der Liste der Reste (die PS5 legt ihn beim Start von PS5 Cleanup neu an) */
+    if (!kern_bereiche_106() && h_m(p, "^/user/av_contents/content_tmp/PSCL0000[12]$")) return false;
     /* NEU 1.0.7: Installationsdaten (PlayGo) eines Spiels - einzelne Content-ID-Ordner, nie der Ordner selbst, nie NPXS */
     if (!kern_bereiche_106() && h_m(p, "^/user/playgo/(app|patch|addcont)/[A-Z]{2}\\d{4}-[A-Z]{4}\\d{5}_\\d{2}-[A-Z0-9]{16}$")) return !h_m(p, "-NPXS");
     /* M.2- und USB-Verwaltung (USB NEU 1.0.6): nur einzelne Spiele/Updates, nie die Ordner selbst */

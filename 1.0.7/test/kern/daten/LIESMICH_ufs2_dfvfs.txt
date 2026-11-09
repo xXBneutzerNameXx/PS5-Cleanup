@@ -1,0 +1,10 @@
+ufs2_dfvfs.raw.gz - echtes UFS2-Dateisystem für den Test des UFS2-Lesers (test_ps4.c, Abschnitt 16c)
+
+Quelle: log2timeline/dfvfs (https://github.com/log2timeline/dfvfs), Datei test_data/ufs2.raw, Stand bf5d2fd vom 31.10.2026,
+Lizenz Apache-2.0 (wie dfvfs). Das Abbild ist eine Platte mit BSD-Bereichseinteilung; das UFS2 beginnt bei Stelle 8192.
+Hier liegt nur das UFS2 selbst (ab Stelle 8192 bis zum Ende, 4.186.112 Byte), mit gzip -9 -n gepackt.
+  sha256 von test_data/ufs2.raw (ganz):        ee5d99e5e60aa566b9e4dd0a5341c1e2b433cbbfcebffbdbf0ad2a3e2153cd67
+  sha256 des entpackten UFS2 (ab Stelle 8192): 95b23d3dad1cc0313197883e07bb3792bfde6eb258b8758d88f16a873d20f5ad
+Inhalt laut dfvfs: .snap, a_directory/a_file, a_directory/another_file ("This is another file.\n"), passwords.txt (116 Byte), a_link.
+Superblock: Kennung 0x19540119, Blöcke 32 KB, Fragmente 4 KB, 4 Zylindergruppen, Name ufs2_test, zuletzt eingehängt unter /mnt/dfvfs.
+Geholt am 08.11.2026 von Claude (nur gelesen), weil makefs/newfs im Arbeitsbereich nicht gestartet werden durfte.

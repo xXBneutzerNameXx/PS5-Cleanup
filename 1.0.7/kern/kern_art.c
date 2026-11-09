@@ -42,7 +42,9 @@ static const char *wichtig_was(const char *ordner)
     if (!strcmp(s, "etahen")) return T("eigene Cheats, Plugins und Spiel-Dumps", "own cheats, plugins and game dumps");
     if (!strcmp(s, "cheatrunner")) return T("eigene Cheats und Patches", "own cheats and patches");
     if (!strcmp(s, "neoenabler")) return T("Sicherungen deiner Patch-Dateien", "backups of your patch files");
-    if (!strcmp(s, "user")) return T("deine Spiel-Patches (ps-patch-system)", "your game patches (ps-patch-system)");   /* /data/user/patches */
+    /* "user" (/data/user/patches): seit 1.0.9 bei APP_DATEN - Patch Manager (ps-patch-system), PS5-Test 09.11.2026 */
+    const char *w = NULL;   /* NEU 1.0.9 (#146): Daten-Ordner bekannter Apps, in denen nachweislich eigene Dateien liegen */
+    if (kern_bekannte_app(ordner, NULL, &w) && w) return w;
     return NULL;
 }
 /* NEU 1.0.7 (PS5-Test 03.11.2026): "Was ist wichtig" für die Zeile - feste Angabe aus der Recherche, sonst das, was im Ordner gefunden wurde */
@@ -120,6 +122,7 @@ static int art_von_kat(kern *k, const eintrag *f, int kat)
      * (webkit-autoloader-installer.elf unter WebKit Autoloader), ist selbst kein Einstieg */
     if (f->Jailbreak || (kat == 7 && !kern_bereiche_106())) return ART_JAILBREAK;
     if (f->PkgArt && !kern_bereiche_106()) return ART_PAKET_DATEI;   /* NEU 1.0.8 (Befund 12): PKG-Datei, egal unter welchem Spiel */
+    if (f->StoreTeil && !kern_bereiche_106()) return f->StoreTeil == STORE_FASSUNG ? ART_STORE_FASSUNG : ART_REST;   /* NEU 1.0.9 (#145): ProsperoStore */
     const char *t = ohne_ort(f);
     if (f->Teil) {
         if (!strcmp(f->Teil, "Spiel")) return f->Kat == 6 ? ART_APP : ART_SPIEL;
@@ -186,6 +189,7 @@ int kern_ampel(const eintrag *f)
     case ART_SM_DATEI: case ART_ABBILD: case ART_SPIELSTAND: case ART_TR_FORTSCHRITT: case ART_TR_DATEN: case ART_AUFNAHMEN:
     case ART_GALERIE_SONST: case ART_TOOL_DATEN_WICHTIG: case ART_SPIEL_SICHERUNG: case ART_JAILBREAK:
     case ART_USB_KOPIE:   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): eigene Daten auf dem USB-Laufwerk */
+    case ART_STORE_FASSUNG:   /* NEU 1.0.9 (#145): vorige Fassung einer App samt den Dateien darin */
         return AMPEL_ROT;
     case ART_PAKET_DATEI:   /* NEU 1.0.8 (Befund 12, Entscheidung da_Chris86 06.11.2026): eine PKG-Datei ist danach endgültig weg */
         return kern_bereiche_106() ? AMPEL_GELB : AMPEL_ROT;
@@ -302,6 +306,7 @@ const char *kern_folge(const eintrag *f)
     case ART_ALTE_SICHERUNG:     return T("wird nicht mehr gebraucht", "no longer needed");
     case ART_USB_KOPIE:          return T("deine Daten – endgültig weg", "your data – gone for good");   /* NEU 1.0.8 */
     case ART_PROTOKOLL:          return T("Protokoll – nur zum Nachlesen", "log – for reference only");   /* NEU 1.0.8 */
+    case ART_STORE_FASSUNG:      return T("ältere Fassung samt deinen Dateien – endgültig weg", "older version with your files – gone for good");   /* NEU 1.0.9 (#145) */
     default:                     return T("neu einrichten oder neu laden", "set up or download again");
     }
 }
@@ -314,7 +319,12 @@ const char *kern_folge_kurz(const eintrag *f)
     case ART_SPIEL: case ART_TOOL_KACHEL:            return T("neu installieren", "reinstall");
     case ART_APP:                                    return T("neu laden", "download again");
     case ART_UPDATE: case ART_DLC:                   return T("nur mit dem Spiel", "only with the game");
-    case ART_SM_KACHEL: case ART_TR_LISTE: case ART_FAKE_LIZENZ: return T("kommt wieder", "comes back");
+    case ART_SM_KACHEL:                              return T("kommt wieder", "comes back");
+    /* 1.0.9 (PS5-Test 09.11.2026 20:14, da_Chris86 "Sicher, dass das die Fehler sind"): Schild und Farbe passen zusammen - beide sind gelb
+     * ("kommt" nicht sicher von selbst wieder: Trophäen-Liste bei selbst kopierten Spielen, Fake-Lizenz nur mit dem Spiel), also auch der
+     * gelbe Text wie in der Farb-Erklärung ("Lässt sich zurückholen") */
+    case ART_TR_LISTE:                               return T("neu laden", "download again");
+    case ART_FAKE_LIZENZ:                            return T("neu installieren", "reinstall");
     case ART_SM_TOT: case ART_TR_LISTE_REST: case ART_GALERIE_REST: case ART_REST: return T("nichts geht verloren", "nothing is lost");
     case ART_SM_DATEI: case ART_ABBILD: case ART_SPIELSTAND: case ART_TR_FORTSCHRITT: case ART_AUFNAHMEN: case ART_TOOL_DATEN_WICHTIG:
     case ART_SPIEL_SICHERUNG:                        return T("endgültig weg", "gone for good");
@@ -328,6 +338,7 @@ const char *kern_folge_kurz(const eintrag *f)
     case ART_ALTE_SICHERUNG:                         return T("nicht mehr gebraucht", "no longer needed");
     case ART_USB_KOPIE:                              return T("endgültig weg", "gone for good");   /* NEU 1.0.8 */
     case ART_PROTOKOLL:                              return T("nur zum Nachlesen", "for reference only");   /* NEU 1.0.8 */
+    case ART_STORE_FASSUNG:                          return T("endgültig weg", "gone for good");   /* NEU 1.0.9 (#145) */
     default:                                         return T("neu einrichten", "set up again");
     }
 }
@@ -384,9 +395,23 @@ static const char *pkg_block(arena *a, const eintrag *f)
     const eintrag *k = f->PkgOhneSpiel ? f : (f->Begleit && f->Begleit->PkgOhneSpiel) ? f->Begleit : NULL;
     return k && k->BlockName ? k->BlockName : NULL;
 }
+/* NEU 1.0.9 (#145): was ein Teil einer App in den Ordnern von ProsperoStore ist (kern_suche.c merke_store) */
+static const char *store_was(const eintrag *f)
+{
+    const char *p = f->PfadeBasis.n > 0 ? f->PfadeBasis.e[0] : "";
+    if (f->StoreTeil == STORE_BELEG) return T("Beleg von ProsperoStore", "receipt of ProsperoStore");
+    if (f->StoreTeil == STORE_FASSUNG) return r_m(p, "/prosperostore/backup/") ? T("Sicherung von ProsperoStore aus einem Update", "backup of ProsperoStore from an update")
+                                                                             : T("ältere Fassung, von ProsperoStore aufgehoben", "older version kept by ProsperoStore");
+    return r_m(p, "/prosperostore/trash/") ? T("Rest einer Deinstallation durch ProsperoStore", "leftover of an uninstall by ProsperoStore")
+                                           : T("angefangener Download von ProsperoStore", "unfinished download of ProsperoStore");
+}
 static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
 {
     const char *o = kern_ort_vorsatz(f->Ort), *t = ohne_ort(f);
+    if (f->StoreTeil && !kern_bereiche_106()) {   /* NEU 1.0.9 (#145): "prosperostore/previous/PPSA99008 – ältere Fassung, ...", ohne Kachel mit dem Namen der App */
+        const char *m = strstr(t, "  ["), *app = f->ToolKachel ? NULL : zusatz_von(a, t, T("App: ", "app: "));
+        return VERB(a, o, m ? a_kopie_n(a, t, (size_t)(m - t)) : t, " – ", store_was(f), app ? VERB(a, " – ", r_r(a, app, " \\([A-Z]{4}[0-9]{5}\\)$", "")) : "");
+    }
     switch (f->Art) {
     case ART_PAKET_DATEI: {  /* NEU 1.0.8 (Befund 12): unter seinem Spiel "<Spiel> – Update-Datei 01.04", sonst wie bisher mit dem Dateinamen */
         if (f->PkgArt && !kern_bereiche_106()) {
@@ -446,6 +471,12 @@ static const char *zeile_ohne_warnung(arena *a, const eintrag *f)
         const char *r = datei ? (w ? VERB(a, a_kopie(a, dn), " – ", a_kopie(a, w)) : a_kopie(a, dn))
                       : dn ? VERB(a, a_kopie(a, dn), w ? VERB(a, T(" – Einstellungen und ", " – settings and "), a_kopie(a, w)) : T(" – Einstellungen", " – settings"))
                       : VERB(a, o, name_von(a, t, "   – "));
+        /* 1.0.9 (PS5-Test 09.11.2026 19:39): /data/user des Patch Managers - der Ordnername "user" sagt nichts, Einstellungen liegen darin
+         * keine (nur patches und patch_backup): nur, was es ist */
+        if (dn && !datei && !strcmp(dn, "user") && w) r = T("Deine Spiel-Patches und ihre Sicherungen", "Your game patches and their backups");
+        const char *pp = f->ToolOrdner ? f->ToolOrdner : f->PfadeBasis.n > 0 ? f->PfadeBasis.e[0] : "";
+        const char *app = (dn && !f->ToolKachel && r_m(pp, "^/user/data/[^/]+$")) ? kern_bekannte_app(dn, NULL, NULL) : NULL;   /* NEU 1.0.9 (#146): ohne ihre Kachel - wem es gehört (nur /data/<Ordner>, Codex-Prüfung 137) */
+        if (app) r = VERB(a, r, T(" – gehört zu ", " – belongs to "), app);
         arena_frei(b);
         return r;
     }
@@ -547,6 +578,15 @@ const char *kern_art_info(arena *a, const eintrag *f)
 }
 static const char *art_info_basis(arena *a, const eintrag *f)
 {
+    if (f->StoreTeil && !kern_bereiche_106())   /* NEU 1.0.9 (#145) */
+        return f->StoreTeil == STORE_FASSUNG
+            ? T("Die vorige Fassung dieser App samt allem, was darin lag - auch Dateien, die du selbst hineingelegt hattest (z. B. Spiele oder BIOS-Dateien eines Emulators). ProsperoStore hebt sie bei einem Update auf; die App selbst braucht sie nicht. Gelöscht ist sie endgültig weg.",
+                "The previous version of this app with everything that was in it - including files you put there yourself (e.g. games or BIOS files of an emulator). ProsperoStore keeps it on an update; the app itself does not need it. Once deleted, it is gone for good.")
+            : f->StoreTeil == STORE_BELEG
+            ? T("Der Beleg, mit dem sich ProsperoStore merkt, dass er diese App installiert hat. Er gehört zur App - ohne die App braucht ihn niemand. Es geht nichts verloren.",
+                "The receipt ProsperoStore uses to remember that it installed this app. It belongs to the app - without the app nobody needs it. Nothing is lost.")
+            : T("Ein Rest von ProsperoStore: ein angefangener Download oder eine App, die er nicht fertig gelöscht hat. Es geht nichts verloren.",
+                "A leftover of ProsperoStore: an unfinished download or an app it did not finish deleting. Nothing is lost.");
     switch (f->Art) {
     case ART_SPIEL: return T("Spiel und Kachel samt Update und Zusatzinhalten - immer alles zusammen, wie beim Löschen im PS5-Menü. Spielstände, Trophäen und Aufnahmen bleiben. Neu installieren geht über den PS Store (nur mit PSN-Zugang) oder mit der Installationsdatei - selbst installierte PS5-Spiele starten danach nur bis Firmware 11.60.",
                              "Game and tile with update and add-ons - always together, like deleting in the PS5 menu. Saved data, trophies and captures stay. Reinstall via the PS Store (PSN access only) or with the install file - self-installed PS5 games only start up to firmware 11.60.");
@@ -650,7 +690,7 @@ bool kern_nur_mit_spiel(kern *k, const eintrag *f)
 /* "Danach endgültig weg: 12 Spielstände, 3 Spieldateien, ..." - nur was gewählt UND rot ist */
 const char *kern_endgueltig_satz(kern *k, arena *a)
 {
-    int spst = 0, datei = 0, trf = 0, trd = 0, aufn = 0, gal = 0, sich = 0, jb = 0, pkg = 0, kopie = 0;
+    int spst = 0, datei = 0, trf = 0, trd = 0, aufn = 0, gal = 0, sich = 0, jb = 0, pkg = 0, kopie = 0, fass = 0;
     sliste wichtig = {0};
     FUER_ALLE(f) {
         if (!f->Wahl || f->Gesperrt) continue;
@@ -663,6 +703,7 @@ const char *kern_endgueltig_satz(kern *k, arena *a)
         case ART_AUFNAHMEN: aufn++; break;
         case ART_GALERIE_SONST: gal++; break;
         case ART_USB_KOPIE: kopie++; break;   /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53) */
+        case ART_STORE_FASSUNG: fass++; break;   /* NEU 1.0.9 (#145) */
         case ART_SPIEL_SICHERUNG: sich++; break;
         case ART_JAILBREAK: jb++; break;
         case ART_TOOL_DATEN_WICHTIG: {
@@ -689,6 +730,7 @@ const char *kern_endgueltig_satz(kern *k, arena *a)
     TEIL(gal, "Galerie-Eintrag", "Galerie-Einträge", "gallery item", "gallery items");
     TEIL(pkg, "Installationsdatei (PKG)", "Installationsdateien (PKG)", "install file (PKG)", "install files (PKG)");
     TEIL(kopie, "Ordner mit deinen Daten auf dem USB-Laufwerk", "Ordner mit deinen Daten auf dem USB-Laufwerk", "folder with your data on the USB drive", "folders with your data on the USB drive");
+    TEIL(fass, "ältere Fassung einer App (ProsperoStore)", "ältere Fassungen von Apps (ProsperoStore)", "older version of an app (ProsperoStore)", "older versions of apps (ProsperoStore)");   /* NEU 1.0.9 (#145) */
     #undef TEIL
     if (sich > 0) sl_add(a, &t, T("deine Spiel-Sicherungen (LZ4-Game-Compressor)", "your game backups (LZ4-Game-Compressor)"));
     for (int i = 0; i < wichtig.n; i++) sl_add(a, &t, wichtig.e[i]);

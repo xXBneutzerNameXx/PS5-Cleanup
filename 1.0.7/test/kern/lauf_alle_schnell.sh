@@ -35,13 +35,13 @@ lauf() {
   echo "$s: $(( $(date +%s) - a )) s" >> "$E/_zeiten.txt"
 }
 export -f lauf
-GRUPPEN="schritt1 schritt2 schritt3 schritt5 schritt6 entscheidungen u16 sicherheit m2 download sm sony selbst bereiche bloecke zuordnung namen zufall komplett ps4 sauber selbstweg konsole ablauf appbau rueckmeldung"
+GRUPPEN="schritt1 schritt2 schritt3 schritt5 schritt6 entscheidungen u16 sicherheit m2 download sm sony selbst bereiche bloecke zuordnung namen zufall komplett ps4 sauber selbstweg konsole ablauf appbau rueckmeldung fern"   # NEU 1.0.9: fern (Bedienung im Browser)
 printf '%s\n' $GRUPPEN | xargs -P "$(nproc)" -I{} bash -c 'lauf {}'
 # Übersicht wie lauf_alle.sh
 L="$E/alle_tests.log"
 echo "Regression (schnell, gleichzeitig) $(date '+%Y-%m-%d %H:%M:%S')" > "$L"
 auszug() { grep -a -E "GLEICH|UNTERSCHIED|FEHLERZAHL|ZUSAMMEN|^FAIL|BAU( [A-Za-z_0-9]+)? FEHLGESCHLAGEN|\(keine\)|Aufrufe=|GESCHUETZT|Szenarien|Einzahl|^OK" "$1" | grep -v -E "^OK   (  |Farbe|keine unbelegte|KopplungsText|keine deutschen)"; }   # 1.0.8 (Plan 4a): nicht mehr auf 120 Zeilen gekürzt
-for s in schritt1 schritt2 schritt3 schritt5 schritt6 entscheidungen u16 sicherheit m2 download sm sony selbst bereiche bloecke zuordnung namen zufall komplett ps4 sauber rueckmeldung; do
+for s in schritt1 schritt2 schritt3 schritt5 schritt6 entscheidungen u16 sicherheit m2 download sm sony selbst bereiche bloecke zuordnung namen zufall komplett ps4 sauber rueckmeldung fern; do
   echo "== $s" >> "$L"; [ -f "$E/$s.log" ] && auszug "$E/$s.log" >> "$L" || echo "(kein Log $E/$s.log)" >> "$L"
 done
 echo "== selbstweg (Hintergrundteil, PC-Test)" >> "$L"; auszug "$E/selbstweg.log" >> "$L"
@@ -50,7 +50,7 @@ echo "== Bedienabläufe (Vergleich F)" >> "$L"; auszug "$E/ablauf.log" >> "$L"
 echo "== PS5-Bau Oberfläche" >> "$L"
 grep -a -E "eboot.elf|keine|FERTIG|error|Fehler|^[0-9]+$" "$N/app/ausgabe/_bauen.log" | head -12 >> "$L"
 # NEU 02.11.2026 (Codex-Prüfung 41 (4)): Testgruppen, die ihren Rückgabewert sauber weitergeben - ein Fehler dort zählt als FAIL
-for s in bloecke zuordnung namen zufall komplett rueckmeldung; do r=$(cat "$E/_$s.rc" 2>/dev/null || echo fehlt); [ "$r" = "0" ] || echo "FAIL Rückgabewert von lauf_$s.sh: $r" >> "$L"; done
+for s in bloecke zuordnung namen zufall komplett rueckmeldung fern; do r=$(cat "$E/_$s.rc" 2>/dev/null || echo fehlt); [ "$r" = "0" ] || echo "FAIL Rückgabewert von lauf_$s.sh: $r" >> "$L"; done
 # NEU 02.11.2026: Gegenprobe über alle Einzel-Logs und den PS5-Bau (bis 1.0.7 kürzte die Übersicht oben je Gruppe auf 120 Zeilen;
 # seit 1.0.8 kürzt sie nicht mehr, die Gegenprobe bleibt als zweite Sicherung)
 # NEU 1.0.8 (Codex-Prüfung 76): ein Test, der sich nicht übersetzen lässt, zählt mit ("Test-Bau gescheitert") - bis hier stand das nur oben

@@ -53,5 +53,10 @@ echo x > $W/system_ex/app/PPSA88802/eboot.bin
 mkdir -p $W/system_data/priv/appmeta/CUSA20001 $W/user/home/1234abcd/trophy/data/NPWR09412_00 $W/user/trophy/conf/NPWR09412_00
 printf 'xx\001NPWR09412_00\000yy' > $W/system_data/priv/appmeta/CUSA20001/npbind.dat
 echo x > $W/user/home/1234abcd/trophy/data/NPWR09412_00/TROP.SFM; echo x > $W/user/trophy/conf/NPWR09412_00/TROP.SFM
+# NEU 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8): leere Aufnahme-Zwischenordner - installierte App (PPSA10001), PS5 Cleanup, Systemprogramm,
+# App, die nicht mehr da ist (PPSA12345, nur dieser wird angeboten)
+for i in PPSA10001 PSCL00002 PSCL00001 NPXS40001 PPSA12345 PPSA10002 PPSA55501 PPSA55502; do mkdir -p $W/user/av_contents/content_tmp/$i; done
+# Codex-Prüfung 127: nur Kachel-Infos (appmeta bzw. system_data/priv/appmeta) zählt als "noch da"; eigener Ordner nicht leer
+mkdir -p $W/user/appmeta/PPSA55501 $W/system_data/priv/appmeta/PPSA55502; echo x > $W/user/av_contents/content_tmp/PSCL00001/teil.webm
 (cd $T; RMDA=1 FAKESM=1 $B/test_bereiche $T) | grep -v "^LOG:"
 date "+%Y-%m-%d %H:%M:%S FERTIG"

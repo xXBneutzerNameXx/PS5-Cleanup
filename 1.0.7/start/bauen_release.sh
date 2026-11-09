@@ -43,7 +43,7 @@ echo "Testreste in der Release-Oberfläche: keine"
 if [ ! -f "$KK/app/ausgabe/_bau_ok" ]; then echo "BAU FEHLGESCHLAGEN: der letzte Bau der Oberfläche (app/bauen.sh) ist nicht sauber durchgelaufen - erst dort den Fehler beheben"; exit 1; fi
 # NEU 02.11.2026 (Codex-Prüfung): nur eine Oberfläche einbetten, die neuer ist als jeder Quelltext - sonst könnte nach einem
 # gescheiterten app/bauen.sh die alte Oberfläche ins Programm rutschen
-ALT=$(find "$KK/app" "$KK/kern" "$KK/db" "$KK/bau" -name '*.[ch]' -newer "$KK/app/ausgabe/$V/eboot.elf" 2>/dev/null | head -3 | tr '\n' ' ')
+ALT=$(find "$KK/app" "$KK/kern" "$KK/db" "$KK/bau" \( -name '*.[ch]' -o -name '*.html' \) -newer "$KK/app/ausgabe/$V/eboot.elf" 2>/dev/null | head -3 | tr '\n' ' ')   # 1.0.9 (Codex-Prüfung 123): auch die eingebettete Browser-Seite
 if [ ! -f "$KK/app/ausgabe/$V/eboot.elf" ] || [ -n "$ALT" ]; then echo "BAU FEHLGESCHLAGEN: Oberfläche ($V) fehlt oder ist älter als der Quelltext - erst app/bauen.sh ($ALT)"; exit 1; fi
 echo "Oberfläche ($V) neuer als der Quelltext: ja"
 cp "$KK/app/ausgabe/$V/eboot.elf" $O/oberflaeche.elf
@@ -115,9 +115,12 @@ echo "-- eingebettete Oberfläche ($V):"
 # 06.11.2026 (Arbeitsplan 5.2a): Texte der neuen Oberfläche 1.0.8 - die von 1.0.7 gibt es nicht mehr (zeigten deshalb 0)
 printf "   Hinweis der Test-/Simulationsfassung 'diese Fassung speichert es nicht als Datei' (release: 0): %s\n" "$(grep -a -c -F 'diese Fassung speichert es nicht als Datei' $O/ps5cleanup.elf || true)"
 printf "   Text der Auswahl 'Gelöscht wird erst nach dem Bestätigen.' (muss da sein): %s\n" "$(grep -a -c -F 'Gelöscht wird erst nach dem Bestätigen.' $O/ps5cleanup.elf || true)"
-printf "   Version '1.0.8' im Programm (muss da sein): %s\n" "$(grep -a -c -F '1.0.8' $O/ps5cleanup.elf || true)"
+printf "   Version '1.0.9' im Programm (muss da sein): %s\n" "$(grep -a -c -F '1.0.9' $O/ps5cleanup.elf || true)"   # 08.11.2026: 1.0.9
 # NEU 1.0.7 (03.11.2026): Adresse der freiwilligen QR-Rückmeldung (app.c RUECKMELDUNG_ADRESSE) - Platzhalter nur zum Testen, nie veröffentlichen
 RM=$(grep -a -o -i -E 'https://[a-z0-9.-]+\.workers\.dev/r' $O/ps5cleanup.elf | sort -u | tr '\n' ' ')
 echo "-- Rückmelde-Adresse im Programm: ${RM:-(keine)}"
+# NEU 1.0.9 (Update-Hinweis): die einzige Adresse, die die Oberfläche selbst abfragt (nur lesen, beim Start)
+UA=$(grep -a -o -E 'https://api\.github\.com/repos/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/latest' $O/ps5cleanup.elf | sort -u | tr '\n' ' ')
+echo "-- Update-Hinweis fragt (nur lesen): ${UA:-(keine)}"
 case "$RM" in *EINTRAGEN*) echo "   ACHTUNG: noch der Platzhalter - so NICHT veröffentlichen (Adresse nach dem Einrichten bei Cloudflare in app.c eintragen)";; esac
 date "+%Y-%m-%d %H:%M:%S FERTIG"

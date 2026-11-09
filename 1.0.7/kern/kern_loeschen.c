@@ -387,6 +387,46 @@ static bool leeren_ordner_loeschen(kern *k, const char *p)
     return !s_existiert(k->S, p);
 }
 
+/* NEU 1.0.9 (da_Chris86 08.11.2026, Bild aus 1.0.8): den Aufnahme-Zwischenordner /user/av_contents/content_tmp/<Kennung> legt die PS5 beim
+ * Start einer App selbst an. Solange die App da ist, bietet die Suche ihn nicht an (kern_suche.c) - ist ihre Kachel in diesem Lauf
+ * gelöscht worden, geht er hier mit, nur wenn er leer ist. Nie der von PS5 Cleanup (Selbstentfernung 2b), nie der eines Systemprogramms. */
+/* Codex-Prüfung 127: bleibt er (inzwischen nicht leer, abgelehnt), steht das im Protokoll; der Ordner zählt beim Freigeräumten mit;
+ * true = die Verbindung ist weg (wie im Löschlauf mit NOOP geprüft) - der Aufrufer setzt dann "verloren". */
+static bool zwischenordner_weg(kern *k, const eintrag *f, ergebnis *erg)
+{
+    if (kern_bereiche_106() || !f->KachelId || !h_m(f->KachelId, "^[A-Z]{4}\\d{5}$") || h_m(f->KachelId, "^(PSCL0000[12]|NPXS\\d{5})$")) return false;
+    const char *p = VERB(A, "/user/av_contents/content_tmp/", f->KachelId);
+    if (h_hat(&f->Pfade, p)) return false;
+    /* 0 nicht da (nichts zu tun), 1 entfernt, 2 bleibt (Grund), 3 Fehler beim Zugriff - Codex-Prüfung 128: ist er da und bleibt, steht
+     * das immer im Protokoll (geschützt, nicht leer, nicht lesbar, abgelehnt) */
+    volatile int was = 0;
+    const char *volatile grund = "";
+    VERSUCHE {
+        if (s_existiert(k->S, p)) {
+            if (selbst_gesperrt(k, p, false) || beschaedigt(k, p, false) || !kern_erlaubt(k, p) || !kern_ohne_verknuepfung(k, p)) { was = 2; grund = T("geschützt", "protected"); }
+            else {
+                dliste *in = s_liste(k->S, p, false);
+                if (!in) was = 3;
+                else if (in->n > 0) { was = 2; grund = T("nicht leer", "not empty"); }
+                else {   /* nur RMD: nie mit Inhalt */
+                    s_befehl(k->S, "RMD", p);
+                    if (s_existiert(k->S, p)) { was = 2; grund = T("ließ sich nicht entfernen", "could not be removed"); } else was = 1;
+                }
+            }
+        }
+    } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); was = 3; } ENDE_VERSUCHE;
+    if (was == 3) grund = T("nicht lesbar", "not readable");
+    if (was == 1) {
+        melde(k, VERB(A, k->simulation ? T("  würde gelöscht – leerer Aufnahme-Zwischenordner ", "  would be deleted – empty capture temp folder ")
+                                       : T("  gelöscht      – leerer Aufnahme-Zwischenordner ", "  deleted      – empty capture temp folder "), p));
+        erg->Frei.Ordner++;
+    }
+    else if (was >= 2) melde(k, VERB(A, T("  bleibt        – Aufnahme-Zwischenordner ", "  kept         – capture temp folder "), p, " (", grund, ")"));
+    if (was != 3) return false;
+    volatile bool da = false;
+    VERSUCHE { da = s_befehl(k->S, "NOOP", NULL).code == 200; } FANGE { if (ausn_art == AUSN_ABBRUCH) WEITERWERFEN(); da = false; } ENDE_VERSUCHE;
+    return !da;
+}
 /* Nur einen wirklich leeren Ordner entfernen (RMD löscht nie Inhalt mit) */
 static void leeren_ordner_entfernen(kern *k, const char *o)
 {
@@ -1104,7 +1144,7 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
         eintrag *f = gewaehlt.e[i];
         bool b = f->Quelle[0] || f->Ort != ORT_INTERN || f->Kachel;   /* 1.0.6: statt Bereich 7 der Ort (M.2, USB, USB-Stick) */
         for (int j = 0; j < f->Pfade.n && !b; j++) if (h_like(f->Pfade.e[j], SM_ORDNER "*") || h_gleich(f->Pfade.e[j], "/user/data")
-                                                      || h_m(f->Pfade.e[j], "(?i)\\.(exfat|ffpfs|ffpfsc|ffpkg|pfs|img)$")) b = true;   /* Codex-Prüfung 28: Spiel-Abbilder */
+                                                      || h_m(f->Pfade.e[j], "(?i)\\.(" ABBILD_ENDUNGEN ")$")) b = true;   /* Codex-Prüfung 28: Spiel-Abbilder (1.0.9: ABBILD_ENDUNGEN, mit .ufs) */
         if (b) smBetroffen++;
     }
     if (smBetroffen > 0) {
@@ -1472,6 +1512,7 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
                               T("   (war nicht im PS5-Menü eingetragen - Reste ohne Kachel)", "   (was not listed in the PS5 menu - leftovers without a tile)")));
                 if (f->HatGroesse) { erg.Frei.Bytes += f->Bytes; erg.Frei.Dateien += f->Dateien; erg.Frei.Ordner += f->Ordner; }
                 sm_einhaengeordner_weg(k, f, &geloescht, true);   /* Codex-Prüfung 54 */
+                if (zwischenordner_weg(k, f, &erg)) verloren = true;   /* NEU 1.0.9 */
                 continue;
             }
             if (ok && (sonyWeg || (mitSony && k->WAR_SCHON_WEG >= f->Pfade.n))) {   /* NEU 1.0.6: über Sony entfernt */
@@ -1481,14 +1522,16 @@ ergebnis kern_fuehre_loeschung(kern *k, bool (*weiter)(void *), void *wc)
                               sonyWeg ? T("   (Kachel über Sony entfernt)", "   (tile removed via Sony)") : T("   (mit dem Spiel über Sony)", "   (with the game via Sony)")));
                 if (f->HatGroesse) { erg.Frei.Bytes += f->Bytes; erg.Frei.Dateien += f->Dateien; erg.Frei.Ordner += f->Ordner; }
                 sm_einhaengeordner_weg(k, f, &geloescht, sonyWeg);   /* NEU 03.11.2026 (17:50: auch "nur Kachel") */
+                if (zwischenordner_weg(k, f, &erg)) verloren = true;   /* NEU 1.0.9 */
                 continue;
             }
-            if (ok && k->WAR_SCHON_WEG >= f->Pfade.n) { if (f->KachelId) mt_setze(A, &kachelWeg, f->KachelId, (void *)1); melde(k, VERB(A, T("  war schon weg   ", "  already gone   "), f->Text)); continue; }
+            if (ok && k->WAR_SCHON_WEG >= f->Pfade.n) { if (f->KachelId) mt_setze(A, &kachelWeg, f->KachelId, (void *)1); melde(k, VERB(A, T("  war schon weg   ", "  already gone   "), f->Text)); if (zwischenordner_weg(k, f, &erg)) verloren = true; continue; }   /* 1.0.9: zwischenordner_weg */
             if (ok) {
                 melde(k, VERB(A, k->simulation ? T("  würde gelöscht   ", "  would be deleted   ") : T("  gelöscht   ", "  deleted   "), f->Text));
                 if (f->Art == ART_TOOL_DATEN || f->Art == ART_TOOL_DATEN_WICHTIG) pl_add(A, &tool_weg, f);   /* NEU 1.0.8 (3.5) */
                 if (f->KachelId) mt_setze(A, &kachelWeg, f->KachelId, (void *)1);
                 sm_einhaengeordner_weg(k, f, &geloescht, false);   /* NEU 03.11.2026 */
+                if (zwischenordner_weg(k, f, &erg)) verloren = true;   /* NEU 1.0.9 */
                 if (f->HatGroesse) { erg.Frei.Bytes += f->Bytes; erg.Frei.Dateien += f->Dateien; erg.Frei.Ordner += f->Ordner; }
                 /* NEU 1.0.6 (PS5-Test da_Chris86 29.10.2026 19:54): die Mediengalerie führt eine eigene Liste - gelöschte Bilder und
                  * Videos stehen dort als leere Einträge, bis die Datenbank neu aufgebaut ist. Darum am Ende der Hinweis (mit Sony) */
@@ -1754,12 +1797,14 @@ int kern_selbst_entfernen(kern *k, bool m2, bool usb)
      *     (belegt an PSCL00002: unser Code schreibt dort nie hin, die Ordner entstehen trotzdem). Die eigenen gehen mit - nur wenn
      *     sie leer sind; ein Fehler hier hält die Selbstentfernung nicht auf (nur Diagnose). */
     if (!kern_bereiche_106() && k->SONY)
-        for (int j = 0; j < 2; j++) {
-            const char *p = j == 0 ? "/user/temp/share/PSCL00002" : "/user/av_contents/content_tmp/PSCL00002";
+        for (int j = 0; j < 3; j++) {   /* 1.0.9: auch content_tmp/PSCL00001 (die Suche bietet beide eigenen nicht mehr an, kern_suche.c) */
+            static const char *const EIGENE_ARBEIT[3] = { "/user/temp/share/PSCL00002", "/user/av_contents/content_tmp/PSCL00002", "/user/av_contents/content_tmp/PSCL00001" };
+            const char *p = EIGENE_ARBEIT[j];
             if (!s_existiert(k->S, p)) { sdiag(k, VERB(A, p, " - nicht vorhanden")); continue; }
             dliste *l = s_liste(k->S, p, false);
             if (!l || l->n > 0) { sdiag(k, VERB(A, p, " - bleibt: nicht leer")); continue; }
-            bool ok = loeschen(k, p);
+            /* Codex-Prüfung 127 (P1): nur RMD - ist der Ordner inzwischen nicht mehr leer, bleibt er (loeschen() hätte ihn samt Inhalt entfernt) */
+            bool ok = kern_erlaubt(k, p) && kern_ohne_verknuepfung(k, p) && s_befehl(k->S, "RMD", p).code < 400 && !s_existiert(k->S, p);
             if (ok) melde(k, VERB(A, k->simulation ? T("  würde gelöscht   ", "  would be deleted   ") : T("  gelöscht   ", "  deleted   "), T("PS5 Cleanup: ", "PS5 Cleanup: "), p));
             sdiag(k, VERB(A, p, ok ? " - entfernt" : " - bleibt: ließ sich nicht entfernen"));
         }

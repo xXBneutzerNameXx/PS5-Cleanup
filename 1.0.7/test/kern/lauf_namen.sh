@@ -202,6 +202,9 @@ printf '{"titleId":"PPSA72200","localizedParameters":{"defaultLanguage":"en-US",
 printf '\x89PNG\r\n\x1a\nbild' > "$OG/sce_sys/icon0.png"
 echo f > $W/mnt/usb0/homebrew/PPSA72161.ffpkg   # nicht lesbar (kein exFAT): Name aus dem früheren Protokoll (Sternwarte)
 echo f > $W/mnt/usb0/homebrew/PPSA72201.ffpkg   # ohne jeden Beleg: kein Name
+# NEU 1.0.9 (08.11.2026, kstuff-lite image.c): .ufs ist ein UFS-Abbild wie .ffpkg - Spiel, auch großgeschrieben in einem eigenen Ordner
+echo f > $W/mnt/usb0/homebrew/PPSA72202.ufs
+mkdir -p $W/mnt/usb0/spiele; echo f > $W/mnt/usb0/spiele/PPSA72203.UFS
 # NEU 1.0.8 (PS5-Test 07.11.2026 17:43): Fortschritt, dessen Liste schon gelöscht ist - Name aus dem Protokoll (auch eingerückte Blockzeile)
 for x in NPWR72189_00 NPWR72190_00 NPWR72191_00; do mkdir -p $H/trophy/data/$x; echo x > $H/trophy/data/$x/trophy.img; done
 # NEU 1.0.8 (PS5-Test 07.11.2026 17:31): Kopie des Trophäen-Fortschritts mit Endung (wie NPWR09412_00_BK auf da_Chris86s PS5)

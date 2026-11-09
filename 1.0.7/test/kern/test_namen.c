@@ -173,6 +173,17 @@ int main(int argc, char **argv)
         text_ohne("/mnt/usb0/homebrew/PPSA72201.ffpkg", "[Spiel:", "Spieldatei ohne jeden Beleg: kein Name");
         pruefe(!mt_hat(&K->BILD_ORT, "PPSA72161") && !mt_hat(&K->BILD_ORT, "PPSA72201"), "Spieldatei nicht lesbar: kein Bild gemerkt");
     }
+    /* NEU 1.0.9 (08.11.2026, Nachprüfung kstuff-lite ps5-kstuff-ldr/src/image.c): .ufs ist ein UFS-Abbild wie .ffpkg. Bis 1.0.8 stand eine
+     * .ufs ohne Kachel gelb als normale Datei, ein Ordner mit einer .ufs wurde nicht aufgeklappt. */
+    printf("== NEU 1.0.9: .ufs ist ein Spiel-Abbild\n");
+    {
+        eintrag *u = mit_pfad("/mnt/usb0/homebrew/PPSA72202.ufs");
+        pruefe(u && u->Kat == 1 && u->Art == ART_ABBILD && kern_ampel(u) == AMPEL_ROT, a_fmt(A0, ".ufs ohne Kachel: unter Spiele, rot (%s)", u ? u->TextBasis : "nicht gefunden"));
+        text_hat("/mnt/usb0/homebrew/PPSA72202.ufs", "[ohne Kachel]", ".ufs ohne Kachel");
+        eintrag *g = mit_pfad("/mnt/usb0/spiele/PPSA72203.UFS");
+        pruefe(g && g->Kat == 1 && kern_ampel(g) == AMPEL_ROT, a_fmt(A0, "Ordner mit einer .UFS wird aufgeklappt, die Datei steht unter Spiele (%s)", g ? g->TextBasis : "nicht gefunden"));
+        pruefe(!mit_pfad("/mnt/usb0/spiele"), "... der Ordner selbst ist kein Eintrag (sonst ginge das Abbild mit dem Ordner weg)");
+    }
     /* NEU 1.0.8 (PS5-Test 07.11.2026 17:31/17:32): Kopie des Fortschritts mit Endung, zweite Trophäen-Datei im PKG */
     text_hat(a_fmt(A0, "%s/trophy/data/NPWR72181_00_BK", H), "Trophäen-Fortschritt: Kistenspiel (NPWR72181_00)", "Kopie des Fortschritts (_BK): Name der Liste ohne Endung");
     text_hat(a_fmt(A0, "%s/trophy/data/NPWR72181_00_BK", H), "[Kopie: NPWR72181_00_BK]", "... der Ordnername bleibt sichtbar");

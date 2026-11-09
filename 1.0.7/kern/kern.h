@@ -20,6 +20,9 @@
 #define SYS_META       "/system_data/priv/appmeta"
 #define SM_ORDNER      "/user/data/shadowmount"
 #define USB_ERW        "/mnt/ext0"
+/* NEU 1.0.9 (08.11.2026, Nachprüfung im Quellcode: ShadowMountPlus src/sm_image.c, kstuff-lite ps5-kstuff-ldr/src/image.c): Endungen der
+ * Spiel-Abbilder, die eingehängt werden (die Datei muss bleiben). .ufs ist UFS wie .ffpkg (kstuff-lite) und fehlte bis 1.0.8 überall. */
+#define ABBILD_ENDUNGEN "exfat|ffpfs|ffpfsc|ffpkg|pfs|img|ufs"
 
 /* class Eintrag (Kern.cs) */
 typedef struct eintrag {
@@ -79,9 +82,12 @@ typedef struct eintrag {
                                 * lesbar) - er kann PKG-Dateien enthalten: rot, nur einzeln (wie eine PKG-Datei) */
     bool WichtigLeer;          /* NEU 1.0.8 (Befund 2): bekannter wichtiger Ordner (etaHEN ...), nachweislich ohne Datei mit Inhalt */
     unsigned char UsbKopie;    /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): Ordner, den die Konsole auf einem USB-Laufwerk anlegt - was darin liegt (USB_KOPIE_...) */
+    unsigned char StoreTeil;   /* NEU 1.0.9 (#145): Teil einer App in den Ordnern von ProsperoStore (STORE_*), 0 = keiner (kern_suche.c merke_store) */
 } eintrag;
 enum { PKG_KEINE = 0, PKG_SPIEL, PKG_UPDATE, PKG_DLC, PKG_APP };
 enum { USB_KOPIE_AUFNAHMEN = 1, USB_KOPIE_SPIELSTAENDE = 2, USB_KOPIE_SICHERUNG = 4 };   /* NEU 1.0.8: eintrag.UsbKopie */
+/* NEU 1.0.9 (#145): eintrag.StoreTeil - aufgehobene Fassung (previous, backup), Rest einer Arbeit (trash, staging), Beleg (receipts) */
+enum { STORE_FASSUNG = 1, STORE_REST = 2, STORE_BELEG = 3 };
 /* NEU 1.0.7: Arten der Einträge (nur Anzeige und Auswahl-Regeln - Pfade und Schutz bleiben unberührt) */
 enum {
     ART_SONST = 0,
@@ -94,7 +100,8 @@ enum {
     ART_JAILBREAK,
     ART_ALTE_SICHERUNG,        /* NEU 1.0.7 (PS5-Test 02.11.2026): Datenbank-Kopien älterer PS5-Cleanup-Versionen (ps5cleanup_db_…) */
     ART_USB_KOPIE,             /* NEU 1.0.8 (PS5-Test 07.11.2026 22:53): eigene Daten, die die Konsole auf ein USB-Laufwerk kopiert hat (PS5/CREATE ...) */
-    ART_PROTOKOLL              /* NEU 1.0.8 (07.11.2026): Protokoll von PS5 Cleanup aus einem früheren Lauf (ps5cleanup_protokoll_…) */
+    ART_PROTOKOLL,             /* NEU 1.0.8 (07.11.2026): Protokoll von PS5 Cleanup aus einem früheren Lauf (ps5cleanup_protokoll_…) */
+    ART_STORE_FASSUNG          /* NEU 1.0.9 (#145): vorige Fassung einer App samt allem, was darin lag - von ProsperoStore aufgehoben */
 };
 enum { AMPEL_GRUEN = 0, AMPEL_GELB = 1, AMPEL_ROT = 2 };
 /* NEU 1.0.6 (da_Chris86 28.10.2026): Speicherorte. USB = USB-Platte als erweiterter Speicher, USB-Stick = normaler Datenträger */
@@ -198,7 +205,9 @@ typedef struct kern {
      * nicht"): PS5-Spiele ohne Kachel bekommen Name und Bild aus Sonys eigenen Angaben, die noch auf der Konsole liegen */
     mtab   NPWR_UCP;                    /* ci: Trophäen-Kennung -> Name aus der PS5-Trophäen-Liste selbst (TROPHY.UCP), "" = keiner */
     mtab   BILD_ORT;                    /* ci: Kennung -> "Pfad\nAnfang\nLänge" von icon0.png einer Spieldatei (.exfat) oder eines Spielordners
-                                         *     ohne Kachel; Länge 0 = ganze Datei. Liest nur die Oberfläche (kachelbild_laden) */
+                                         *     ohne Kachel; Länge 0 = ganze Datei. Liest nur die Oberfläche (kachelbild_laden). NEU 1.0.9: auch aus
+                                         *     einer PS4-PKG-Datei (icon0.png) */
+    mtab   BILD_UPD;                    /* NEU 1.0.9: ci: Kennung -> (void *)1, wenn BILD_ORT aus einer Update-PKG stammt (die Spiel-PKG geht vor) */
     void (*appinfo_lesen)(struct kern *k, void (*zeile)(struct kern *k, const char *titel, const char *feld, const char *wert));
                                         /* Plattform: Sonys appinfo.db NUR LESEN und jede Zeile INSTALL_DIR_SAVEDATA / SERVICE_ID_ADDCONT_ADD_n
                                          * melden (NULL = nicht verfügbar - dann nur param.sfo / param.json). NEU 1.0.8: dazu aus Sonys
@@ -300,6 +309,27 @@ bool        kern_ps4_geschuetzt(kern *k, const char *p, const char **grund);   /
 const char *kern_ps4_ort_text(int ort);
 const char *kern_ps4_zeile(arena *a, const ps4_spiel *s);   /* "Name (CUSAxxxxx) – intern – 79,4 GB – Update 1.32 – Fake-Lizenz" */
 const char *kern_abbild_titel_test(kern *k, const char *p, size_t *gelesen);   /* NEU 1.0.8: nur für die PC-Tests (Spiel-Abbild, kern_suche.c) */
+const unsigned char *kern_ufs_datei_test(kern *k, const char *p, const char *innen, size_t *n);   /* NEU 1.0.9: nur für die PC-Tests (UFS2-Leser) */
+/* NEU 1.0.9 (#144, kern_entpacken.c): zlib entpacken und gepackte Dateien in PFS-Abbildern (.ffpfsc, PFSC-Behälter) stückweise lesen - nur lesen */
+long kern_entpacken(const unsigned char *ein, size_t en, unsigned char *aus, size_t amax, bool zlib_rahmen);   /* -1 = kaputt */
+typedef struct {
+    bool (*lies)(void *c, unsigned long long ab, size_t n, unsigned char *ziel); void *c;
+    unsigned long long ab, gr;                     /* Behälter in der Datei: Anfang, gespeicherte Länge */
+    unsigned long long tab, daten, laenge, bloecke;  /* Tabelle, Daten (ab Behälteranfang), ungepackte Länge, Zahl der 64-KB-Blöcke */
+    long long im_puffer; unsigned char *puffer, *roh;
+} kern_pfsc;
+bool kern_pfsc_auf(kern_pfsc *p, arena *a, bool (*lies)(void *c, unsigned long long ab, size_t n, unsigned char *ziel), void *c,
+                   unsigned long long ab, unsigned long long gr);
+bool kern_pfsc_lies(kern_pfsc *p, unsigned long long ab, size_t n, unsigned char *ziel);
+unsigned char *kern_pfsc_datei_stueck(const char *datei, unsigned long long cab, unsigned long long cgr, unsigned long long ab, size_t n);   /* Oberfläche: malloc, NULL = nicht lesbar */
+const unsigned char *kern_pfs_datei_test(kern *k, const char *p, const char *innen, size_t *n);   /* nur für die PC-Tests (PFS-Leser) */
+/* NEU 1.0.9 (Codex-Prüfung 130): BILD_ORT zerlegen - "Pfad\nAnfang\nLänge", gepackt (.ffpfsc) mit der Zeile "pfsc <Anfang> <Länge>" des
+ * Behälters; NEU #149: in Stücken mit der Zeile "teile <n> <Anfang> <Länge> ..." (2 bis KERN_BILD_TEILE Stücke im Abbild, das erste bei
+ * Anfang, zusammen Länge). Für die Oberfläche (app.c spiel_bild), im Test geprüft. false = nicht genau in dieser Form */
+#define KERN_BILD_TEILE 64
+typedef struct { char pfad[1000]; unsigned long long ab, len, cab, cgr; bool gepackt; int teile_n; unsigned long long teile[KERN_BILD_TEILE][2]; } kern_bild_ort;
+bool kern_bild_ort_lesen(const char *o, kern_bild_ort *b);
+unsigned char *kern_bild_lesen(const char *datei, const kern_bild_ort *b);   /* NEU #149: das Bild nach b aus datei (am Stück, gepackt, in Stücken); malloc, NULL = nicht lesbar */
 const char *kern_pkg_zusatz_test(kern *k, const char *p, size_t *gelesen);   /* NEU 1.0.8: nur für die PC-Tests (PKG-Prüfung, kern_suche.c) */
 const char *kern_rest_text(kern *k, arena *a);              /* NEU 1.0.7: was im Menü bleibt, dazu die Bitte ums Protokoll ("" = nichts) */
 extern int (*kern_ps4_sony_eingetragen)(const char *id);
@@ -420,6 +450,9 @@ void kern_selbstschutz_ermitteln(kern *k);                     /* Launcher + eig
 void kern_selbstschutz_eigener_pfad(kern *k, const char *p);   /* Startordner dieses Programms */
 bool kern_selbstschutz_gesperrt(kern *k, const char *p);       /* darf NICHT gelöscht werden */
 bool kern_selbstschutz_anbieten(kern *k, const char *p);       /* darf in der Liste stehen */
+/* NEU 1.0.9 (#146): Daten-Ordner /data/<ordner> einer bekannten App? Name der App (NULL = keine), dazu ihre Kennung und - wenn darin
+ * nachweislich eigene Dateien liegen - was ("deine heruntergeladenen Filme und Serien"), sonst NULL (kern_suche.c APP_DATEN) */
+const char *kern_bekannte_app(const char *ordner, const char **id, const char **wichtig);
 bool kern_selbstschutz_enthaelt(kern *k, const char *p);       /* Geschütztes liegt darin -> aufklappen */
 const char *kern_selbstschutz_hinweis(kern *k, bool komplett);   /* NEU 1.0.8 (F1): komplett = vollständige Bereinigung, sonst eigene Auswahl */
 bool kern_selbstschutz_unlesbar(kern *k, const char *p);       /* NEU 1.0.6 Fix: p ist ein privater, nicht lesbarer Ordner (oder liegt darin) */

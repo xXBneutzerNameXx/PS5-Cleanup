@@ -416,9 +416,11 @@ static void loesche_jetzt(ablauf *a)
     /* NEU 1.0.5: "Eintrag i von n" (und GB, wenn die Größen bekannt sind) - nur Anzeige */
     fstand fs = { a, true, 0, 0, NULL };
     int rm_n = 0;   /* NEU 1.0.7: für die Rückmeldung per QR-Code (nur die Zahl) */
-    FUER_ALLE(f) if (f->Wahl) { rm_n++; if (!f->HatGroesse) fs.groessenDa = false; else fs.gesamt += f->Bytes; }
+    int lf_n0 = 0;  /* NEU 1.0.9 (PS5-Test da_Chris86 09.11.2026 16:09: "1 von 49", danach "11 von 48"): wie der Kern zählen - eine
+                     * ShadowMount-Spieldatei (SmDatei) geht mit ihrer Kachel und ist kein eigener Schritt (kern_gewaehlt) */
+    FUER_ALLE(f) if (f->Wahl) { rm_n++; if (!f->SmDatei) lf_n0++; if (!f->HatGroesse) fs.groessenDa = false; else fs.gesamt += f->Bytes; }
     KN->Fortschritt = fortschritt; KN->fortschritt_ctx = &fs;
-    a->lf_nr = 0; a->lf_n = rm_n; a->lf_f = NULL; a->lf_frei = 0; a->lf_gesamt = fs.groessenDa && fs.gesamt > 0 ? fs.gesamt : -1;   /* NEU 1.0.8 (4.5) */
+    a->lf_nr = 0; a->lf_n = lf_n0; a->lf_f = NULL; a->lf_frei = 0; a->lf_gesamt = fs.groessenDa && fs.gesamt > 0 ? fs.gesamt : -1;   /* NEU 1.0.8 (4.5) */
     memset(&a->rm_frei, 0, sizeof a->rm_frei);
     logz(a, "");
     static _Thread_local ergebnis erg;          /* (über longjmp hinweg gültig) */

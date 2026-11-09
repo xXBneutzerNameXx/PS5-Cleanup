@@ -74,5 +74,11 @@ void plattform_appinfo_lesen(struct kern *k, void (*zeile)(struct kern *k, const
 /* NEU 1.0.7 (Punkt 3): Zeilen der Plattform (z. B. jeder Schritt einer Sony-Deinstallation) ins Protokoll der Oberfläche.
  * Setzt app.c; darf aus jedem Faden gerufen werden. NULL = nur Kernel-Protokoll. */
 extern void (*plattform_meldung)(const char *t);
+/* NEU 1.0.9 (Update-Hinweis, da_Chris86 08.11.2026: bei jedem Start): fragt GitHub nach der neuesten veröffentlichten Version von
+ * PS5 Cleanup. Nur lesen: GET https://api.github.com/repos/xXBneutzerNameXx/PS5-Cleanup/releases/latest - gesendet wird nur die Anfrage
+ * selbst (mit "PS5-Cleanup/<eigene>" als Programmname). Wartet auf die Antwort (höchstens etwa 25 s), darum nur aus einem eigenen Faden.
+ * true = Versionsangabe bekommen (tag, z. B. "v1.0.9", ungeprüft); false = keine (grund sagt warum, z. B. kein Netz).
+ * PC-Vorschau: fragt nie im Netz, die Antwort kommt aus VORSCHAU_NEUESTE. */
+bool plattform_neueste_version(const char *eigene, char *tag, size_t n, char *grund, size_t gn);
 
 #endif

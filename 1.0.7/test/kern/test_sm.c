@@ -109,6 +109,11 @@ int main(int argc, char **argv)
     pruefe(um2 && !um2->Gesperrt && strstr(um2->Text, "Spiel-Abbild"), "umbenannte Datei selbst: eigenes Spiel-Abbild (1.0.6)");
     eintrag *sp = kachel("PPSA77773");
     pruefe(sp && strstr(sp->Text, "/user/data/meinespiele/Eigen.exfat") && mit_pfad("/user/data/meinespiele/Eigen.exfat") && !mit_pfad("/user/data/meinespiele/Eigen.exfat")->Gesperrt, a_fmt(A0, "eigener Suchort aus config.ini (mit Kommentar am Zeilenende) berücksichtigt, Datei eigenes Spiel-Abbild (%s)", sp ? sp->Text : "-"));
+    /* NEU 1.0.9 (08.11.2026, ShadowMountPlus 1.7): Einstellungen im Format 2 */
+    eintrag *sp2 = kachel("PPSA77782");
+    pruefe(sp2 && strstr(sp2->Text, "/user/data/meine spiele2/Eigen2.exfat") && mit_pfad("/user/data/meine spiele2/Eigen2.exfat"), a_fmt(A0, "eigener Suchort aus config.ini Format 2 ([ Scan ] Path = \"...\" mit Kommentar) berücksichtigt (%s)", sp2 ? sp2->Text : "-"));
+    eintrag *sp3 = kachel("PPSA77783");
+    pruefe(sp3 && strstr(sp3->Text, "tote Kachel") && !strstr(sp3->Text, "nichtscan"), a_fmt(A0, "\"path\" unter [emulators] ist kein Suchort (%s)", sp3 ? sp3->Text : "-"));
     eintrag *ab = kachel("PPSA77774");
     pruefe(ab && !ab->Gesperrt && strstr(ab->Text, "Datenträger") && strstr(ab->Text, "nur die Kachel") && (!ab->Quelle || !ab->Quelle[0]), a_fmt(A0, "Spiel auf abgezogenem USB-Datenträger: Kachel löschbar, nur die Kachel (%s)", ab ? ab->Text : "-"));
     eintrag *m1 = kachel("PPSA77775"), *m2b = kachel("PPSA77776");

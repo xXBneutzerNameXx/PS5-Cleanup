@@ -2,6 +2,9 @@
 # da_Chris86 17:47: "Jede ELF-Datei ... das muss ja überall sein"). Nur nachgebildete Dateien - nie eine PS5.
 #   python3 zuordnung_baum.py <w>          Fälle für test_zuordnung (Lauf 0)
 #   python3 zuordnung_baum.py <w> viele    2000 PKG-Dateien auf USB-Laufwerk, M.2 und intern (Lauf 2)
+#   python3 zuordnung_baum.py <w> store_kaputt   NEU 1.0.9 (#145): ProsperoStore mit unlesbarem journal.json (Lauf 4)
+#   python3 zuordnung_baum.py <w> store_ohne_journal   NEU 1.0.9 (Codex-Prüfung 137): ProsperoStore ohne journal.json (Lauf 5)
+#   python3 zuordnung_baum.py <w> store_json_kaputt   NEU 1.0.9 (Codex-Prüfung 138): ProsperoStore mit journal.json ohne gültiges JSON (Lauf 6)
 import os, struct, sys
 
 W = sys.argv[1]
@@ -54,6 +57,59 @@ def kachel(tid, titel, deeplink=None, kategorie=65536):
 
 
 ELF = b"\x7fELF\x02\x01\x01" + b"\0" * 57
+
+
+
+# NEU 1.0.9 (#146): Daten-Ordner bekannter Apps (aus ihrem Quellcode) - fest bei ihrer Kachel, ohne Kachel unter Apps mit "gehört zu"
+def app_daten_baum():
+    kachel("PPSA11018", "PC5")
+    datei("/user/data/prospero-win/prefixes/spiel/drive_c/Games/spiel.exe", b"MZ" + b"\0" * 100)   # heißt nicht wie die Kachel
+    datei("/user/data/savagewind/game/romfs/Actor/a.bin", b"r" * 200)                            # App nicht installiert, eigene Spieldateien
+    datei("/user/data/vlc/vlcrc", b"v")                                                         # App nicht installiert, nur Einstellungen
+    datei("/user/data/vlcx/notiz.txt", b"n")                                                    # Gegenprobe: unbekannt - Sonstiges
+    datei("/user/data/homebrew/prospero-win/notiz.txt", b"n")   # Codex-Prüfung 137: gleichnamiger Ordner in homebrew - nicht belegt, nicht fest zu PC5
+    kachel("ILNY26228", "Patch Manager", "http://127.0.0.1:23900")   # PS5-Test 09.11.2026: ps-patch-system, Ordner heißt "user"
+    datei("/user/data/user/patches/xml_prospero/PPSA01234.xml", b"<Patch/>"); datei("/user/data/user/patch_backup/cache.bin", b"c" * 50)
+
+# NEU 1.0.9 (#145): ProsperoStore (darkxex/ProsperoStore @44ae9f6) wie auf der PS5 - Belege intern, Arbeitsordner je Laufwerk.
+# journal_ok=False: journal.json lässt sich nicht lesen (Lauf 4) bzw. ist kein JSON (kaputt=True, Lauf 6) - dann wird nichts herausgelöst
+def store_baum(journal_ok, journal=True, kaputt=False):
+    def pj(tid, titel):
+        return f'{{"titleId":"{tid}","contentVersion":"01.000.000","localizedParameters":{{"defaultLanguage":"en-US","en-US":{{"titleName":"{titel}"}}}}}}'
+    def beleg(tid, nennt=None):
+        null64 = "0" * 64
+        return f'{{"schema":1,"titleId":"{nennt or tid}","location":"/data/homebrew","contentVersion":"01.000.000","releaseTag":"v1","sha256":"{null64}","installedAt":"2026-11-08T08:00:00Z"}}\n'
+    kachel("PPSA99000", "ProsperoStore"); kachel("PPSA99708", "Eichenhain"); kachel("PPSA99716", "Kieselbach")
+    S, M = "/user/data/prosperostore", "/mnt/ext1/prosperostore"
+    os.makedirs(W + "/mnt/ext1/user/app", exist_ok=True)
+    datei("/user/data/homebrew/PPSA99708/sce_sys/param.json", pj("PPSA99708", "Eichenhain")); datei("/user/data/homebrew/PPSA99708/eboot.bin", ELF + b"k")
+    # gehört der App: Beleg, aufgehobene Fassung (mit selbst hineingelegter Datei), nicht fertig gelöschte App, angefangener Download
+    datei(f"{S}/receipts/PPSA99708.json", beleg("PPSA99708")); datei(f"{S}/receipts/PPSA99716.json", beleg("PPSA99716"))
+    datei(f"{S}/previous/PPSA99708/sce_sys/param.json", pj("PPSA99708", "Eichenhain")); datei(f"{S}/previous/PPSA99708/eden/roms/spiel.bin", b"r" * 300)
+    datei(f"{S}/trash/PPSA99708/eboot.bin", ELF + b"t")
+    datei(f"{S}/previous/PPSA99716/sce_sys/param.json", pj("PPSA99716", "Kieselbach")); datei(f"{S}/previous/PPSA99716/notiz.txt", b"n")
+    if journal_ok:   # Befund 12: eine PKG-Datei in der aufgehobenen Fassung steht bei ihrem Spiel
+        pkg(f"{S}/previous/PPSA99716/pakete/Wolkenreise - CUSA40001 - v1.07 - EU - Update.pkg", "Wolkenreise", "CUSA40001", "gp", "01.07", rest=30)
+    datei(f"{S}/staging/PPSA99716.zip", b"z" * 70)
+    # bleibt im Rest: falscher und kaputter Beleg, keine Kennung, Kleinschreibung, Verknüpfung, angefangene Arbeit laut journal.json
+    datei(f"{S}/receipts/PPSA99710.json", beleg("PPSA99710", "PPSA99711")); datei(f"{S}/receipts/PPSA99712.json", "kaputt")
+    datei(f"{S}/previous/notiz.txt", b"n"); datei(f"{S}/previous/ppsa99715/datei.txt", b"x")
+    os.symlink("../trash", W + f"{S}/previous/PPSA99714")
+    if journal:
+        jt = '{"schema":1,"operation":"install","state":"staging","titleId":"PPSA99713","location":"/data/homebrew"}\n'
+        if journal_ok: datei(f"{S}/journal.json", jt)
+        elif kaputt: datei(f"{S}/journal.json", "kaputt{")   # Codex-Prüfung 138: kein JSON (Lauf 6)
+        else:   # Codex-Prüfung 138: gültiger Inhalt, aber nicht lesbar - auch unter root (PS5 Cleanup öffnet nie eine Verknüpfung)
+            datei(f"{S}/journal_daten.json", jt); os.symlink("journal_daten.json", W + f"{S}/journal.json")
+    datei(f"{S}/staging/PPSA99713.zip", b"z" * 50); datei(f"{S}/staging/PPSA99713/eboot.bin", ELF + b"u")
+    datei(f"{S}/settings.txt", b"s"); datei(f"{S}/logs/store.log", b"l"); datei(f"{S}/cache/bild.png", b"p")
+    if journal_ok:   # Codex-Prüfung 137: PKG-Datei im Rest - steht bei ihrem Spiel, der Rest des Unterordners bleibt bei ProsperoStore
+        pkg(f"{S}/cache/pakete/Notizbuch - CUSA40003 - v1.01 - Update.pkg", "Notizbuch", "CUSA40003", "gp", "01.01", rest=31)
+        datei(f"{S}/cache/pakete/info.txt", b"i")
+    # M.2: App gelöscht (keine Kachel) - ihre aufgehobene Fassung und ein angefangener Download; dazu ein Rest von ProsperoStore
+    datei(f"{M}/previous/PPSA99709/sce_sys/param.json", pj("PPSA99709", "Moosgarten")); datei(f"{M}/previous/PPSA99709/saves/stand1.sav", b"v" * 40)
+    datei(f"{M}/staging/PPSA99709.zip", b"z" * 60); datei(f"{M}/staging/teil.tmp", b"t")
+    os.makedirs(W + f"{M}/backup", exist_ok=True)
 
 if art == "faelle":
     # --- PKG (Befund 12) ---
@@ -196,6 +252,15 @@ if art == "faelle":
     os.makedirs(W + "/user/data/etaHEN/cheats", exist_ok=True); os.makedirs(W + "/user/data/etaHEN/plugins", exist_ok=True)
     datei("/user/data/etaHEN/config.ini", b"")
     datei("/user/data/garlic/backups/spiel1/sdimg", b"Spielstand")
+    # --- NEU 1.0.9 (#145): ProsperoStore - Beleg, aufgehobene Fassung und Reste stehen bei ihrer App, der Rest bei ProsperoStore ---
+    store_baum(True)
+    app_daten_baum()   # NEU 1.0.9 (#146)
+elif art == "store_kaputt":
+    store_baum(False)   # NEU 1.0.9 (#145): journal.json nicht lesbar - nichts herauslösen (Lauf 4)
+elif art == "store_json_kaputt":
+    store_baum(False, kaputt=True)   # Codex-Prüfung 138: journal.json ist kein JSON - nichts herauslösen (Lauf 6)
+elif art == "store_ohne_journal":
+    store_baum(True, journal=False)   # Codex-Prüfung 137: keine angefangene Arbeit - auch PPSA99713 wird herausgelöst (Lauf 5)
 else:
     # 2000 PKG-Dateien: 40 Spiele (10 davon installiert), je Spiel Installationsdatei, Updates, Zusatzinhalte - verteilt auf
     # USB-Laufwerk (Ordner PS4, PS5, DLC), M.2 (Ordner PKG) und intern (/data/pkg)

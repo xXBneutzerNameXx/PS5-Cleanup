@@ -7,6 +7,7 @@
 #include "../../kern/ablauf.h"
 #include "../../db/db_lesen.h"
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -73,6 +74,31 @@ static int test_einbindung(arena *a, const char *id, const char **fs, const char
 static bool vorbereitung_scheitert(void *c) { (void)c; vor_loeschen_gerufen++; return false; }
 static bool nie(void *c) { (void)c; return false; }
 static void nichts(void *c, eintrag *e) { (void)c; (void)e; }
+/* NEU 1.0.9 (Codex-Prüfung 130): Testdaten ganz lesen (malloc) und eine Zahl aus zlib_faelle.bin */
+static unsigned char *ganz_lesen(const char *p, size_t *n)
+{
+    *n = 0; FILE *f = fopen(p, "rb"); if (!f) return NULL;
+    unsigned char *d = NULL; size_t g = 0, cap = 0, r;
+    do { if (g == cap) { cap = cap ? cap * 2 : 65536; unsigned char *x = realloc(d, cap); if (!x) { free(d); fclose(f); return NULL; } d = x; }
+         r = fread(d + g, 1, cap - g, f); g += r; } while (r > 0);
+    fclose(f); *n = g; return d;
+}
+/* NEU 1.0.9 (#149): das Bild nach BILD_ORT über kern_bild_lesen lesen (wie die Oberfläche) und mit der Kopie des Bildes vergleichen */
+static bool bild_gleich(kern *k, const char *id, int teile, bool gepackt, const char *kopie, const char **ort)
+{
+    *ort = mt_hat(&k->BILD_ORT, id) ? mt_hole(&k->BILD_ORT, id) : "(keins)";
+    kern_bild_ort b; size_t rn = 0;
+    if (!kern_bild_ort_lesen(*ort, &b) || b.teile_n != teile || b.gepackt != gepackt) return false;
+    unsigned char *d = kern_bild_lesen(VERB(A0, W, b.pfad), &b), *r = ganz_lesen(VERB(A0, HIER, kopie), &rn);
+    bool ok = d && r && rn == b.len && !memcmp(d, r, rn);
+    free(d); free(r);
+    return ok;
+}
+static bool hole32(const unsigned char *d, size_t n, size_t *i, uint32_t *v)
+{
+    if (n - *i < 4) return false;
+    *v = (uint32_t)d[*i] | (uint32_t)d[*i + 1] << 8 | (uint32_t)d[*i + 2] << 16 | (uint32_t)d[*i + 3] << 24; *i += 4; return true;
+}
 
 int main(int argc, char **argv)
 {
@@ -464,6 +490,23 @@ int main(int argc, char **argv)
             z = kern_pkg_zusatz_test(k, "/mnt/usb0/boese.pkg", &g);
             pruefe(z[0] && strlen(z) < 200 && g <= 2 * 65536, a_fmt(A0, "manipuliertes param.sfo (300 Einträge auf 60 KB Text): Anzeige begrenzt (%zu Zeichen, %zu Byte gelesen)", strlen(z), g));
         }
+        {   /* NEU 1.0.9 (da_Chris86 08.11.2026 01:19): Bild aus der PKG-Datei (icon0.png, Eintrag 0x1200 bei 0x3800 = 14336, 1024 Byte) */
+            struct { const char *id, *soll, *was; } B[] = {
+                { "CUSA30040", "/mnt/usb0/Bild_B_Spiel.pkg\n14336\n1024", "die Spiel-PKG geht vor dem Update (das Update kam zuerst)" },
+                { "CUSA30041", "/mnt/usb0/Bild_Nur_Update.pkg\n14336\n1024", "nur ein Update da: dessen Bild" },
+                { "CUSA30042", NULL, "Bild verschlüsselt: kein Bild" },
+                { "CUSA30043", NULL, "Bild ohne PNG-Anfang: kein Bild" },
+                { "CUSA30044", NULL, "nur ein Zusatzinhalt: sein eigenes Bild zählt nicht" } };
+            for (size_t i = 0; i < sizeof B / sizeof *B; i++) {
+                const char *b = mt_hat(&k->BILD_ORT, B[i].id) ? mt_hole(&k->BILD_ORT, B[i].id) : NULL;
+                pruefe(B[i].soll ? b && !strcmp(b, B[i].soll) : !b, a_fmt(A0, "PKG-Bild: %s (%s)", B[i].was, b ? b : "keins"));
+            }
+            const char *b = mt_hat(&k->BILD_ORT, "CUSA30001") ? mt_hole(&k->BILD_ORT, "CUSA30001") : NULL;
+            pruefe(b && (strstr(b, "/Spiel_Eins.pkg\n") || strstr(b, "/grenze.pkg\n")) && !strstr(b, "Update") && !strstr(b, "Zusatz"),
+                   a_fmt(A0, "PKG-Bild: Spiel, Update und Zusatzinhalt - das Bild einer Spiel-PKG (%s)", b ? b : "keins"));
+            size_t g = 0; kern_pkg_zusatz_test(k, "/mnt/usb0/Bild_B_Spiel.pkg", &g);
+            pruefe(g > 0 && g <= 4096, a_fmt(A0, "PKG-Bild: vom Bild nur der Anfang gelesen (%zu Byte insgesamt)", g));
+        }
         SP_EN = true; k = neu(); SP_EN = false;
         p2 = mit_pfad(k, "/mnt/usb0/Update_Eins.pkg");
         pruefe(p2 && strstr(p2->Text, "[PKG: Spiel Eins (CUSA30001), update 01.05]"), a_fmt(A0, "EN: als update erkannt (%s)", p2 ? p2->Text : "nicht angeboten"));
@@ -511,7 +554,20 @@ int main(int argc, char **argv)
           pruefe(!mt_hat(&k->BILD_ORT, "PPSA30013") && !mt_hat(&k->BILD_ORT, "PPSA30017"), "ohne lesbaren Namen kein Bild");
           const char *b3 = mt_hat(&k->BILD_ORT, "PPSA30022") ? mt_hole(&k->BILD_ORT, "PPSA30022") : "(keins)";
           pruefe(!strcmp(b3, "/mnt/usb0/PPSA30022.exfat\n69632\n5000"), a_fmt(A0, "Bild über zwei Cluster hintereinander (FAT-Kette geprüft): gemerkt (%s)", b3));
-          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30023"), "Bild über verstreute Cluster: nicht gemerkt (die Oberfläche liest nur ein Stück am Stück)"); }
+          const char *o = "";   /* NEU 1.0.9 (#149): Bilder in Stücken - gelesen wie von der Oberfläche, Byte für Byte wie das Bild */
+          bool g = bild_gleich(k, "PPSA30023", 2, false, "/bild_PPSA30023.png", &o);
+          pruefe(g, a_fmt(A0, "Bild über verstreute Cluster: in 2 Stücken gemerkt und gelesen (%s)", o));
+          g = bild_gleich(k, "PPSA30024", 3, false, "/bild_PPSA30024.png", &o);
+          pruefe(g, a_fmt(A0, "Bild über 4 Cluster in 3 Stücken (FAT-Kette): gemerkt und gelesen (%s)", o));
+          g = bild_gleich(k, "PPSA30028", 64, false, "/bild_PPSA30028.png", &o);   /* Codex-Prüfung 134: die Grenzen */
+          pruefe(g, "Bild in 64 Stücken (die Grenze): gemerkt und gelesen");
+          g = bild_gleich(k, "PPSA30080", 2, false, "/bild_PPSA30080.png", &o);
+          pruefe(g, a_fmt(A0, "1024 Cluster zu 512 Byte in 2 Stücken (die Grenze): gemerkt und gelesen (%s)", o));
+          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30025") && !mt_hat(&k->BILD_ORT, "PPSA30026") && !mt_hat(&k->BILD_ORT, "PPSA30027")
+                 && !mt_hat(&k->BILD_ORT, "PPSA30029") && !mt_hat(&k->BILD_ORT, "PPSA30081"),
+                 "kein Bild bei Kreis in der FAT-Kette, zu kurzer Kette, ungültigem Folgecluster, 65 Stücken und 1025 Clustern (Codex-Prüfung 134)");
+          eintrag *q2 = mit_pfad(k, "/mnt/usb0/PPSA30025.exfat");
+          pruefe(q2 && strstr(q2->Text, "[Spiel: Bild Kreis (PPSA30025)]"), "Kreis in der Bildkette: der Name bleibt"); }
         size_t g = 0; const char *z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30010.exfat", &g);
         pruefe(!strcmp(z, "Spiel Abbild") && g > 0 && g <= 32768, a_fmt(A0, "exFAT-Abbild (knapp 300 KB): nur kleine Stücke gelesen (%zu Byte)", g));
         z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30015.exfat", &g);
@@ -519,6 +575,253 @@ int main(int argc, char **argv)
         SP_EN = true; k = neu(); SP_EN = false;
         eintrag *q = mit_pfad(k, "/mnt/usb0/PPSA30010.exfat");
         pruefe(q && strstr(q->Text, "[game: Image Game (PPSA30010)]") && strstr(q->Text, "[no tile]"), a_fmt(A0, "EN: englischer Name (%s)", q ? q->Text : "nicht angeboten"));
+    }
+
+    /* =============================================================== 16c. UFS2-Abbilder (.ffpkg, .ufs, .img): Name und Bild (NEU 1.0.9) */
+    printf("== 16c. UFS2-Abbilder (.ffpkg, .ufs, .img): Spielname und Bild aus dem Abbild\n");
+    {
+        kern *k = neu();
+        struct { const char *pfad, *soll, *was; } B[] = {
+            { "/mnt/usb0/PPSA30030.ffpkg", "[Spiel: Ufs Spiel (PPSA30030)]", "UFS2 wie mkufs2.sh (Blöcke und Fragmente 64 KB)" },
+            { "/mnt/usb0/PPSA30031.ufs", "[Spiel: Klein Spiel (PPSA30031)]", ".ufs mit 4-KB-Blöcken, 512-Byte-Fragmenten, sce_sys in Zylindergruppe 1" },
+            { "/mnt/usb0/PPSA30032.ffpkg", "[Spiel: Ufs Unterordner (PPSA30032)]", "Spiel in einem einzigen Unterordner" },
+            { "/mnt/usb0/CUSA30033.ffpkg", "[Spiel: PS4 Ufs (CUSA30033)]", "PS4-Spiel im UFS2-Abbild (param.sfo)" },
+            { "/mnt/usb0/PPSA30034.ffpkg", "[Spiel: Ufs Verstreut (PPSA30034)]", "Bild über verstreute Blöcke: Name ja" },
+            { "/mnt/usb0/PPSA30036.ffpkg", "[Spiel: Ufs Kaputt Verz (PPSA30036)]", "kaputter Verzeichniseintrag: Rest des Stücks übersprungen, sce_sys im nächsten Stück" },
+            { "/mnt/usb0/PPSA30037.img", "[Spiel: Ufs Img (PPSA30037)]", ".img mit UFS2 (UFS2Tool)" },
+            { "/mnt/usb0/PPSA30039.ffpkg", "[Spiel: Ufs Ohne Png (PPSA30039)]", "icon0.png ohne PNG-Kennung: Name ja" },
+            { "/mnt/usb0/PPSA30035.ffpkg", NULL, "kaputter Superblock (Blockgröße 3000): nur der Dateiname" },
+            { "/mnt/usb0/PPSA30038.ffpkg", NULL, "abgeschnittenes Abbild: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30041.ffpkg", NULL, "Inode-Nummer hinter der letzten Zylindergruppe: nur der Dateiname" } };
+        for (size_t i = 0; i < sizeof B / sizeof *B; i++) {
+            eintrag *q = mit_pfad(k, B[i].pfad);
+            pruefe(q && q->Kat == 1 && strstr(q->Text, "[ohne Kachel]") && (B[i].soll ? strstr(q->Text, B[i].soll) != NULL : !strstr(q->Text, "[Spiel:")),
+                   a_fmt(A0, "%s (%s)", B[i].was, q ? q->Text : "nicht angeboten"));
+        }
+        struct { const char *id, *soll, *was; } C[] = {
+            { "PPSA30030", "/mnt/usb0/PPSA30030.ffpkg\n458752\n100000", "Bild in zwei Blöcken hintereinander (ab Fragment 7 x 64 KB)" },
+            { "PPSA30031", "/mnt/usb0/PPSA30031.ufs\n102400\n80000", "Bild über 20 Blöcke mit Indirekt-Block (ab Fragment 200 x 512)" },
+            { "PPSA30037", "/mnt/usb0/PPSA30037.img\n458752\n100000", ".img: Bild gemerkt" } };
+        for (size_t i = 0; i < sizeof C / sizeof *C; i++) {
+            const char *b = mt_hat(&k->BILD_ORT, C[i].id) ? mt_hole(&k->BILD_ORT, C[i].id) : "(keins)";
+            pruefe(!strcmp(b, C[i].soll), a_fmt(A0, "%s (%s)", C[i].was, b));
+        }
+        pruefe(!mt_hat(&k->BILD_ORT, "PPSA30039") && !mt_hat(&k->BILD_ORT, "PPSA30035"), "kein Bild ohne PNG-Kennung und ohne lesbaren Namen");
+        { const char *o = "";   /* NEU 1.0.9 (#149): Bilder in Stücken */
+          bool g = bild_gleich(k, "PPSA30034", 2, false, "/bild_PPSA30034.png", &o);
+          pruefe(g, a_fmt(A0, "verstreute Blöcke: in 2 Stücken gemerkt und gelesen (%s)", o));
+          g = bild_gleich(k, "PPSA30042", 4, false, "/bild_PPSA30042.png", &o);
+          pruefe(g, a_fmt(A0, "4 Stücke (eines über den Indirekt-Block, ein halber letzter Block): gemerkt und gelesen (%s)", o));
+          kern_bild_ort b; const char *c = mt_hat(&k->BILD_ORT, "PPSA30031") ? mt_hole(&k->BILD_ORT, "PPSA30031") : "";
+          unsigned char *d = kern_bild_ort_lesen(c, &b) ? kern_bild_lesen(VERB(A0, W, b.pfad), &b) : NULL;
+          pruefe(d && b.teile_n == 0 && !memcmp(d, "\x89PNG", 4), "Bild am Stück: auch über kern_bild_lesen gelesen"); free(d);
+          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30043") && !mt_hat(&k->BILD_ORT, "PPSA30044") && !mt_hat(&k->BILD_ORT, "PPSA30045") && !mt_hat(&k->BILD_ORT, "PPSA30046"),
+                 "kein Bild bei Loch, Block außerhalb, Block über den Rand und doppeltem Block (Codex-Prüfung 134)");
+          eintrag *q3 = mit_pfad(k, "/mnt/usb0/PPSA30047.ufs");
+          pruefe(!mt_hat(&k->BILD_ORT, "PPSA30047") && q3 && strstr(q3->Text, "[Spiel: Ufs Ueberlappt (PPSA30047)]"),
+                 "Blöcke, die sich zur Hälfte überschneiden: kein Bild, der Name bleibt (Codex-Prüfung 135)"); }
+        size_t g = 0; const char *z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30030.ffpkg", &g);
+        pruefe(!strcmp(z, "Ufs Spiel") && g > 0 && g <= 16384, a_fmt(A0, "UFS2-Abbild (1 MB): nur kleine Stücke gelesen (%zu Byte)", g));
+        z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30031.ufs", &g);
+        pruefe(!strcmp(z, "Klein Spiel") && g > 0 && g <= 16384, a_fmt(A0, "kleine Blöcke mit Indirekt-Block: nur kleine Stücke gelesen (%zu Byte)", g));
+        /* Codex-Prüfung 125 (P2): Gegenprobe mit einem fremden, echten UFS2-Abbild (mit FreeBSD newfs angelegt; aus log2timeline/dfvfs
+         * test_data/ufs2.raw, Apache-2.0, ab Stelle 8192): 32-KB-Blöcke, 4-KB-Fragmente, 4 Zylindergruppen, .snap im Hauptverzeichnis,
+         * a_directory in Gruppe 1. Inhalte wie in dfvfs (passwords.txt, test_data/another_file). */
+        { const char *ref = "/mnt/usb0/ufs2_dfvfs.img"; size_t m = 0;
+          const unsigned char *pw = kern_ufs_datei_test(k, ref, "passwords.txt", &m);
+          pruefe(pw && m == 116 && !memcmp(pw, "place,user,password\nbank,joesmith,superrich\nalarm system,-,1234\ntreasure chest,-,1111\nuber secret laire,admin,admin\n", 116),
+                 a_fmt(A0, "echtes UFS2 (newfs): passwords.txt im Hauptverzeichnis gelesen (%zu Byte)", m));
+          const unsigned char *af = kern_ufs_datei_test(k, ref, "a_directory/another_file", &m);
+          pruefe(af && m == 22 && !memcmp(af, "This is another file.\n", 22), a_fmt(A0, "echtes UFS2: Datei in einem Ordner der Zylindergruppe 1 gelesen (%zu Byte)", m));
+          pruefe(!kern_ufs_datei_test(k, ref, "a_link", &m), "echtes UFS2: eine Verknüpfung wird nicht als Datei gelesen");
+          pruefe(!kern_ufs_datei_test(k, ref, "a_directory", &m) && !kern_ufs_datei_test(k, ref, "fehlt.txt", &m), "echtes UFS2: Ordner und fehlende Datei: nichts gelesen");
+          eintrag *q = mit_pfad(k, ref);
+          pruefe(q && q->Kat == 1 && !strstr(q->Text, "[Spiel:"), a_fmt(A0, "echtes UFS2 ohne sce_sys: Spiel-Abbild ohne Namen (%s)", q ? q->Text : "nicht angeboten")); }
+        SP_EN = true; k = neu(); SP_EN = false;
+        eintrag *q = mit_pfad(k, "/mnt/usb0/PPSA30030.ffpkg");
+        pruefe(q && strstr(q->Text, "[game: Ufs Game (PPSA30030)]"), a_fmt(A0, "EN: englischer Name (%s)", q ? q->Text : "nicht angeboten"));
+    }
+
+    /* =============================================================== 16d. PFS-Abbilder (.ffpfs, .ffpfsc): Name und Bild (NEU 1.0.9, #144) */
+    printf("== 16d. PFS-Abbilder (.ffpfs, .ffpfsc): Spielname und Bild aus dem Abbild\n");
+    {
+        kern *k = neu();
+        struct { const char *pfad, *soll, *was; } B[] = {
+            { "/mnt/usb0/PPSA30050.ffpfs", "[Spiel: Pfs Spiel (PPSA30050)]", "PFS wie MkPFS (64-KB-Blöcke, sce_sys in uroot)" },
+            { "/mnt/usb0/CUSA30051.ffpfs", "[Spiel: PS4 Pfs (CUSA30051)]", "PS4-Spiel im PFS-Abbild (param.sfo)" },
+            { "/mnt/usb0/PPSA30052.ffpfs", "[Spiel: Pfs Ohne Png (PPSA30052)]", "icon0.png ohne PNG-Kennung: Name ja" },
+            { "/mnt/usb0/PPSA30053.ffpfsc", "[Spiel: Pfsc Spiel (PPSA30053)]", ".ffpfsc: exFAT gepackt im PFS (zlib-Blöcke, Block 1 ungepackt, letzter Block halb)" },
+            { "/mnt/usb0/PPSA30054.ffpfsc", "[Spiel: Pfs Roh (PPSA30054)]", "Abbild im Abbild ungepackt" },
+            { "/mnt/usb0/PPSA30055.ffpfs", NULL, "verschlüsseltes PFS: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30056.ffpfs", NULL, "param.json nicht am Stück: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30057.ffpfs", NULL, "falsche Kennung: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30058.ffpfs", NULL, "abgeschnittenes Abbild: nur der Dateiname" },
+            { "/mnt/usb0/PPSA30059.ffpfsc", "[Spiel: Pfs Lang (PPSA30059)]", "inneres Abbild mit langem Dateinamen (über 64 Zeichen): erkannt (Codex-Prüfung 130)" },
+            { "/mnt/usb0/PPSA30060.ffpfsc", NULL, "zwei Dateien in uroot: kein Abbild im Abbild" },
+            { "/mnt/usb0/PPSA30061.ffpfsc", NULL, "zwei Dateien, eine mit langem Namen: kein Abbild im Abbild (Codex-Prüfung 130)" },
+            { "/mnt/usb0/PPSA30062.ffpfsc", NULL, "eine Datei und ein Eintrag fremder Art: kein Abbild im Abbild (Codex-Prüfung 130)" },
+            { "/mnt/usb0/PPSA30063.ffpfs", NULL, "param.json ist eine Verknüpfung (Art 0xA000): nicht gelesen (Codex-Prüfung 130)" },
+            { "/mnt/usb0/PPSA30064.ffpfs", NULL, "sce_sys mit Art 0xC000: kein Ordner, nicht gelesen (Codex-Prüfung 130)" },
+            { "/mnt/usb0/PPSA30065.ffpfsc", NULL, "zwei Dateien, eine mit einer 0 im Namen: kein Abbild im Abbild (Codex-Prüfung 131)" },
+            { "/mnt/usb0/PPSA30066.ffpfsc", NULL, "eine Datei, danach ein kaputter Eintrag: kein Abbild im Abbild (Codex-Prüfung 131)" },
+            { "/mnt/usb0/PPSA30067.ffpfsc", NULL, "uroot endet mit einem angefangenen Eintrag: kein Abbild im Abbild (Codex-Prüfung 132)" },
+            { "/mnt/usb0/PPSA30068.ffpfs", NULL, "sce_sys mit kaputtem Eintrag (davor param.sfo, dahinter param.json): kein Name aus einer kaputten Liste (Codex-Prüfung 132)" },
+            { "/mnt/usb0/PPSA30069.ffpfs", NULL, "Über-Wurzel mit kaputtem Eintrag hinter uroot: nicht gelesen (Codex-Prüfung 132)" },
+            { "/mnt/usb0/PPSA30072.ffpfs", "[Spiel: Pfs Minus (PPSA30072)]", "Indirekt-Felder alle -1 statt 0: gelesen (PS5-Test 09.11.2026, Spider-Man 2)" },
+            { "/mnt/usb0/PPSA30073.ffpfs", NULL, "Indirekt-Felder gemischt (-1 und 0): nicht gelesen" } };
+        for (size_t i = 0; i < sizeof B / sizeof *B; i++) {
+            eintrag *q = mit_pfad(k, B[i].pfad);
+            pruefe(q && q->Kat == 1 && strstr(q->Text, "[ohne Kachel]") && (B[i].soll ? strstr(q->Text, B[i].soll) != NULL : !strstr(q->Text, "[Spiel:")),
+                   a_fmt(A0, "%s (%s)", B[i].was, q ? q->Text : "nicht angeboten"));
+        }
+        struct { const char *id, *soll, *was; } C[] = {
+            { "PPSA30050", "/mnt/usb0/PPSA30050.ffpfs\n458752\n5000", "Bild am Stück (Block 7)" },
+            { "PPSA30054", "/mnt/usb0/PPSA30054.ffpfsc\n397312\n50", "Bild im ungepackten inneren Abbild (Stelle der Datei + Stelle im Abbild)" } };
+        for (size_t i = 0; i < sizeof C / sizeof *C; i++) {
+            const char *b = mt_hat(&k->BILD_ORT, C[i].id) ? mt_hole(&k->BILD_ORT, C[i].id) : "(keins)";
+            pruefe(!strcmp(b, C[i].soll), a_fmt(A0, "%s (%s)", C[i].was, b));
+        }
+        pruefe(!mt_hat(&k->BILD_ORT, "PPSA30052") && !mt_hat(&k->BILD_ORT, "PPSA30055") && !mt_hat(&k->BILD_ORT, "PPSA30056"), "kein Bild ohne PNG-Kennung und ohne lesbaren Namen");
+        pruefe(mt_hat(&k->BILD_ORT, "PPSA30072") && !mt_hat(&k->BILD_ORT, "PPSA30073"), "Indirekt-Felder alle -1: Bild da, gemischt: keins (PS5-Test 09.11.2026)");
+        /* gepackt: vierte Zeile "pfsc <Anfang> <Länge>"; die Oberfläche liest das Bild über kern_pfsc_datei_stueck */
+        const char *b = mt_hat(&k->BILD_ORT, "PPSA30053") ? mt_hole(&k->BILD_ORT, "PPSA30053") : "";
+        unsigned long long ab = 0, len = 0, cab = 0, cgr = 0; char pf[200] = "";
+        bool form = sscanf(b, "%199[^\n]\n%llu\n%llu\npfsc %llu %llu", pf, &ab, &len, &cab, &cgr) == 5 && !strcmp(pf, "/mnt/usb0/PPSA30053.ffpfsc") && ab == 69632 && len == 5000 && cab == 327680;
+        pruefe(form, a_fmt(A0, ".ffpfsc: Bild mit vierter Zeile pfsc (%s)", b));
+        kern_bild_ort bo;
+        pruefe(kern_bild_ort_lesen(b, &bo) && bo.gepackt && !strcmp(bo.pfad, "/mnt/usb0/PPSA30053.ffpfsc") && bo.ab == 69632 && bo.len == 5000 && bo.cab == 327680 && bo.cgr == cgr,
+               "Oberfläche: BILD_ORT der .ffpfsc mit kern_bild_ort_lesen zerlegt (wie app.c spiel_bild)");
+        { const char *o = "";   /* NEU 1.0.9 (#149): gepackt und in Stücken */
+          bool g = bild_gleich(k, "PPSA30070", 2, true, "/bild_PPSA30070.png", &o);
+          pruefe(g, a_fmt(A0, ".ffpfsc, Bild in 2 Stücken in gepackten Blöcken, eines über die Blockgrenze: gelesen (%s)", o));
+          g = bild_gleich(k, "PPSA30071", 3, false, "/bild_PPSA30071.png", &o);
+          pruefe(g, a_fmt(A0, "Abbild im Abbild ungepackt (Versatz), Bild in 3 Stücken: gelesen (%s)", o));
+          size_t n53 = 0; unsigned char *b53 = kern_bild_lesen(VERB(A0, W, bo.pfad), &bo), *i53 = ganz_lesen(VERB(A0, HIER, "/innen_PPSA30053.exfat"), &n53);
+          pruefe(b53 && i53 && n53 >= 69632 + 5000 && !memcmp(b53, i53 + 69632, 5000), "Oberfläche: Bild aus dem gepackten Abbild über kern_bild_lesen - Byte für Byte wie im inneren Abbild");
+          free(b53); free(i53); }
+        unsigned char *bild = form ? kern_pfsc_datei_stueck(VERB(A0, W, pf), cab, cgr, ab, (size_t)len) : NULL;
+        unsigned char soll[5000]; bool gleich = false;
+        FILE *fi = fopen(VERB(A0, HIER, "/innen_PPSA30053.exfat"), "rb");
+        if (bild && fi && fseek(fi, 69632, SEEK_SET) == 0 && fread(soll, 1, sizeof soll, fi) == sizeof soll) gleich = !memcmp(bild, soll, sizeof soll) && !memcmp(bild, "\x89PNG", 4);
+        if (fi) fclose(fi);
+        free(bild);
+        pruefe(gleich, "Oberfläche: Bild aus dem gepackten Abbild gelesen - Byte für Byte wie im inneren Abbild");
+        unsigned char *x1 = form ? kern_pfsc_datei_stueck(VERB(A0, W, pf), cab + 8, cgr, ab, 8) : NULL, *x2 = form ? kern_pfsc_datei_stueck(VERB(A0, W, pf), cab, cgr, 294912 - 4, 8) : NULL;
+        pruefe(form && !x1 && !x2, "Oberfläche: falscher Behälter oder hinter dem Ende - nichts gelesen");
+        free(x1); free(x2);
+        size_t g = 0; const char *z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30053.ffpfsc", &g);
+        pruefe(!strcmp(z, "Pfsc Spiel") && g > 0 && g <= 300000, a_fmt(A0, ".ffpfsc: nur kleine Stücke gelesen (%zu Byte)", g));
+        z = kern_abbild_titel_test(k, "/mnt/usb0/PPSA30050.ffpfs", &g);
+        pruefe(!strcmp(z, "Pfs Spiel") && g > 0 && g <= 300000, a_fmt(A0, ".ffpfs: nur kleine Stücke gelesen (%zu Byte)", g));
+        size_t m = 0; const unsigned char *pj = kern_pfs_datei_test(k, "/mnt/usb0/PPSA30050.ffpfs", "sce_sys/param.json", &m);
+        pruefe(pj && m > 20 && strstr((const char *)pj, "\"Pfs Spiel\""), a_fmt(A0, "Datei im PFS über den Pfad gelesen (%zu Byte)", m));
+        pruefe(!kern_pfs_datei_test(k, "/mnt/usb0/PPSA30050.ffpfs", "sce_sys", &m) && !kern_pfs_datei_test(k, "/mnt/usb0/PPSA30050.ffpfs", "fehlt.txt", &m), "Ordner und fehlende Datei: nichts gelesen");
+        pruefe(!kern_pfs_datei_test(k, "/mnt/usb0/PPSA30063.ffpfs", "sce_sys/param.json", &m) && kern_pfs_datei_test(k, "/mnt/usb0/PPSA30063.ffpfs", "sce_sys/icon0.png", &m)
+               && !kern_pfs_datei_test(k, "/mnt/usb0/PPSA30064.ffpfs", "sce_sys/icon0.png", &m) && !kern_pfs_datei_test(k, "/mnt/usb0/PPSA30069.ffpfs", "sce_sys/icon0.png", &m),
+               "Pfad-Testhilfe: Verknüpfung, Ordner fremder Art und kaputte Über-Wurzel werden nicht gelesen, die Datei daneben schon (Codex-Prüfungen 131, 132)");
+        SP_EN = true; k = neu(); SP_EN = false;
+        eintrag *q = mit_pfad(k, "/mnt/usb0/PPSA30050.ffpfs");
+        pruefe(q && strstr(q->Text, "[game: Pfs Game (PPSA30050)]"), a_fmt(A0, "EN: englischer Name (%s)", q ? q->Text : "nicht angeboten"));
+    }
+
+    /* =============================================================== 16e. Entpacken, PFSC-Behälter, BILD_ORT (NEU 1.0.9, Codex-Prüfung 130) */
+    printf("== 16e. Entpacken (zlib) wie Pythons zlib, PFSC-Behälter, Bild-Ort zerlegen\n");
+    {   /* Fälle aus entpacken_faelle.py (lauf_ps4.sh): Entscheidung und Inhalt von Pythons zlib */
+        size_t fn = 0, i = 0; unsigned char *fa = ganz_lesen(VERB(A0, HIER, "/zlib_faelle.bin"), &fn);
+        int gut[128] = {0}, schlecht[128] = {0}, gezeigt = 0; bool form = fa != NULL;
+        while (form && i < fn) {
+            uint32_t nl = 0, platz = 0, en = 0, rn = 0;
+            if (!hole32(fa, fn, &i, &nl) || nl == 0 || nl > 100 || fn - i < (size_t)nl + 2) { form = false; break; }
+            char name[128]; memcpy(name, fa + i, nl); name[nl] = 0; i += nl;
+            char art = (char)fa[i++]; bool rahmen = fa[i++] != 0;
+            if (!hole32(fa, fn, &i, &platz) || !hole32(fa, fn, &i, &en) || fn - i < en) { form = false; break; }
+            const unsigned char *ein = fa + i; i += en;
+            if (!hole32(fa, fn, &i, &rn) || fn - i < rn) { form = false; break; }
+            const unsigned char *soll = fa + i; i += rn;
+            unsigned char *aus = malloc(platz ? platz : 1);
+            long r = aus ? kern_entpacken(ein, en, aus, platz, rahmen) : -2;
+            bool ok = art == 'g' ? r == (long)rn && !memcmp(aus, soll, rn) : r == -1;
+            unsigned char g = (unsigned char)name[0] & 127;
+            if (ok) gut[g]++; else { schlecht[g]++; if (gezeigt++ < 12) printf("     anders als zlib: %s (%s, Ergebnis %ld, erwartet %ld)\n", name, art == 'g' ? "gültig" : "kaputt", r, art == 'g' ? (long)rn : -1L); }
+            free(aus);
+        }
+        free(fa);
+        pruefe(form && gut['z'] >= 200 && !schlecht['z'], a_fmt(A0, "Entpacken: von zlib gepackt (Stufen 0, 1, 6 und 9, alle Strategien, kleines Fenster, ohne Rahmen, mehrere Blöcke, genau passender Platz): %d wie zlib, %d anders", gut['z'], schlecht['z']));
+        pruefe(form && gut['h'] >= 12 && !schlecht['h'], a_fmt(A0, "Entpacken: von Hand gebaut, gültig (Länge 258, Abstand 32768, alle Längen und Abstände, ein einziger und kein Abstandscode, nur Ende, viele Blöcke): %d wie zlib, %d anders", gut['h'], schlecht['h']));
+        pruefe(form && gut['k'] >= 220 && !schlecht['k'], a_fmt(A0, "Entpacken: kaputt (Blockart 3, Tabellen über- und unterbelegt, Wiederholungen, zu weite Rückverweise, Codes 30/31/286/287, 287/288 Längen und 31/32 Abstände wie zlib, Kopf, Adler-32, abgeschnitten, zu wenig Platz): %d abgelehnt, %d nicht", gut['k'], schlecht['k']));
+        pruefe(form && gut['m'] >= 4000 && !schlecht['m'], a_fmt(A0, "Entpacken: zufällig veränderte Ströme mit und ohne Rahmen: %d wie zlib entschieden (gültige gleich entpackt), %d anders", gut['m'], schlecht['m']));
+        FILE *li = fopen(VERB(A0, HIER, "/pfsc/liste.txt"), "r");
+        int ok_gut = 0, ka_gut = 0, falsch = 0; bool codex = false, grenzen = false, letzt_roh = false, letzt_zlib = false;
+        char beh[64], inh[64], erw[16]; unsigned long long ab, n;
+        while (li && fscanf(li, "%63s %63s %15s %llu %llu", beh, inh, erw, &ab, &n) == 5) {
+            const char *bp = VERB(A0, HIER, "/pfsc/", beh); struct stat st;
+            unsigned char *d = stat(bp, &st) == 0 ? kern_pfsc_datei_stueck(bp, 0, (unsigned long long)st.st_size, ab, (size_t)n) : NULL;
+            bool ok;
+            if (!strcmp(erw, "ok")) {
+                size_t rn = 0; unsigned char *r = ganz_lesen(VERB(A0, HIER, "/pfsc/", inh), &rn);
+                ok = d && r && ab + n <= rn && !memcmp(d, r + ab, (size_t)n); free(r);
+                if (ok) ok_gut++;
+                if (!strcmp(beh, "codex_ende.bin") && ab == 3 * 65536ULL) codex = ok;
+                if (!strcmp(beh, "gepackt_ende.bin") && ab == 65536 - 100) grenzen = ok;
+                if (!strcmp(beh, "roh_ende.bin") && ab == 3 * 65536ULL) letzt_roh = ok;
+                if (!strcmp(beh, "gepackt_ende.bin") && ab == 3 * 65536ULL) letzt_zlib = ok;
+            } else { ok = !d; if (ok) ka_gut++; }
+            if (!ok) { falsch++; printf("     PFSC anders: %s ab %llu, %llu Byte (erwartet: %s)\n", beh, ab, n, erw); }
+            free(d);
+        }
+        if (li) fclose(li);
+        pruefe(codex, "PFSC: letzter Block ungepackt, dessen Bytes zufällig ein gültiger zlib-Strom sind - so gelesen, wie gespeichert (Codex-Prüfung 130)");
+        pruefe(grenzen && letzt_roh && letzt_zlib, "PFSC: über Blockgrenzen (gepackt/ungepackt) und kurzer letzter Block ungepackt und gepackt - Byte für Byte wie der Inhalt");
+        pruefe(li && ok_gut >= 35 && ka_gut >= 25 && !falsch, a_fmt(A0, "PFSC: %d Lesefälle richtig gelesen, %d kaputte Behälter, Tabellen und Blöcke abgelehnt, %d anders", ok_gut, ka_gut, falsch));
+        /* BILD_ORT zerlegen (app.c spiel_bild) */
+        struct { const char *o; bool ok, gepackt; const char *pfad; unsigned long long ab, len, cab, cgr; } O[] = {
+            { "/mnt/usb0/a.exfat\n69632\n5000", true, false, "/mnt/usb0/a.exfat", 69632, 5000, 0, 0 },
+            { "/a\n0\n0", true, false, "/a", 0, 0, 0, 0 },
+            { "/mnt/usb0/a.ffpfsc\n69632\n5000\npfsc 327680 99999", true, true, "/mnt/usb0/a.ffpfsc", 69632, 5000, 327680, 99999 },
+            { "/a\n1\n4194304\npfsc 3 4", true, true, "/a", 1, 4194304, 3, 4 },
+            { "/a\n1\n8\npfsc 3 4x", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1\n8\npfsc 3 4 ", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n1\n8\npfsc 3 4\n", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1\n8\npfsc 3", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n1\n8\nPFSC 3 4", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1\n8\npfsc  3 4", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n1\n8\npfsc -3 4", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1\n7\npfsc 3 4", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n1\n4194305\npfsc 3 4", false, false, NULL, 0, 0, 0, 0 }, { "/a\n\n2", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n 1\n2", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1x\n2", false, false, NULL, 0, 0, 0, 0 }, { "/a\n+1\n2", false, false, NULL, 0, 0, 0, 0 },
+            { "\n1\n2", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1", false, false, NULL, 0, 0, 0, 0 }, { "/a\n1\n2\n", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n1\n18446744073709551616", false, false, NULL, 0, 0, 0, 0 }, { "", false, false, NULL, 0, 0, 0, 0 },
+            { "/a\n18446744073709551615\n0", true, false, "/a", 18446744073709551615ULL, 0, 0, 0 },
+            { "/a\n18446744073709551610\n0", true, false, "/a", 18446744073709551610ULL, 0, 0, 0 } };
+        /* NEU 1.0.9 (#149): Zeile "teile" */
+        struct { const char *o; bool ok; int n; bool gepackt; } T2[] = {
+            { "/a\n10\n30\nteile 2 10 20 100 10", true, 2, false }, { "/a\n10\n30\npfsc 5 6\nteile 3 10 10 50 10 90 10", true, 3, true },
+            { "/a\n10\n30\nteile 1 10 30", false, 0, false }, { "/a\n10\n30\nteile 2 10 20", false, 0, false },
+            { "/a\n10\n30\nteile 2 10 20 100 11", false, 0, false }, { "/a\n10\n30\nteile 2 11 20 100 10", false, 0, false },
+            { "/a\n10\n30\nteile 2 10 30 100 0", false, 0, false }, { "/a\n10\n30\nteile 2 10 20 100 10 ", false, 0, false },
+            { "/a\n10\n30\nteile 2 10 20  100 10", false, 0, false }, { "/a\n10\n30\nteile 2 10 20 100 10\n", false, 0, false },
+            { "/a\n10\n30\nteile 2 10 20 100 10\npfsc 5 6", false, 0, false }, { "/a\n10\n7\nteile 2 10 3 100 4", false, 0, false },
+            { "/a\n10\n30\nTEILE 2 10 20 100 10", false, 0, false }, { "/a\n10\n30\nteile 65 10 30", false, 0, false },
+            { "/a\n10\n30\nteile 2 10 20 18446744073709551615 10", false, 0, false } };
+        int t_falsch = 0;
+        for (size_t j = 0; j < sizeof T2 / sizeof *T2; j++) {
+            kern_bild_ort tb; bool r = kern_bild_ort_lesen(T2[j].o, &tb);
+            if (r != T2[j].ok || (r && (tb.teile_n != T2[j].n || tb.gepackt != T2[j].gepackt))) { t_falsch++; printf("     teile anders: \"%s\"\n", T2[j].o); }
+        }
+        { kern_bild_ort tb; char s[4096] = "/a\n10\n640\nteile 64"; for (int j = 0; j < 64; j++) snprintf(s + strlen(s), sizeof s - strlen(s), " %d 10", 10 + 20 * j);
+          if (!kern_bild_ort_lesen(s, &tb) || tb.teile_n != 64 || tb.teile[63][0] != 1270) { t_falsch++; printf("     teile anders: 64 Stücke\n"); } }
+        pruefe(!t_falsch, a_fmt(A0, "Bild-Ort mit Stücken zerlegen: %zu Formen (2 bis 64 Stücke, mit pfsc, Summe, erstes Stück, leeres Stück, Reste, Reihenfolge) - %d anders",
+                                sizeof T2 / sizeof *T2 + 1, t_falsch));
+        { kern_bild_ort tb; bool f1 = kern_bild_ort_lesen("/mnt/usb0/PPSA30024.exfat\n81920\n16284\nteile 2 81920 8192 9999999 8092", &tb);
+          unsigned char *d1 = f1 ? kern_bild_lesen(VERB(A0, W, tb.pfad), &tb) : NULL, *d2 = kern_bild_lesen(VERB(A0, W, "/mnt/usb0/fehlt.exfat"), &tb);
+          pruefe(f1 && !d1 && !d2, "kern_bild_lesen: Stück hinter dem Dateiende oder Datei fehlt - nichts gelesen"); free(d1); free(d2); }
+        int o_falsch = 0; kern_bild_ort b;
+        for (size_t j = 0; j < sizeof O / sizeof *O; j++) {
+            bool r = kern_bild_ort_lesen(O[j].o, &b);
+            bool ok = r == O[j].ok && (!r || (b.gepackt == O[j].gepackt && !strcmp(b.pfad, O[j].pfad) && b.ab == O[j].ab && b.len == O[j].len && b.cab == O[j].cab && b.cgr == O[j].cgr));
+            if (!ok) { o_falsch++; printf("     Bild-Ort anders: \"%s\"\n", O[j].o); }
+        }
+        char lang[1100]; memset(lang, 'p', sizeof lang); snprintf(lang + 999, sizeof lang - 999, "\n1\n8");
+        bool l999 = kern_bild_ort_lesen(lang, &b) && strlen(b.pfad) == 999;
+        memset(lang, 'p', sizeof lang); snprintf(lang + 1000, sizeof lang - 1000, "\n1\n8");
+        bool l1000 = !kern_bild_ort_lesen(lang, &b);
+        pruefe(!o_falsch && l999 && l1000 && !kern_bild_ort_lesen(NULL, &b), a_fmt(A0, "Bild-Ort zerlegen: %zu Formen (drei und vier Zeilen, Grenzen 8 Byte und 4 MB, Reste, Leerzeichen, Vorzeichen, leere Zahlen, Pfad bis 999 Zeichen, Zahlen bis zum Höchstwert) - %d anders", sizeof O / sizeof *O + 3, o_falsch));
     }
 
     printf("FEHLERZAHL %d\n", fehler);

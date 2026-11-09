@@ -972,3 +972,149 @@ bool plattform_speicher(int ort, long long *frei, long long *gesamt)
     *gesamt = (long long)s.f_blocks * (long long)s.f_bsize;
     return true;
 }
+
+/* =================================================================== NEU 1.0.9: Update-Hinweis - neueste Version bei GitHub abfragen
+ * da_Chris86 08.11.2026 01:16: bei jedem Start. Nur lesen: eine HTTPS-Anfrage an api.github.com, gesendet wird nur die Anfrage selbst
+ * (Programmname "PS5-Cleanup/<Version>" und zwei feste Kopfzeilen). Sonys HTTP-Bibliothek wird erst hier geladen (dlopen) und über die
+ * Kennungen (NID) ihrer Funktionen gefunden - wie Sonys Löschdienst. Fehlt etwas, gibt es nur keinen Hinweis; der Start bleibt, wie er war.
+ * Das Zertifikat von GitHub prüft Sonys Bibliothek selbst; nur wenn die PS5 die Ausstellerstelle nicht kennt, ein zweiter Versuch ohne (unten). Die NIDs sind aus den Funktionsnamen berechnet; das
+ * Verfahren ist mit drei Kennungen gegengeprüft, die dieses Programm schon benutzt (sceContentDeleteInitialize zoxb0wEChEM,
+ * sceContentDeleteByPath qC3QW+AltHs, sceAppInstUtilAppInstallTitleDir Wudg3Xe3heE). Aufbau der Aufrufe wie Sonys HTTP-Bibliothek auf
+ * der PS4 (gleiche Funktionen). */
+#include <dlfcn.h>
+#include "cJSON.h"
+#define UPD_URL "https://api.github.com/repos/xXBneutzerNameXx/PS5-Cleanup/releases/latest"
+#define UPD_MAX (512 * 1024)   /* die Antwort zu 1.0.8 hat gut 10 KB */
+enum { U_NETINIT, U_POOL, U_POOLWEG, U_SSLINIT, U_SSLENDE, U_HTTPINIT, U_HTTPENDE, U_VORLAGE, U_VORLAGEWEG, U_VERB, U_VERBWEG, U_ANFR,
+       U_ANFRWEG, U_KOPF, U_ZAUF, U_ZVERB, U_ZSEND, U_ZEMPF, U_SENDEN, U_STATUS, U_LESEN, U_ANZ };
+static const struct { const char *lib, *nid, *name; } UPD_NID[U_ANZ] = {
+    { "libSceNet.sprx", "Nlev7Lg8k3A", "sceNetInit" }, { "libSceNet.sprx", "dgJBaeJnGpo", "sceNetPoolCreate" },
+    { "libSceNet.sprx", "K7RlrTkI-mw", "sceNetPoolDestroy" },
+    { "libSceSsl.sprx", "hdpVEUDFW3s", "sceSslInit" }, { "libSceSsl.sprx", "0K1yQ6Lv-Yc", "sceSslTerm" },
+    { "libSceHttp.sprx", "A9cVMUtEp4Y", "sceHttpInit" }, { "libSceHttp.sprx", "Ik-KpLTlf7Q", "sceHttpTerm" },
+    { "libSceHttp.sprx", "0gYjPTR-6cY", "sceHttpCreateTemplate" }, { "libSceHttp.sprx", "4I8vEpuEhZ8", "sceHttpDeleteTemplate" },
+    { "libSceHttp.sprx", "qgxDBjorUxs", "sceHttpCreateConnectionWithURL" }, { "libSceHttp.sprx", "P6A3ytpsiYc", "sceHttpDeleteConnection" },
+    { "libSceHttp.sprx", "Aeu5wVKkF9w", "sceHttpCreateRequestWithURL" }, { "libSceHttp.sprx", "qe7oZ+v4PWA", "sceHttpDeleteRequest" },
+    { "libSceHttp.sprx", "EY28T2bkN7k", "sceHttpAddRequestHeader" },
+    { "libSceHttp.sprx", "Tc-hAYDKtQc", "sceHttpSetResolveTimeOut" }, { "libSceHttp.sprx", "0S9tTH0uqTU", "sceHttpSetConnectTimeOut" },
+    { "libSceHttp.sprx", "xegFfZKBVlw", "sceHttpSetSendTimeOut" }, { "libSceHttp.sprx", "yigr4V0-HTM", "sceHttpSetRecvTimeOut" },
+    { "libSceHttp.sprx", "1e2BNwI-XzE", "sceHttpSendRequest" }, { "libSceHttp.sprx", "0a2TBNfE3BU", "sceHttpGetStatusCode" },
+    { "libSceHttp.sprx", "P5pdoykPYTk", "sceHttpReadData" } };
+/* NEU 1.0.9: Vorlage mit Zeitgrenzen (einmal am Anfang, für den zweiten Versuch eine frische - PS5-Test 08.11.2026 22:54: an der schon
+ * benutzten Vorlage lehnte die PS5 das Abschalten ab) */
+static int upd_vorlage(void **fn, int http, const char *ua)
+{
+    int v = ((int (*)(int, const char *, int, int))fn[U_VORLAGE])(http, ua, 2 /* HTTP 1.1 */, 1 /* Proxy wie die PS5 */);
+    if (v < 0) return v;
+    ((int (*)(int, uint32_t))fn[U_ZAUF])(v, 5u * 1000 * 1000);    /* Mikrosekunden */
+    ((int (*)(int, uint32_t))fn[U_ZVERB])(v, 5u * 1000 * 1000);
+    ((int (*)(int, uint32_t))fn[U_ZSEND])(v, 5u * 1000 * 1000);
+    ((int (*)(int, uint32_t))fn[U_ZEMPF])(v, 8u * 1000 * 1000);
+    return v;
+}
+static volatile unsigned upd_rueckruf_fehler;   /* was Sonys Prüfung am Zertifikat bemängelt hat (nur fürs Protokoll) */
+static int upd_rueckruf(int ssl, unsigned int fehler, void *const zert[], int n, void *x)
+{
+    (void)ssl; (void)zert; (void)n; (void)x;
+    upd_rueckruf_fehler = fehler;
+    return 0;   /* trotzdem weiter - nur im zweiten Versuch gesetzt, siehe unten */
+}
+static void *upd_nid(const char *nid)
+{
+    uint32_t h = 0;
+    return kernel_dynlib_handle(-1, "libSceHttp.sprx", &h) ? NULL : (void *)kernel_dynlib_resolve(-1, h, nid);
+}
+bool plattform_neueste_version(const char *eigene, char *tag, size_t n, char *grund, size_t gn)
+{
+    tag[0] = 0; grund[0] = 0;
+    void *fn[U_ANZ];
+    (void)dlopen("libSceNet.sprx", RTLD_LAZY); (void)dlopen("libSceSsl.sprx", RTLD_LAZY); (void)dlopen("libSceHttp.sprx", RTLD_LAZY);
+    for (int i = 0; i < U_ANZ; i++) {
+        uint32_t h = 0;
+        fn[i] = kernel_dynlib_handle(-1, UPD_NID[i].lib, &h) ? NULL : (void *)kernel_dynlib_resolve(-1, h, UPD_NID[i].nid);
+        if (!fn[i]) { snprintf(grund, gn, "Sonys HTTP-Bibliothek nicht verfügbar (%s)", UPD_NID[i].name); return false; }
+    }
+    int pool = -1, ssl = -1, http = -1, vorlage = -1, verb = -1, anfr = -1, r = 0, st = 0;
+    bool ok = false;
+    char *buf = NULL;
+    ((int (*)(void))fn[U_NETINIT])();   /* meldet vielleicht "schon vorbereitet" - das ist kein Fehler */
+    pool = ((int (*)(const char *, int, int))fn[U_POOL])("PS5CleanupUpdate", 64 * 1024, 0);
+    if (pool < 0) { snprintf(grund, gn, "Netz nicht bereit (0x%08X)", (unsigned)pool); goto ende; }
+    ssl = ((int (*)(size_t))fn[U_SSLINIT])(256 * 1024);
+    if (ssl < 0) { snprintf(grund, gn, "Verschlüsselung nicht bereit (0x%08X)", (unsigned)ssl); goto ende; }
+    http = ((int (*)(int, int, size_t))fn[U_HTTPINIT])(pool, ssl, 256 * 1024);
+    if (http < 0) { snprintf(grund, gn, "HTTP nicht bereit (0x%08X)", (unsigned)http); goto ende; }
+    char ua[64]; snprintf(ua, sizeof ua, "PS5-Cleanup/%s", eigene && eigene[0] ? eigene : "?");
+    vorlage = upd_vorlage(fn, http, ua);
+    if (vorlage < 0) { snprintf(grund, gn, "HTTP-Vorlage (0x%08X)", (unsigned)vorlage); goto ende; }
+    bool ohne_pruefung = false;
+    const char *wie = ""; char wie_b[160] = "";
+    for (int versuch = 0; ; versuch++) {
+        verb = ((int (*)(int, const char *, int))fn[U_VERB])(vorlage, UPD_URL, 0);
+        if (verb < 0) { snprintf(grund, gn, "HTTP-Verbindung (0x%08X)", (unsigned)verb); goto ende; }
+        anfr = ((int (*)(int, int, const char *, uint64_t))fn[U_ANFR])(verb, 0 /* GET */, UPD_URL, 0);
+        if (anfr < 0) { snprintf(grund, gn, "HTTP-Anfrage (0x%08X)", (unsigned)anfr); goto ende; }
+        ((int (*)(int, const char *, const char *, uint32_t))fn[U_KOPF])(anfr, "Accept", "application/vnd.github+json", 0);
+        ((int (*)(int, const char *, const char *, uint32_t))fn[U_KOPF])(anfr, "X-GitHub-Api-Version", "2022-11-28", 0);
+        r = ((int (*)(int, const void *, size_t))fn[U_SENDEN])(anfr, NULL, 0);
+        /* NEU 1.0.9 (PS5-Test 08.11.2026: jede Prüfung endete mit 0x8095F00C - die PS5 kennt die Stelle nicht, die GitHubs Zertifikat
+         * ausgestellt hat; Entscheidung 22:28 "entscheide du", Weg A): nur bei genau diesem Fehler ein zweiter Versuch ohne die
+         * Zertifikatsprüfung (sceHttpsDisableOption, Kennung SERVER_VERIFY). Falscher Rechnername (0x8095F00B), abgelaufen (0x8095F00D)
+         * und alles andere bleiben ein Fehler. Angenommen wird danach nur eine saubere Versionsnummer (upd_faden: kern_version_gueltig),
+         * heruntergeladen oder ausgeführt wird nie etwas - schlimmstenfalls zeigt ein Fremder einen falschen Versions-Hinweis.
+         * Der zweite Versuch steht im Protokoll. */
+        if (r == (int)0x8095F00C && versuch == 0) {
+            /* PS5-Test 08.11.2026 22:54: "Abschalten abgelehnt" an der schon benutzten Vorlage. Jetzt: frische Vorlage, dann der Reihe nach
+             * sceHttpsDisableOption, sceHttpsDisableOptionPrivate (wie auf der PS4), zuletzt ein Rückruf, der Sonys Urteil über das
+             * Zertifikat überstimmt (sceHttpsSetSslCallback). Jeder Rückgabewert steht im Protokoll. */
+            ((int (*)(int))fn[U_ANFRWEG])(anfr); anfr = -1; ((int (*)(int))fn[U_VERBWEG])(verb); verb = -1;
+            ((int (*)(int))fn[U_VORLAGEWEG])(vorlage);
+            vorlage = upd_vorlage(fn, http, ua);
+            if (vorlage < 0) { snprintf(grund, gn, "die PS5 kennt GitHubs Zertifikat nicht (0x8095F00C), neue HTTP-Vorlage (0x%08X)", (unsigned)vorlage); goto ende; }
+            void *aus = upd_nid("mSQCxzWTwVI"), *ausp = upd_nid("zJYi5br6ZiQ"), *rr = upd_nid("htyBOoWeS58");
+            int a1 = aus ? ((int (*)(int, uint32_t))aus)(vorlage, 0x01 /* SERVER_VERIFY */) : -1;
+            int a2 = a1 >= 0 ? 0 : ausp ? ((int (*)(int, uint32_t))ausp)(vorlage, 0x01) : -1;
+            int a3 = a1 >= 0 || a2 >= 0 ? 0 : rr ? ((int (*)(int, int (*)(int, unsigned int, void *const[], int, void *), void *))rr)(vorlage, upd_rueckruf, NULL) : -1;
+            /* Codex-Prüfung 145 (P3): die Rückgabewerte stehen immer im Protokoll, auch wenn danach etwas anderes scheitert */
+            snprintf(wie_b, sizeof wie_b, "%s (Abschalten %s0x%08X, privat %s%s0x%08X, Rückruf %s%s0x%08X)",
+                     a1 >= 0 ? "Prüfung abgeschaltet" : a2 >= 0 ? "Prüfung abgeschaltet (privat)" : a3 >= 0 ? "Zertifikat per Rückruf angenommen" : "nicht möglich",
+                     aus ? "" : "fehlt ", (unsigned)a1, a1 >= 0 ? "nicht nötig " : "", ausp ? "" : "fehlt ", (unsigned)a2,
+                     a1 >= 0 || a2 >= 0 ? "nicht nötig " : "", rr ? "" : "fehlt ", (unsigned)a3);
+            wie = wie_b;
+            if (a1 < 0 && a2 < 0 && a3 < 0) { snprintf(grund, gn, "die PS5 kennt GitHubs Zertifikat nicht (0x8095F00C), zweiter Versuch %s", wie); goto ende; }
+            ohne_pruefung = true; continue;
+        }
+        break;
+    }
+    if (r < 0) { snprintf(grund, gn, "keine Verbindung zu GitHub (0x%08X)%s%s", (unsigned)r, ohne_pruefung ? ", auch im zweiten Versuch: " : "", wie); goto ende; }
+    r = ((int (*)(int, int *))fn[U_STATUS])(anfr, &st);
+    if (r < 0 || st != 200) { snprintf(grund, gn, "GitHub antwortet mit %d (0x%08X)%s%s", st, (unsigned)r, ohne_pruefung ? ", zweiter Versuch: " : "", wie); goto ende; }
+    if (!(buf = malloc(UPD_MAX + 1))) { snprintf(grund, gn, "kein Speicher"); goto ende; }
+    size_t len = 0;
+    for (;;) {
+        int k = ((int (*)(int, void *, size_t))fn[U_LESEN])(anfr, buf + len, UPD_MAX - len);
+        if (k < 0) { snprintf(grund, gn, "Antwort unvollständig (0x%08X)%s%s", (unsigned)k, ohne_pruefung ? ", zweiter Versuch: " : "", wie); goto ende; }
+        if (k == 0) break;
+        len += (size_t)k;
+        if (len >= UPD_MAX) { snprintf(grund, gn, "Antwort zu groß%s%s", ohne_pruefung ? ", zweiter Versuch: " : "", wie); goto ende; }
+    }
+    buf[len] = 0;
+    cJSON *j = cJSON_ParseWithLength(buf, len);
+    const cJSON *t = j ? cJSON_GetObjectItemCaseSensitive(j, "tag_name") : NULL;
+    if (cJSON_IsString(t) && t->valuestring && t->valuestring[0]) {
+        snprintf(tag, n, "%s", t->valuestring); ok = true;
+        if (ohne_pruefung) snprintf(grund, gn, "zweiter Versuch ohne Zertifikatsprüfung - die PS5 kennt GitHubs Zertifikat nicht; %s%s", wie,
+                                    upd_rueckruf_fehler ? " - Sony bemängelte beim Rückruf etwas" : "");   /* bei Erfolg: Hinweis fürs Protokoll */
+    }
+    else snprintf(grund, gn, "keine Versionsangabe in der Antwort%s%s", ohne_pruefung ? ", zweiter Versuch: " : "", wie);
+    cJSON_Delete(j);
+ende:
+    if (anfr >= 0) ((int (*)(int))fn[U_ANFRWEG])(anfr);
+    if (verb >= 0) ((int (*)(int))fn[U_VERBWEG])(verb);
+    if (vorlage >= 0) ((int (*)(int))fn[U_VORLAGEWEG])(vorlage);
+    if (http >= 0) ((int (*)(int))fn[U_HTTPENDE])(http);
+    if (ssl >= 0) ((int (*)(int))fn[U_SSLENDE])(ssl);
+    if (pool >= 0) ((int (*)(int))fn[U_POOLWEG])(pool);
+    free(buf);
+    return ok;
+}

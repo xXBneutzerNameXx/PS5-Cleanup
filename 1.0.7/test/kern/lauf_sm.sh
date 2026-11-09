@@ -29,7 +29,13 @@ for art in schutz ohne; do
   echo x > "$T/w/user/data/homebrew/Neu PPSA77772.exfat"
   kachel PPSA77773 "Eigener Ort" "/data/homebrew/Eigen.exfat"
   mkdir -p $T/w/user/data/meinespiele; echo x > $T/w/user/data/meinespiele/Eigen.exfat
-  printf '# Beispiel\n# scanpath=/data/falsch\nscanpath=/data/meinespiele/   # eigene Spiele\n' > $T/w/user/data/shadowmount/config.ini
+  # NEU 1.0.9 (08.11.2026, ShadowMountPlus 1.7): Einstellungen im Format 2 - eigener Suchort als "Path" unter "[ Scan ]", in Anführungszeichen;
+  # "path" unter [emulators] ist kein Suchort
+  kachel PPSA77782 "Eigener Ort neu" "/data/homebrew/Eigen2.exfat"
+  mkdir -p "$T/w/user/data/meine spiele2"; echo x > "$T/w/user/data/meine spiele2/Eigen2.exfat"
+  kachel PPSA77783 "Falscher Abschnitt" "/data/homebrew/Eigen3.exfat"
+  mkdir -p $T/w/user/data/nichtscan; echo x > $T/w/user/data/nichtscan/Eigen3.exfat
+  printf '# Beispiel\n# scanpath=/data/falsch\nscanpath=/data/meinespiele/   # eigene Spiele\n[config]\nversion = 2\n[emulators]\npath = /data/nichtscan\n[ Scan ]   ; Abschnitt mit Leerzeichen\nPath = "/data/meine spiele2/"  ; Format 2 (ShadowMountPlus 1.7)\n' > $T/w/user/data/shadowmount/config.ini
   kachel PPSA77774 "Abgezogen" "/mnt/usb3/homebrew/Abgezogen - PPSA77774.exfat"
   kachel PPSA77775 "Geteilt A" "/data/homebrew/Geteilt - PPSA77775.exfat"
   kachel PPSA77776 "Geteilt B" "/data/homebrew/Geteilt - PPSA77775.exfat"

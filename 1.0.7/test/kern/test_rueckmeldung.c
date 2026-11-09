@@ -80,6 +80,21 @@ int main(void)
     k->BD_DISC = true;
     pruefe(!strcmp(kern_jailbreak_kuerzel(k, a), "y2jb,ps2,bd,browser"), "Blu-ray-Disc im Laufwerk -> bd");
     pruefe(strstr(kern_jailbreak_kuerzel(k, a), "1a2b3c4d") == NULL && strstr(kern_jailbreak_kuerzel(k, a), "PPSA") == NULL, "keine Benutzer-Kennung und keine Spielkennung im Ergebnis");
+    printf("== NEU 1.0.9: Versionsnummern für den Update-Hinweis\n");
+    {
+        struct { const char *neu, *alt; bool soll; } V[] = {
+            { "1.0.10", "1.0.9", true }, { "v1.0.10", "1.0.9", true }, { "V1.1", "1.0.9", true }, { "1.0.9.1", "1.0.9", true }, { "2", "1.9.9", true },
+            { "v1.0.9", "1.0.9", false }, { "1.0.9.0", "1.0.9", false }, { "1.0.8", "1.0.9", false }, { "1.0.9", "1.0.10", false },
+            { "1.0.9-beta", "1.0.8", false }, { "1..2", "1.0", false }, { "", "1.0.9", false }, { "v", "1.0.9", false }, { "1.0.", "1.0", false },
+            { "123456.0", "1.0", false }, { "1.2.3.4.5", "1.0", false }, { " 1.1", "1.0", false }, { "1.1 ", "1.0", false }, { "vv1.1", "1.0", false },
+            { "1.1", "kaputt", false }, { NULL, "1.0", false } };
+        for (size_t i = 0; i < sizeof V / sizeof *V; i++) {
+            char t[120]; snprintf(t, sizeof t, "\"%s\" neuer als \"%s\": %s", V[i].neu ? V[i].neu : "(NULL)", V[i].alt, V[i].soll ? "ja" : "nein");
+            pruefe(kern_version_neuer(V[i].neu, V[i].alt) == V[i].soll, t);
+        }
+        pruefe(kern_version_gueltig("v1.0.8") && kern_version_gueltig("12.34.5.67890") && !kern_version_gueltig("1.0.8 Fix") && !kern_version_gueltig("x1.0"),
+               "gültig: v1.0.8 und 12.34.5.67890, ungültig: \"1.0.8 Fix\" und \"x1.0\"");
+    }
     printf("FEHLERZAHL %d\n", fehler);
     return fehler ? 1 : 0;
 }

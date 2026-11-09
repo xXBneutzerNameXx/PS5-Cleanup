@@ -292,3 +292,30 @@ const char *h_ohne_bom(const char *s)
     while (p[0] == 0xEF && p[1] == 0xBB && p[2] == 0xBF) p += 3;
     return (const char *)p;
 }
+
+/* NEU 1.0.9 (Update-Hinweis beim Start): siehe hilfen.h */
+static int version_teile(const char *v, long t[4])
+{
+    if (!v) return 0;
+    if (*v == 'v' || *v == 'V') v++;
+    int n = 0;
+    for (;;) {
+        if (*v < '0' || *v > '9') return 0;
+        long z = 0; int s = 0;
+        while (*v >= '0' && *v <= '9') { if (++s > 5) return 0; z = z * 10 + (*v++ - '0'); }
+        if (n >= 4) return 0;
+        t[n++] = z;
+        if (!*v) return n;
+        if (*v != '.') return 0;
+        v++;
+    }
+}
+bool kern_version_gueltig(const char *v) { long t[4]; return version_teile(v, t) > 0; }
+bool kern_version_neuer(const char *neu, const char *alt)
+{
+    long a[4] = { 0 }, b[4] = { 0 };
+    int na = version_teile(neu, a), nb = version_teile(alt, b);
+    if (!na || !nb) return false;
+    for (int i = 0; i < 4; i++) { long x = i < na ? a[i] : 0, y = i < nb ? b[i] : 0; if (x != y) return x > y; }
+    return false;
+}
