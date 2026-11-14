@@ -118,7 +118,9 @@ THE PROGRAM NEVER TOUCHES
 - User account, activation and real licenses
 - Sony system apps and system settings
 The PS5 app changes Sony's databases only selectively: the entries of
-deleted saved data and broken add-on information of a game you delete.
+deleted saved data, broken add-on information of a game you delete, and
+tiles that a tool entered directly into Sony's app list (e.g. TabShifter)
+and that you select for deletion.
 Each of these changes is checked first and made completely or not at all.
 
 

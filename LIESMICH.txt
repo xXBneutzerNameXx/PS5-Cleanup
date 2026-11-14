@@ -124,7 +124,9 @@ FASST DAS PROGRAMM NICHT AN
 - Benutzerkonto, Aktivierung und echte Lizenzen
 - Sony-Systemanwendungen und Systemeinstellungen
 Sonys Datenbanken ändert die PS5-App nur gezielt: die Einträge gelöschter
-Spielstände und kaputte Zusatzinhalt-Angaben eines Spiels, das du löschst.
+Spielstände, kaputte Zusatzinhalt-Angaben eines Spiels, das du löschst, und
+Kacheln, die ein Tool direkt in Sonys App-Liste eingetragen hat (z. B.
+TabShifter) und die du zum Löschen auswählst.
 Jede dieser Änderungen wird vorher geprüft und ganz oder gar nicht gemacht.
 
 
