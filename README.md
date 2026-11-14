@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="bilder/1.0.7/banner.png" width="100%" alt="PS5 Cleanup – Clean up your PS5, no reinstall, no reset">
+<img src="bilder/1.0.10/banner.jpg" width="100%" alt="PS5 Cleanup – Clean up your PS5, no reinstall, no reset">
 
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
 
 [![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Getestet](https://img.shields.io/badge/getestet-PS5%20Pro%20%C2%B7%20FW%2012.00-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE.txt)
 
-### [⬇️ PS5 Cleanup 1.0.9 herunterladen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
+### [⬇️ PS5 Cleanup 1.0.10 herunterladen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
 
 [So geht's](#so-gehts) · [Was es kann](#was-es-kann) · [Rückmeldung](#rückmeldungen) · [Community](#community) · [**🇬🇧 English**](#english)
 
@@ -56,8 +56,8 @@
 
 | Datei | Wofür | Löscht? |
 |---|---|---|
-| **`ps5cleanup_v1.0.9.elf`** | **PS5-App** – läuft direkt auf der PS5, Bedienung mit dem Controller. Startet im **Testmodus** (oben steht „TESTMODUS“) | **Erst, wenn du den Testmodus ausschaltest** und das Löschen ausdrücklich bestätigst |
-| **`PS5-Cleanup-1.0.9.zip`** | die ELF-Datei + Anleitungen + Prüfsummen | – |
+| **`ps5cleanup_v1.0.10.elf`** | **PS5-App** – läuft direkt auf der PS5, Bedienung mit dem Controller oder im Browser. Startet im **Testmodus** (oben steht „TESTMODUS“) | **Erst, wenn du den Testmodus ausschaltest** und das Löschen ausdrücklich bestätigst |
+| **`PS5-Cleanup-1.0.10.zip`** | die ELF-Datei + Anleitungen + Prüfsummen | – |
 
 > [!TIP]
 > **Nur eine Datei.** Die App startet im Testmodus und zeigt dir genau, was sie löschen würde – ohne jedes Risiko. Erst wenn die Liste stimmt, schaltest du den Testmodus im Options-Menü aus.
@@ -66,18 +66,20 @@
 > **Kein „Datenbank neu aufbauen“:** Sonys „Datenbank neu aufbauen“ (abgesicherter Modus) löscht installierte **PS4-Spiele aus Fake-PKGs** – sie müssen danach neu installiert werden. Mit PS5 Cleanup ist der Neuaufbau nicht nötig. **Nie** „PS5 zurücksetzen“ oder „Systemsoftware neu installieren“ wählen.
 
 <details>
-<summary><b>✨ Neu in 1.0.9 – Bedienung im Browser, Hinweis auf neue Versionen</b> (zum Aufklappen)</summary>
+<summary><b>✨ Neu in 1.0.10 – ein Durchgang reicht, Playden, PS3-Spiele</b> (zum Aufklappen)</summary>
 
 <br>
 
-- **Bedienung im Browser:** PS5 Cleanup lässt sich auch am Handy oder PC bedienen – mit Maus, Tastatur oder Finger. Die Adresse steht unten auf der Startseite (z. B. `http://192.168.178.20:9100`), im Options-Menü unter „Browser-Bedienung“ auch als QR-Code. Es ist dieselbe App wie am Fernseher: dieselben Schritte, derselbe Testmodus, dieselben Bestätigungen („Löschen“ 1,5 Sekunden gedrückt halten, bei der vollständigen Bereinigung `LÖSCHEN` eintippen). Nur im Heimnetz, ohne Anmeldung, nichts zu installieren. Solange jemand im Browser ist, steht am Fernseher oben „IM BROWSER“.
-- **Hinweis auf neue Versionen direkt in der App:** Beim Start fragt PS5 Cleanup bei GitHub nach der neuesten Versionsnummer. Gibt es eine neuere, steht das auf der Startseite. Mehr dazu unter [Datenschutz](#datenschutz).
-- **Im Payload Manager als eigene Quelle:** Settings → Manage Sources → Add Source, dann `https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json` eintragen. Neue Versionen kommen dort von selbst an (Idee und Vorlage: Strongt1me).
-- **Mehr Spiel-Abbilder mit Name und Bild:** `.ffpkg`, `.ufs`, `.img` (UFS2), `.ffpfs`, `.ffpfsc` und `.pfs`, auch wenn das Abbild in Stücken liegt, dazu das Bild aus PS4-PKG-Dateien.
-- **Kachelbilder im JPEG-Format** werden jetzt auch angezeigt (z. B. beim Payload Manager).
-- **Besser zugeordnet:** Teile von Apps aus dem ProsperoStore stehen bei ihrer App, Daten-Ordner bekannter Apps bei ihrem Programm; leere Aufnahme-Zwischenordner werden nur noch angeboten, wenn ihre App nicht mehr da ist.
+- **Ein Durchgang reicht:** Was du auswählst, ist nach einem Lauf weg – ohne zweiten Durchgang und ohne Neustart dazwischen. Das gilt auch für Kacheln, die ein Programm noch mit einem Spielordner verknüpft hat (etwa ShadowMount, Kraken Mount, PS5Upload), und für die leeren Ordner, die Homebrew-Kacheln im Systembereich hinterlassen.
+- **Programme im Hintergrund** werden vor dem Löschen beendet, damit sie Gelöschtes nicht sofort wieder anlegen. FTP-Server, nanoDNS, Payload Manager und der Jailbreak laufen weiter. Die vollständige Bereinigung endet mit einem Neustart.
+- **Playden:** Steam-Spiele werden erkannt und samt Eintrag in Playdens Spieleliste entfernt. Playdens eigene Daten sind rot markiert, denn ohne sie startet Playden nicht mehr.
+- **Mehr Spiele mit Name und Bild:** PS3-Spiele als ISO und PS5-Spieldateien (`.pkg`). Unter Spiele steht PS5 vor PS4 vor PS3.
+- **Unbekannte Homebrew-Apps:** PS5 Cleanup liest ihre Programmdateien und findet so ihre Ordner. Was nur vermutet ist, steht im Block der App mit eigenem Haken und wird nie von selbst angehakt.
+- **TabShifter und Co.:** Kacheln, die ein Tool direkt in Sonys Liste eingetragen hat, werden gezielt ausgetragen. Sicherungen von Sonys App-Liste gehen nur mit, wenn du sie selbst anhakst.
+- **Klares Ergebnis:** Bleibt etwas übrig, nennt PS5 Cleanup es mit Grund – im Protokoll auch den Schritt, an dem es scheiterte.
+- **Erweiterte Fehlerdiagnose (freiwillig):** In der Browser-Bedienung lässt sich bei der Rückmeldung das bereinigte Protokoll mitschicken (siehe [Rückmeldungen](#rückmeldungen)).
 
-Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2 – Löschen am Fernseher und im Browser, einzeln und vollständig. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet – dort bitte im Testmodus zuerst schauen, ob die Liste stimmt. [Alle Neuerungen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
+Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00, M.2 und USB-Laufwerk – gezielt und vollständig, am Fernseher und im Browser. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet – dort bitte im Testmodus zuerst schauen, ob die Liste stimmt. [Alle Neuerungen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
 
 </details>
 
@@ -97,14 +99,18 @@ Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird n
 
 - **Eigene Kachel** auf dem Startbildschirm, Bedienung mit dem Controller am Fernseher – kein PC, kein Homebrew Launcher nötig
 - **Bedienung im Browser** am Handy oder PC, im Heimnetz, ohne Anmeldung – dieselbe App, dieselben Bestätigungen
+- **Ein Durchgang reicht** – Programme im Hintergrund werden vorher beendet (FTP-Server, nanoDNS, Payload Manager und der Jailbreak laufen weiter), Verknüpfungen von ShadowMount und Co. sauber gelöst
 - **Kacheln verschwinden sauber** über Sonys eigenen Deinstallations-Dienst, **Bilder und Videos** über Sonys Löschdienst, **Spielstände** samt Eintrag in Sonys Spielstand-Liste
 - **Jailbreak-Schutz:** YouTube (Y2JB), Netflix ('N Hack), Lua-Spiele, PS2-Spielstand-Jailbreak und offline gespeicherter WebKit-Jailbreak werden erkannt, nie automatisch angehakt und vor dem Löschen deutlich gewarnt
 - **Übersicht auf einen Blick:** Modell, Firmware, eingerichtete Jailbreak-Einstiege, Laufwerks-Kopplung und freier Speicher
 - **Ein Block pro App und Spiel:** Kachel oben, darunter alles, was dazugehört – zugeordnet nur mit Beleg (Kennung, Name oder das Programm der App selbst)
-- **Klarnamen und Kachelbilder** in 7 Bereichen: Spiele (PS5 und PS4) mit **Update und DLCs einzeln wählbar**, Apps, Spielstände, Trophäen, Bilder & Videos, Sonstiges, Jailbreak
+- **Klarnamen und Kachelbilder** in 7 Bereichen: Spiele (PS5, PS4 und PS3-ISO) mit **Update und DLCs einzeln wählbar**, Apps, Spielstände, Trophäen, Bilder & Videos, Sonstiges, Jailbreak
 - **M.2: jedes Spiel und jede Datei einzeln** – die Ordner selbst bleiben stehen, für M.2 und erweiterten Speicher gibt es eine eigene Rückfrage
 - **Größe jedes Eintrags direkt in der Liste** (wird im Hintergrund gezählt)
 - **ShadowMount-Spiele:** wahlweise nur die Kachel oder Spiel samt Kachel – ShadowMount+ wird vorher sauber angehalten
+- **Playden (Steam-Spiele):** werden samt Eintrag in Playdens Spieleliste entfernt; Playdens eigene Daten sind rot markiert
+- **Unbekannte Homebrew-Apps:** ihre Ordner werden aus den Programmdateien erkannt – Vermutetes nie automatisch angehakt
+- **Im Payload Manager als eigene Quelle:** Settings → Manage Sources → Add Source, dann `https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json` – neue Versionen kommen dort von selbst an (Idee und Vorlage: Strongt1me)
 - **Nachschauen und Anhaken löscht nichts** – gelöscht wird erst nach ausdrücklicher Bestätigung (Nur Auswahl: ✕ 1,5 Sekunden halten, vollständige Bereinigung: `LÖSCHEN` eintippen)
 - **Testmodus** beim Start: alles anschauen, nichts löschen – im Options-Menü ausschalten
 - **Protokoll** jederzeit mit Options; beim Löschen zusätzlich als Datei auf dem USB-Laufwerk, sonst auf der internen Platte oder der M.2
@@ -123,7 +129,7 @@ Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung, echte Lizenzen u
 
 ## So geht's
 
-1. Jailbreak laden, `ps5cleanup_v1.0.9.elf` aus den [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) über den Payload-Lader oder den Payload Manager starten. Steckt ein USB-Laufwerk, kommt das Protokoll darauf. Wer lieber am Handy oder PC bedient, öffnet dort im Browser die Adresse unten auf der Startseite.
+1. Jailbreak laden, `ps5cleanup_v1.0.10.elf` aus den [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) über den Payload-Lader oder den Payload Manager starten. Steckt ein USB-Laufwerk, kommt das Protokoll darauf. Wer lieber am Handy oder PC bedient, öffnet dort im Browser die Adresse unten auf der Startseite.
 2. **Nachschauen** und anschauen, was gefunden wurde. Die App ist im **Testmodus** und löscht nichts. Stimmt die Liste, den Testmodus im Options-Menü ausschalten.
 3. Einzelne Einträge anhaken und Quadrat = **Nur Auswahl löschen** (zum Bestätigen ✕ 1,5 Sekunden halten) – oder Dreieck = **Vollständige Bereinigung** (`LÖSCHEN` eintippen).
 4. Am Ende **✕ Neu starten** (empfohlen) oder **○ Beenden**. Nach dem Neustart den Jailbreak wie gewohnt starten.
@@ -145,6 +151,8 @@ PS5 Cleanup legt auf der PS5 nichts ab außer seiner eigenen Kachel und seinen *
 
 Im Link stehen nur Version, Fassung, Bau-Stempel, Modellnummer, Firmware, Laufwerks-Kopplung, eingerichtete Jailbreak-Einstiege, angeschlossene Speicher, ShadowMount, Zahlen je Bereich und bei Fehlern kurze Fehlercodes (Schritt, Art des Eintrags, Ort, Code) – **keine Namen von Spielen oder Apps, keine Spielkennungen, kein Konto, keine Dateien, keine IP der PS5**. Dieselben Angaben stehen in Klartext daneben und noch einmal auf dem Handy; gespeichert wird erst mit „Senden“. Wie bei jedem Webseitenaufruf sieht der Server kurz die Internet-Adresse des Handys – sie wird nicht gespeichert. Die Seite läuft bei Cloudflare unter `feedback.ps5cleanup.workers.dev` ([Datenschutz-Hinweis](https://feedback.ps5cleanup.workers.dev/datenschutz)).
 
+**Erweiterte Fehlerdiagnose (freiwillig, neu in 1.0.10):** Gibst du die Rückmeldung aus der Browser-Bedienung, kannst du auf der nächsten Seite zusätzlich das Protokoll mitschicken. Der Haken ist zuerst aus. Das Protokoll wird vorher bereinigt (IP-, E-Mail- und MAC-Adressen, Benutzer-Nummern entfernt), enthält aber Namen von Spielen und Apps und Ordnerpfade deiner Konsole. Du siehst es vor dem Senden vollständig.
+
 Ausführlicher: Über [Issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/issues), die [Discussions](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) (Modell, Firmware und Ergebnis gern unter [Compatibility](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)) oder auf psxtools.de – am besten mit dem **Protokoll**. Das geht auch ohne etwas zu löschen: In der Protokoll-Ansicht (Options, „Protokoll & Rückmeldung“) speichert Quadrat es auf das USB-Laufwerk – auch im Testmodus.
 
 ## Aufbau
@@ -156,20 +164,20 @@ Ausführlicher: Über [Issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/i
 
 | Ordner | Inhalt |
 |---|---|
-| `1.0.7/kern/` | Kern der PS5-App: Schutzliste, Suche, Löschen, Abläufe |
-| `1.0.7/app/` | Oberfläche am Fernseher (SDL2, DualSense), Bedienung im Browser (`fern.c`, `fern_seite.html`) und PS5-Anbindung (Sony-Deinstallation, Löschdienst, Spielstand-Liste) |
-| `1.0.7/start/` | `ps5cleanup.elf`: Start, eigene Kachel (PSCL00001), Hintergrundteil für Selbstentfernung und Neustart |
-| `1.0.7/db/` | Prüfung von Sonys Datenbanken (SQLite) |
-| `1.0.7/rueckmeldung/` | Handy-Seite für die Rückmeldung per QR-Code (Cloudflare Worker) |
-| `1.0.7/test/` | Tests am PC |
-| `1.0.7/fremd/` | Anleitung und Skript für die fremden Bibliotheken (PCRE2, cJSON) |
+| `1.0.10/kern/` | Kern der PS5-App: Schutzliste, Suche, Löschen, Abläufe |
+| `1.0.10/app/` | Oberfläche am Fernseher (SDL2, DualSense), Bedienung im Browser (`fern.c`, `fern_seite.html`) und PS5-Anbindung (Sony-Deinstallation, Löschdienst, Spielstand-Liste) |
+| `1.0.10/start/` | `ps5cleanup.elf`: Start, eigene Kachel (PSCL00001), Hintergrundteil für Selbstentfernung und Neustart |
+| `1.0.10/db/` | Prüfung von Sonys Datenbanken (SQLite) |
+| `1.0.10/rueckmeldung/` | Handy-Seite für die Rückmeldung per QR-Code (Cloudflare Worker) |
+| `1.0.10/test/` | Tests am PC |
+| `1.0.10/fremd/` | Anleitung und Skript für die fremden Bibliotheken (PCRE2, cJSON) |
 | `Quellcode/` | die bisherige Windows-Fassung 1.0.6 (C#) und ältere Fassungen – nicht mehr weiterentwickelt |
 
 </details>
 
 ## Lizenz
 
-Die PS5-App (`1.0.7/`, `ps5cleanup_v1.0.9.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Details und Bestandteile anderer Urheber in [LICENSE.txt](LICENSE.txt).
+Die PS5-App (`1.0.10/`, `ps5cleanup_v1.0.10.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Details und Bestandteile anderer Urheber in [LICENSE.txt](LICENSE.txt).
 
 ## Danke an
 
@@ -184,7 +192,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## English
 
-<p align="center"><b><a href="https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest">⬇️ Download PS5 Cleanup 1.0.9</a></b></p>
+<p align="center"><b><a href="https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest">⬇️ Download PS5 Cleanup 1.0.10</a></b></p>
 
 ### At a glance
 
@@ -231,8 +239,8 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 | File | What for | Deletes? |
 |---|---|---|
-| **`ps5cleanup_v1.0.9.elf`** | **PS5 app** – runs directly on the PS5, controlled with the DualSense. Starts in **test mode** ("TEST MODE" at the top) | **Only after you switch test mode off** and explicitly confirm |
-| **`PS5-Cleanup-1.0.9.zip`** | the ELF file + guides + checksums | – |
+| **`ps5cleanup_v1.0.10.elf`** | **PS5 app** – runs directly on the PS5, controlled with the DualSense or in the browser. Starts in **test mode** ("TEST MODE" at the top) | **Only after you switch test mode off** and explicitly confirm |
+| **`PS5-Cleanup-1.0.10.zip`** | the ELF file + guides + checksums | – |
 
 > [!TIP]
 > **Just one file.** The app starts in test mode and shows you exactly what it would delete – without any risk. Only when the list is right, switch test mode off in the Options menu.
@@ -241,36 +249,42 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 > **No "Rebuild Database":** Sony's "Rebuild Database" (Safe Mode) deletes installed **PS4 games from fake PKGs** – they have to be installed again afterwards. With PS5 Cleanup the rebuild is not needed. **Never** choose "Reset PS5" or "Reinstall System Software".
 
 <details>
-<summary><b>✨ New in 1.0.9 – control in a browser, notice of new versions</b> (click to expand)</summary>
+<summary><b>✨ New in 1.0.10 – one pass is enough, Playden, PS3 games</b> (click to expand)</summary>
 
 <br>
 
-- **Control in a browser:** use PS5 Cleanup on your phone or PC too – with mouse, keyboard or finger. The address is at the bottom of the start screen (e.g. `http://192.168.178.20:9100`), in the Options menu under "Browser control" also as a QR code. It is the same app as on the TV: the same steps, the same test mode, the same confirmations (hold "Delete" for 1.5 seconds, type `DELETE` for the full cleanup). Home network only, no login, nothing to install. While someone uses the browser, the TV shows "IN BROWSER" at the top.
-- **Notice of new versions right in the app:** at start, PS5 Cleanup asks GitHub for the latest version number. If there is a newer one, the start screen says so. More under *Privacy* below.
-- **As its own source in the Payload Manager:** Settings → Manage Sources → Add Source, then enter `https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json`. New versions arrive there by themselves (idea and template: Strongt1me).
-- **More game images with name and picture:** `.ffpkg`, `.ufs`, `.img` (UFS2), `.ffpfs`, `.ffpfsc` and `.pfs`, also when the image is split into pieces, plus the picture from PS4 PKG files.
-- **Tile images in JPEG format** are shown now too (e.g. the Payload Manager's).
-- **Better assignment:** parts of ProsperoStore apps are listed with their app, data folders of known apps with their program; empty capture folders are only offered when their app is gone.
+- **One pass is enough:** what you select is gone after one run – no second pass and no restart in between. This includes tiles that a program still links to a game folder (e.g. ShadowMount, Kraken Mount, PS5Upload) and the empty folders homebrew tiles leave in the system area.
+- **Background programs** are closed before deleting so they do not recreate deleted items right away. FTP server, nanoDNS, Payload Manager and the jailbreak keep running. The full cleanup ends with a restart.
+- **Playden:** Steam games are recognised and removed together with their entry in Playden's game list. Playden's own data is marked red, because without it Playden no longer starts.
+- **More games with name and picture:** PS3 games as ISO and PS5 game files (`.pkg`). Under Games, PS5 comes before PS4 before PS3.
+- **Unknown homebrew apps:** PS5 Cleanup reads their program files and finds their folders that way. Anything only assumed is listed in the app's block with its own checkbox and is never ticked automatically.
+- **TabShifter and similar:** tiles that a tool entered directly into Sony's list are removed from it specifically. Backups of Sony's app list only go if you tick them yourself.
+- **Clear result:** if anything is left over, PS5 Cleanup names it with the reason – and in the log the step at which it failed.
+- **Extended error diagnosis (optional):** in the browser control, the cleaned log can be sent along with your feedback (see *Feedback* below).
 
-Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2 – deleting on the TV and in the browser, selected entries and full cleanup. Other models and firmwares are not blocked but untested – there, please check in test mode first that the list is right.
+Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2 and USB drive – selected entries and full cleanup, on the TV and in the browser. Other models and firmwares are not blocked but untested – there, please check in test mode first that the list is right.
 
 </details>
 
 ### What is it?
 
-**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It runs **directly on the PS5** (`ps5cleanup_v1.0.9.elf`, own home-screen tile, no PC and no Homebrew Launcher needed, DualSense on your TV – or in a browser on your phone or PC), lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. Available in **English and German** (follows the PS5 system language; Square switches it before the first scan).
+**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It runs **directly on the PS5** (`ps5cleanup_v1.0.10.elf`, own home-screen tile, no PC and no Homebrew Launcher needed, DualSense on your TV – or in a browser on your phone or PC), lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. Available in **English and German** (follows the PS5 system language; Square switches it before the first scan).
 
 ### Features
 
 - Control with the DualSense on your TV or in a browser on your phone or PC (home network, no login)
+- One pass is enough – background programs are closed first (FTP server, nanoDNS, Payload Manager and the jailbreak keep running), links from ShadowMount and similar are released cleanly
 - Tiles removed via Sony's uninstall service, screenshots and videos via Sony's delete service, saved data together with its entry in the saved data list
 - Jailbreak detection and protection (YouTube/Y2JB, Netflix 'N Hack, Lua games, PS2 save jailbreak, offline WebKit jailbreak)
 - Dashboard for model, firmware, jailbreak entry points, disc drive pairing and free storage
 - One block per app and game (tile at the top, everything belonging to it below, assigned only with evidence – ID, name or the app's own program)
-- Readable names and tile images in 7 areas, games (PS5 and PS4) with update and each DLC selectable separately
+- Readable names and tile images in 7 areas, games (PS5, PS4 and PS3 ISO) with update and each DLC selectable separately
 - Every game and file on the M.2 listed individually (folders are kept)
 - Size of every entry shown in the list
 - ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first
+- Playden (Steam games): removed together with their entry in Playden's game list; Playden's own data is marked red
+- Unknown homebrew apps: their folders are found from their program files – anything only assumed is never ticked automatically
+- As its own source in the Payload Manager: Settings → Manage Sources → Add Source, then `https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json` – new versions arrive there by themselves (idea and template: Strongt1me)
 - Scanning and ticking deletes nothing – nothing is deleted until you confirm (delete selection only: hold ✕ for 1.5 seconds, full cleanup: type `DELETE`)
 - Test mode at start: look at everything, delete nothing – switch it off in the Options menu
 - Log any time with Options, saved as a file when deleting
@@ -282,7 +296,7 @@ Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2 – deleting on the TV 
 
 ### How to use
 
-1. Load your jailbreak, start `ps5cleanup_v1.0.9.elf` from the [releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) with your payload loader or Payload Manager. To use your phone or PC instead, open the address shown at the bottom of the start screen in a browser.
+1. Load your jailbreak, start `ps5cleanup_v1.0.10.elf` from the [releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) with your payload loader or Payload Manager. To use your phone or PC instead, open the address shown at the bottom of the start screen in a browser.
 2. *Scan* and look at what was found. The app is in **test mode** and deletes nothing. If the list is right, switch test mode off in the Options menu.
 3. Tick entries and Square = *Delete selection only* (hold ✕ for 1.5 seconds to confirm) – or Triangle = *Full cleanup* (type `DELETE`).
 4. At the end ✕ *Restart* (recommended) or ○ *Quit*, then start your jailbreak as usual.
@@ -304,11 +318,13 @@ PS5 Cleanup keeps nothing on the PS5 except its own tile and its **logs** (USB d
 
 The link only contains version, edition, build stamp, model number, firmware, drive pairing, jailbreak entry points, connected storage, ShadowMount, numbers per area and, for errors, short error codes (step, kind of entry, location, code) – **no game or app names, no title IDs, no account, no files, no PS5 IP**. The same details are shown in plain text next to it and on your phone; nothing is stored until you tap "Send". As with any website visit, the server briefly sees your phone's internet address – it is not stored. The page runs on Cloudflare at `feedback.ps5cleanup.workers.dev` ([privacy notice](https://feedback.ps5cleanup.workers.dev/datenschutz?l=en)).
 
+**Extended error diagnosis (optional, new in 1.0.10):** if you give feedback from the browser control, you can also send the log on the next page. The checkbox is off at first. The log is cleaned beforehand (IP, e-mail and MAC addresses, user numbers removed), but contains names of games and apps and folder paths of your console. You see all of it before sending.
+
 More detail: via [issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/issues), [Discussions](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions) (model, firmware and result under [Compatibility](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility)) or on psxtools.de – ideally with the **log**. This also works without deleting anything: in the log view (Options, "Log & feedback"), Square saves it to the USB drive – in test mode too.
 
 ### License and thanks
 
-The PS5 app (`1.0.7/`, `ps5cleanup_v1.0.9.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – details and third-party components in [LICENSE.txt](LICENSE.txt).
+The PS5 app (`1.0.10/`, `ps5cleanup_v1.0.10.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – details and third-party components in [LICENSE.txt](LICENSE.txt).
 
 Thanks to [drakmor](https://github.com/drakmor) (ftpsrv, ps5-hwinfo), [earthonion](https://github.com/earthonion) (ddd_status), John Törnblom (ps5-payload-sdk, ftpsrv), [seregonwar](https://github.com/seregonwar) (zftpd), the makers of ShadowMountPlus and PS5Upload, [Project Nayuki](https://www.nayuki.io/page/qr-code-generator-library) (QR code library) and Markus Scholtes (PS2EXE).
 

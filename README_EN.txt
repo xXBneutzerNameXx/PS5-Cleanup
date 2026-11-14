@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.9 by da_Chris86
+﻿PS5 CLEANUP 1.0.10 by da_Chris86
 ===============================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
@@ -8,7 +8,7 @@ licenses, system software or the disc drive pairing. For all PS5 models
 
 WHICH FILE IS WHICH? - PLEASE READ FIRST!
 -----------------------------------------
-  ps5cleanup_v1.0.9.elf ... the PS5 app. It starts in TEST MODE ("TEST
+  ps5cleanup_v1.0.10.elf ... the PS5 app. It starts in TEST MODE ("TEST
                             MODE" at the top): it shows everything and
                             deletes nothing. It only deletes once you
                             switch test mode off in the Options menu AND
@@ -46,7 +46,7 @@ FEEDBACK
 
 HOW TO USE (PS5 app, directly on the PS5)
 -----------------------------------------
-1. Load your jailbreak and start ps5cleanup_v1.0.9.elf with your payload
+1. Load your jailbreak and start ps5cleanup_v1.0.10.elf with your payload
    loader or Payload Manager. No USB drive needed - if one is plugged in,
    the log is saved there.
    In the Payload Manager it also works as its own source: Settings ->
@@ -78,24 +78,35 @@ CONTROL IN A BROWSER (on your phone or PC)
   When PS5 Cleanup quits, the page is gone too.
 
 
-NEW IN 1.0.9
-------------
-- Control in a browser on your phone or PC (see "CONTROL IN A BROWSER").
-- Notice of new versions right in the app: at start, PS5 Cleanup asks
-  GitHub for the latest version number. If there is a newer one, the
-  start screen says so (see "Privacy" in DETAILS).
-- As its own source in the Payload Manager (see "HOW TO USE"). New
-  versions arrive there by themselves. Idea and template: Strongt1me.
-- More game images with name and picture: .ffpkg, .ufs, .img (UFS2),
-  .ffpfs, .ffpfsc and .pfs, also when the image is split into pieces,
-  plus the picture from PS4 PKG files.
-- Tile images in JPEG format are shown now too (e.g. the Payload
-  Manager's).
-- Better assignment: parts of ProsperoStore apps are listed with their
-  app, data folders of known apps with their program. Empty capture
-  folders are only offered when their app is gone.
-- Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2: deleting on
-  the TV and in the browser, selected entries and full cleanup.
+NEW IN 1.0.10
+-------------
+- One pass is enough: what you select is gone after one run - no second
+  pass and no restart in between. This includes tiles that a program still
+  links to a game folder (e.g. ShadowMount, Kraken Mount, PS5Upload) and
+  the empty folders homebrew tiles leave in the system area (see "System
+  folder" in DETAILS).
+- Background programs are closed before deleting so they do not recreate
+  deleted items right away. FTP server, nanoDNS, Payload Manager and the
+  jailbreak keep running. The full cleanup ends with a restart.
+- Playden: Steam games are recognised and removed together with their
+  entry in Playden's game list. Data that only Playden itself may open can
+  now be deleted too. Playden's own data is marked red, because without it
+  Playden no longer starts.
+- More games with name and picture: PS3 games as ISO and PS5 game files
+  (.pkg). Under Games, PS5 comes before PS4 before PS3.
+- Unknown homebrew apps: PS5 Cleanup reads their program files and finds
+  their folders that way. Anything only assumed is listed in the app's
+  block with its own checkbox and is never ticked automatically.
+- TabShifter and similar: tiles that a tool entered directly into Sony's
+  list are removed from it specifically. Backups of Sony's app list only
+  go if you tick them yourself.
+- Clear result: if anything is left over, PS5 Cleanup names it with the
+  reason - and in the log the step at which it failed.
+- Extended error diagnosis (optional): in the browser control, the cleaned
+  log can be sent along with your feedback (see "Feedback via QR code" in
+  DETAILS).
+- Tested on a PS5 Pro (CFI-7021) with firmware 12.00, M.2 and USB drive:
+  selected entries and full cleanup, on the TV and in the browser.
 
 Older changes are listed on GitHub under Releases:
 https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases
@@ -181,16 +192,13 @@ Disc drive pairing
   PS5 cannot tell whether a drive was ever paired with another console.
 
 ShadowMount games
-  The menu only has a tile; the game itself is on the M.2 or the internal
-  SSD. If the game is deleted, the tile always goes with it. If only the
-  tile is deleted, it comes back once ShadowMount is loaded again.
-  Before deleting, the program stops ShadowMount+ (1.7 or newer) via its
-  stop file - otherwise it would recreate the tiles right away. Deleting
-  only goes ahead if ShadowMount confirms this or is provably not running
-  (no games mounted). If the state is unclear, you are asked, with
-  "Cancel" preselected - if ShadowMount is still running, mounted game
-  data could be damaged. Afterwards load ShadowMount again. While the
-  Game Compressor is working, the affected game is locked.
+  The menu only has a tile; the game itself is on the M.2, the internal
+  SSD or the USB drive. If the game is deleted, the tile always goes with
+  it. If only the tile is deleted, it comes back once ShadowMount is
+  loaded again. If anything of ShadowMount is to be deleted, PS5 Cleanup
+  closes it first - otherwise it would recreate the tiles right away.
+  Afterwards load ShadowMount again. While the Game Compressor is working,
+  the affected game is locked.
 
 M.2 SSD
   The folders on the M.2 (e.g. homebrew, games, downloads) are expanded:
@@ -297,12 +305,28 @@ Feedback via QR code (optional)
   Cloudflare: https://feedback.ps5cleanup.workers.dev (privacy notice
   there under /datenschutz).
 
+  Extended error diagnosis (optional, new in 1.0.10): if you give
+  feedback from the browser control, you can also send the log on the
+  next page. The checkbox is off at first. The log is cleaned beforehand
+  (IP, e-mail and MAC addresses, user numbers removed), but contains names
+  of games and apps and folder paths of your console. You see all of it
+  before sending.
+
+System folder
+  Homebrew tiles create an empty folder in the write-protected system
+  area (/system_ex). So that PS5 Cleanup can remove it together with the
+  tile, it makes this area writable, with the same command as ShadowMount,
+  and leaves it that way until the next restart, as ShadowMount does
+  too. The restart restores the write protection. Only empty folders of
+  selected tiles and PS5 Cleanup's own start folder are deleted there -
+  never Sony's files.
+
 Language
   The language follows the PS5 system language (German -> German,
   otherwise English). Before the first scan, Square switches it.
 
 Files
-  ps5cleanup_v1.0.9.elf        the PS5 app (starts in test mode)
+  ps5cleanup_v1.0.10.elf        the PS5 app (starts in test mode)
   README_EN.txt                this guide (English)
   LIESMICH.txt                 this guide (German)
   LICENSE.txt                  licenses and components by other authors

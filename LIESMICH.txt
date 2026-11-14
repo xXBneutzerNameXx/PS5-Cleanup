@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.0.9 by da_Chris86
+﻿PS5 CLEANUP 1.0.10 by da_Chris86
 ===============================
 
 Bringt eine PS5 mit Jailbreak in einen Zustand wie frisch eingerichtet -
@@ -8,7 +8,7 @@ und die Laufwerks-Kopplung fasst das Programm nicht an. Für alle PS5-Modelle
 
 WELCHE DATEI IST WAS? - BITTE ZUERST LESEN!
 -------------------------------------------
-  ps5cleanup_v1.0.9.elf ... die PS5-App. Sie startet im TESTMODUS (oben
+  ps5cleanup_v1.0.10.elf ... die PS5-App. Sie startet im TESTMODUS (oben
                             steht "TESTMODUS"): Sie zeigt alles an und
                             löscht nichts. Gelöscht wird erst, wenn du den
                             Testmodus im Options-Menü ausschaltest UND das
@@ -48,7 +48,7 @@ RÜCKMELDUNGEN
 
 SO GEHT'S (PS5-App, direkt auf der PS5)
 ---------------------------------------
-1. Jailbreak laden und ps5cleanup_v1.0.9.elf über deinen Payload-Lader
+1. Jailbreak laden und ps5cleanup_v1.0.10.elf über deinen Payload-Lader
    oder den Payload Manager starten. Ein USB-Laufwerk ist nicht nötig -
    steckt eins, kommt das Protokoll darauf.
    Im Payload Manager geht es auch als eigene Quelle: Settings -> Manage
@@ -82,25 +82,37 @@ IM BROWSER BEDIENEN (am Handy oder PC)
   PS5 Cleanup ist auch die Seite weg.
 
 
-NEU IN 1.0.9
-------------
-- Bedienung im Browser am Handy oder PC (siehe "IM BROWSER BEDIENEN").
-- Hinweis auf neue Versionen direkt in der App: Beim Start fragt
-  PS5 Cleanup bei GitHub nach der neuesten Versionsnummer. Gibt es eine
-  neuere, steht das auf der Startseite (siehe "Datenschutz" bei DETAILS).
-- Im Payload Manager als eigene Quelle (siehe "SO GEHT'S"). Neue
-  Versionen kommen dort von selbst an. Idee und Vorlage: Strongt1me.
-- Mehr Spiel-Abbilder mit Name und Bild: .ffpkg, .ufs, .img (UFS2),
-  .ffpfs, .ffpfsc und .pfs, auch wenn das Abbild in Stücken liegt, dazu
-  das Bild aus PS4-PKG-Dateien.
-- Kachelbilder im JPEG-Format werden jetzt auch angezeigt (z. B. beim
-  Payload Manager).
-- Besser zugeordnet: Teile von Apps aus dem ProsperoStore stehen bei
-  ihrer App, Daten-Ordner bekannter Apps bei ihrem Programm. Leere
-  Aufnahme-Zwischenordner werden nur noch angeboten, wenn ihre App nicht
-  mehr da ist.
-- Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00 und M.2:
-  Löschen am Fernseher und im Browser, einzeln und vollständig.
+NEU IN 1.0.10
+-------------
+- Ein Durchgang reicht: Was du auswählst, ist nach einem Lauf weg - ohne
+  zweiten Durchgang und ohne Neustart dazwischen. Das gilt auch für
+  Kacheln, die ein Programm noch mit einem Spielordner verknüpft hat (etwa
+  ShadowMount, Kraken Mount, PS5Upload), und für die leeren Ordner, die
+  Homebrew-Kacheln im Systembereich hinterlassen (siehe "Systemordner" bei
+  DETAILS).
+- Programme im Hintergrund werden vor dem Löschen beendet, damit sie
+  Gelöschtes nicht sofort wieder anlegen. FTP-Server, nanoDNS, Payload
+  Manager und der Jailbreak laufen weiter. Die vollständige Bereinigung
+  endet mit einem Neustart.
+- Playden: Steam-Spiele werden erkannt und samt Eintrag in Playdens
+  Spieleliste entfernt. Auch Daten, die nur Playden selbst öffnen darf,
+  kann PS5 Cleanup jetzt löschen. Playdens eigene Daten sind rot markiert,
+  denn ohne sie startet Playden nicht mehr.
+- Mehr Spiele mit Name und Bild: PS3-Spiele als ISO und PS5-Spieldateien
+  (.pkg). Unter Spiele steht PS5 vor PS4 vor PS3.
+- Unbekannte Homebrew-Apps: PS5 Cleanup liest ihre Programmdateien und
+  findet so ihre Ordner. Was nur vermutet ist, steht im Block der App mit
+  eigenem Haken und wird nie von selbst angehakt.
+- TabShifter und Co.: Kacheln, die ein Tool direkt in Sonys Liste
+  eingetragen hat, werden gezielt ausgetragen. Sicherungen von Sonys
+  App-Liste gehen nur mit, wenn du sie selbst anhakst.
+- Klares Ergebnis: Bleibt etwas übrig, nennt PS5 Cleanup es mit Grund - im
+  Protokoll auch den Schritt, an dem es scheiterte.
+- Erweiterte Fehlerdiagnose (freiwillig): In der Browser-Bedienung lässt
+  sich bei der Rückmeldung das bereinigte Protokoll mitschicken (siehe
+  "Rückmeldung per QR-Code" bei DETAILS).
+- Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00, M.2 und
+  USB-Laufwerk: gezielt und vollständig, am Fernseher und im Browser.
 
 Ältere Neuerungen stehen auf GitHub unter Releases:
 https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases
@@ -190,16 +202,13 @@ Laufwerks-Kopplung
   einer anderen Konsole gekoppelt war, kann die PS5 nicht sagen.
 
 ShadowMount-Spiele
-  Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2 oder der internen
-  SSD. Wird das Spiel gelöscht, geht die Kachel immer mit. Wird nur die
-  Kachel gelöscht, kommt sie wieder, sobald ShadowMount neu geladen wird.
-  Das Programm hält ShadowMount+ (ab 1.7) vor dem Löschen über dessen
-  Stopp-Datei an, sonst würde es die Kacheln sofort neu anlegen.
-  Gelöscht wird nur, wenn ShadowMount das bestätigt oder nachweislich nicht
-  läuft (keine Spiele eingebunden). Ist der Zustand unklar, kommt eine
-  Rückfrage mit "Abbrechen" als Vorgabe - läuft ShadowMount noch, könnten
-  eingebundene Spieldaten beschädigt werden. Danach ShadowMount neu laden.
-  Läuft gerade der Game Compressor, ist das betroffene Spiel gesperrt.
+  Im Menü ist nur eine Kachel, das Spiel liegt auf der M.2, der internen
+  SSD oder dem USB-Laufwerk. Wird das Spiel gelöscht, geht die Kachel immer
+  mit. Wird nur die Kachel gelöscht, kommt sie wieder, sobald ShadowMount
+  neu geladen wird. Soll etwas von ShadowMount gelöscht werden, beendet
+  PS5 Cleanup es vorher - sonst würde es die Kacheln sofort neu anlegen.
+  Danach ShadowMount neu laden. Läuft gerade der Game Compressor, ist das
+  betroffene Spiel gesperrt.
 
 M.2-SSD
   Die Ordner auf der M.2 (z. B. homebrew, games, downloads) werden
@@ -313,13 +322,29 @@ Rückmeldung per QR-Code (freiwillig)
   Die Seite läuft bei Cloudflare: https://feedback.ps5cleanup.workers.dev
   (Datenschutz-Hinweis dort unter /datenschutz).
 
+  Erweiterte Fehlerdiagnose (freiwillig, neu in 1.0.10): Gibst du die
+  Rückmeldung aus der Browser-Bedienung, kannst du auf der nächsten Seite
+  zusätzlich das Protokoll mitschicken. Der Haken ist zuerst aus. Das
+  Protokoll wird vorher bereinigt (IP-, E-Mail- und MAC-Adressen,
+  Benutzer-Nummern entfernt), enthält aber Namen von Spielen und Apps und
+  Ordnerpfade deiner Konsole. Du siehst es vor dem Senden vollständig.
+
+Systemordner
+  Homebrew-Kacheln legen im schreibgeschützten Systembereich (/system_ex)
+  einen leeren Ordner an. Damit PS5 Cleanup ihn mit der Kachel entfernen
+  kann, macht es diesen Bereich beschreibbar - mit demselben Befehl wie
+  ShadowMount - und lässt ihn bis zum nächsten Neustart so, wie ShadowMount
+  es auch tut. Der Neustart stellt den Schreibschutz wieder her. Gelöscht
+  werden dort nur leere Ordner gewählter Kacheln und PS5 Cleanups eigener
+  Startordner - nie Sonys Dateien.
+
 Sprache
   Die Sprache richtet sich nach der Systemsprache der PS5 (Deutsch ->
   Deutsch, sonst Englisch). Vor dem ersten Nachschauen schaltet Quadrat
   um.
 
 Dateien
-  ps5cleanup_v1.0.9.elf        die PS5-App (startet im Testmodus)
+  ps5cleanup_v1.0.10.elf        die PS5-App (startet im Testmodus)
   LIESMICH.txt                 diese Anleitung
   README_EN.txt                diese Anleitung auf Englisch
   LICENSE.txt                  Lizenzen und Bestandteile anderer Urheber

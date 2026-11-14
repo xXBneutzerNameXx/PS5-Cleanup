@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#121417">
+<meta name="k" content="@@@@SCHLUESSEL@@">
+<title>PS5 Cleanup</title>
+<!-- PS5 Cleanup 1.0.9 - Bedienung im Browser. Copyright (C) 2026 da_Chris86 - Lizenz: GPL-3.0-or-later.
+     Steckt im Programm (app/fern.c), ohne fremde Skripte und ohne Daten im Browser. Die Seite holt den Zustand und die Liste von
+     PS5 Cleanup und baut sich daraus selbst auf (Maus, Tastatur, Touch). Gelöscht wird nur auf der PS5, nach denselben Fragen wie am
+     Fernseher: "Löschen" 1,5 s halten, bei der vollständigen Bereinigung LÖSCHEN eintippen.
+     NEU 1.0.9 (da_Chris86 08.11.2026 22:56: "die Browsersteuerung ... genauso bauen wie die App"): Aufbau und Aussehen wie am Fernseher
+     (Kopf mit den drei Schritten, Startseite, Übersicht nach dem Nachschauen, Liste mit Bereichen links und Kasten rechts, Fragen als
+     eigene Seite, Fertig-Seite, Leiste unten), nur dichter - am Monitor passt mehr auf einen Blick. -->
+<style>
+:root{--hg:#121417;--karte:#1A1D22;--feld:#22262D;--rand:#262A31;--linie:#3A404A;--text:#F2F4F7;--text2:#D5DAE1;--grau:#B4BBC6;--grau2:#8B93A1;
+--blau:#1C74E9;--fokus:#4CC9F0;--rot:#FF7B76;--rotk:#C8423E;--gelb:#E3BE6A;--gruen:#5DD39A;--orange:#FF9A52;--fuss:#0F1114;--balken:#687080;--kh:96px;--fh:62px;--rx:max(16px,3vw)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--hg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+button{font:inherit;color:inherit}
+svg{flex:none}
+.leer{display:none!important}
+.grau{color:var(--grau)}.grau2{color:var(--grau2)}.c-r{color:var(--rot)}.c-y{color:var(--gelb)}.c-g{color:var(--gruen)}.c-o{color:var(--orange)}.c-d{color:var(--grau)}.c-t{color:var(--text)}
+/* Kopf wie am Fernseher: Logo, Name, Version, Pillen, Satz - rechts die drei Schritte */
+#kopf{display:flex;align-items:center;gap:24px;padding:22px var(--rx) 14px}
+.marke{display:flex;align-items:center;gap:18px;min-width:0;flex:1}
+.marke img{width:56px;height:56px;border-radius:14px;flex:none}
+.z1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.z1 .name{font-size:28px;font-weight:750;letter-spacing:.01em;white-space:nowrap}
+.pille{font-size:13px;font-weight:750;letter-spacing:.05em;padding:4px 12px;border-radius:99px;white-space:nowrap}
+.p-ver{background:var(--feld);color:var(--grau);letter-spacing:.02em}.p-gelb{background:rgba(227,190,106,.16);color:var(--gelb)}.p-blau{background:rgba(76,201,240,.14);color:var(--fokus)}.p-gruen{background:rgba(93,211,154,.14);color:var(--gruen)}
+#pillen{display:contents}
+#satz{color:var(--grau);font-size:17px;margin-top:2px}
+#schritte{display:flex;align-items:center;gap:12px;flex:none}
+.sr{display:flex;align-items:center;gap:10px;color:var(--grau2);font-size:18px;white-space:nowrap}
+.sr .kr{width:36px;height:36px;border-radius:50%;border:2px solid var(--linie);display:grid;place-items:center;font-weight:700;font-size:16px}
+.sr.an{color:var(--text);font-weight:700}.sr.an .kr{border-color:var(--fokus);color:var(--fokus);border-width:3px}
+.sr.ok{color:var(--grau)}.sr.ok .kr{background:var(--blau);border-color:var(--blau)}
+.sv{width:34px;height:3px;border-radius:2px;background:var(--linie)}.sv.ok{background:var(--blau)}
+/* Grundbausteine */
+#haupt{flex:1;width:100%;padding:8px var(--rx) 18px;min-height:0}
+.karte{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:22px 26px}
+h1{font-size:34px;margin:0 0 6px;line-height:1.2}h2{font-size:22px;margin:0}
+.kn{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:0 24px;border-radius:14px;border:2px solid var(--linie);
+ background:var(--feld);cursor:pointer;font-weight:700;font-size:18px;white-space:nowrap;transition:background .12s,border-color .12s}
+.kn:hover{border-color:var(--grau2)}.kn:focus-visible,.chk:focus-visible,input:focus-visible,.ber:focus-visible,.zeile-k:focus-visible{outline:3px solid var(--fokus);outline-offset:3px}
+.kn:disabled{opacity:.42;cursor:not-allowed}
+.kn.haupt{background:var(--blau);border-color:var(--blau);color:#fff}.kn.haupt:hover{background:#2b82f5}
+.kn.gefahr{background:var(--rotk);border-color:var(--rotk);color:#fff}
+.kn.rand-rot:not(:disabled){color:var(--rot);border-color:rgba(255,123,118,.55)}
+.kn.gross{min-height:64px;padding:0 34px;font-size:21px;border-radius:16px}
+.kn.klein{min-height:40px;padding:0 14px;font-size:15px;border-radius:11px}
+.kn.flach{background:none;border-color:transparent}.kn.flach:hover{background:var(--feld)}
+.sym{width:56px;height:56px;border-radius:14px;background:var(--feld);display:grid;place-items:center;color:var(--grau);flex:none}
+.schild{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:700;padding:3px 12px;border-radius:99px;white-space:nowrap;flex:none}
+.s-g{background:rgba(93,211,154,.13);color:var(--gruen)}.s-y{background:rgba(227,190,106,.15);color:var(--gelb)}.s-r{background:rgba(255,123,118,.12);color:var(--rot);box-shadow:inset 0 0 0 1.5px rgba(255,123,118,.6)}
+.ort{font-size:14px;font-weight:700;padding:2px 9px;border-radius:7px;background:var(--feld);color:var(--grau)}
+.kachel{width:46px;height:46px;border-radius:10px;background:var(--feld);flex:none;object-fit:cover;display:grid;place-items:center;color:var(--grau2)}
+.chk{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border-radius:8px;border:2.5px solid var(--grau2);background:none;cursor:pointer;display:grid;place-items:center;position:relative}
+.chk:checked,.chk:indeterminate{border-color:var(--fokus)}
+.chk:checked{background:var(--fokus)}
+.chk:checked::after{content:"";width:7px;height:13px;border:solid #0b2530;border-width:0 3px 3px 0;transform:translateY(-1px) rotate(45deg)}
+.chk:indeterminate::after{content:"";width:12px;height:3px;background:var(--fokus);border-radius:2px}
+.chk:disabled{opacity:.35;cursor:not-allowed}
+.trefferfl{padding:8px;margin:-8px;display:grid;place-items:center;cursor:pointer}
+/* Infokarten (Konsole, Laufwerks-Kopplung, Jailbreak) */
+.raster3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.ik{display:flex;gap:20px;align-items:center;padding:22px 24px}
+.ik .l{color:var(--grau);font-size:17px}.ik .w{font-size:24px;font-weight:750;line-height:1.25;margin:2px 0}.ik .u{color:var(--grau);font-size:17px;display:flex;gap:8px;align-items:center}
+.ik.jb{background:rgba(255,154,82,.07);border-color:rgba(255,154,82,.38)}.ik.jb .sym{background:rgba(255,154,82,.14);color:var(--orange)}.ik.jb .l{color:var(--orange)}
+/* Startseite und Übersicht */
+.zwei-sp{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(360px,1fr);gap:22px;margin-top:22px;align-items:stretch}
+.kz{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px}.kz .r{color:var(--grau);font-size:17px;text-align:right}
+.lw{margin-top:18px}
+.lw .k{display:flex;align-items:center;gap:12px;font-size:21px}.lw .k b{font-weight:750}.lw .k span{color:var(--grau);font-size:18px}
+.balken{height:22px;border-radius:7px;background:#2A2F37;overflow:hidden;display:flex;gap:2px;margin-top:10px}
+.balken i{display:block;height:100%}.balken .gef{background:var(--blau)}.balken .bel{background:var(--balken)}
+.lw .d{display:flex;flex-wrap:wrap;gap:6px 26px;font-size:18px;color:var(--grau);margin-top:8px}.lw .d b{color:var(--text)}
+.lw .d i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.schritte{display:flex;flex-direction:column;gap:26px;margin:22px 0 28px}
+.schritt{display:flex;gap:20px;align-items:center}.schritt .nr{flex:none;width:48px;height:48px;border-radius:50%;background:var(--feld);display:grid;place-items:center;font-weight:750;font-size:18px;color:var(--grau)}
+.schritt.an .nr{background:none;border:3px solid var(--fokus);color:var(--fokus)}.schritt b{display:block;font-size:22px}.schritt span{color:var(--grau);font-size:18px}
+#s-wie{display:flex;flex-direction:column}#s-wie .kn{width:100%;margin-top:auto}
+.chips{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:22px}.chips .t{color:var(--grau);font-size:18px;margin-right:6px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:99px;background:var(--karte);border:1px solid var(--rand);font-size:18px;color:var(--text2)}
+.gesamt{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--rand)}
+.gesamt b{font-size:46px;font-weight:800;line-height:1}.gesamt span{color:var(--grau);font-size:19px}
+.btab{width:100%;border-collapse:collapse}
+.btab tr{cursor:pointer}.btab tr:hover td{background:rgba(255,255,255,.025)}
+.btab td{padding:11px 4px;border-bottom:1px solid var(--rand);font-size:20px}.btab tr:last-child td{border-bottom:none}
+.btab td.s{width:40px;color:var(--grau)}.btab td.n2{color:var(--grau);text-align:right;width:60px;font-size:18px}.btab td.g{text-align:right;font-weight:750;white-space:nowrap}
+.btab tr.jb td:nth-child(2),.btab tr.jb td.s{color:var(--orange)}
+.weiter{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:22px}.weiter .t{flex:1;color:var(--grau);font-size:19px;min-width:240px}
+/* Nachschauen / Löschen läuft */
+.mitte{max-width:1500px;margin:2vh auto 0}
+.mitte h1{font-size:34px}
+.fort{height:14px;border-radius:8px;background:#2A2F37;overflow:hidden;margin:20px 0 10px;position:relative}
+.fort i{position:absolute;top:0;bottom:0;left:0;background:var(--fokus);border-radius:8px;transition:width .3s}
+.fort.unb i{width:30%!important;animation:hin 1.3s ease-in-out infinite}
+@keyframes hin{0%{left:-30%}100%{left:100%}}
+.prot-live{margin-top:18px;background:var(--hg);border:1px solid var(--rand);border-radius:14px;padding:14px 18px;font:14px/1.6 ui-monospace,Consolas,monospace;color:var(--text2);white-space:pre-wrap;overflow-wrap:anywhere;min-height:240px;max-height:42vh;overflow:auto}
+.prot-live:empty{display:none}
+.zeilen{margin-top:16px;max-height:40vh;overflow:auto;border-top:1px solid var(--rand)}
+.lz{display:flex;align-items:center;gap:14px;padding:9px 2px;border-bottom:1px solid var(--rand);font-size:18px}
+.lz .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lz .st{font-size:16px;font-weight:700;white-space:nowrap}
+.frei-g{font-size:30px;font-weight:800}
+/* Liste: Bereiche links, Einträge Mitte, Kasten rechts */
+#liste{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr) minmax(300px,440px);gap:22px;align-items:start}
+#liste>*{min-width:0}
+#bereiche{padding:12px;display:flex;flex-direction:column;gap:4px}
+.ber{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;border:2px solid transparent;cursor:pointer;width:100%}
+.ber:hover{background:rgba(255,255,255,.03)}.ber.an{background:#1d2a3d;border-color:var(--fokus)}
+.ber .tx{min-width:0;flex:1}.ber .n{font-weight:750;font-size:20px;display:block}.ber .u{font-size:16px;color:var(--grau);display:block;white-space:normal}   /* 1.0.9 (09.11.2026 20:12): "60 Einträge · 1,84 TB" bricht um statt die Größe abzuschneiden */
+.ber .s{color:var(--grau)}.ber.jb .n,.ber.jb .s{color:var(--orange)}
+.ber.aus{opacity:.45;cursor:default}.ber.aus:hover{background:none}
+.ber-trenn{height:1px;background:var(--rand);margin:8px 6px}
+.summe{margin-top:8px;padding:14px;border-radius:12px;background:var(--hg);font-size:16px;color:var(--grau)}
+.summe .z{display:flex;justify-content:space-between;gap:8px;padding:3px 0}.summe .z b{color:var(--text);font-weight:700;white-space:nowrap}
+.summe .t{font-size:13px;color:var(--grau2);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:4px}
+#mitte{padding:20px 22px;min-width:0}
+.mkopf{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mkopf h2{font-size:28px;display:flex;align-items:baseline;gap:12px}.mkopf h2 small{font-size:18px;color:var(--grau);font-weight:500}
+.mkopf .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.suche{width:220px;height:42px;border-radius:11px;border:1.5px solid var(--linie);background:var(--feld);color:var(--text);padding:0 14px;font:inherit;font-size:16px}
+#b-wo{display:flex;align-items:center;gap:10px;margin:10px 0 12px;color:var(--grau);font-size:18px;flex-wrap:wrap}
+#b-info{color:var(--grau2);font-size:15px;margin:-4px 0 10px}
+.block{background:#20242a;border:2px solid transparent;border-radius:14px;margin-bottom:6px;overflow:hidden}
+.block.markiert{border-color:var(--fokus)}
+.bk{display:flex;align-items:center;gap:16px;padding:7px 16px;min-height:64px}
+.bk .mitte2,.tl .mitte2{flex:1;min-width:0;cursor:pointer}
+.bk .n{font-weight:750;font-size:19px;overflow:hidden;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+.bk .u{font-size:16px;color:var(--grau);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk .g,.tl .g{font-size:20px;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right;min-width:92px}
+.tl .g{font-weight:500;font-size:18px}
+.auf{width:38px;height:38px;border-radius:10px;border:none;background:none;cursor:pointer;color:var(--grau);display:grid;place-items:center;flex:none}
+.auf:hover{background:var(--feld)}.auf svg{transition:transform .15s}.block.offen .auf svg{transform:rotate(90deg)}
+.auf.leer2{visibility:hidden}
+.teile{display:none;padding:0 0 6px}.block.offen .teile{display:block}
+.tl{display:flex;align-items:center;gap:14px;padding:6px 16px 6px 16px;min-height:50px}
+.tl .ein{width:2px;align-self:stretch;background:var(--linie);margin:0 6px 0 20px;flex:none}
+.tl.markiert{background:rgba(76,201,240,.07)}
+.tl .n{font-size:18px;overflow:hidden;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}.tl .u{font-size:14px;color:var(--grau2)}
+.tl.gesperrt .n{color:var(--grau)}
+.schloss-k{width:28px;height:28px;border-radius:8px;border:2px solid var(--linie);display:grid;place-items:center;color:var(--grau2);flex:none}
+.nichts{padding:40px 10px;text-align:center;color:var(--grau);font-size:18px}
+#infofeld .karte{padding:24px 26px}
+.ib{text-align:left}
+.ib .bild{display:grid;place-items:center;margin-bottom:18px}.ib .bild .kachel,.ib .bild img,.ib .bild .sym{width:120px;height:120px;border-radius:22px}
+.ib h2{font-size:24px;overflow-wrap:anywhere}.ib .unter{color:var(--grau);font-size:18px;margin-top:4px}
+.abs{margin:16px 0 0}.abs .f{font-size:17px;color:var(--grau)}
+.abs .t{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px;font-size:18px;line-height:1.5}.abs .t.c-d{font-family:ui-monospace,Consolas,monospace;font-size:14px;color:var(--grau)}
+.teil-info{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--rand);padding:9px 0;cursor:pointer;font-size:16px}
+.teil-info:hover .n{color:var(--fokus)}.teil-info .n{flex:1;min-width:0;overflow-wrap:anywhere}.teil-info .g{color:var(--grau);white-space:nowrap;font-size:15px}
+.teil-info .schild{font-size:13px;padding:2px 9px}
+.legende{display:flex;flex-direction:column;gap:10px;margin-top:6px}.legende>div{display:flex;gap:12px;align-items:flex-start;font-size:16px}.legende .schild{min-width:62px;justify-content:center;font-size:14px}
+.hinweis-x{color:var(--grau);font-size:17px;margin-top:16px}
+.knoepfe{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+#infofeld .knoepfe{justify-content:flex-start}
+.blatt-zu{display:none}
+/* Leiste unten in der Liste: was gewählt ist, dazu die zwei Knöpfe */
+#leiste{padding:0 var(--rx) 14px}
+#leiste .innen{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:14px 22px}
+#leiste .txt{flex:1;min-width:240px}#leiste .t1{font-weight:750;font-size:21px}#leiste .t2{font-size:17px}
+/* Fuß wie am Fernseher (dort die Tasten, hier zum Klicken) */
+#fuss{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px var(--rx);border-top:1px solid var(--rand);background:var(--fuss);position:sticky;bottom:0;z-index:30}
+a.kn{color:var(--text)}
+#fuss .kn{min-height:44px;font-size:17px;font-weight:600;border-color:transparent;background:none;padding:0 14px}
+#fuss .kn:hover{background:var(--feld)}
+#fuss .ks{width:30px;height:30px;border-radius:50%;border:2px solid var(--grau2);display:grid;place-items:center;color:var(--grau)}
+#fuss .mitte-t{flex:1;text-align:center;color:var(--grau);font-size:16px;min-width:0}
+#fuss .mitte-t b{color:var(--fokus)}
+/* Fragen: eigene Seite unter dem Kopf, wie am Fernseher */
+#modal{position:fixed;top:var(--kh);right:0;bottom:var(--fh);left:0;z-index:46;background:var(--hg);overflow:auto;padding:6px var(--rx) 28px}
+#modal .seite{max-width:1720px;margin:0 auto}
+.ftitel{display:flex;align-items:center;gap:20px;margin:6px 0 18px}.ftitel h1{margin:0}
+.ftitel .sym.w{background:rgba(255,154,82,.14);color:var(--orange)}.ftitel .sym.f{background:rgba(255,123,118,.14);color:var(--rot)}
+.frage-t{white-space:pre-wrap;color:var(--text2);overflow-wrap:anywhere;font-size:19px;line-height:1.6;max-height:52vh;overflow:auto}
+.gruppe{border:2px solid var(--rand);border-radius:18px;margin-top:16px;overflow:hidden;background:var(--karte)}
+.gruppe.g-r{border-color:rgba(255,123,118,.45)}.gruppe.g-y{border-color:rgba(227,190,106,.35)}.gruppe.g-g{border-color:rgba(93,211,154,.35)}
+.gruppe .gk{display:flex;align-items:center;gap:16px;padding:16px 22px}
+.gruppe .gk .sym{width:48px;height:48px}.g-r .gk .sym{background:rgba(255,123,118,.14);color:var(--rot)}.g-y .gk .sym{background:rgba(227,190,106,.14);color:var(--gelb)}.g-g .gk .sym{background:rgba(93,211,154,.14);color:var(--gruen)}
+.gruppe .gk b{font-size:22px;display:block}.g-r .gk b{color:var(--rot)}.g-y .gk b{color:var(--gelb)}.g-g .gk b{color:var(--gruen)}.gruppe .gk span{color:var(--grau);font-size:17px}
+.gruppe ul{list-style:none;margin:0;padding:0 22px 12px;max-height:300px;overflow:auto}
+.gruppe li{display:flex;align-items:center;gap:14px;padding:7px 0;font-size:18px}.gruppe li .n{flex:1;min-width:0;overflow-wrap:anywhere}.gruppe li .g{font-weight:750;white-space:nowrap}
+.gruppe li .kachel{width:40px;height:40px;border-radius:9px}
+.vorher{margin:6px 0 18px}.vorher b{display:block;color:var(--gelb);font-size:19px}.vorher span{color:var(--grau);font-size:17px}
+.hinweise{margin-top:16px}.hinweise div{display:flex;gap:12px;align-items:flex-start;margin-top:8px;font-size:17px;color:var(--grau)}.hinweise div.c-y{color:var(--gelb)}.hinweise div.c-r{color:var(--rot)}
+.bleibt{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;margin-top:18px;padding:14px 22px;border-radius:14px;background:var(--karte);border:1px solid var(--rand);font-size:17px;color:var(--grau)}
+.bleibt b{color:var(--text)}.bleibt span{display:inline-flex;gap:8px;align-items:center}.bleibt .jbb{margin-left:auto;color:var(--orange)}
+.halten{position:relative;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-width:320px;min-height:80px!important;justify-content:flex-start!important;text-align:left}
+.halten::before{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(255,255,255,.16);transform-origin:left;transform:scaleX(var(--p,0))}
+.halten .ring{position:relative;width:48px;height:48px;border-radius:50%;flex:none;background:conic-gradient(#fff calc(var(--p,0)*360deg),rgba(255,255,255,.28) 0);display:grid;place-items:center}
+.halten .ring::after{content:"✕";width:40px;height:40px;border-radius:50%;background:var(--rotk);display:grid;place-items:center;font-size:22px}
+.halten .tx2{position:relative;display:flex;flex-direction:column;line-height:1.25}.halten .tx2 small{font-weight:500;font-size:16px;opacity:.9}
+.unter-k{text-align:center;color:var(--grau);font-size:17px;margin-top:12px}
+.eingabe{width:100%;height:60px;border-radius:14px;border:2px solid var(--linie);background:var(--hg);color:var(--gelb);font-family:inherit;font-weight:750;font-size:24px;padding:0 18px;margin-top:14px;letter-spacing:.06em;text-transform:uppercase}
+.eingabe.frei{text-transform:none;color:var(--text);font-weight:500}
+.fertig-kreis{width:104px;height:104px;border-radius:50%;margin:10px auto 18px;display:grid;place-items:center}.fertig-kreis.ok{background:#173525;color:var(--gruen)}.fertig-kreis.nok{background:rgba(227,190,106,.14);color:var(--gelb)}
+.fertig-gross{font-size:62px;font-weight:800;text-align:center;margin:0 0 6px;line-height:1.1}
+.drei{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:26px}
+.drei .karte .l{display:flex;align-items:center;gap:16px;color:var(--grau);font-size:18px;margin-bottom:14px}.drei .karte .sym{width:52px;height:52px}
+.drei .karte .w{font-size:19px;line-height:1.55}
+/* Protokoll, Optionen, Meldungen */
+#prot{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);z-index:48;background:var(--karte);border-left:1px solid var(--rand);display:flex;flex-direction:column;transform:translateX(102%);transition:transform .2s}
+#prot.sichtbar{transform:none}
+#prot .kopf2{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--rand)}
+#prot pre{flex:1;margin:0;overflow:auto;padding:14px 20px;font:14px/1.55 ui-monospace,Consolas,monospace;color:var(--text2);white-space:pre-wrap;overflow-wrap:anywhere}
+#menue{position:fixed;top:0;right:0;bottom:0;left:0;z-index:47;background:rgba(8,9,11,.66);display:flex;align-items:center;justify-content:center;padding:16px}
+#menue .karte{width:min(860px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:24px}
+#menue h2{font-size:26px;margin:0 0 16px}
+#menue button.op{display:flex;align-items:center;gap:18px;width:100%;text-align:left;padding:14px 18px;border:2px solid transparent;border-radius:14px;background:var(--feld);cursor:pointer;margin-top:10px}
+#menue button.op:hover,#menue button.op:focus-visible{border-color:var(--fokus);outline:none}#menue button.op:disabled{opacity:.4;cursor:default;border-color:transparent}
+#menue .op b{display:block;font-size:20px}#menue .op span.u{display:block;color:var(--grau);font-size:17px}#menue .op svg{color:var(--grau)}
+#toast{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);z-index:50;max-width:min(1100px,calc(100% - 32px));background:#2a2618;color:var(--gelb);
+ border:1px solid rgba(227,190,106,.35);border-radius:14px;padding:12px 22px;font-weight:700;font-size:18px;box-shadow:0 10px 30px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
+#toast.da{opacity:1}
+#netz{position:fixed;left:0;right:0;top:0;z-index:60;background:#3a1f1e;color:#ffd1cf;text-align:center;padding:8px 12px;font-weight:600}
+/* großer Bildschirm: die Liste füllt die Höhe, jede Spalte rollt für sich (wie am Fernseher) */
+@media (min-width:1181px) and (min-height:640px){
+ body.s-voll #haupt{display:flex;flex-direction:column}
+ body.s-voll .zwei-sp{flex:1}
+ body.s-voll .zwei-sp>.karte{display:flex;flex-direction:column}
+ /* 1.0.9 (PS5-Test 09.11.2026 17:04/17:22, da_Chris86: zu viel Leerraum - aber auch nicht alles oben, die Mitte): die Karten füllen die Höhe,
+  * Laufwerke und Schritte stehen mit maßvollem Abstand (wächst mit der Höhe, höchstens 56 px) in der Mitte der Karte, die Zeilen der
+  * Bereiche werden etwas höher */
+ body.s-voll .lw-l{flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(26px,4vh,56px);margin:12px 0}
+ body.s-voll .lw-l .lw{margin-top:0}
+ body.s-voll .schritte{flex:1;justify-content:center;gap:clamp(26px,4vh,56px);margin:12px 0 22px}
+ body.s-voll .btab td{padding-top:clamp(11px,1.5vh,20px);padding-bottom:clamp(11px,1.5vh,20px)}
+ body.s-voll #u-bt>.btab{margin:auto 0}   /* 1.0.9 (PS5-Test 09.11.2026 18:03): die Liste der Bereiche wie links die Laufwerke in die Mitte der Karte */
+ body.l-voll{height:100vh;height:100dvh;overflow:hidden}
+ body.l-voll #haupt{display:flex;flex-direction:column;padding-bottom:14px}
+ body.l-voll #liste{flex:1;min-height:0;align-items:stretch}
+ body.l-voll #bereiche,body.l-voll #mitte,body.l-voll #infofeld .karte{height:100%;overflow:auto}
+ body.l-voll #infofeld{min-height:0}
+}
+/* 1.0.9 (Rundgang 09.11.2026 20:30 bei 1440 px): drei Spalten, aber die mittlere bekommt genug Platz für Name, Schild und Größe */
+@media (min-width:1181px) and (max-width:1599px){#liste{grid-template-columns:minmax(240px,290px) minmax(0,1fr) minmax(280px,320px)}}
+@media (min-width:1181px) and (max-width:1399px){#liste{grid-template-columns:minmax(220px,240px) minmax(0,1fr) minmax(240px,260px)}.bk{gap:10px}}
+@media (max-width:1180px){#liste{grid-template-columns:270px minmax(0,1fr)}#infofeld{display:none}#infofeld.blatt{display:block}
+ #infofeld.blatt{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:45;padding:0}
+ #infofeld.blatt .karte{border-radius:20px 20px 0 0;max-height:72vh;overflow:auto;padding-bottom:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+ #infofeld.blatt .blatt-zu{display:inline-flex}
+ #hintergrund{position:fixed;top:0;right:0;bottom:0;left:0;z-index:44;background:rgba(0,0,0,.5)}
+ .zwei-sp{grid-template-columns:minmax(0,1fr)}
+ .sr .wort{display:none}.sr.an .wort{display:inline}.sv{width:18px}
+}
+@media (max-width:900px){
+ .raster3,.drei{grid-template-columns:minmax(0,1fr)}
+ #kopf{flex-wrap:wrap;gap:12px;padding-top:14px}#schritte{width:100%}
+ .marke img{width:44px;height:44px;border-radius:11px}.z1 .name{font-size:22px}#satz{font-size:15px}
+}
+@media (max-width:760px){
+ html,body{font-size:15px}
+ #liste{grid-template-columns:minmax(0,1fr);gap:12px}
+ #bereiche{flex-direction:row;overflow-x:auto;padding:8px;gap:6px;scrollbar-width:none}#bereiche::-webkit-scrollbar{display:none}
+ .ber{width:auto;flex:none;padding:8px 12px}.ber .u{display:none}.ber .n{font-size:16px}.ber .s{display:none}.ber-trenn,.summe{display:none}
+ #mitte{padding:0;background:none;border:none}.mkopf h2{font-size:22px}
+ .bk .g{min-width:0}.auf{width:28px}.bk .u{font-size:14px}.tl{padding:6px 8px}.tl .n{font-size:16px;white-space:normal}.tl .g{font-size:15px;min-width:0}
+ .marke{align-items:flex-start}.mkopf .r{margin-left:0;width:100%}.suche{flex:1;width:auto;min-width:0}
+ .bk{gap:10px;padding:8px 10px;min-height:62px}.kachel{width:42px;height:42px}
+ .bk .n{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;font-size:17px}.bk .g{font-size:16px;min-width:0}
+ .bk .schild{display:none}.tl .schild{display:none}.tl .ein{margin-left:8px}
+ .ik{padding:16px}.ik .w{font-size:20px}.karte{padding:16px 18px;border-radius:16px}
+ .lw .k{font-size:18px}.gesamt b{font-size:36px}.btab td{font-size:17px}
+ h1{font-size:26px}.ftitel .sym{width:46px;height:46px}
+ #leiste{position:sticky;bottom:var(--fh);z-index:15;padding:0 0 0}#leiste .innen{border-radius:0;border-left:none;border-right:none;padding:10px 12px}
+ #leiste .innen{gap:8px}#leiste .txt{flex-basis:100%;min-width:0}#leiste .t1{font-size:16px}#leiste .t2{font-size:13px;line-height:1.3}
+ #leiste .kn{flex:1 1 0;min-width:0;min-height:44px;font-size:14px;padding:0 8px;gap:6px;white-space:normal;line-height:1.15;border-radius:11px}#leiste .kn svg{width:18px;height:18px}
+ .halten{min-width:0;width:100%}.knoepfe{flex-direction:column}.knoepfe .kn{flex:1;white-space:normal;width:100%}
+ /* Handy: der Knopf gleich nach den Karten oben, nicht erst nach dem Speicher */
+ body.s-voll #haupt{display:flex;flex-direction:column}body.s-voll .zwei-sp{display:contents}
+ #s-k,#u-k{order:1;margin-bottom:14px}#s-wie{order:2;margin-bottom:14px}#u-bt{order:2;margin-bottom:6px}.weiter{order:3;margin:0 0 14px}#s-sp,#u-sp{order:4}#s-ch{order:5}
+ .weiter .kn{flex:1}
+ .fertig-gross{font-size:38px}
+ #fuss{gap:2px;padding:6px 8px;flex-wrap:nowrap}#fuss .kn{padding:0 6px;font-size:14px;gap:6px;min-height:40px;flex:1 1 0;min-width:0}#fuss .ks{width:24px;height:24px}#fuss .mitte-t{display:none}
+ #modal{padding:6px 14px 24px}
+}
+/* NEU 1.0.9 (da_Chris86 09.11.2026 15:55, "die Schrift ist im Verhältnis zu den Abständen zu klein"): auf großen Bildschirmen
+ * wächst nur die Schrift, nicht die Abstände - erst ab 1700 px Breite, Handy und Laptop bleiben wie sie sind */
+@media (min-width:1700px){
+ .bk .n{font-size:22px}.bk .u{font-size:17px}.bk .g{font-size:22px}
+ .tl .n{font-size:20px}.tl .u{font-size:16px}.tl .g{font-size:20px}
+ .schild{font-size:16px}.ort{font-size:15px}
+ .ber .n{font-size:22px}.ber .u{font-size:17px}.summe{font-size:17px}.summe .t{font-size:15px}
+ .mkopf h2{font-size:31px}.mkopf h2 small{font-size:19px}#b-wo{font-size:19px}#b-info{font-size:16px}.suche{font-size:17px}
+ .ib h2{font-size:27px}.ib .unter{font-size:19px}.abs .f{font-size:18px}.abs .t{font-size:20px}
+ .teil-info{font-size:18px}.teil-info .g{font-size:16px}.teil-info .schild{font-size:15px}
+ .legende>div{font-size:17px}.legende .schild{font-size:15px}.hinweis-x{font-size:18px}
+ #leiste .t1{font-size:23px}#leiste .t2{font-size:18px}#fuss .mitte-t{font-size:20px}
+ /* 1.0.9 (PS5-Test 09.11.2026 17:24, da_Chris86: die Leiste unten etwas größer) */
+ #fuss{padding:16px var(--rx)}#fuss .kn{font-size:21px;min-height:54px;gap:12px}#fuss .ks{width:38px;height:38px}#fuss .ks svg{width:20px;height:20px}
+ /* 1.0.9 (PS5-Test 09.11.2026 17:24): Kopfzeile größer */
+ #kopf{padding-top:28px;padding-bottom:18px}.marke img{width:70px;height:70px;border-radius:17px}.z1 .name{font-size:35px}.pille{font-size:15px;padding:5px 14px}
+ .sr{gap:12px}.sr .kr{width:46px;height:46px;font-size:19px}.sr .kr svg{width:22px;height:22px}.sv{width:46px}
+ /* 1.0.9 (Rundgang 09.11.2026 18:10 bei 2560 x 1300): kleine Knöpfe, Protokoll und Mitlese-Fenster größer; Fragetext und Gruppen beim
+  * Bestätigen nutzen die Höhe, damit nichts Wichtiges ("Das heißt: ...") erst durch Rollen sichtbar wird */
+ .kn.klein{font-size:17px;min-height:44px}.prot-live{font-size:16px}#prot{width:min(1000px,100%)}#prot pre{font-size:16px}
+ .frage-t{max-height:calc(100vh - 520px)}.gruppe ul{max-height:42vh}
+ #satz{font-size:21px}.sr{font-size:22px}
+ .ik .l{font-size:18px}.ik .w{font-size:26px}.ik .u{font-size:18px}
+ .lw .k{font-size:23px}.lw .k span{font-size:19px}.lw .d{font-size:19px}.kz .r{font-size:18px}
+ .schritt b{font-size:24px}.schritt span{font-size:19px}.chips .t{font-size:19px}.chip{font-size:19px}
+ .gesamt span{font-size:20px}.btab td{font-size:22px}.btab td.n2{font-size:19px}.weiter .t{font-size:23px}
+ .lz{font-size:19px}.lz .st{font-size:17px}
+ .gruppe .gk b{font-size:24px}.gruppe .gk span{font-size:18px}.gruppe li{font-size:19px}
+ .hinweise div{font-size:18px}.bleibt{font-size:18px}.unter-k{font-size:18px}.frage-t{font-size:20px}
+ .drei .karte .l{font-size:19px}.drei .karte .w{font-size:20px}
+ #menue .op b{font-size:21px}#menue .op span.u{font-size:18px}
+ /* 1.0.9 (PS5-Test 09.11.2026 17:03): die Symbole wachsen mit der Schrift */
+ .btab td.s{width:48px}.btab td.s svg,.ber .s svg{width:30px;height:30px}.lw .k svg{width:32px;height:32px}.chip svg{width:26px;height:26px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header id="kopf">
+  <div class="marke"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHAAAABwCAMAAADxPgR5AAABgFBMVEUBM9Sc7fxh3vtcquoKHY8jYapKd+DM0eUsktZUibaPk5tebJ4bcdYABWcm4v0dRHkgHyA3iLpCP0pgXmuBf4sBBhMHFTABDCUDGkrJ2PO0yOwPJU/0+P0FKG3X5PkQNHHk6vYLN4qku+YxRXBwhbQQEhstNlC80vMlO2pne6sBG2oLSa1QV3BSZZKut9B2lcslJzKRp9IXITlVdK1vd5EURJEOVbRsi8YEKYmWtuoDOayRl6w3VY8qZ9EqSYsrWK1GW4xMaqkkK0gYMlkzZK8FePdFR1PGyNQDV/Uxh/YDZvcACksJR82Gm8cJh/lmaHIBSe8Jt/0QWMukp7MFmPwKpvxkbIgWZM8sdeuEh5OGi6pNeczS1drS9/5FS2d0pvKZo7Y0NTpWhNFu6PyXsdemrMaGqem6w9VqmesAKa4Ox/1aY3g7QVQoaukxl/wxpfp5krsQ1vw3Unwx1/xTVFlMiO9xc3l6gZOSxfkhXMwveNMryvtQlvtUp/ZS5PyytLoswaJgAAAAgHRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUHpOoAABViSURBVHjarZuHQ+Lo08exrO7e3t3vbWkkAWJCaCF06QhYaCrYe1nbur339q+/M08KBNG9t8y5KiJ++M7M0+aZc1HEaJrmee+/MlLhIO/xcJw7kViJxWL474ZlyadsNoYf+I3TFEXJKg+ysYTbzXnctZwoSSLP0jRjkFwDvIwoxQJcIloplUpyMOgVeTS2bzS8zjYGDL6wN01EkwoRSaoogUAWkF4gMkwfCC8DnFfMetzRoBwNKUoqFa2WKrIMXHV+fh6w/O0mil7DJCmTyUQikdnZ9Z3yi93dF7NSbiHgSYUlCYk2kPAqbCXARYPRlURMSdWioBFgiEKRtBpVbXmGDJQ+GopYgK6vl3dbL1s7kYmjPAi2iAAExyCvJqx4ownEgbi3gFMNGjyrFd0enR40eDVtcvtI0aRayNl1kPny5bp04ZHCFtGF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" alt="" width="56" height="56"><div style="min-width:0"><div class="z1"><span class="name">PS5 Cleanup</span><span class="pille p-ver" id="ver"></span><span id="pillen"></span></div><div id="satz"></div></div></div>
+  <div id="schritte" aria-label="Schritte"></div>
+</header>
+<main id="haupt"><div class="mitte"><h1 id="lade">PS5 Cleanup</h1><p class="grau" id="lade2">Verbinde …</p></div></main>
+<div id="leiste" class="leer"></div>
+<footer id="fuss">
+  <button class="kn" id="b-menue" type="button" aria-haspopup="true"><span class="ks"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span><span class="wort"></span></button>
+  <button class="kn" id="b-ende" type="button"><span class="ks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="7"/></svg></span><span class="wort"></span></button>
+  <span class="mitte-t" id="fuss-m"></span>
+  <button class="kn" id="b-prot" type="button"><span class="ks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 3h7l4 4v14H7z"/><path d="M10 12h5M10 16h5"/></svg></span><span class="wort"></span></button>
+  <button class="kn" id="b-spr" type="button"><span class="ks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></span><span class="wort"></span></button>
+</footer>
+<aside id="prot" aria-hidden="true"><div class="kopf2"><h2 style="flex:1" id="prot-t"></h2><button class="kn klein" id="prot-stick" type="button"></button><button class="kn klein flach" id="prot-zu" type="button">✕</button></div><pre id="prot-z"></pre></aside>
+<div id="menue" class="leer" role="dialog" aria-modal="true"></div>
+<div id="modal" class="leer" role="dialog" aria-modal="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="netz" class="leer"></div>
+<script>
+"use strict";
+/* ---------------------------------------------------------------- Grundlagen */
+const $ = s => document.querySelector(s);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let ST = null, V = 0, LISTE = null, EN = false;
+const SCHL = (document.querySelector('meta[name="k"]') || {}).content || "";   /* setzt PS5 Cleanup beim Ausliefern ein (gegen fremde Webseiten) */
+const mitK = u => u + (u.includes("?") ? "&" : "?") + "k=" + encodeURIComponent(SCHL);
+let neuLaden = 0;
+function abgewiesen(r) {   /* 403: PS5 Cleanup wurde neu gestartet (neuer Schlüssel) - die Seite neu laden */
+  if (r.status !== 403) return false;
+  if (!neuLaden) neuLaden = setTimeout(() => location.reload(), 1500);
+  return true;
+}
+const L = (de, en) => EN ? en : de;
+const warte = ms => new Promise(r => setTimeout(r, ms));
+async function holen(url, ms, opt) {
+  const ab = new AbortController(), t = setTimeout(() => ab.abort(), ms);
+  try { return await fetch(url, Object.assign({ cache: "no-store", signal: ab.signal }, opt || {})); } finally { clearTimeout(t); }
+}
+async function holenJ(url, ms) {   /* GET mit JSON: die Zeitgrenze gilt bis der ganze Inhalt da ist (Codex-Prüfung 144) */
+  const ab = new AbortController(), t = setTimeout(() => ab.abort(), ms);
+  try { const r = await fetch(url, { cache: "no-store", signal: ab.signal }); return { r, j: r.status === 200 ? await r.json() : null }; } finally { clearTimeout(t); }
+}
+async function befehl(o) {   /* geht an PS5 Cleanup - dort mit denselben Prüfungen wie am Fernseher; true = angekommen */
+  try {
+    const r = await holen(mitK("/befehl"), 8000, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(o) });
+    if (abgewiesen(r)) return false;
+    if (r.ok) return true;
+    meldung(L("Nicht angekommen - bitte noch einmal.", "Did not arrive - please try again."));
+  } catch (e) { meldung(L("Keine Verbindung zu PS5 Cleanup.", "No connection to PS5 Cleanup.")); }
+  return false;
+}
+let toastZeit = 0;
+function meldung(t, ms) { const e = $("#toast"); e.textContent = t; e.classList.add("da"); clearTimeout(toastZeit); toastZeit = setTimeout(() => e.classList.remove("da"), ms || 4000); }
+
+/* ---------------------------------------------------------------- Symbole wie am Fernseher (eigene Zeichnungen, Strich) */
+const S = (p, g) => '<svg width="' + (g || 26) + '" height="' + (g || 26) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + "</svg>";
+const P = {
+  /* 1.0.9 (PS5-Test 09.11.2026 17:03/18:48, da_Chris86: "Das soll doch ein Controller sein"): ein richtiger Controller - zwei Griffe,
+   * Steuerkreuz, vier Tasten, zwei Sticks (allgemein, kein Hersteller-Design) */
+  spiele: '<path d="M7.2 6.5h9.6c2.1 0 3.6 1.3 4.1 3.3l1.3 5.6c.5 2.2-.7 3.6-2.2 3.6-1.1 0-1.8-.6-2.4-1.6l-1.2-2c-.3-.5-.8-.8-1.4-.8H9c-.6 0-1.1.3-1.4.8l-1.2 2c-.6 1-1.3 1.6-2.4 1.6-1.5 0-2.7-1.4-2.2-3.6l1.3-5.6c.5-2 2-3.3 4.1-3.3z"/><path d="M7.3 9.2v2.8M5.9 10.6h2.8"/><circle cx="16.3" cy="11.6" r=".9" fill="currentColor" stroke="none"/><circle cx="18.2" cy="9.7" r=".9" fill="currentColor" stroke="none"/>',
+  apps: '<rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/>',
+  stand: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>',
+  bild: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l5-4 3 2.5 3-2.5 3 3"/>',
+  mehr: '<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>',
+  schild: '<path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z"/>',
+  chip: '<rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10" y="10" width="4" height="4"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>',
+  scheibe: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 6.5a5.5 5.5 0 0 1 5.5 5.5"/>',
+  ssd: '<rect x="3" y="8" width="18" height="8" rx="2"/><path d="M6.5 12h5"/><circle cx="17" cy="12" r=".8" fill="currentColor"/>',
+  usb: '<rect x="7" y="9" width="10" height="12" rx="2.5"/><path d="M9 9V4h6v5M10.5 6h.01M13.5 6h.01"/>',
+  haken: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  schloss: '<rect x="5.5" y="11" width="13" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/>',
+  warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.2v.2"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
+  neu: '<path d="M19 8a7.5 7.5 0 0 0-13.4 1.5M5 16a7.5 7.5 0 0 0 13.4-1.5"/><path d="M19 4v4h-4M5 20v-4h4"/>',
+  sort: '<path d="M4 7h9M4 12h6M4 17h4M17 5v14M14 16l3 3 3-3"/>',
+  dok: '<path d="M7 3h7l4 4v14H7z"/><path d="M10 12h5M10 16h5"/>',
+  pfeil: '<path d="M9 6l6 6-6 6"/>',
+  kreuz: '<path d="M7 7l10 10M17 7L7 17"/>',
+  sprache: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17"/>',
+  aus: '<path d="M12 4v8"/><path d="M7 6.5a7 7 0 1 0 10 0"/>'
+};
+const BER_SYM = ["spiele", "apps", "stand", "trophy", "bild", "mehr", "schild"];   /* Reihenfolge wie ALLE_KAT */
+function berSym(k, g) { const i = (ST && ST.bereiche ? ST.bereiche.findIndex(b => b.k === k) : -1); return S(P[BER_SYM[i] || "mehr"], g); }
+function istJb(k) { const br = ST && ST.bereiche || []; return br.length > 0 && br[br.length - 1].k === k; }
+const SCHILD_SYM = { g: "haken", y: "neu", r: "warn" };
+function schild(a, t) { return t ? '<span class="schild s-' + esc(a || "g") + '">' + S(P[SCHILD_SYM[a] || "haken"], 15) + esc(t) + "</span>" : ""; }
+
+/* ---------------------------------------------------------------- Bilder der Kacheln: höchstens 4 gleichzeitig, nur was zu sehen ist */
+const bildWarte = [], bildFehler = {}; let bildLaeuft = 0;
+const sichtbar = "IntersectionObserver" in window ? new IntersectionObserver(es => {
+  for (const e of es) if (e.isIntersecting) { sichtbar.unobserve(e.target); beobachtet.delete(e.target); bildWarte.push(e.target); } bildPumpe();
+}, { rootMargin: "300px" }) : null;
+function bildPumpe() {
+  while (bildLaeuft < 4 && bildWarte.length) {
+    const ph = bildWarte.shift(); if (!ph.isConnected) continue;
+    const id = ph.dataset.id, img = new Image(); bildLaeuft++;
+    img.className = "kachel"; img.alt = ""; img.decoding = "async";
+    img.onload = () => { bildLaeuft--; if (ph.isConnected) ph.replaceWith(img); bildPumpe(); };
+    img.onerror = () => { bildLaeuft--; bildFehler[id] = (bildFehler[id] || 0) + 1; if (bildFehler[id] < 2) setTimeout(() => { if (ph.isConnected) { bildWarte.push(ph); bildPumpe(); } }, 2500); bildPumpe(); };
+    img.src = mitK("/bild?id=" + encodeURIComponent(id) + (bildFehler[id] ? "&n=" + bildFehler[id] : ""));
+  }
+}
+const SYM = S('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5"/>', 22);
+function kachel(id, sym) { const s = sym || SYM; return id && bildFehler[id] !== 9 ? '<div class="kachel" data-id="' + esc(id) + '">' + s + "</div>" : '<div class="kachel">' + s + "</div>"; }
+const beobachtet = new Set();   /* Codex-Prüfung 144 (P3): entfernte Platzhalter abmelden */
+function bilderAn(wurzel) {
+  if (sichtbar) for (const e of beobachtet) if (!e.isConnected) { sichtbar.unobserve(e); beobachtet.delete(e); }
+  wurzel.querySelectorAll(".kachel[data-id]").forEach(e => { if (sichtbar) { sichtbar.observe(e); beobachtet.add(e); } else bildWarte.push(e); });
+  bildPumpe();
+}
+
+/* ---------------------------------------------------------------- Verbindung: Zustand (wartet bis zu 8 s auf Neues), Liste, Protokoll */
+let netzFehler = 0;
+function netz(ok) {
+  netzFehler = ok ? 0 : netzFehler + 1;
+  const e = $("#netz");
+  if (netzFehler >= 2) { e.textContent = L("Keine Verbindung zu PS5 Cleanup - läuft es noch auf der PS5? Ich versuche es weiter …", "No connection to PS5 Cleanup - is it still running on the PS5? Retrying …"); e.classList.remove("leer"); }
+  else e.classList.add("leer");
+}
+async function schleife() {
+  for (;;) {
+    try {
+      const { r, j } = await holenJ(mitK("/zustand?v=" + V), 15000);
+      if (abgewiesen(r)) { await warte(2000); continue; }
+      if (r.status === 200) { netz(true); if (j.v < V - 1) LISTE = null; V = j.v; await zustand(j); }
+      else if (r.status === 204) { netz(true); await warte(400); }
+      else { netz(false); await warte(1500); }
+    } catch (e) { netz(false); await warte(1500); }
+  }
+}
+let listeHolt = false;
+async function listeHolen() {
+  if (listeHolt) return; listeHolt = true;
+  try {
+    for (let i = 0; i < 5; i++) {
+      const { r, j } = await holenJ(mitK("/liste"), 20000);
+      if (r.status === 200) { if (ST && j.lv < ST.lv) { await warte(300); continue; } LISTE = j; break; }
+      await warte(400);
+    }
+  } catch (e) { } finally { listeHolt = false; }
+  zeichnen();
+}
+let protAb = 0, protOffen = false, protHolt = false;
+async function protokollHolen(immer) {
+  if (protHolt || (!protOffen && !immer)) return; protHolt = true;
+  try {
+    for (let i = 0; i < 20; i++) {
+      const { r, j } = await holenJ(mitK("/protokoll?ab=" + protAb), 10000); if (!r.ok || !j) break;
+      const pre = $("#prot-z"), unten = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 30;
+      if (j.ab > protAb) pre.textContent += L("… (ältere Zeilen nicht mehr da)\n", "… (older lines no longer available)\n");
+      if (j.z.length) pre.textContent += j.z.join("\n") + "\n";
+      protAb = j.bis; if (unten) pre.scrollTop = pre.scrollHeight;
+      if (j.bis >= j.n) break;
+    }
+  } catch (e) { } finally { protHolt = false; }
+  if (immer && ST && (ST.seite === "arbeit" || ST.seite === "loeschen")) zeichnen();
+}
+
+/* ---------------------------------------------------------------- Zustand */
+let hinweisNr = -1;
+async function zustand(j) {
+  const sprachWechsel = ST && ST.sprache !== j.sprache;
+  if (ST && j.sn > ST.sn) uebersicht = true;
+  ST = j; EN = j.sprache === "en"; document.documentElement.lang = EN ? "en" : "de";
+  if (sprachWechsel) { LISTE = null; ansicht = ""; modalKey = ""; }
+  if (j.hinweis && j.hinweis.nr !== hinweisNr) meldung(j.hinweis.t);
+  hinweisNr = j.hinweis ? j.hinweis.nr : hinweisNr;
+  if (j.lv && (!LISTE || LISTE.lv !== j.lv || LISTE.fg !== j.fg)) listeHolen();
+  if (protOffen && j.pn > protAb) protokollHolen();
+  zeichnen();
+}
+/* Haken, die gerade geklickt wurden, gelten sofort (bis PS5 Cleanup dasselbe meldet oder 2 s vergangen sind) */
+const vorab = new Map();
+function wahl(i) {
+  const v = vorab.get(i);
+  if (v) { const s = ST.wahl ? ST.wahl[i] : "0"; if (s === v.w || performance.now() - v.t > 2000) vorab.delete(i); else return v.w === "1"; }
+  return ST.wahl ? ST.wahl[i] === "1" : false;
+}
+function vorabSetzen(i, an) { vorab.set(i, { w: an ? "1" : "0", t: performance.now() }); }
+
+/* ---------------------------------------------------------------- Kopf, Schritte, Fuß */
+let uebersicht = false;   /* nach dem Nachschauen erst die Übersicht (wie am Fernseher), "Weiter zur Auswahl" führt in die Liste.
+                              Hängt an der Zahl der fertigen Nachschauen "sn" von PS5 Cleanup (Codex-Prüfung 145, P3) - nicht nach "Zurück" aus einer
+                              Frage, nicht nach dem Löschen und nicht nach dem Neuladen der Seite */
+function schrittJetzt() {
+  const s = ST.seite, q = ST.frage;
+  if (s === "frage" && q && q.art === "fertig") return 4;
+  if (s === "loeschen") return 3;
+  if (s === "frage") return q && q.bestaetigen ? 3 : (ansicht === "liste" || ansicht === "uebersicht" ? 3 : 1);
+  if (s === "arbeit") return ST.arbeit && ST.arbeit.suchen ? 1 : 3;
+  if (s === "liste") return 2;
+  return 1;
+}
+function kopfZeichnen(satz) {
+  $("#ver").textContent = ST.version || "";
+  let p = "";
+  if (ST.nur_lesen) p += '<span class="pille p-blau">' + L("NUR NACHSCHAUEN", "SCAN ONLY") + "</span>";
+  if (ST.testmodus) p += '<span class="pille p-gelb">' + L("TESTMODUS", "TEST MODE") + "</span>";
+  if (ST.sim) p += '<span class="pille p-gelb">' + L("SIMULATION", "SIMULATION") + "</span>";
+  if (ST.update) p += '<span class="pille p-gruen">' + esc(L("Neue Version ", "New version ") + ST.update) + "</span>";
+  setze("#pillen", p);
+  setze("#satz", satz ? esc(satz) : "");
+  const a = schrittJetzt(), N = [L("Nachschauen", "Scan"), L("Auswählen", "Select"), L("Bestätigen", "Confirm")];
+  let h = "";
+  for (let i = 1; i <= 3; i++) {
+    const st = i < a ? "ok" : i === a ? "an" : "";
+    h += '<div class="sr ' + st + '"' + (st === "an" ? ' aria-current="step"' : "") + '><span class="kr">' + (st === "ok" ? S(P.haken, 20).replace('stroke="currentColor"', 'stroke="#fff"').replace('stroke-width="1.8"', 'stroke-width="3"') : i) + '</span><span class="wort">' + esc(N[i - 1]) + "</span></div>";
+    if (i < 3) h += '<span class="sv' + (i < a ? " ok" : "") + '"></span>';
+  }
+  setze("#schritte", h);
+}
+function kopfHoehe() {   /* Fragen liegen zwischen Kopf und Fuß - der Fuß (Protokoll) bleibt bedienbar, wie am Fernseher */
+  const k = $("#kopf"), f = $("#fuss");
+  if (k) document.documentElement.style.setProperty("--kh", k.offsetHeight + "px");
+  if (f) document.documentElement.style.setProperty("--fh", f.offsetHeight + "px");
+}
+addEventListener("resize", kopfHoehe);
+function fussZeichnen() {
+  const frei = ST.seite === "start" || ST.seite === "liste", start = ST.seite === "start" && !ST.lv;
+  $("#b-menue").querySelector(".wort").textContent = L("Optionen", "Options");
+  $("#b-ende").querySelector(".wort").textContent = L("Beenden", "Quit"); $("#b-ende").classList.toggle("leer", !frei);
+  $("#b-prot").querySelector(".wort").textContent = L("Protokoll", "Log");
+  $("#b-spr").querySelector(".wort").textContent = EN ? "Deutsch" : "English"; $("#b-spr").classList.toggle("leer", !start);
+  const m = ansicht === "liste" ? L("Klick wählt aus · Pfeil klappt auf · / sucht", "Click selects · arrow expands · / searches")
+    : ST.adresse ? (EN ? "In the browser: " : "Im Browser: ") + '<b>' + esc(ST.adresse) + "</b>" : "";
+  setze("#fuss-m", m.includes("<b>") ? m : esc(m));
+}
+
+/* ---------------------------------------------------------------- Zeichnen */
+let ansicht = "";
+function zeichnen() {
+  if (!ST) return;
+  $("#prot-t").textContent = L("Protokoll", "Log");
+  $("#prot-stick").textContent = L("Auf USB speichern", "Save to USB");
+  const vorher = ansicht;
+  let s = ST.seite === "frage" ? (ansicht ? "" : "start") : ST.seite;   /* unter einer Frage bleibt die Seite, wie sie war */
+  if (s === "liste" && uebersicht) s = "uebersicht";
+  if (ST.seite !== "liste") infoZeichnen();   /* das Info-Blatt am Handy gehört zur Liste */
+  if (s === "start") zStart(); else if (s === "uebersicht") zUebersicht(); else if (s === "arbeit") zArbeit(); else if (s === "loeschen") zLoeschen(); else if (s === "liste") zListe();
+  if (ansicht !== vorher) window.scrollTo(0, 0);
+  document.body.classList.toggle("l-voll", ansicht === "liste");
+  document.body.classList.toggle("s-voll", ansicht === "start" || ansicht === "uebersicht");
+  kopfZeichnen(ansicht === "start" || ansicht === "uebersicht" ? L("Löscht nur, was du auswählst. System, Konto und Lizenzen bleiben.", "Deletes only what you select. System, account and licenses stay.") : "");
+  fussZeichnen();
+  zFrage();
+  if (!$("#menue").classList.contains("leer")) menueBauen();
+  kopfHoehe();
+}
+function setze(sel, html) { const e = typeof sel === "string" ? $(sel) : sel; if (e && e.innerHTML !== html) e.innerHTML = html; }
+function leisteAus() { $("#leiste").classList.add("leer"); }
+
+/* Infokarten oben (Startseite und Übersicht) */
+function infoKarten() {
+  const k = ST.konsole || {}, kp = ST.kopplung || {}, jb = ST.jailbreak || {};
+  const kpc = kp.c === "g" ? "var(--gruen)" : kp.c === "y" ? "var(--gelb)" : "var(--text)";
+  let h = '<div class="karte ik"><div class="sym">' + S(P.chip, 30) + '</div><div style="min-width:0"><div class="l">' + L("Konsole", "Console") + '</div><div class="w">' + esc(k.titel) + '</div><div class="u">' + esc(k.unter) + "</div></div></div>" +
+    '<div class="karte ik"><div class="sym">' + S(P.scheibe, 30) + '</div><div style="min-width:0"><div class="l">' + L("Laufwerks-Kopplung", "Disc drive pairing") + '</div><div class="w" style="color:' + kpc + '">' + (kp.c === "g" ? S(P.haken, 24) + " " : "") + esc(kp.titel) +
+    '</div><div class="u">' + S(P.schloss, 18) + esc(L("Wird nie verändert", "Never changed")) + "</div></div></div>";
+  if (jb.titel) {
+    const tl = jb.titel.split(/,\s+/), mehr = tl.length - 1;
+    h += '<div class="karte ik jb" title="' + esc(jb.titel) + '"><div class="sym">' + S(P.schild, 30) + '</div><div style="min-width:0"><div class="l">' + L("Jailbreak erkannt", "Jailbreak detected") + '</div><div class="w">' + esc(tl[0]) +
+      '</div><div class="u">' + esc((mehr > 0 ? (EN ? "+" + mehr + " more · " : "+" + mehr + " weitere · ") : "") + L("nicht vorausgewählt", "not preselected")) + "</div></div></div>";
+  }
+  else h += '<div class="karte ik"><div class="sym">' + S(P.schild, 30) + '</div><div style="min-width:0"><div class="l">Jailbreak</div><div class="w">' + esc(jb.geprueft ? L("Kein Einstieg gefunden", "No entry found") : L("Noch nicht geprüft", "Not checked yet")) +
+    '</div><div class="u">' + esc(jb.geprueft ? L("Nichts vorausgewählt", "Nothing preselected") : L("Wird beim Nachschauen erkannt", "Detected during the scan")) + "</div></div></div>";
+  return h;
+}
+/* Speicher je Laufwerk: gefunden (blau), bleibt (grau), frei */
+function speicherKarte(nachher) {
+  let h = '<div class="kz"><h2>' + L("Speicher", "Storage") + '</h2><span class="r">' + (nachher ? L("Bleibt = System und Geschütztes", "Stays = system and protected") : L("Was weg kann, siehst du nach dem Nachschauen.", "What can go, you see after the scan.")) + "</span></div>";
+  h += '<div class="lw-l">';
+  for (const w of ST.speicher || []) {
+    const bel = Math.max(0, w.ges - w.frei), gef = nachher ? Math.min(w.gef, bel) : 0, bl = Math.max(0, bel - gef);
+    const pg = w.ges > 0 ? gef / w.ges * 100 : 0, pb = w.ges > 0 ? bl / w.ges * 100 : 0;
+    const sym = /USB/i.test(w.name) ? P.usb : P.ssd;
+    h += '<div class="lw"><div class="k">' + S(sym, 26) + "<b>" + esc(w.name) + "</b><span>" + esc(w.ges_t) + "</span></div>" +
+      '<div class="balken">' + (pg > 0 ? '<i class="gef" style="width:' + pg.toFixed(2) + '%"></i>' : "") + (pb > 0 ? '<i class="bel" style="width:' + pb.toFixed(2) + '%"></i>' : "") + "</div>" +
+      '<div class="d">' + (gef > 0 ? '<span><i style="background:var(--blau)"></i><b>' + esc(w.gef_t) + "</b> " + L("gefunden", "found") + "</span>" : "") +
+      (bl > 0 ? '<span><i style="background:var(--balken)"></i>' + esc(groesse(bl)) + " " + (nachher ? L("bleibt", "stays") : L("belegt", "used")) + "</span>" : "") +
+      '<span><i style="background:#2A2F37;border:1px solid var(--linie)"></i>' + esc(w.frei_t) + " " + L("frei", "free") + "</span></div></div>";
+  }
+  if (!(ST.speicher || []).length) h += '<p class="grau2">' + L("Wird gelesen …", "Reading …") + "</p>";
+  return h + "</div>";
+}
+/* Startseite (vor dem Nachschauen) */
+function zStart() {
+  leisteAus();
+  if (ansicht !== "start") {
+    ansicht = "start";
+    $("#haupt").innerHTML = '<div class="raster3" id="s-k"></div><div class="zwei-sp"><div class="karte" id="s-sp"></div><div class="karte" id="s-wie"><h2 id="s-so"></h2><div class="schritte" id="s-sch"></div><div class="vorher" id="s-vor"></div>' +
+      '<button class="kn haupt gross" id="s-go" type="button"></button></div></div><div class="chips" id="s-ch"></div>';
+    $("#s-go").onclick = () => befehl({ b: "nachschauen" });
+  }
+  setze("#s-k", infoKarten());
+  setze("#s-sp", speicherKarte(false));
+  $("#s-go").textContent = L("Nachschauen", "Scan");
+  setze("#s-so", esc(L("So geht's", "How it works")));
+  const SCH = [[L("Nachschauen", "Scan"), L("Nur lesen, nichts wird verändert.", "Read only, nothing is changed.")],
+    [L("Auswählen", "Select"), L("Du entscheidest, was weg soll.", "You decide what goes.")],
+    [L("Bestätigen", "Confirm"), L("Erst dann wird gelöscht.", "Only then is anything deleted.")]];
+  /* NEU 1.0.10 (da_Chris86 13.11.2026 12:45): wie am Fernseher - vor dem Nachschauen, damit die Programme sicher zu sind */
+  setze("#s-vor", "<b>" + esc(L("Vorher alle Programme schließen, die weg sollen.", "First close all programs you want to remove.")) + "</b><span>" +
+    esc(L("Am sichersten: PS5 neu starten und nur den Jailbreak und PS5 Cleanup laden.", "Safest: restart the PS5 and load only the jailbreak and PS5 Cleanup.")) + "</span>");
+  setze("#s-sch", SCH.map((x, i) => '<div class="schritt' + (i === 0 ? " an" : "") + '"><div class="nr">' + (i + 1) + "</div><div><b>" + esc(x[0]) + "</b><span>" + esc(x[1]) + "</span></div></div>").join(""));
+  const KAT = EN ? ["Games", "Apps", "Saved data", "Trophies", "Pictures & videos", "Other", "Jailbreak"] : ["Spiele", "Apps", "Spielstände", "Trophäen", "Bilder & Videos", "Sonstiges", "Jailbreak"];
+  setze("#s-ch", '<span class="t">' + esc(L("Gesucht wird nach", "Looking for")) + "</span>" + KAT.map((x, i) => '<span class="chip">' + S(P[BER_SYM[i]], 22) + esc(x) + "</span>").join(""));
+}
+/* Übersicht nach dem Nachschauen (wie am Fernseher) */
+function zUebersicht() {
+  leisteAus();
+  if (ansicht !== "uebersicht") {
+    ansicht = "uebersicht";
+    $("#haupt").innerHTML = '<div class="raster3" id="u-k"></div><div class="zwei-sp"><div class="karte" id="u-sp"></div><div class="karte" id="u-bt"></div></div>' +
+      '<div class="weiter"><div class="t" id="u-t"></div><button class="kn gross" id="u-neu" type="button"></button><button class="kn haupt gross" id="u-weiter" type="button"></button></div>';
+    $("#u-neu").onclick = () => befehl({ b: "nachschauen" });
+    $("#u-weiter").onclick = () => { uebersicht = false; zeichnen(); };
+    $("#u-bt").onclick = e => { const r = e.target.closest("tr[data-k]"); if (!r) return; ber = +r.dataset.k; markiert = -1; markBlock = null; listeKey = ""; uebersicht = false; zeichnen(); };
+  }
+  setze("#u-k", infoKarten());
+  setze("#u-sp", speicherKarte(true));
+  const lw = (ST.speicher || []).filter(w => w.gef > 0).length;
+  const nochNull = !!ST.zaehlt && (!ST.summe || /^0 /.test(ST.summe));   /* 1.0.9 (PS5-Test 09.11.2026 17:04): nicht "0 Byte", solange gezählt wird */
+  let h = '<div class="gesamt"><b>' + esc(nochNull ? L("Wird gezählt …", "Counting …") : ST.summe || "") + "</b><span>" + esc(nochNull ? "" : lw ? (EN ? "found on " + lw + (lw === 1 ? " drive" : " drives") : "gefunden auf " + lw + (lw === 1 ? " Laufwerk" : " Laufwerken")) : L("gefunden", "found")) + '</span></div><table class="btab"><tbody>';
+  const namen = LISTE && LISTE.fg === ST.fg ? LISTE.bereiche : [];
+  for (const b of ST.bereiche || []) {
+    if (!b.n) continue;
+    const nm = (namen.find(x => x.k === b.k) || {}).name || "";
+    h += '<tr data-k="' + b.k + '"' + (istJb(b.k) ? ' class="jb"' : "") + '><td class="s">' + berSym(b.k, 24) + "</td><td>" + esc(nm) + '</td><td class="n2">' + b.n + '</td><td class="g">' + esc(b.g) + "</td></tr>";
+  }
+  h += "</tbody></table>" + (ST.zaehlt ? '<div class="grau2" style="margin-top:10px">' + esc(ST.zaehlt) + "</div>" : "");
+  setze("#u-bt", h);
+  setze("#u-t", esc(L("Als Nächstes wählst du aus, was weg soll.", "Next you choose what should go.")));
+  $("#u-neu").textContent = L("Nochmal nachschauen", "Scan again");
+  $("#u-weiter").textContent = L("Weiter zur Auswahl", "Continue to selection");
+}
+/* Nachschauen bzw. Vorbereiten läuft */
+function zArbeit() {
+  leisteAus();
+  const a = ST.arbeit || {};
+  if (ansicht !== "arbeit") {
+    ansicht = "arbeit";
+    $("#haupt").innerHTML = '<div class="mitte"><div class="karte" style="padding:30px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap"><h1 id="a-t"></h1><span class="grau" id="a-s" style="font-size:18px"></span></div>' +
+      '<div class="grau" id="a-st" style="font-size:19px"></div><div class="fort" id="a-f"><i></i></div><p class="grau2" id="a-u" style="font-size:17px"></p><div class="prot-live" id="a-p"></div>' +
+      '<div class="knoepfe" style="justify-content:flex-end"><button class="kn" id="a-ab" type="button"></button></div></div></div>';
+    $("#a-ab").onclick = () => befehl({ b: "abbrechen" });
+  }
+  $("#a-t").textContent = a.titel || ""; $("#a-st").textContent = a.stand || "";
+  protLive("#a-p");
+  $("#a-s").textContent = a.seit ? L("läuft seit ", "running for ") + dauer(a.seit) : "";
+  const f = $("#a-f"); f.classList.toggle("unb", !(a.prozent >= 0)); f.firstChild.style.width = (a.prozent >= 0 ? Math.min(100, a.prozent) : 30) + "%";
+  $("#a-u").textContent = a.unten || "";
+  const b = $("#a-ab"); b.textContent = L("Abbrechen", "Cancel"); b.classList.toggle("leer", !a.abbrechbar);
+}
+function protLive(sel) {   /* die letzten Zeilen des Protokolls direkt auf der Seite (wie am Fernseher) */
+  if (ST.pn > protAb) protokollHolen(true);
+  const z = $("#prot-z").textContent.split("\n").filter(x => x).slice(-14).join("\n"), e = $(sel);
+  if (e && e.textContent !== z) { e.textContent = z; e.scrollTop = e.scrollHeight; }
+}
+function groesse(b) {   /* wie die App (kern_groesse_text): 1024er Schritte, Komma */
+  const E = ["Byte", "KB", "MB", "GB", "TB"]; let i = 0; while (b >= 1024 && i < 4) { b /= 1024; i++; }
+  const t = i === 0 ? String(Math.round(b)) : b.toFixed(i === 1 ? 0 : (i === 4 && b < 10 ? 2 : 1));
+  return (EN ? t : t.replace(".", ",")) + " " + E[i];
+}
+function dauer(s) { return s < 60 ? s + " s" : Math.floor(s / 60) + " min " + (s % 60) + " s"; }
+/* Löschen läuft */
+function zLoeschen() {
+  leisteAus();
+  const a = ST.arbeit || {};
+  if (ansicht !== "loeschen") {
+    ansicht = "loeschen";
+    $("#haupt").innerHTML = '<div class="mitte"><div class="karte" style="padding:30px"><h1 id="l-t"></h1><div class="grau" id="l-n" style="font-size:19px"></div><div class="fort" id="l-f"><i></i></div>' +
+      '<div><div class="grau" id="l-fl" style="font-size:17px"></div><div class="frei-g" id="l-fr"></div></div>' +
+      '<div class="zeilen" id="l-z"></div><p class="grau2" id="l-u" style="font-size:17px"></p><div class="prot-live" id="l-p"></div><div class="knoepfe" style="justify-content:flex-end"><button class="kn" id="l-an" type="button"></button></div></div></div>';
+    $("#l-an").onclick = () => befehl({ b: "anhalten" });
+  }
+  $("#l-t").textContent = a.titel || "";
+  /* NEU 1.0.9 (Codex-Prüfung 146): nr zählt der Kern schon für den laufenden Eintrag (wie am Fernseher: "Eintrag nr von n", davor
+   * "Wird vorbereitet"), der Balken folgt dem Fortschritt des Kerns (Bytes, sonst Einträge vor dem laufenden) - bis hier "nr + 1" */
+  $("#l-n").textContent = a.n ? (a.nr > 0 ? (EN ? "Entry " + Math.min(a.nr, a.n) + " of " + a.n : "Eintrag " + Math.min(a.nr, a.n) + " von " + a.n) : L("Wird vorbereitet …", "Preparing …")) : "";
+  const f = $("#l-f"), pz = a.prozent >= 0 ? a.prozent : (a.n && a.nr > 0 ? (a.nr - 1) / a.n * 100 : 0);
+  f.classList.toggle("unb", !a.n || a.prozent < 0); f.firstChild.style.width = (a.n ? Math.max(0, Math.min(100, pz)) : 30) + "%";
+  $("#l-fl").textContent = a.frei_l || ""; $("#l-fr").textContent = a.frei || "";
+  const ZT = [[L("läuft …", "running …"), "c-t", "var(--fokus)"], [L("erledigt", "done"), "c-g"], [L("Fehler", "error"), "c-r"], [L("unverändert", "unchanged"), "c-d"]];
+  let z = "";
+  (a.zeilen || []).forEach(x => {
+    const t = ZT[x.z] || ZT[0];
+    z += '<div class="lz">' + kachel(x.i, x.k ? berSym(x.k, 22) : null) + '<span class="n">' + esc(x.n) + '</span><span class="grau">' + esc(x.g || "") + '</span><span class="st ' + t[1] + '"' + (t[2] ? ' style="color:' + t[2] + '"' : "") + ">" + esc(t[0]) + "</span></div>";
+  });
+  if (a.rest > 0) z += '<div class="lz grau2">' + esc(EN ? "+ " + a.rest + " waiting" : "+ " + a.rest + " warten") + "</div>";
+  const zl = $("#l-z"); if (zl.innerHTML !== z) { zl.innerHTML = z; bilderAn(zl); zl.scrollTop = zl.scrollHeight; }
+  $("#l-u").textContent = a.unten || "";
+  protLive("#l-p");
+  const b = $("#l-an"); b.textContent = a.haelt_an ? L("Hält nach diesem Eintrag an …", "Stopping after this entry …") : L("Anhalten", "Stop");
+  b.disabled = !a.anhaltbar; b.classList.toggle("leer", !a.anhaltbar && !a.haelt_an);
+}
+
+/* ---------------------------------------------------------------- Auswahl: Bereiche links, Einträge Mitte, Kasten rechts (wie am Fernseher) */
+let markBlock = null;   /* {k, nr}: ganzer Block rechts (da_Chris86 21:34: "Orbit Store 36 KB" bei 208 MB im Block) */
+let ber = -1, offen = new Set(), markiert = -1, filter = "", azSort = false, listeKey = "";
+function zListe() {
+  if (ansicht !== "liste") {
+    ansicht = "liste"; listeKey = "";
+    $("#haupt").innerHTML = '<div id="liste"><nav id="bereiche" class="karte" aria-label="Bereiche"></nav><section id="mitte" class="karte"><div class="mkopf"><h2 id="b-titel"></h2><div class="r">' +
+      '<input class="suche" id="suche" type="search" autocomplete="off"><button class="kn klein" id="sort" type="button"></button></div></div><div id="b-wo"></div><div id="b-info"></div><div id="bloecke"></div></section>' +
+      '<aside id="infofeld"></aside></div>';
+    $("#suche").oninput = e => { filter = e.target.value.trim().toLowerCase(); listeKey = ""; zListe(); };
+    $("#sort").onclick = () => { azSort = !azSort; listeKey = ""; zListe(); };
+    $("#bloecke").onclick = blockKlick; $("#bloecke").onchange = blockHaken;
+    $("#bereiche").onchange = e => { const c = e.target.closest("input[data-bk]"); if (!c) return; const k = +c.dataset.bk, b = (ST.bereiche || []).find(x => x.k === k); c.checked = b && b.z === 2; befehl({ b: "bereich", fg: ST.fg, k }); };
+    const berWahl = e => { if (e.target.closest("input,label")) return; const b = e.target.closest(".ber"); if (!b || b.classList.contains("aus")) return; ber = +b.dataset.k; markiert = -1; markBlock = null; infoBlatt = false; listeKey = ""; zListe(); if (matchMedia("(max-width:760px)").matches) $("#mitte").scrollIntoView({ block: "start", behavior: "smooth" }); };
+    $("#bereiche").onclick = berWahl;
+    $("#bereiche").onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("ber")) { e.preventDefault(); berWahl(e); } };
+  }
+  $("#suche").placeholder = L("Suchen …", "Search …");
+  $("#sort").innerHTML = S(P.sort, 20) + esc(azSort ? "A–Z" : L("Größte zuerst", "Largest first"));
+  if (!LISTE || LISTE.fg !== ST.fg) { setze("#bloecke", '<div class="nichts">' + L("Liste wird geladen …", "Loading list …") + "</div>"); leiste(); return; }
+  /* Bereiche: Haken wählt den ganzen Bereich, Klick auf den Namen zeigt ihn */
+  const br = ST.bereiche || [];
+  if (ber < 0 || !br.some(b => b.k === ber && b.n > 0)) { const e = br.find(b => b.n > 0); ber = e ? e.k : (br[0] ? br[0].k : 1); }
+  let h = "";
+  br.forEach((b, i) => {
+    const lb = LISTE.bereiche.find(x => x.k === b.k) || {}, jb = i === br.length - 1;
+    if (jb) h += '<div class="ber-trenn"></div>';
+    h += '<div class="ber' + (b.k === ber ? " an" : "") + (b.n ? "" : " aus") + (jb ? " jb" : "") + '" data-k="' + b.k + '" role="button" tabindex="' + (b.n ? 0 : -1) + '">' +
+      '<label class="trefferfl"><input class="chk" type="checkbox" data-bk="' + b.k + '" aria-label="' + esc(L("Ganzen Bereich wählen: ", "Select whole section: ") + (lb.name || "")) + '"></label>' +
+      '<span class="s">' + berSym(b.k, 24) + '</span><span class="tx"><span class="n">' + esc(lb.name) + '</span><span class="u">' + esc(String(b.unter || "").replace(/(\d) (?=[A-Za-zäöüÄÖÜ])/g, "$1\u00a0")) + "</span></span></div>";   /* "795,1 GB" bleibt zusammen */
+  });
+  const le = ST.leiste || {};
+  h += '<div class="summe"><div class="t">' + esc(L("Überblick", "Overview")) + '</div><div class="z"><span>' + esc(L("Gefunden", "Found")) + "</span><b>" + esc(ST.zaehlt && (!ST.summe || /^0 /.test(ST.summe)) ? L("wird gezählt …", "counting …") : ST.summe || "") + "</b></div>" +
+    '<div class="z"><span>' + esc(L("Ausgewählt", "Selected")) + "</span><b>" + esc(le.n ? (le.t1 || "").replace(/^[^:]*:\s*/, "") : L("nichts", "nothing")) + "</b></div>" +
+    (ST.zaehlt ? '<div class="grau2" style="font-size:14px;margin-top:4px">' + esc(ST.zaehlt) + "</div>" : "") + "</div>";
+  setze("#bereiche", h);
+  document.querySelectorAll("#bereiche input[data-bk]").forEach(c => { const b = br.find(x => x.k === +c.dataset.bk) || {}; c.checked = b.z === 2; c.indeterminate = b.z === 1; c.disabled = !b.n || !ST.leiste; });
+  /* Mitte: Kopf, "Wo nichts anderes steht", Einträge */
+  const lb = LISTE.bereiche.find(x => x.k === ber) || { bl: [] }, sb = br.find(b => b.k === ber) || {};
+  let gw = 0, gm = 0; for (const b of lb.bl) for (const t of b.t) { const e = LISTE.e[t.e]; if (!e || e.x) continue; gm++; if (wahl(t.e)) gw++; }
+  setze("#b-titel", esc(lb.name) + (gw ? "<small>" + esc(EN ? gw + " selected" : gw + " ausgewählt") + "</small>" : ""));
+  const zahl = {}; for (const b of lb.bl) if (b.s) zahl[b.a + "|" + b.s] = (zahl[b.a + "|" + b.s] || 0) + 1;
+  const haeufig = Object.keys(zahl).sort((a, b) => zahl[b] - zahl[a])[0] || "";
+  const [ha, hs] = haeufig.split("|");
+  setze("#b-wo", hs ? esc(L("Wo nichts anderes steht:", "Unless stated otherwise:")) + " " + schild(ha, hs) : "");
+  const nurEinzeln = lb.einzeln && !/einzeln|individually|one by one/i.test(lb.info || "");   /* nicht zweimal (Jailbreak sagt es schon selbst) */
+  setze("#b-info", nurEinzeln ? esc(L("Hier nur einzeln wählbar.", "Individually only here.")) : "");
+  const key = [LISTE.lv, ber, filter, azSort, EN, haeufig].join("|");
+  if (key !== listeKey) {
+    listeKey = key;
+    let bl = lb.bl.map((b, n) => Object.assign({ nr: n }, b));
+    if (filter) bl = bl.filter(b => (b.name || "").toLowerCase().includes(filter) || b.t.some(t => (t.n || "").toLowerCase().includes(filter) || (LISTE.e[t.e].n || "").toLowerCase().includes(filter)));
+    if (azSort) bl.sort((a, b) => (a.kopf < 0) - (b.kopf < 0) || (a.gr || 0) - (b.gr || 0) || (a.name || "").localeCompare(b.name || "", EN ? "en" : "de", { sensitivity: "base" }));
+    let x = "";
+    for (const b of bl) x += blockHtml(b, haeufig);
+    if (!bl.length) x = '<div class="nichts">' + (filter ? L("Nichts gefunden.", "Nothing found.") : L("Hier gibt es nichts zu tun.", "Nothing to do here.")) + "</div>";
+    $("#bloecke").innerHTML = x; bilderAn($("#bloecke"));
+  }
+  hakenAktualisieren();
+  infoZeichnen();
+  leiste();
+}
+const PFEIL = S(P.pfeil, 22);
+function blockHtml(b, haeufig) {
+  const reste = b.kopf < 0, mehr = b.t.length > 1 || reste, ok = offen.has(ber + ":" + b.nr) || (filter && mehr);
+  const e0 = !mehr && b.t[0] ? LISTE.e[b.t[0].e] || {} : {};
+  const unter = mehr ? (EN ? b.t.length + " parts" : b.t.length + " Teile") : [e0.w, e0.o].filter(Boolean).join(" · ");
+  const nm = !mehr && e0.n ? e0.n : b.name;   /* 1.0.9 (PS5-Test 09.11.2026 20:15): wie am Fernseher - oben der Name, darunter was es ist */
+  const zeig = (b.a + "|" + b.s) !== haeufig;   /* wie am Fernseher: in der zugeklappten Zeile das Schild nur, wenn es vom üblichen abweicht -
+                                                 * NEU 1.0.9 (da_Chris86 09.11.2026 15:55): aufgeklappt hat jeder Teil sein Schild, wie rechts im Kasten */
+  let h = '<div class="block' + (ok ? " offen" : "") + '" data-nr="' + b.nr + '"><div class="bk"><label class="trefferfl"><input class="chk" type="checkbox" data-art="block" data-kopf="' + b.kopf + '" aria-label="' + esc(b.name) + '"></label>' +
+    (reste ? '<div class="kachel">' + SYM + "</div>" : kachel(b.i, berSym(ber, 22))) +
+    '<div class="mitte2" data-i="' + b.kopf + '"><div class="n">' + esc(nm) + '</div><div class="u">' + esc(unter) + "</div></div>" + (zeig ? schild(b.a, b.s) : "") +
+    '<div class="g">' + esc(b.g) + "</div>" + '<button class="auf' + (mehr ? "" : " leer2") + '" type="button" aria-label="' + esc(L("Teile zeigen", "Show parts")) + '"' + (mehr ? "" : ' tabindex="-1"') + ">" + PFEIL + "</button></div>";
+  if (mehr) {
+    h += '<div class="teile">';
+    for (const t of b.t) {
+      const e = LISTE.e[t.e] || {};
+      h += '<div class="tl' + (e.x ? " gesperrt" : "") + '" data-e="' + t.e + '"><span class="ein"></span>' +
+        (e.x ? '<span class="schloss-k" title="' + esc(e.xg || "") + '">' + S(P.schloss, 16) + '</span><input class="chk leer" type="checkbox" data-art="wahl" data-e="' + t.e + '" disabled>'
+             : '<label class="trefferfl"><input class="chk" type="checkbox" data-art="wahl" data-e="' + t.e + '" aria-label="' + esc(t.n) + '"></label>') +
+        '<div class="mitte2" data-i="' + t.e + '"><div class="n">' + esc(t.n || e.n) + (e.o ? ' <span class="ort">' + esc(e.o) + "</span>" : "") + "</div>" +
+        (e.x ? '<div class="u">' + esc(e.xg || L("nicht wählbar", "not selectable")) + "</div>" : "") + "</div>" +
+        schild(e.a, e.s) + '<div class="g">' + esc(e.g || "") + "</div></div>";
+    }
+    h += "</div>";
+  }
+  return h + "</div>";
+}
+function blockDaten(nr) { const lb = LISTE.bereiche.find(x => x.k === ber); return lb ? lb.bl[nr] : null; }
+function blockZustand(b) {   /* 0 nichts, 1 teils, 2 alles; -1 = nichts wählbar */
+  let m = 0, w = 0; for (const t of b.t) { const e = LISTE.e[t.e]; if (!e || e.x) continue; m++; if (wahl(t.e)) w++; }
+  return m === 0 ? -1 : w === 0 ? 0 : w === m ? 2 : 1;
+}
+function hakenAktualisieren() {
+  const gesperrt = !ST.leiste;
+  document.querySelectorAll("#bloecke .block").forEach(el => {
+    const b = blockDaten(+el.dataset.nr); if (!b) return;
+    const z = blockZustand(b), c = el.querySelector('.bk input');
+    c.checked = z === 2; c.indeterminate = z === 1; c.disabled = z < 0 || gesperrt;
+    el.querySelectorAll(".tl").forEach(tl => {
+      const i = +tl.dataset.e, e = LISTE.e[i] || {}, ci = tl.querySelector("input");
+      if (ci) { ci.checked = wahl(i); ci.disabled = !!e.x || gesperrt; } tl.classList.toggle("markiert", i === markiert);
+    });
+    el.classList.toggle("markiert", (markBlock && markBlock.k === ber && markBlock.nr === +el.dataset.nr) || (b.kopf >= 0 && b.kopf === markiert && !el.classList.contains("offen")));
+  });
+}
+function blockKlick(e) {
+  const auf = e.target.closest(".auf"), bl = e.target.closest(".block");
+  if (auf && bl) { if (auf.classList.contains("leer2")) return; const k = ber + ":" + bl.dataset.nr; if (offen.has(k)) offen.delete(k); else offen.add(k); bl.classList.toggle("offen"); return; }
+  const m = e.target.closest(".mitte2");
+  if (m) {
+    const i = +m.dataset.i, kopf = !!m.closest(".bk"), b = bl ? blockDaten(+bl.dataset.nr) : null;
+    if (kopf && b && (b.t.length > 1 || b.kopf < 0)) {   /* Block mit Teilen: der ganze Block rechts, die Teile aufgeklappt */
+      offen.add(ber + ":" + bl.dataset.nr); bl.classList.add("offen");
+      markBlock = { k: ber, nr: +bl.dataset.nr }; markiert = -1; hakenAktualisieren(); infoZeichnen(true); return;
+    }
+    if (i < 0) return;
+    markBlock = null; markiert = i; befehl({ b: "info", fg: ST.fg, i }); hakenAktualisieren(); infoZeichnen(true);
+  }
+}
+function blockHaken(e) {
+  const c = e.target; if (!c.matches("input.chk")) return;
+  if (c.dataset.art === "wahl") {
+    const i = +c.dataset.e; vorabSetzen(i, c.checked); befehl({ b: "wahl", fg: ST.fg, i });
+  } else {
+    const bl = c.closest(".block"), b = blockDaten(+bl.dataset.nr), reste = b.kopf < 0;
+    if (b.t.length === 1 && !reste) { vorabSetzen(b.t[0].e, c.checked); }
+    else {   /* wie am Fernseher: was nur einzeln geht, hakt der Kopf nicht mit an */
+      let frei = 0, an = 0, alle = 0;
+      for (const t of b.t) { const x = LISTE.e[t.e]; if (!x || x.x) continue; if (wahl(t.e)) alle++; if (x.e) continue; frei++; if (wahl(t.e)) an++; }
+      if (frei || alle) { const ein = frei > 0 && an < frei; for (const t of b.t) { const x = LISTE.e[t.e]; if (!x || x.x || (ein && x.e)) continue; vorabSetzen(t.e, ein); } }
+      else { offen.add(ber + ":" + bl.dataset.nr); bl.classList.add("offen"); }   /* nur einzeln: die Teile zeigen */
+    }
+    befehl({ b: "block", fg: ST.fg, k: ber, kopf: b.kopf });
+  }
+  hakenAktualisieren(); leiste();
+}
+let infoBlatt = false;
+function infoZeichnen(oeffnen) {
+  const f = $("#infofeld");
+  if (!f || ST.seite !== "liste") { infoBlatt = false; const h = $("#hintergrund"); if (h) h.remove(); if (f) f.classList.remove("blatt"); return; }   /* Codex-Prüfung 144 (P2) */
+  if (oeffnen) infoBlatt = true;
+  const klein = matchMedia("(max-width:1180px)").matches;
+  f.classList.toggle("blatt", klein && infoBlatt);
+  let hg = $("#hintergrund");
+  if (klein && infoBlatt && !hg) { hg = document.createElement("div"); hg.id = "hintergrund"; hg.onclick = () => { infoBlatt = false; infoZeichnen(); }; document.body.appendChild(hg); }
+  if (!(klein && infoBlatt) && hg) hg.remove();
+  const inf = ST.info && ST.info.e === markiert ? ST.info : null;
+  const mb = markBlock && markBlock.k === ber && LISTE ? blockDaten(markBlock.nr) : null;
+  const zu = '<button class="kn klein flach blatt-zu" type="button" id="info-zu" style="float:right">✕</button>';
+  let h = '<div class="karte">';
+  if (mb) {
+    const bz = blockZustand(mb), reste = mb.kopf < 0;
+    h += zu + '<div class="ib"><div class="bild">' + (reste ? '<div class="kachel">' + SYM + "</div>" : kachel(mb.i, berSym(ber, 22))) + "</div><h2>" + esc(mb.name) + '</h2><div class="unter">' +
+      esc((EN ? mb.t.length + " parts" : mb.t.length + " Teile") + " · " + mb.g) + "</div></div>";
+    if (mb.da) h += '<div class="abs"><div class="f">' + L("Was passiert danach?", "What happens then?") + '</div><div class="t c-' + esc(mb.a || "g") + '">' + esc(mb.da) + "</div></div>";
+    h += '<div class="abs"><div class="f">' + L("Teile", "Parts") + "</div>";
+    for (const t of mb.t) {
+      const e = LISTE.e[t.e] || {};
+      h += '<button type="button" class="teil-info" data-e="' + t.e + '"><span class="n">' + (wahl(t.e) ? "✓ " : "") + esc(t.n || e.n) +
+        (e.x ? '<span class="grau2"> · 🔒 ' + esc(e.xg || L("nicht wählbar", "not selectable")) + "</span>" : e.o ? '<span class="grau2"> · ' + esc(e.o) + "</span>" : "") +
+        "</span>" + schild(e.a, e.s) + '<span class="g">' + esc(e.g || "") + "</span></button>";
+    }
+    h += '</div><p class="grau2" style="font-size:15px;margin:10px 0 0">' + L("Auf ein Teil klicken für die Einzelheiten.", "Click a part for details.") + "</p>";
+    if (bz >= 0 && ST.leiste) h += '<div class="knoepfe"><button class="kn' + (bz === 2 ? "" : " haupt") + '" type="button" id="info-b">' + (bz === 2 ? L("Block abwählen", "Deselect block") : L("Ganzen Block wählen", "Select whole block")) + "</button></div>";
+  }
+  else if (markiert < 0) {   /* wie am Fernseher: der Bereich selbst, dazu die Farben der Schildchen */
+    const lb = LISTE && LISTE.bereiche.find(x => x.k === ber) || {}, sb = (ST.bereiche || []).find(b => b.k === ber) || {};
+    h += '<div class="ib"><div class="bild"><div class="sym"' + (istJb(ber) ? ' style="color:var(--orange)"' : "") + ">" + berSym(ber, 58) + "</div></div><h2>" + esc(lb.name) + '</h2><div class="unter">' + esc(sb.unter || "") + "</div></div>";
+    if (lb.info) h += '<div class="abs"><div class="f">' + L("Was ist das?", "What is this?") + '</div><div class="t">' + esc(lb.info) + "</div></div>";
+    h += '<div class="hinweis-x">' + esc(L("Der Haken links beim Bereich wählt den ganzen Bereich, ohne was endgültig weg wäre. Klick auf einen Eintrag zeigt, was gelöscht wird und was danach passiert.",
+      "The box next to the section selects the whole section, without anything that would be gone for good. Click an entry to see what is deleted and what happens then.")) + "</div>";
+    const FA = [["g", L("kommt wieder", "comes back"), L("Geht nichts verloren oder kommt von selbst wieder.", "Nothing is lost, or it comes back by itself.")],
+      ["y", L("neu laden", "reinstall"), L("Lässt sich zurückholen: neu installieren, neu laden oder neu einrichten.", "Can be brought back: reinstall, download again or set up again.")],
+      ["r", L("endgültig weg", "gone for good"), L("Endgültig weg oder Inhalt unklar - genau hinschauen.", "Gone for good or content unclear - look closely.")]];
+    h += '<div class="abs"><div class="f">' + L("Was die Farben heißen", "What the colors mean") + '</div><div class="legende">' +
+      FA.map(x => "<div>" + schild(x[0], x[1]) + "<span>" + esc(x[2]) + "</span></div>").join("") + "</div></div>";
+  }
+  else if (!inf) h += '<p class="grau">' + L("Einen Moment …", "One moment …") + "</p>";
+  else {
+    h += zu + '<div class="ib"><div class="bild">' + kachel(inf.i, berSym(ber, 22)) + "</div><h2>" + esc(inf.titel) + '</h2><div class="unter">' + esc(inf.unter) + "</div></div>";
+    for (const a of inf.abs || []) h += '<div class="abs">' + (a.f ? '<div class="f">' + esc(a.f) + "</div>" : "") + '<div class="t c-' + esc(a.c) + '">' + esc(a.t) + "</div></div>";
+    const c = ST.wahl && LISTE && LISTE.e[markiert] && !LISTE.e[markiert].x;
+    if (c) h += '<div class="knoepfe"><button class="kn' + (wahl(markiert) ? "" : " haupt") + '" type="button" id="info-w">' + (wahl(markiert) ? L("Abwählen", "Deselect") : L("Auswählen", "Select")) + "</button></div>";
+  }
+  h += "</div>";
+  if (f.innerHTML !== h) {
+    f.innerHTML = h; bilderAn(f);
+    const z = $("#info-zu"); if (z) z.onclick = () => { infoBlatt = false; infoZeichnen(); };
+    f.querySelectorAll(".teil-info").forEach(x => x.onclick = () => { markBlock = null; markiert = +x.dataset.e; befehl({ b: "info", fg: ST.fg, i: markiert }); hakenAktualisieren(); infoZeichnen(); });
+    const bb = $("#info-b"); if (bb && mb) bb.onclick = () => { const c = document.querySelector('#bloecke .block[data-nr="' + markBlock.nr + '"] .bk input'); if (c) { c.checked = !c.checked; c.dispatchEvent(new Event("change", { bubbles: true })); } infoZeichnen(); };
+    const w = $("#info-w"); if (w) w.onclick = () => { if (!ST.leiste) return; vorabSetzen(markiert, !wahl(markiert)); befehl({ b: "wahl", fg: ST.fg, i: markiert }); hakenAktualisieren(); infoZeichnen(); leiste(); };
+  }
+}
+addEventListener("resize", () => { if (ansicht === "liste") infoZeichnen(); });
+function leiste() {
+  const l = ST.leiste, el = $("#leiste");
+  if (!l || ST.seite === "frage" || ansicht !== "liste") { el.classList.add("leer"); return; }
+  el.classList.remove("leer");
+  if (!el.firstChild) {
+    el.innerHTML = '<div class="innen"><div class="txt"><div class="t1" id="le-1"></div><div class="t2" id="le-2"></div></div>' +
+      '<button class="kn rand-rot" id="le-k" type="button"></button><button class="kn" id="le-a" type="button"></button></div>';
+    $("#le-k").onclick = () => befehl({ b: "komplett", fg: ST.fg });
+    $("#le-a").onclick = () => befehl({ b: "auswahl_loeschen", fg: ST.fg });
+  }
+  $("#le-1").textContent = l.t1; const t2 = $("#le-2"); t2.className = "t2 c-" + (l.c2 || "d");
+  t2.textContent = ST.testmodus && !ST.nur_lesen ? L("Testmodus ist an: es wird nur angeschaut. Zum Löschen unten bei Optionen ausschalten.", "Test mode is on: only looking. To delete, turn it off under Options below.") : (l.t2 || "");
+  $("#le-k").innerHTML = S(P.warn, 22) + esc(L("Vollständige Bereinigung", "Full cleanup")); $("#le-k").disabled = !l.komplett;
+  const a = $("#le-a"); a.innerHTML = S(P.kreuz, 22) + esc(L("Nur Auswahl löschen", "Delete selection only")); a.disabled = !l.auswahl; a.classList.toggle("haupt", !!l.auswahl);
+}
+
+/* ---------------------------------------------------------------- Fragen (Bestätigen, LÖSCHEN eintippen, Frage, Fehler, Fertig) - als eigene Seite wie am Fernseher */
+let modalKey = "";
+function zFrage() {
+  const m = $("#modal"), q = ST.frage;
+  if (ST.seite !== "frage" || !q) { if (modalKey && modalKey !== "ende") {   /* die eigene Frage "Beenden?" bleibt, bis man sie beantwortet */ m.classList.add("leer"); m.innerHTML = ""; modalKey = ""; document.body.style.overflow = ""; } return; }
+  $("#leiste").classList.add("leer");
+  const key = q.nr + ":" + q.art + ":" + EN;
+  if (key !== modalKey) {
+    modalKey = key; m.classList.remove("leer"); document.body.style.overflow = "hidden"; m.scrollTop = 0;
+    m.innerHTML = '<div class="seite">' + frageHtml(q) + "</div>";
+    frageVerdrahten(q);
+    bilderAn(m);
+    const f = m.querySelector("[data-fokus]"); if (f) setTimeout(() => f.focus(), 30);
+  } else if (q.bestaetigen && q.tippen) { /* nichts: das Feld gehört dem Browser */ }
+}
+const BLEIBT = () => [L("Systemsoftware", "System software"), L("Laufwerks-Kopplung", "Disc drive pairing"), L("Benutzerkonto", "User account"), L("echte Lizenzen", "real licenses")];
+/* NEU 1.0.9 (PS5-Test da_Chris86 09.11.2026 16:09): der Satz zur Kachel nennt die Controller-Tasten - im Browser heißen sie "Beenden"/"Neu starten" */
+function fuerBrowser(t) {
+  return t.replace("gleich nachdem du ✕ oder ○ gedrückt hast", "gleich nachdem du „Beenden“ oder „Neu starten“ gewählt hast")
+          .replace("right after you press ✕ or ○", "right after you choose “Quit” or “Restart”");
+}
+function frageHtml(q) {
+  if (q.art === "fertig") {
+    return '<div class="fertig-kreis ' + (q.ok ? "ok" : "nok") + '">' + S(q.ok ? P.haken : P.warn, 56).replace('stroke-width="1.8"', 'stroke-width="2.6"') + "</div>" +
+      '<div class="fertig-gross">' + esc(q.gross) + '</div><p class="grau" style="text-align:center;margin:0;font-size:21px">' + esc(fuerBrowser(q.kopf || "")) + "</p>" +
+      (q.frei ? '<p class="grau2" style="text-align:center;margin:6px 0 0;font-size:18px">' + esc(q.frei) + "</p>" : "") + (q.sm ? '<p class="c-y" style="text-align:center;font-size:18px">' + esc(q.sm) + "</p>" : "") +
+      '<div class="drei"><div class="karte"><div class="l"><span class="sym" style="' + (q.rest ? "background:rgba(255,154,82,.14);color:var(--orange)" : "color:var(--gruen)") + '">' + S(q.rest ? P.warn : P.haken, 28) + "</span>" + L("Übrig geblieben", "Left over") + '</div><div class="w">' +
+      esc(q.rest || L("Nichts. Alles wurde vollständig entfernt.", "Nothing. Everything was removed completely.")) + '</div></div><div class="karte"><div class="l"><span class="sym">' + S(P.dok, 28) + "</span>" + L("Protokoll", "Log") + '</div><div class="w">' + esc(q.prot) +
+      '</div><div class="grau2" style="font-size:16px;overflow-wrap:anywhere;margin-top:6px">' + esc(q.prot_wo || L("Unten bei Protokoll ansehen.", "View it under Log below.")) + "</div></div>" +
+      '<div class="karte"><div class="l"><span class="sym">' + S(P.info, 28) + "</span>" + L("Rückmeldung geben", "Give feedback") + '</div><div class="w">' + L("Freiwillig, ohne Konto. Auf der nächsten Seite kannst du zusätzlich die erweiterte Fehlerdiagnose (bereinigtes Protokoll) anhaken - du siehst vorher alles.", "Optional, no account. On the next page you can also tick the extended error diagnosis (cleaned log) - you see everything first.") + "</div>" +
+      (q.rueckmeldung ? '<div style="margin-top:12px"><button class="kn klein" type="button" id="f-rm">' + L("Rückmeldung öffnen", "Open feedback") + '</button><div id="f-rm-link" class="grau2" style="font-size:16px;margin-top:6px"></div></div>' : "") + "</div></div>" +
+      '<div class="knoepfe"><button class="kn gross" type="button" id="f-ende" data-fokus>' + L("Beenden", "Quit") + '</button><button class="kn haupt gross" type="button" id="f-neu">' + L("Neu starten", "Restart") + "</button></div>" +
+      '<div class="unter-k">' + esc(L("„Neu starten“ startet die PS5 neu.", "“Restart” restarts the PS5.")) + "</div>";
+  }
+  if (q.art === "fehler") return '<div class="ftitel"><span class="sym f">' + S(P.warn, 30) + "</span><h1>" + esc(q.titel) + '</h1></div><div class="karte"><div class="frage-t">' + esc(q.text) + '</div></div><div class="knoepfe"><button class="kn haupt gross" type="button" id="f-ok" data-fokus>OK</button></div>';
+  if (q.bestaetigen) {
+    let h = "<h1>" + (q.tippen ? L("Vollständige Bereinigung", "Full cleanup") : L("Das wird gelöscht", "This will be deleted")) + '</h1><div class="grau" style="font-size:21px">' + esc(q.sub || "") + "</div>";
+    if (q.jb) h += '<div class="c-o" style="margin-top:12px;font-weight:700;font-size:19px;display:flex;gap:10px;align-items:center">' + S(P.schild, 24) + esc(q.jb) + "</div>";
+    for (const g of q.gruppen || []) {
+      h += '<div class="gruppe g-' + esc(g.a) + '"><div class="gk"><span class="sym">' + S(P[g.a === "r" ? "warn" : g.a === "y" ? "neu" : "haken"], 26) + "</span><div><b>" + esc(g.titel) + "</b><span>" + esc(g.unter) + "</span></div></div><ul>";
+      for (const e of g.e) h += "<li>" + kachel(e.i, e.k ? berSym(e.k, 22) : null) + '<span class="n">' + esc(e.n) + (e.o ? ' <span class="ort">' + esc(e.o) + "</span>" : "") + '</span><span class="g">' + esc(e.g || "") + "</span></li>";
+      if (g.mehr) h += '<li class="grau2">' + esc(EN ? "+ " + g.mehr + " more" : "+ " + g.mehr + " weitere") + "</li>";
+      h += "</ul></div>";
+    }
+    if ((q.hinweise || []).length) { h += '<div class="hinweise">'; for (const x of q.hinweise) h += '<div class="c-' + esc(x.c) + '">' + S(P.info, 20) + "<span>" + esc(x.t) + "</span></div>"; h += "</div>"; }
+    h += '<div class="bleibt"><b>' + L("Bleibt immer", "Always stays") + "</b>" + BLEIBT().map(x => "<span>" + S(P.schloss, 18) + esc(x) + "</span>").join("") + (q.jb_bleibt ? '<span class="jbb">' + S(P.schild, 18) + esc(q.jb_bleibt) + "</span>" : "") + "</div>";
+    if (q.tippen) {
+      h += '<p style="margin:22px 0 0;font-size:19px">' + (EN ? "To confirm, type <b>" + esc(q.wort) + "</b>:" : "Zum Bestätigen <b>" + esc(q.wort) + "</b> eintippen:") + "</p>" +
+        '<input class="eingabe" id="f-ein" autocomplete="off" autocapitalize="characters" spellcheck="false" data-fokus>' +
+        '<div class="knoepfe"><button class="kn gross" type="button" id="f-zur">' + L("Zurück zur Auswahl", "Back to selection") + '</button><button class="kn gefahr gross" type="button" id="f-los" disabled>' + L("Alles löschen", "Delete everything") + "</button></div>";
+    } else {
+      h += '<div class="knoepfe"><button class="kn gross" type="button" id="f-zur" data-fokus>' + L("Zurück zur Auswahl", "Back to selection") + '</button><button class="kn gefahr gross halten" type="button" id="f-halt"><span class="ring"></span><span class="tx2">' +
+        L("Löschen", "Delete") + "<small>" + L("1,5 Sekunden gedrückt halten", "Press and hold for 1.5 seconds") + "</small></span></button></div>" +
+        '<div class="unter-k">' + L("Loslassen bricht ab. Bis jetzt wurde nichts gelöscht. Maus, Finger, Leertaste oder Enter halten.", "Releasing cancels. Nothing has been deleted so far. Hold the mouse, finger, space or enter.") + "</div>";
+    }
+    return h;
+  }
+  if (q.art === "text") {
+    return '<div class="ftitel"><span class="sym">' + S(P.info, 30) + "</span><h1>" + esc(q.titel) + '</h1></div><div class="karte"><div class="frage-t">' + esc(q.text) + '</div><input class="eingabe frei" id="f-ein" autocomplete="off" data-fokus></div>' +
+      '<div class="knoepfe"><button class="kn gross" type="button" id="f-zur">' + L("Abbrechen", "Cancel") + '</button><button class="kn haupt gross" type="button" id="f-los">OK</button></div>';
+  }
+  /* Frage mit zwei Knöpfen: der sichere ist vorausgewählt (links, wie am Fernseher) */
+  return '<div class="ftitel"><span class="sym w">' + S(P.warn, 30) + "</span><h1>" + esc(q.titel) + '</h1></div><div class="karte"><div class="frage-t">' + esc(q.text) + "</div></div>" +
+    '<div class="knoepfe"><button class="kn haupt gross" type="button" id="f-nein" data-fokus>' + esc(q.sicher) + '</button><button class="kn gefahr gross" type="button" id="f-ja">' + esc(q.gef) + "</button></div>";
+}
+/* NEU 1.0.10 (da_Chris86 10.11.2026: "alles soll mitgesendet werden außer Name, IP usw. - privat nicht"): die Rückmeldung bekommt das
+ * Protokoll mit - schon HIER bereinigt, bevor es das Heimnetz verlässt. Es steht hinter dem # im Link: diesen Teil schickt der Browser
+ * beim Öffnen nicht an den Server; die Rückmeldeseite zeigt es an und sendet es nur, wenn der Haken gesetzt ist und "Senden" getippt wird. */
+function protokollBereinigt(t) {
+  return t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/g, "[E-Mail]")
+          .replace(/(^|[^0-9A-Fa-f:-])[0-9A-Fa-f]{2}([:-])(?:[0-9A-Fa-f]{2}\2){4}[0-9A-Fa-f]{2}(?![0-9A-Fa-f:-])/gm, "$1[MAC]")   /* ohne Rückschau-Muster (ältere Safari) */
+          .replace(/(^|[^0-9.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![0-9]|\.[0-9])/gm, "$1[IP]")
+          .replace(/(\/user\/home\/)[0-9A-Fa-f]{4,16}(?=[\/\s)]|$)/gm, "$1[Benutzer]");
+}
+const PROT_LINK_MAX = 120000;   /* Zeichen (wie MAX_PROTOKOLL auf der Rückmeldeseite); ältere Zeilen fallen weg */
+async function protokollFuerRueckmeldung() {
+  const z = []; let ab = 0;
+  for (let i = 0; i < 40; i++) {
+    const { r, j } = await holenJ(mitK("/protokoll?ab=" + ab), 10000); if (!r.ok || !j) break;
+    z.push(...j.z); ab = j.bis; if (j.bis >= j.n) break;
+  }
+  let t = protokollBereinigt(z.join("\n"));
+  if (t.length > PROT_LINK_MAX) t = "…\n" + t.slice(t.length - PROT_LINK_MAX + 2);
+  return t;
+}
+function b64url(bytes) {
+  let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function rueckmeldungOeffnen(url) {
+  if (!url) return;
+  const w = window.open("about:blank", "_blank");   /* sofort öffnen (sonst blockt der Browser das Fenster nach dem Warten) */
+  let ziel = url;
+  try {
+    const text = await protokollFuerRueckmeldung();
+    if (text) {
+      const roh = new TextEncoder().encode(text);
+      if (typeof CompressionStream !== "undefined") {
+        const s = new Blob([roh]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+        ziel = url + "#pz=" + b64url(new Uint8Array(await new Response(s).arrayBuffer()));
+      } else ziel = url + "#p=" + b64url(roh);
+    }
+  } catch (e) { ziel = url; }   /* ohne Protokoll - die Rückmeldung selbst geht trotzdem */
+  if (w) { try { w.opener = null; w.location.replace(ziel); return; } catch (e) { } }
+  const l = $("#f-rm-link");
+  if (l) l.innerHTML = '<a target="_blank" rel="noopener noreferrer" href="' + esc(ziel) + '">' + L("Hier tippen, falls sich nichts geöffnet hat", "Tap here if nothing opened") + "</a>";
+}
+function frageVerdrahten(q) {
+  const nr = q.nr, an = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
+  an("f-ende", () => befehl({ b: "ende", nr, a: "beenden" }));
+  an("f-rm", () => rueckmeldungOeffnen(q.rueckmeldung));   /* NEU 1.0.10 */
+  an("f-neu", () => befehl({ b: "ende", nr, a: "neustart" }));
+  an("f-ok", () => befehl({ b: "ok", nr }));
+  an("f-ja", () => befehl({ b: "antwort", nr, ja: true }));
+  an("f-nein", () => befehl({ b: "antwort", nr, ja: false }));
+  if (q.art === "text") {
+    an("f-zur", () => befehl({ b: "eingabe", nr, zurueck: true }));
+    const ein = $("#f-ein"), los = $("#f-los"), wort = (q.wort || "").toUpperCase();
+    const passt = () => !q.tippen || [wort, "LOESCHEN"].includes(ein.value.trim().toUpperCase());
+    const senden = () => { if (!passt()) { meldung(EN ? "Please type " + wort + " exactly." : "Bitte genau " + wort + " eintippen."); return; } befehl({ b: "eingabe", nr, t: q.tippen ? ein.value.trim().toUpperCase() : ein.value }); };
+    ein.oninput = () => { if (q.tippen) los.disabled = !passt(); };
+    ein.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); senden(); } };
+    los.onclick = senden;
+  } else if (q.bestaetigen) {
+    an("f-zur", () => befehl({ b: "antwort", nr, ja: false }));
+    haltKnopf($("#f-halt"), () => befehl({ b: "antwort", nr, ja: true, gehalten: true }));
+  }
+}
+let haltStop = null;   /* Fenster gewechselt oder im Hintergrund: Halten abbrechen (Codex-Prüfung 140; einmal angemeldet, Codex-Prüfung 141) */
+addEventListener("blur", () => { if (haltStop) haltStop(); });
+document.addEventListener("visibilitychange", () => { if (haltStop) haltStop(); });
+function haltKnopf(el, fertig) {
+  if (!el) return;
+  let t0 = 0, raf = 0, aktiv = false, letzt = 0;
+  const tick = () => {
+    const jetzt = performance.now();
+    if (jetzt - letzt > 1000 || document.hidden) { stop(); return; }   /* im Hintergrund (keine Bilder mehr) bzw. verborgen: zählt als Loslassen */
+    letzt = jetzt;
+    const p = Math.min(1, (jetzt - t0) / 1550); el.style.setProperty("--p", p);
+    if (p >= 1) {   /* Codex-Prüfung 144 (P2): kam die Antwort nicht an, darf man noch einmal halten */
+      aktiv = false; el.disabled = true;
+      Promise.resolve(fertig()).then(ok => { if (!ok && el.isConnected) { el.disabled = false; el.style.setProperty("--p", 0); } });
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  const start = () => { if (aktiv || el.disabled) return; aktiv = true; t0 = letzt = performance.now(); tick(); };
+  const stop = () => { if (!aktiv) return; aktiv = false; cancelAnimationFrame(raf); el.style.setProperty("--p", 0); meldung(L("Losgelassen - es wurde nichts gelöscht.", "Released - nothing was deleted.")); };
+  el.addEventListener("pointerdown", e => { if (e.button > 0) return; e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) { } start(); });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(n => el.addEventListener(n, stop));
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); } });
+  el.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); stop(); } });
+  el.addEventListener("blur", stop);
+  haltStop = stop;
+  el.addEventListener("click", e => e.preventDefault());
+}
+
+/* ---------------------------------------------------------------- Optionen (wie am Fernseher), Protokoll, Beenden */
+function menueBauen() {
+  const frei = ST.seite === "start" || ST.seite === "liste";
+  const z = [
+    ["m-sort", P.sort, L("Reihenfolge: ", "Order: ") + (azSort ? "A–Z" : L("größte zuerst", "largest first")), L("Stellt um auf: ", "Switches to: ") + (azSort ? L("größte zuerst", "largest first") : "A–Z"), ansicht !== "liste"],
+    ["m-test", P.schild, L("Testmodus: ", "Test mode: ") + (ST.testmodus ? L("an", "on") : L("aus", "off")), ST.testmodus ? L("Nur anschauen, nichts wird gelöscht. Klick schaltet ihn aus.", "Only looking, nothing is deleted. Click turns it off.") : L("Klick schaltet ihn ein - dann wird nur angeschaut.", "Click turns it on - then it only looks."), !frei || ST.nur_lesen],
+    ["m-neu", P.neu, L("Nochmal nachschauen", "Scan again"), L("Die Liste wird neu erstellt.", "The list is rebuilt."), ST.seite !== "liste"],
+    ["m-prot", P.dok, L("Protokoll", "Log"), L("Was bisher passiert ist", "What has happened so far"), false],
+    ["m-spr", P.sprache, EN ? "Deutsch" : "English", L("Sprache (vor dem Nachschauen)", "Language (before the scan)"), ST.seite !== "start" || !!ST.lv],
+    ["m-ende", P.aus, L("PS5 Cleanup beenden", "Quit PS5 Cleanup"), L("Die Seite hier endet dann auch.", "This page ends then too."), !frei]
+  ];
+  setze("#menue", '<div class="karte" role="menu"><h2>' + L("Optionen", "Options") + "</h2>" + z.filter(x => !x[4] || x[0] === "m-test").map(x => '<button type="button" class="op" role="menuitem" id="' + x[0] + '"' + (x[4] ? " disabled" : "") + ">" + S(x[1], 26) + "<span><b>" + esc(x[2]) + '</b><span class="u">' + esc(x[3]) + "</span></span></button>").join("") +
+    '<div class="knoepfe" style="justify-content:flex-end"><button class="kn klein" type="button" id="m-zu">' + L("Schließen", "Close") + "</button></div></div>");
+  const an = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = () => { menueZu(); f(); }; };
+  an("m-sort", () => { azSort = !azSort; listeKey = ""; zeichnen(); });
+  an("m-neu", () => befehl({ b: "nachschauen" }));
+  an("m-test", () => befehl({ b: "testmodus" }));
+  an("m-prot", () => protAuf(true));
+  an("m-spr", () => befehl({ b: "sprache" }));
+  an("m-ende", endeFragen);
+  an("m-zu", () => { });
+}
+function menueZu() { const m = $("#menue"); if (m.classList.contains("leer")) return; m.classList.add("leer"); const b = $("#b-menue"); if (b && $("#modal").classList.contains("leer")) b.focus(); }
+function fokusFalle(wurzel, e) {   /* Tab bleibt im offenen Fenster (Codex-Prüfung 145, P3) */
+  const f = [...wurzel.querySelectorAll("button:not(:disabled),input:not(:disabled),a[href]")].filter(x => x.offsetParent !== null);
+  if (!f.length) return; const a = f[0], z = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+  else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+  else if (!wurzel.contains(document.activeElement)) { e.preventDefault(); a.focus(); }
+}
+$("#b-menue").onclick = e => { e.stopPropagation(); const m = $("#menue"); if (m.classList.contains("leer")) { m.classList.remove("leer"); if (ST) menueBauen(); const b = m.querySelector("button.op:not(:disabled)"); if (b) b.focus(); } else menueZu(); };
+$("#menue").onclick = e => { if (e.target === $("#menue")) menueZu(); };
+$("#b-ende").onclick = () => endeFragen();
+$("#b-spr").onclick = () => befehl({ b: "sprache" });
+function endeFragen() {
+  const m = $("#modal"); modalKey = "ende"; m.classList.remove("leer");
+  m.innerHTML = '<div class="seite" style="max-width:900px"><div class="ftitel"><span class="sym w">' + S(P.aus, 30) + "</span><h1>" + L("PS5 Cleanup beenden?", "Quit PS5 Cleanup?") + '</h1></div><div class="karte"><div class="frage-t">' + L("Die App schließt sich auf der PS5. Die Seite hier endet dann auch.", "The app closes on the PS5. This page ends then too.") +
+    '</div></div><div class="knoepfe"><button class="kn haupt gross" type="button" id="e-nein" data-fokus>' + L("Abbrechen", "Cancel") + '</button><button class="kn gefahr gross" type="button" id="e-ja">' + L("Beenden", "Quit") + "</button></div></div>";
+  const zu = () => { m.classList.add("leer"); m.innerHTML = ""; modalKey = ""; zeichnen(); };
+  $("#e-nein").onclick = zu; $("#e-ja").onclick = () => { befehl({ b: "beenden" }); zu(); };
+  $("#e-nein").focus();
+}
+function protAuf(an) { protOffen = an; $("#prot").classList.toggle("sichtbar", protOffen); $("#prot").setAttribute("aria-hidden", !protOffen); if (protOffen) { protokollHolen(); setTimeout(() => { const p = $("#prot-z"); p.scrollTop = p.scrollHeight; }, 50); } }
+$("#b-prot").onclick = () => protAuf(!protOffen);
+$("#prot-zu").onclick = () => protAuf(false);
+$("#prot-stick").onclick = () => befehl({ b: "protokoll_stick" });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { menueZu(); if (protOffen) protAuf(false); if (infoBlatt) { infoBlatt = false; infoZeichnen(); } if (modalKey === "ende") $("#e-nein").click(); }
+  const menueAuf = !$("#menue").classList.contains("leer"), modalAuf = !$("#modal").classList.contains("leer");
+  if (e.key === "Tab") { if (menueAuf) fokusFalle($("#menue"), e); else if (modalAuf) fokusFalle($("#modal"), e); }
+  if (e.key === "/" && ansicht === "liste" && !menueAuf && !modalAuf && !protOffen && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#suche").focus(); }
+});
+schleife();
+</script>
+</body>
+</html>
