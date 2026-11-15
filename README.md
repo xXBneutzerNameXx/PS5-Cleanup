@@ -87,7 +87,7 @@ Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird n
 - **Kacheln verschwinden sauber** über Sonys eigenen Deinstallations-Dienst, **Bilder und Videos** über Sonys Löschdienst, **Spielstände** samt Eintrag in Sonys Spielstand-Liste
 - **M.2: jedes Spiel und jede Datei einzeln** – die Ordner selbst bleiben stehen, für M.2 und erweiterten Speicher gibt es eine eigene Rückfrage
 - **ShadowMount-Spiele:** wahlweise nur die Kachel oder Spiel samt Kachel – ShadowMount+ wird vorher sauber angehalten
-- **Playden (Steam-Spiele):** werden samt Eintrag in Playdens Spieleliste entfernt; Playdens eigene Daten sind rot markiert
+- **Playden:** lässt sich nur komplett entfernen. Einzelne Teile von Playden (Spiele, Spielstände, Runtime-Kits) lassen sich noch nicht einzeln löschen
 - **Am Ende:** ✕ Neu starten (empfohlen) oder ○ Beenden
 
 **🔎 Erkennen und zuordnen**
@@ -129,7 +129,7 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 
 - **Ein Durchgang reicht:** Was du auswählst, ist nach einem Lauf weg – ohne zweiten Durchgang und ohne Neustart dazwischen. Das gilt auch für Kacheln, die ein Programm noch mit einem Spielordner verknüpft hat (etwa ShadowMount, Kraken Mount, PS5Upload), und für die leeren Ordner, die Homebrew-Kacheln im Systembereich hinterlassen.
 - **Programme im Hintergrund** werden vor dem Löschen beendet, damit sie Gelöschtes nicht sofort wieder anlegen. FTP-Server, nanoDNS, Payload Manager und der Jailbreak laufen weiter. Die vollständige Bereinigung endet mit einem Neustart.
-- **Playden:** Steam-Spiele werden erkannt und samt Eintrag in Playdens Spieleliste entfernt. Playdens eigene Daten sind rot markiert, denn ohne sie startet Playden nicht mehr.
+- **Playden:** lässt sich nur komplett entfernen. Einzelne Teile von Playden (Spiele, Spielstände, Runtime-Kits) lassen sich noch nicht einzeln löschen.
 - **Mehr Spiele mit Name und Bild:** PS3-Spiele als ISO und PS5-Spieldateien (`.pkg`). Unter Spiele steht PS5 vor PS4 vor PS3.
 - **Unbekannte Homebrew-Apps:** PS5 Cleanup liest ihre Programmdateien und findet so ihre Ordner. Was nur vermutet ist, steht im Block der App mit eigenem Haken und wird nie von selbst angehakt.
 - **TabShifter und Co.:** Kacheln, die ein Tool direkt in Sonys Liste eingetragen hat, werden gezielt ausgetragen. Sicherungen von Sonys App-Liste gehen nur mit, wenn du sie selbst anhakst.
@@ -288,7 +288,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 - Tiles removed via Sony's uninstall service, screenshots and videos via Sony's delete service, saved data together with its entry in the saved data list
 - Every game and file on the M.2 listed individually (folders are kept)
 - ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first
-- Playden (Steam games): removed together with their entry in Playden's game list; Playden's own data is marked red
+- Playden: can only be removed completely. Its individual parts (games, saves, runtime kits) can't be deleted separately yet
 - At the end: restart (recommended) or quit
 
 **🔎 Recognising and assigning**
@@ -330,7 +330,7 @@ Full guide: [README_EN.txt](README_EN.txt)
 
 - **One pass is enough:** what you select is gone after one run – no second pass and no restart in between. This includes tiles that a program still links to a game folder (e.g. ShadowMount, Kraken Mount, PS5Upload) and the empty folders homebrew tiles leave in the system area.
 - **Background programs** are closed before deleting so they do not recreate deleted items right away. FTP server, nanoDNS, Payload Manager and the jailbreak keep running. The full cleanup ends with a restart.
-- **Playden:** Steam games are recognised and removed together with their entry in Playden's game list. Playden's own data is marked red, because without it Playden no longer starts.
+- **Playden:** can only be removed completely. Its individual parts (games, saves, runtime kits) can't be deleted separately yet.
 - **More games with name and picture:** PS3 games as ISO and PS5 game files (`.pkg`). Under Games, PS5 comes before PS4 before PS3.
 - **Unknown homebrew apps:** PS5 Cleanup reads their program files and finds their folders that way. Anything only assumed is listed in the app's block with its own checkbox and is never ticked automatically.
 - **TabShifter and similar:** tiles that a tool entered directly into Sony's list are removed from it specifically. Backups of Sony's app list only go if you tick them yourself.
