@@ -87,7 +87,7 @@ Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird n
 - **Kacheln verschwinden sauber** über Sonys eigenen Deinstallations-Dienst, **Bilder und Videos** über Sonys Löschdienst, **Spielstände** samt Eintrag in Sonys Spielstand-Liste
 - **M.2: jedes Spiel und jede Datei einzeln** – die Ordner selbst bleiben stehen, für M.2 und erweiterten Speicher gibt es eine eigene Rückfrage
 - **ShadowMount-Spiele:** wahlweise nur die Kachel oder Spiel samt Kachel – ShadowMount+ wird vorher sauber angehalten
-- **Playden:** lässt sich nur komplett entfernen. Einzelne Teile von Playden (Spiele, Spielstände, Runtime-Kits) lassen sich noch nicht einzeln löschen
+- **Playden:** einzelne Steam-Spiele lassen sich gezielt entfernen – Spieldateien, Kachel und Eintrag in Playdens Spieleliste in einem Durchgang, Playden selbst bleibt installiert. Spiele, die nur noch in Playdens Liste stehen, werden ausgetragen. Die Spielstände stehen mit Bild und Namen unter Spielstände, auch von Spielen, die schon weg sind. Playdens eigene Daten sind rot markiert. Playden muss dafür geschlossen sein
 - **Am Ende:** Ergebnisseite mit jedem Eintrag – bleibt etwas übrig, steht der Grund direkt darunter; dann ✕ Neu starten (empfohlen) oder ○ Beenden
 
 **🔎 Erkennen und zuordnen**
@@ -154,7 +154,7 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 **Mehr erkannt, mehr Bilder**
 - Programme ohne Kachel bekommen ihr Bild aus der Programmdatei (auch aus großen ELF-Dateien) oder aus dem Katalog des Payload-Verwalters.
 - Download- und Daten-Ordner stehen bei dem Programm, zu dem sie gehören (z. B. PS5Save, ps-patch-system).
-- Playden: Spielstände der Spiele mit Bild und Namen aus Playdens Bibliothek, im Bereich Spielstände.
+- Playden: einzelne Spiele werden komplett entfernt – Spieldateien, Kachel und Eintrag in Playdens Liste, Playden selbst bleibt. Reste schon gelöschter Spiele in Playdens Liste werden ausgetragen. Spielstände mit Bild und Namen aus Playdens Bibliothek, im Bereich Spielstände.
 
 **Updates und Rückmeldung**
 - Die App schaut beim Start, ob es eine neue Version gibt, und holt sie auf Wunsch – über eine eigene, geprüfte HTTPS-Verbindung.
@@ -316,7 +316,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 - Tiles removed via Sony's uninstall service, screenshots and videos via Sony's delete service, saved data together with its entry in the saved data list
 - Every game and file on the M.2 listed individually (folders are kept)
 - ShadowMount games: tile only or game + tile, ShadowMount+ is stopped cleanly first
-- Playden: can only be removed completely. Its individual parts (games, saves, runtime kits) can't be deleted separately yet
+- Playden: single Steam games can be removed on their own – game files, tile and entry in Playden's game list in one pass, Playden itself stays installed. Games that are only left in Playden's list are removed from it. Their saved data is shown with picture and name under saved data, also for games that are already gone. Playden's own data is marked red. Playden has to be closed for this
 - At the end: result screen with every entry – if anything is left over, the reason is shown right below it; then restart (recommended) or quit
 
 **🔎 Recognising and assigning**
@@ -383,7 +383,7 @@ Full guide: [README_EN.txt](README_EN.txt)
 **More recognised, more pictures**
 - Programs without a tile get their picture from their program file (also from large ELF files) or from the payload manager's catalog.
 - Download and data folders are listed with the program they belong to (e.g. PS5Save, ps-patch-system).
-- Playden: saved data of its games with picture and name from Playden's library, in the saved data area.
+- Playden: single games are removed completely – game files, tile and entry in Playden's list, Playden itself stays. Leftovers of already deleted games are removed from Playden's list. Saved data with picture and name from Playden's library, in the saved data area.
 
 **Updates and feedback**
 - The app checks for a new version at start and fetches it if you want – over its own verified HTTPS connection.
