@@ -117,6 +117,10 @@ Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird n
 3. ✕ = **Selbst auswählen**: Einträge anhaken, □ = Weiter zum Löschen, zum Bestätigen ✕ 2 Sekunden halten – oder △ = **Alles bereinigen**: Laufwerke wählen, `LÖSCHEN` eintippen.
 4. Am Ende zeigt die Ergebnisseite jeden Eintrag, Übriggebliebenes mit Grund. Dann **✕ Neu starten** (empfohlen) oder **○ Beenden** – vorher kommt die freiwillige Rückmeldung. Nach dem Neustart den Jailbreak wie gewohnt starten.
 
+**Bequemer über den Payload Manager:** PS5 Cleanup gibt es dort als eigene Quelle – dann musst du die ELF nicht mehr selbst herunterladen und rüberkopieren. Im Payload Manager unter Settings → Manage Sources → Add Source diese Adresse eintragen:  
+`https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json`  
+PS5 Cleanup erscheint dann mit Symbol in der Liste und lässt sich direkt starten. Neue Versionen bietet der Payload Manager beim nächsten Aktualisieren der Quellen von selbst an. Kommt „URL unreachable“, fehlt auf der PS5 meist die Namensauflösung – zum Beispiel, weil nanoDNS nicht läuft.
+
 > [!WARNING]
 > **Kein „Datenbank neu aufbauen“:** Sonys „Datenbank neu aufbauen“ (abgesicherter Modus) löscht installierte **PS4-Spiele aus Fake-PKGs** – sie müssen danach neu installiert werden. Mit PS5 Cleanup ist der Neuaufbau nicht nötig. **Nie** „PS5 zurücksetzen“ oder „Systemsoftware neu installieren“ wählen.
 
@@ -345,6 +349,10 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 2. *Scan* and look at what was found. The app is in **test mode** and deletes nothing. If the list is right, switch test mode off in the Options.
 3. ✕ = *Choose yourself*: tick entries, □ = Continue to delete, hold ✕ for 2 seconds to confirm – or △ = *Clean up everything*: choose the drives, type `DELETE`.
 4. At the end the result screen shows every entry, anything left over with the reason. Then ✕ *Restart* (recommended) or ○ *Quit* – the optional feedback comes first. Then start your jailbreak as usual.
+
+**Easier with the Payload Manager:** PS5 Cleanup is available there as its own source – no need to download the ELF and copy it over yourself. In the Payload Manager go to Settings → Manage Sources → Add Source and enter this address:  
+`https://raw.githubusercontent.com/xXBneutzerNameXx/PS5-Cleanup/main/payloads.json`  
+PS5 Cleanup then shows up in the list with its icon and can be started right away. New versions are offered by themselves the next time the sources are refreshed. If you get "URL unreachable", name resolution is usually missing on the PS5 – for example because nanoDNS is not running.
 
 > [!WARNING]
 > **No "Rebuild Database":** Sony's "Rebuild Database" (Safe Mode) deletes installed **PS4 games from fake PKGs** – they have to be installed again afterwards. With PS5 Cleanup the rebuild is not needed. **Never** choose "Reset PS5" or "Reinstall System Software".
