@@ -1,0 +1,8 @@
+# Vollständige Bereinigung - bei der Bestätigung "Abbrechen" gedrückt
+# NEU 1.1: ohne Vergleichsmodus 1.0.6 - keine Frage zu Jailbreak-Einstiegen (eigener Bereich, nur einzeln wählbar)
+MODELL CFI-2016
+ABLAUF KOMPLETT
+ANTWORT J
+ANTWORT N
+ANTWORT ABBRECHEN
+ZEIGE

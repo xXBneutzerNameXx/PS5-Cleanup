@@ -1,0 +1,11 @@
+# Nur Auswahl: wie b1, aber Spiele + Kacheln, M.2 weiter, Abschlussfrage "Abbrechen"
+# NEU 1.1: ohne Vergleichsmodus 1.0.6 - "Spiel + Kachel" heißt die Zeile der Spieldatei wählen (die Kachel geht mit)
+MODELL CFI-2016
+WAEHLE BEREICH 2
+WAEHLE TEXT M.2 – Spiel PPSA22222 (PPSA22222) - Spieldatei|M.2 – Spiel PPSA22222 (PPSA22222) - game file
+WAEHLE TEXT M.2 – games/x.iso
+WAEHLE TEXT Echtes Spiel (PPSA55555) - Spiel|Real Game (PPSA55555) - game
+ABLAUF AUSWAHL
+ANTWORT J
+ANTWORT N
+ZEIGE

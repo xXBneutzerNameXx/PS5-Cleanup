@@ -1,0 +1,8 @@
+# Vollständige Bereinigung - Weiter, M.2 auch leeren, richtig bestätigt -> löschen
+# NEU 1.1: ohne Vergleichsmodus 1.0.6 - keine Frage zu Jailbreak-Einstiegen (eigener Bereich, nur einzeln wählbar)
+MODELL CFI-2016
+ABLAUF KOMPLETT
+ANTWORT J
+ANTWORT J
+ANTWORT BESTAETIGUNG
+ZEIGE

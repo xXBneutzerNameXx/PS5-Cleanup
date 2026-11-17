@@ -1,0 +1,5 @@
+Suche: PS5 denies access to /user/appmeta (550 Permission denied) - stopping to be safe.
+OK   Zugriff verweigert -> Suche bricht ab, keine Liste
+LOG: ERROR: The list is not from the PS5 currently connected - nothing deleted. Please connect again.
+OK   Löschen ohne gültige Liste abgebrochen
+FEHLERZAHL 0

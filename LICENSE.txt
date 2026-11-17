@@ -43,7 +43,7 @@ ps5info (Quellcode/ps5info.c, Quellcode/ps5info_antwort.h, Quellcode/ps5info.elf
   Laufwerks-Status nach / drive status based on earthonion/ddd_status.
   Bauanleitung / build file: Quellcode/ps5info.mk
 
-PS5-App (1.0.7/, ps5cleanup_v1.0.7.elf, PS5-Cleanup-Test_v1.0.7.elf) - NEU in 1.0.6
+PS5-App (1.1/, ps5cleanup_v1.1.elf) - NEU in 1.0.6
   PS5 Cleanup direkt auf der PS5. / PS5 Cleanup running directly on the PS5.
   Ab 1.0.7 die einzige Fassung. / From 1.0.7 on the only version.
   Lizenz / License: GNU General Public License v3.0 or later
@@ -55,11 +55,19 @@ PS5-App (1.0.7/, ps5cleanup_v1.0.7.elf, PS5-Cleanup-Test_v1.0.7.elf) - NEU in 1.
     - PCRE2 10.44 (BSD License), cJSON 1.7.18 (MIT License)
     - QR Code generator library, Project Nayuki (MIT License) - für den
       QR-Code der freiwilligen Rückmeldung / for the optional feedback QR
-      code (1.0.7/app/qrcodegen.c, qrcodegen.h)
+      code (1.1/app/qrcodegen.c, qrcodegen.h)
     - SQLite (public domain)
     - stb_image, stb_truetype (Sean Barrett, public domain / MIT)
-    - DejaVu-Schriften / fonts (1.0.7/probelauf/fremd/LICENSE_DejaVu.txt)
-  Bauen / build: 1.0.7/app/bauen.sh, dann / then 1.0.7/start/bauen_release.sh
+    - DejaVu-Schriften / fonts (1.1/probelauf/fremd/LICENSE_DejaVu.txt)
+    - NEU in 1.1 / new in 1.1: Mbed TLS 3.6 (Apache License 2.0) - eigene
+      geprüfte HTTPS-Verbindung / own verified HTTPS connection
+      (1.1/bau/mbedtls-ps5/LICENSE_mbedTLS.txt, HERKUNFT.txt)
+    - NEU in 1.1 / new in 1.1: Zertifikatsliste von Mozilla / Mozilla CA
+      certificate list (Mozilla Public License 2.0), eingebettet / embedded
+      (1.1/bau/mbedtls-ps5/ca-bundle.crt)
+    - NEU in 1.1 / new in 1.1: Schrift Inter / Inter font (SIL Open Font
+      License 1.1, 1.1/app/bilder_11/LICENSE_Inter_OFL.txt)
+  Bauen / build: 1.1/app/bauen.sh, dann / then 1.1/start/bauen_release.sh
 
 PS2EXE (Quellcode/powershell-1.0.3/bauen/ps2exe.ps1 - nur die alte PowerShell-
 Fassung 1.0.3 / only the old PowerShell version 1.0.3)

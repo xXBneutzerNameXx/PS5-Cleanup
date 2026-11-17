@@ -1,0 +1,20 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   M.2 – games/x.iso
+OK   leerer Ordner games wird als 'nur leer' angeboten
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   /mnt/ext1/games is no longer empty - kept.
+LOG:   ERROR      M.2 – games  (empty folder) (could not be deleted completely)
+OK   inzwischen gefüllt: nichts gelöscht, Datei bleibt (Fehler=1)
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   M.2 – games  (empty folder)
+OK   wirklich leer: Ordner entfernt
+FEHLERZAHL 0

@@ -1,0 +1,9 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount has stopped.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   Tool tile: Mein Tool (TOOL00001)
+ERG Fall=stumm gefragt=False weg=True abgebrochen=False Grund=
+OK   Fall stumm: Rückfrage kommt nicht
+OK   Fall stumm: gelöscht
+FEHLERZAHL 0

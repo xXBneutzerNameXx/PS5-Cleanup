@@ -1,0 +1,295 @@
+=== ABLAUF
+> ABLAUF KOMPLETT
+DIALOG Vollständige Bereinigung
+  | VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:
+  |    - Spiele: 35 (mit Daten und Updates 48 Einträge)
+  |    - Apps: 6
+  |    - Spielstände: 30
+  |    - Trophäen: 13 (17 Einträge)
+  |    - Bilder & Videos: 10
+  |    - Sonstiges: 16
+  |    - Trophäen-Listen installierter Spiele: 3 - gehen nur mit, wenn auf keinem Speicher ein Spiel bleibt
+  | 
+  | Auf der M.2-SSD - gleich kommt die Frage: behalten oder auch leeren.
+  |    - Spiele: 5 (mit Daten und Updates 7 Einträge)
+  |    - Sonstiges: 5
+  | 
+  | (Hat ein Spiel Daten auf mehreren Speichern, steht es bei jedem - z. B. ShadowMount-Spiel: Kachel intern, Spieldatei auf der M.2.)
+  | 
+  | Das heißt:
+  |  - Spielstände ohne Cloud-Sicherung (PS Plus) sind endgültig weg.
+  |  - Nie mit dem PSN abgeglichene Trophäen sind weg.
+  |  - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.
+  | 
+  | Bleibt auf jeden Fall:
+  |  - Jailbreak-Einstiege: 1 - die vollständige Bereinigung fasst den Bereich „Jailbreak“ nie an (einzeln löschen geht dort)
+  |  - Gesperrt: 2 Einträge (der Grund steht am Eintrag)
+  |  - Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.
+  KNOPF sicher: Abbrechen
+  KNOPF gefährlich: Weiter
+  ANTWORT J
+DIALOG M.2-SSD
+  | Auf der M.2-SSD liegen:
+  |    - Spiele: 5 (mit Daten und Updates 7 Einträge)
+  |    - Sonstiges: 5
+  | 
+  | BEHALTEN: Die Spiele bleiben. Nur die Kacheln der ShadowMount-Spiele, deren Spieldateien darauf liegen, gehen weg (die Kacheln liegen intern) - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.
+  | 
+  | AUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.
+  KNOPF sicher: M.2-SSD behalten (empfohlen)
+  KNOPF gefährlich: M.2-SSD auch leeren
+  ANTWORT N
+(Trophäen-Listen bleiben, weil Spiele auf der M.2, dem erweiterten Speicher oder dem USB-Laufwerk bleiben.)
+Ausgewählt: etwa 57 KB in 253 Dateien und 266 Ordnern.
+DIALOG Endgültig löschen?
+  | Die M.2-SSD bleibt unangetastet.
+  | 
+  | Danach endgültig weg: 30 Spielstände (Spiele), 1 Spieldatei, 8 Trophäen-Fortschritte, 4 Trophäen-Dateien, 5 Spiele mit Aufnahmen, 2 Galerie-Einträge, deine eigenen Cheats, Plugins und Spiel-Dumps (etaHEN), deine Sicherungen (z. B. Spielstände) (ps5upload).
+  | 
+  | Wird ENDGÜLTIG gelöscht: 127 Einträge
+  |    - Spiele: 35 (mit Daten und Updates 48 Einträge)
+  |    - Apps: 6
+  |    - Spielstände: 30
+  |    - Trophäen: 13 (17 Einträge)
+  |    - Bilder & Videos: 10
+  |    - Sonstiges: 16
+  |    davon ShadowMount-Spiele MIT Spieldatei: 1
+  |    PS4-Spiele, die GELÖSCHT werden (installiertes Spiel weg, PKG neu installieren nötig):
+  |       Café Crème 0 PS4 (CUSA10000) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.00 – keine Lizenzdatei
+  |       東京ドリフト 5 PS4 (CUSA10185) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.05 – Fake-Lizenz
+  |       Emoji 🎮 Spiel 10 PS4 (CUSA10370) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.10 – 1 Zusatzinhalt(e) – keine Lizenzdatei
+  |       Ninja's "Zitat" 15 PS4 (CUSA10555) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.15 – keine Lizenzdatei
+  |       Ünïcödé Ärger 20 PS4 (CUSA10740) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.20 – keine Lizenzdatei
+  |       Bärenhöhle 2 25 PS4 (CUSA10925) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.25 – keine Lizenzdatei
+  |       Русская игра 30 PS4 (CUSA11110) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.30 – keine Lizenzdatei
+  |       Ω Omega 35 PS4 (CUSA11295) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.35 – keine Lizenzdatei
+  |    Am Ende startet die PS5 neu.
+  |    Bleibt unverändert: M.2-SSD
+  |    Bleibt (Game Compressor arbeitet daran): 2
+  | 
+  | Das sind etwa 57 KB in 253 Dateien und 266 Ordnern.
+  | 
+  | Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+  | Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.
+  | 
+  | Zum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):
+  EINGABE
+  ANTWORT LÖSCHEN
+
+Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+  ShadowMount ist beendet.
+
+Lösche ... (große Spiele können etwas dauern)
+  gelöscht   Café Crème 0 meta DE (CUSA10000) - Spiel
+  gelöscht   東京ドリフト 5 PS4 (CUSA10185) - Spiel
+  gelöscht   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - Spiel
+  gelöscht   Emoji 🎮 Spiel 10 PS4 (CUSA10370) - Zusatzinhalt: Erw meta 0 DE
+  gelöscht   Ninja's "Zitat" 15 meta DE (CUSA10555) - Spiel
+  gelöscht   Ünïcödé Ärger 20 sys DE (CUSA10740) - Spiel
+  gelöscht   Ünïcödé Ärger 20 sys DE (CUSA10740) - Update (Version 02.20)
+  gelöscht   Bärenhöhle 2 25 PS4 (CUSA10925) - Spiel
+  gelöscht   Русская игра 30 meta DE (CUSA11110) - Spiel
+  gelöscht   Ω Omega 35 PS4 (CUSA11295) - Spiel
+  gelöscht   12345 (PPSA10074) - Spiel
+  gelöscht   12345 (PPSA10074) - Update (Version 02.020)
+  gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Spiel
+  gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erw meta 0 DE
+  gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erweiterung 1 kaputt
+  gelöscht   Ünïcödé Ärger 3 meta DE (PPSA10111) - Zusatzinhalt: Erw meta 2 DE
+  gelöscht   Ninja's "Zitat" 6 meta DE (PPSA10222) - Spiel
+  gelöscht   ASTRO's PLAYROOM (PPSA10259) - Spiel
+  gelöscht   Bärenhöhle 2 8 DE (PPSA10296) - Spiel
+  gelöscht   Bärenhöhle 2 8 DE (PPSA10296) - Update (Version 02.080)
+  gelöscht   Ninja's "Zitat" 9 meta DE (PPSA10333) - Spiel
+  gelöscht   Emoji 🎮 Spiel 11 ci (PPSA10407) - Spiel
+  gelöscht   Ninja's "Zitat" 12 meta DE (PPSA10444) - Spiel
+  gelöscht   Schräg/Strich 14 BOM (PPSA10518) - Spiel
+  gelöscht   Schräg/Strich 14 BOM (PPSA10518) - Update (Version 02.040)
+  gelöscht   Caf\u00e9 Cr\u00e8me 16 muell (PPSA10592) - Spiel
+  gelöscht   Café Crème 17 DE (PPSA10629) - Spiel
+  gelöscht   Café Crème 17 DE (PPSA10629) - Zusatzinhalt: Erw meta 0 DE
+  gelöscht   Café Crème 17 DE (PPSA10629) - Zusatzinhalt: Erweiterung 1 DE
+  gelöscht   Русская игра 18 meta DE (PPSA10666) - Spiel
+  gelöscht   Tab	im Namen 19 DE (PPSA10703) - Spiel
+  gelöscht   東京ドリフト 21 meta DE (PPSA10777) - Spiel
+  gelöscht   unbekannter Name (PPSA10851) - Spiel
+  gelöscht   Русская игра 24 meta DE (PPSA10888) - Spiel
+  gelöscht   Русская игра 24 meta DE (PPSA10888) - Zusatzinhalt: Erw meta 0 DE
+  gelöscht   unbekannter Name (PPSA10962) - Spiel
+  gelöscht   unbekannter Name (PPSA10962) - Update (Version 02.060)
+  gelöscht   Ω Omega 27 meta DE (PPSA10999) - Spiel
+  gelöscht   unbekannter Name (PPSA11073) - Spiel
+  gelöscht   Café Crème 32 DE (PPSA11184) - Spiel
+  gelöscht   Café Crème 32 DE (PPSA11184) - Update (Version 02.020)
+  gelöscht   Weltraum Rennen 33 meta DE (PPSA11221) - Spiel
+  gelöscht   Weltraum Rennen 34 FR (PPSA11258) - Spiel
+  gelöscht   SM PPSA90003 DE (PPSA90003) - ShadowMount: Spiel nicht mehr da, tote Kachel
+  gelöscht   SM PPSA90004 DE (PPSA90004) - ShadowMount: Spiel liegt auf /somewhere/else.exfat, nur die Kachel wird gelöscht
+  gelöscht   SM PPSA90005 DE (PPSA90005) - ShadowMount: Speicherort unbekannt, nur die Kachel wird gelöscht
+  gelöscht   SM PPSA90006 DE (PPSA90006) - ShadowMount-Spiel auf der internen SSD - Spiel + Kachel
+  gelöscht   SM PPSA90007 DE (PPSA90007) - ShadowMount: Datenträger mit dem Spiel nicht gefunden (/mnt/ext1/user/app/x.exfat), nur die Kachel wird gelöscht
+  unverändert   Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10259 (ASTRO's PLAYROOM)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10481 (Spiel/App unbekannt)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA11110 (Русская игра 30 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10296 (Bärenhöhle 2 8 DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10444 (Ninja's "Zitat" 12 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10518 (Schräg/Strich 14 BOM)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10666 (Русская игра 18 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10888 (Русская игра 24 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA10925 (Bärenhöhle 2 25 PS4)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10037 (Ninja's "Zitat" 1 Tool)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10703 (Tab	im Namen 19 DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10814 (Spiel/App unbekannt)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11147 (Spiel/App unbekannt)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11258 (Weltraum Rennen 34 FR)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA10000 (Café Crème 0 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand CUSA10740 (Ünïcödé Ärger 20 sys DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10074 (12345)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10222 (Ninja's "Zitat" 6 meta DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10814 (Spiel/App unbekannt)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA10962 (Spiel/App unbekannt)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11184 (Café Crème 32 DE)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  unverändert   Spielstand PPSA11258 (Weltraum Rennen 34 FR)   (Spielstände löscht PS5 Cleanup nur zusammen mit ihrem Eintrag in Sonys Spielstand-Liste - das geht nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Spielstand-Liste - nichts gelöscht)
+  gelöscht   Trophäen-Fortschritt: NPWR31000_00 (Spiel/App unbekannt) (PS4-Spiel) - Spiel nicht mehr auf der Konsole
+  gelöscht   Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)
+  gelöscht   Trophäen-Daten trophy2/conf.dat
+  gelöscht   Trophäen-Daten trophy2/nobackup/other.dat
+  gelöscht   Trophäen-Fortschritt: NPWR31000_00 (Spiel/App unbekannt) (PS4-Spiel) - Spiel nicht mehr auf der Konsole
+  gelöscht   Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)
+  gelöscht   Trophäen-Daten trophy2/conf.dat
+  gelöscht   Trophäen-Daten trophy2/nobackup/other.dat
+  gelöscht   Trophäen-Liste: NPWR20188_00 (Spiel/App unbekannt) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+  gelöscht      – Trophäen-Fortschritt: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+  gelöscht      – Trophäen-Fortschritt: Ninja's "Zitat" 1 Tool (NPWR30001_00)
+  gelöscht      – Trophäen-Fortschritt: 東京ドリフト 5 PS4 (NPWR30005_00)
+  gelöscht      – Trophäen-Fortschritt: 東京ドリフト 5 PS4 (NPWR30005_00)
+  gelöscht   Trophäen-Liste: NPWR31000_00 (Spiel/App unbekannt) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+  gelöscht   Trophäen-Liste: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)
+  gelöscht      – Trophäen-Fortschritt: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr auf der Konsole
+  gelöscht      – Trophäen-Fortschritt: Galerie Spiel Neun (NPWR39999_00) - Spiel nicht mehr auf der Konsole
+  unverändert   Aufnahmen von Café Crème 0 meta DE (CUSA10000): 5 Screenshots, 2 Videos   (Bilder und Videos löscht PS5 Cleanup nur über Sonys Löschdienst (wie die Mediengalerie) - den gibt es nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Mediengalerie - nichts gelöscht)
+  unverändert   Aufnahmen von CUSA77777 (Spiel nicht mehr auf der Konsole, Spiel/App unbekannt): 5 Screenshots   (Bilder und Videos löscht PS5 Cleanup nur über Sonys Löschdienst (wie die Mediengalerie) - den gibt es nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Mediengalerie - nichts gelöscht)
+  unverändert   Aufnahmen von Systemmenü (NPXS40140): 5 Screenshots   (Bilder und Videos löscht PS5 Cleanup nur über Sonys Löschdienst (wie die Mediengalerie) - den gibt es nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Mediengalerie - nichts gelöscht)
+  unverändert   Aufnahmen von Weltraum Rennen 4 sys DE (PPSA10148): 5 Screenshots   (Bilder und Videos löscht PS5 Cleanup nur über Sonys Löschdienst (wie die Mediengalerie) - den gibt es nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Mediengalerie - nichts gelöscht)
+  unverändert   Aufnahmen von Galerie Spiel Neun (PPSA99001, Spiel nicht mehr auf der Konsole): 5 Screenshots   (Bilder und Videos löscht PS5 Cleanup nur über Sonys Löschdienst (wie die Mediengalerie) - den gibt es nur in PS5 Cleanup auf der PS5; sonst blieben leere Einträge in der Mediengalerie - nichts gelöscht)
+  gelöscht   Vorschaubilder ohne Aufnahme (1) - Reste
+  gelöscht   Unfertige Aufnahme von Ninja's "Zitat" 1 Tool (PPSA10037) (1 Datei)
+  gelöscht   Leere Aufnahme-Zwischenordner (1) - Reste
+  gelöscht   Weitere Galerie-Daten: extra/PPSA10111 (Ünïcödé Ärger 3 meta DE)
+  gelöscht   Weitere Galerie-Daten: sdr/abc
+  gelöscht   App-Daten ohne installierte App: PPSA44400 (Spiel/App unbekannt)
+  gelöscht   Update ohne Spiel: PPSA44401 (Spiel/App unbekannt)
+  gelöscht   Zusatzinhalt: PPSA44402 (Spiel/App unbekannt)
+  gelöscht   Zusatzinhalt-Infos: PPSA44403 (Spiel/App unbekannt)
+  gelöscht   Rest einer früheren Aufräumaktion: /user/_zu_loeschen_7
+  gelöscht   Reste: Rest Spiel DE (PPSA44404)
+  gelöscht   Reste: entferntes Spiel (PPSA44405)
+  gelöscht   Store-Bildercache (2, lädt die PS5 neu)
+  gelöscht   Temporäre Dateien (3)
+  gelöscht   Fehlerberichte (1)
+  gelöscht   Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)
+  gelöscht   Leere Kachel (Schloss): Schloss DE (PPSA44406)
+  gelöscht   Zusatzinhalt-Infos: PPSA44408 (Spiel/App unbekannt)
+  gelöscht   homebrew/anderes.bin
+  gelöscht   Fake-Lizenz: EP0000-PPSA44409 - Spiel/App unbekannt (Spiel nicht mehr installiert)
+  gelöscht   Fake-Lizenz: UP9999-XYZ (Spiel nicht mehr installiert)
+  gelöscht   Tool-Kachel: Ninja's "Zitat" 1 Tool (PPSA10037)
+  gelöscht   Tool-Kachel: Ünïcödé Ärger 28 Tool (PPSA11036)
+  gelöscht   etaHEN
+  gelöscht   homebrew/sub/tief/nachbar.txt
+  gelöscht   ps5upload
+  gelöscht   shadowmount
+  gelöscht   leerer Ordner /user/data/homebrew/sub/tief
+  gelöscht   leerer Ordner /user/data/homebrew/sub
+  gelöscht   leerer Ordner /user/addcont/CUSA10370
+  gelöscht   leerer Ordner /user/appmeta/addcont/CUSA10370
+  gelöscht   leerer Ordner /user/addcont/PPSA10111
+  gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10111
+  gelöscht   leerer Ordner /user/addcont/PPSA10629
+  gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10629
+  gelöscht   leerer Ordner /user/addcont/PPSA10888
+  gelöscht   leerer Ordner /user/appmeta/addcont/PPSA10888
+
+Fertig - aber 35 Einträge ließen sich nicht ganz entfernen (siehe unten).
+Freigeräumt: 57 KB in 185 Dateien und 193 Ordnern
+Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.
+Kacheln gelöschter Einträge können im PS5-Menü sichtbar bleiben. PS5 Cleanup lässt sie unverändert. Unverändert gelassen (den Grund nennt das Protokoll beim Eintrag): Spielstand PPSA10148 (Weltraum Rennen 4 sys DE), Spielstand PPSA10259 (ASTRO's PLAYROOM), Spielstand PPSA10481 (Spiel/App unbekannt), Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool), Spielstand CUSA11110 (Русская игра 30 meta DE), Spielstand PPSA10148 (Weltraum Rennen 4 sys DE), Spielstand PPSA10296 (Bärenhöhle 2 8 DE), Spielstand PPSA10444 (Ninja's "Zitat" 12 meta DE), Spielstand PPSA10518 (Schräg/Strich 14 BOM), Spielstand PPSA10666 (Русская игра 18 meta DE), Spielstand PPSA10888 (Русская игра 24 meta DE), Spielstand PPSA11036 (Ünïcödé Ärger 28 Tool), Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4), Spielstand CUSA10925 (Bärenhöhle 2 25 PS4), Spielstand PPSA10037 (Ninja's "Zitat" 1 Tool), Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell), Spielstand PPSA10703 (Tab	im Namen 19 DE), Spielstand PPSA10814 (Spiel/App unbekannt), Spielstand PPSA11147 (Spiel/App unbekannt), Spielstand PPSA11258 (Weltraum Rennen 34 FR), Spielstand CUSA10000 (Café Crème 0 meta DE), Spielstand CUSA10370 (Emoji 🎮 Spiel 10 PS4), Spielstand CUSA10740 (Ünïcödé Ärger 20 sys DE), Spielstand PPSA10074 (12345), Spielstand PPSA10222 (Ninja's "Zitat" 6 meta DE), Spielstand PPSA10592 (Caf\u00e9 Cr\u00e8me 16 muell), Spielstand PPSA10814 (Spiel/App unbekannt), Spielstand PPSA10962 (Spiel/App unbekannt), Spielstand PPSA11184 (Café Crème 32 DE), Spielstand PPSA11258 (Weltraum Rennen 34 FR), Aufnahmen von Café Crème 0 meta DE (CUSA10000): 5 Screenshots, 2 Videos, Aufnahmen von CUSA77777 (Spiel nicht mehr auf der Konsole, Spiel/App unbekannt): 5 Screenshots, Aufnahmen von Systemmenü (NPXS40140): 5 Screenshots, Aufnahmen von Weltraum Rennen 4 sys DE (PPSA10148): 5 Screenshots, Aufnahmen von Galerie Spiel Neun (PPSA99001, Spiel nicht mehr auf der Konsole): 5 Screenshots. Bitte schick uns das Protokoll (GitHub oder psxtools.de), damit wir das beheben können.
+FERTIG Fertig - aber 35 Einträge ließen sich nicht ganz entfernen (siehe unten).
+  frei: Freigeräumt: 57 KB in 185 Dateien und 193 Ordnern
+  sm:
+  | ShadowMount wurde mitgelöscht - richte es neu ein, dann erscheinen die Spiele auf der M.2 wieder als Kacheln.
+> ABLAUF ENDE verbunden=True
+> ZEIGE
+KOPF [1] Spiele   (11 Einträge · 6 KB)
+  [ ] SM PPSA90001 DE (PPSA90001) - ShadowMount-Spiel auf der internen SSD  [GESPERRT: Game Compressor arbeitet gerade daran]   427 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] SM PPSA90001 DE (PPSA90001) - Spieldatei Spiel Eins - PPSA90001.exfat   1000 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] M.2 – SM PPSA90002 DE (PPSA90002) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran]   425 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] M.2 – SM PPSA90002 DE (PPSA90002) - Spieldatei Zwei - PPSA90002.exfat   100 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] M.2 – unbekannter Name (PPSA10074) - Spiel   171 Byte
+  [ ] M.2 – unbekannter Name (PPSA10074) - Update (Version 03.000)   28 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] M.2 – Weltraum Rennen 4 sys DE (PPSA10148) - Spiel   1 KB
+  [ ] M.2 – unbekannter Name (PPSA10481) - Spiel   320 Byte
+  [ ] M.2 – unbekannter Name (PPSA10814) - Spiel   2 KB
+  [ ] M.2 – unbekannter Name (PPSA11147) - Spiel   409 Byte
+  [ ] M.2 – unbekannter Name (PPSA11147) - Zusatzinhalt: Erw meta 0 DE   251 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+KOPF [2] Spielstände   (30 Einträge · 120 Byte)
+  [ ] Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10259 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10481 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11036 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA11110 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10148 (Weltraum Rennen 4 sys DE)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10296 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10444 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10518 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10666 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10888 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11036 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA10370 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA10925 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10037 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10592 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10703 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10814 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11147 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11258 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA10000 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA10370 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand CUSA10740 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10074 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10222 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10592 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10814 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA10962 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11184 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA11258 (Spiel/App unbekannt)   4 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+KOPF [3] Trophäen   (3 Einträge · 6 Byte)
+  [ ] Trophäen-Liste: NPWR30001_00 (Spiel/App unbekannt) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+  [ ] Trophäen-Liste: NPWR30005_00 (Spiel/App unbekannt) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+  [ ] Trophäen-Liste: NPWR30009_00 (Spiel/App unbekannt) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+KOPF [4] Bilder & Videos   (5 Einträge · 353 Byte)
+  [ ] Aufnahmen von CUSA10000 (Spiel nicht mehr auf der Konsole, Spiel/App unbekannt): 5 Screenshots, 2 Videos   8 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Aufnahmen von CUSA77777 (Spiel nicht mehr auf der Konsole, Spiel/App unbekannt): 5 Screenshots   5 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Aufnahmen von Systemmenü (NPXS40140): 5 Screenshots   5 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Aufnahmen von Weltraum Rennen 4 sys DE (PPSA10148): 5 Screenshots   5 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Aufnahmen von Galerie Spiel Neun (PPSA99001, Spiel nicht mehr auf der Konsole): 5 Screenshots   330 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+KOPF [5] Sonstiges   (6 Einträge · 104 Byte)
+  [ ] Share-Einstellungen alter Spiele (1)   1 Byte
+  [ ] M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_2   1 Byte
+  [ ] M.2 – datei.bin   1 Byte
+  [ ] M.2 – games/a.iso   100 Byte
+  [ ] M.2 – games/sub   1 Byte
+  [ ] M.2 – leer  (leerer Ordner)   0 Byte
+KOPF [7] Jailbreak   (1 Eintrag · 1 Byte)
+  [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln]   1 Byte  {Gehört zum Jailbreak: WebKit-Jailbreak (Browser). Nur einzeln wählbar. Wird es gelöscht, funktioniert dieser Jailbreak erst wieder, wenn er neu eingerichtet ist. Die vollständige Bereinigung fragt, ob es bleibt.}
+STAND Nichts ausgewählt.
+ENDE fehler=0

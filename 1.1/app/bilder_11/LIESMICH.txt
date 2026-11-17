@@ -1,0 +1,8 @@
+Bilder und Schriften der Oberflaeche 1.1 (Entwurf "PS5 Cleanup 1.1 – Oberflaeche", 15.11.2026)
+- hintergrund.png      Hintergrund 1920x1080 (Verlauf, Leuchtboegen, Sterne) - einmal geladen, darueber wird gezeichnet
+- banner.jpg           Banner der Startseite (von da_Chris86)
+- konsole_*.png        weisse Konsolenbilder (PS5, Slim, Pro; mit Laufwerk / Digital)
+- sym_*_132/_40.png    plastische Bereichssymbole (Startseite / Reiter)
+- logo_schrift_36.png  Schriftzug "PS5 Cleanup" (gezeichnet mit Poppins Bold Italic, OFL)
+- Inter-*.otf          Schrift Inter (OFL-1.1), Teilmenge lateinisch; fehlende Zeichen kommen aus DejaVu
+Erzeugt in der Claude-Sitzung vom 15.11.2026 aus dem Entwurf (Werkzeug: werkzeug/bilder_11_erzeugen.txt).

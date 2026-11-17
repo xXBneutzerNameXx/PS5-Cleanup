@@ -1,0 +1,13 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   ShadowMount does not respond (maybe older than 1.7), but games are mounted.
+LOG: 
+LOG:  ShadowMount could not be stopped safely. If it is still running,
+LOG:  mounted game data can be damaged while deleting.
+LOG:  The user chose 'Delete anyway'.
+LOG: 
+LOG: Deleting ... (large games can take a while)
+LOG:   deleted   Tool tile: Mein Tool (TOOL00001)
+ERG Fall=trotzdem gefragt=True weg=True abgebrochen=False Grund=ShadowMount does not respond (maybe older than 1.7), but games are mounted.
+OK   Fall trotzdem: Rückfrage kommt
+OK   Fall trotzdem: gelöscht
+FEHLERZAHL 0

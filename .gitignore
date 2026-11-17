@@ -45,3 +45,7 @@ Quellcode/powershell-1.0.3/bauen/_gesamt.ps1
 # Eingefrorener Stand der veröffentlichten Version - steckt in Git schon als Tag v1.0.9
 /1.0.9/
 /1.*/test/kern/ergebnis_teil/
+/1.0.10/
+
+# Aussortierte Reste (16.11.2026), werden von da_Chris86 selbst gelöscht
+/_zu_loeschen/

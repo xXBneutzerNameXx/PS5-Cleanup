@@ -1,0 +1,9 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   Die Stopp-Datei für ShadowMount ließ sich nicht anlegen.
+LOG: 
+LOG:  ShadowMount konnte nicht sicher angehalten werden. Läuft es noch, können
+LOG:  eingebundene Spieldaten beim Löschen beschädigt werden.
+ERG Fall=stopfail gefragt=True weg=False abgebrochen=True Grund=Die Stopp-Datei für ShadowMount ließ sich nicht anlegen.
+OK   Fall stopfail: Rückfrage kommt
+OK   Fall stopfail: nichts gelöscht
+FEHLERZAHL 0

@@ -1,0 +1,9 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   ShadowMount läuft nicht (keine Reaktion, keine Spiele eingebunden).
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   gelöscht   Tool-Kachel: Mein Tool (TOOL00001)
+ERG Fall=aus gefragt=False weg=True abgebrochen=False Grund=
+OK   Fall aus: Rückfrage kommt nicht
+OK   Fall aus: gelöscht
+FEHLERZAHL 0

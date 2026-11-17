@@ -1,0 +1,9 @@
+LOG: Stopping ShadowMount (otherwise it recreates the tiles right away) ...
+LOG:   Could not create the stop file for ShadowMount.
+LOG: 
+LOG:  ShadowMount could not be stopped safely. If it is still running,
+LOG:  mounted game data can be damaged while deleting.
+ERG Fall=stopfail gefragt=True weg=False abgebrochen=True Grund=Could not create the stop file for ShadowMount.
+OK   Fall stopfail: Rückfrage kommt
+OK   Fall stopfail: nichts gelöscht
+FEHLERZAHL 0
