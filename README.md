@@ -4,6 +4,17 @@
 
 </div>
 
+> [!CAUTION]
+> **🇩🇪 Wichtiger Hinweis (17.11.2026): Auf Firmware 13.x vorerst nichts löschen.**
+> Auf Konsolen mit Firmware **13.20 und 13.60** scheitert das Löschen mit „Bad file descriptor“. Ursache ist ein nachgewiesener Fehler in unserem Programm (Fehlerbehandlung beim Öffnen von Ordnern), nicht die Firmware selbst. Dabei kann die Spielstand-Liste der PS5 schon Einträge verlieren, obwohl die Spielstand-Dateien noch da sind. Außerdem kann die Abschlussmeldung Dinge als gelöscht nennen, die unverändert geblieben sind.
+>
+> **Bis zur Korrektur in Version 1.1.1:** Auf Firmware 13.x bitte nur nachschauen, nichts löschen. Andere 13er-Fassungen sind ungeprüft, darum dort ebenfalls nicht löschen. Nachschauen verändert nichts. Auf anderen Firmwares gilt: Meldet das Löschen Fehler, nicht wiederholen, sondern uns das Protokoll schicken.
+>
+> **🇬🇧 Important notice (Nov 17, 2026): do not delete anything on firmware 13.x for now.**
+> On consoles with firmware **13.20 and 13.60**, deleting fails with "Bad file descriptor". The cause is a confirmed bug in our program (error handling when opening folders), not the firmware itself. In that case the PS5's saved-data list can already lose entries while the save files are still there. The final summary can also name things as deleted that were left unchanged.
+>
+> **Until the fix in version 1.1.1:** on firmware 13.x please only scan, do not delete. Other 13.x versions are untested, so please do not delete there either. Scanning changes nothing. On other firmwares: if deleting reports errors, do not repeat it, send us the log instead.
+
 <details>
 <summary><b>🇩🇪 Deutsch</b> (zum Aufklappen)</summary>
 
