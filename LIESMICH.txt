@@ -96,6 +96,9 @@ IM BROWSER BEDIENEN (am Handy oder PC)
   Adresse steht unten rechts auf der Startseite (z. B.
   192.168.178.20:9100), in den Optionen unter "Bedienung im Browser" auch
   als QR-Code. Handy oder PC müssen im selben Heimnetz sein wie die PS5.
+  Ist der Port 9100 schon belegt, nimmt PS5 Cleanup den nächsten freien
+  bis 9109 - die genaue Adresse steht immer auf der Startseite. Von
+  unterwegs geht es nur über ein VPN ins Heimnetz.
   Keine Anmeldung, nichts zu installieren.
   Die Seite zeigt dasselbe wie der Fernseher: dieselben Schritte,
   derselbe Testmodus, dieselben Bestätigungen ("Löschen" 2 Sekunden

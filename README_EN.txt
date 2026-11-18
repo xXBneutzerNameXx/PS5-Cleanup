@@ -90,7 +90,10 @@ CONTROL IN A BROWSER (on your phone or PC)
   Everything also works in a browser - with mouse, keyboard or finger.
   The address is at the bottom right of the start screen (e.g.
   192.168.178.20:9100), in the Options under "Browser control" also as a
-  QR code. Phone or PC must be in the same home network as the PS5. No
+  QR code. If port 9100 is already in use, PS5 Cleanup takes the next
+  free one up to 9109 - the exact address is always on the start screen.
+  From outside your home only via a VPN into your home network.
+  Phone or PC must be in the same home network as the PS5. No
   login, nothing to install.
   The page shows the same as the TV: the same steps, the same test mode,
   the same confirmations (hold "Delete" for 2 seconds, type DELETE for

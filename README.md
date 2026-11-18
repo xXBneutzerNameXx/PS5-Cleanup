@@ -145,7 +145,7 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 - Sprache und „Nochmal nachschauen“ direkt auf der Startseite, deutlichere Tastenleiste.
 
 **Bedienung im Browser**
-- PS5 Cleanup lässt sich vom Handy oder PC aus bedienen – die Browser-Seite zeigt dasselbe wie der Fernseher. Die Adresse steht unten auf der Startseite.
+- PS5 Cleanup lässt sich vom Handy oder PC aus bedienen – die Browser-Seite zeigt dasselbe wie der Fernseher. Die Adresse steht unten auf der Startseite, meist `http://<IP der PS5>:9100`. Ist der Port belegt, nimmt PS5 Cleanup den nächsten freien bis 9109. Nur aus dem Heimnetz, von unterwegs per VPN.
 
 **Alles bereinigen mit Vorschau**
 - Vorher steht je Speicher (interne SSD, M.2, erweiterter Speicher), wie viele Spiele und Einträge gelöscht werden, wie viel frei wird und wie viel Platz danach frei ist.
@@ -378,7 +378,7 @@ Full guide: [README_EN.txt](README_EN.txt)
 - Language and "Scan again" right on the start screen, a clearer button bar.
 
 **Browser control**
-- PS5 Cleanup can be operated from your phone or PC – the browser page shows the same as the TV. The address is at the bottom of the start screen.
+- PS5 Cleanup can be operated from your phone or PC – the browser page shows the same as the TV. The address is at the bottom of the start screen, usually `http://<PS5 IP>:9100`. If the port is in use, PS5 Cleanup takes the next free one up to 9109. Home network only, from outside via VPN.
 
 **Clean up everything with preview**
 - Before you confirm, it shows per drive (internal SSD, M.2, extended storage) how many games and entries are deleted, how much is freed and how much space is free afterwards.
