@@ -8,12 +8,16 @@
 > **🇩🇪 Wichtiger Hinweis (17.11.2026): Auf Firmware 13.x vorerst nichts löschen.**
 > Auf Konsolen mit Firmware **13.20 und 13.60** scheitert das Löschen mit „Bad file descriptor“. Ursache ist ein nachgewiesener Fehler in unserem Programm (Fehlerbehandlung beim Öffnen von Ordnern), nicht die Firmware selbst. Dabei kann die Spielstand-Liste der PS5 schon Einträge verlieren, obwohl die Spielstand-Dateien noch da sind. Außerdem kann die Abschlussmeldung Dinge als gelöscht nennen, die unverändert geblieben sind.
 >
-> **Bis zur Korrektur in Version 1.1.1:** Auf Firmware 13.x bitte nur nachschauen, nichts löschen. Andere 13er-Fassungen sind ungeprüft, darum dort ebenfalls nicht löschen. Nachschauen verändert nichts. Auf anderen Firmwares gilt: Meldet das Löschen Fehler, nicht wiederholen, sondern uns das Protokoll schicken.
+> **Bis zur Korrektur in Version 1.2:** Auf Firmware 13.x bitte nur nachschauen, nichts löschen. Andere 13er-Fassungen sind ungeprüft, darum dort ebenfalls nicht löschen. Nachschauen verändert nichts. Auf anderen Firmwares gilt: Meldet das Löschen Fehler, nicht wiederholen, sondern uns das Protokoll schicken.
+>
+> **Hilfe gesucht (18.11.2026):** Du hast Firmware 13.x? Dann starte bitte einmal die [Weg-Diagnose](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/wegdiagnose-13x). Sie ist keine neue Version von PS5 Cleanup und kann nichts löschen. Sie prüft nur, wie PS5 Cleanup auf deiner Konsole an die Ordner kommt. Nach dem Nachschauen unter „Protokoll & Rückmeldung“ die Rückmeldung senden, fertig.
 >
 > **🇬🇧 Important notice (Nov 17, 2026): do not delete anything on firmware 13.x for now.**
 > On consoles with firmware **13.20 and 13.60**, deleting fails with "Bad file descriptor". The cause is a confirmed bug in our program (error handling when opening folders), not the firmware itself. In that case the PS5's saved-data list can already lose entries while the save files are still there. The final summary can also name things as deleted that were left unchanged.
 >
-> **Until the fix in version 1.1.1:** on firmware 13.x please only scan, do not delete. Other 13.x versions are untested, so please do not delete there either. Scanning changes nothing. On other firmwares: if deleting reports errors, do not repeat it, send us the log instead.
+> **Until the fix in version 1.2:** on firmware 13.x please only scan, do not delete. Other 13.x versions are untested, so please do not delete there either. Scanning changes nothing. On other firmwares: if deleting reports errors, do not repeat it, send us the log instead.
+>
+> **Help wanted (Nov 18, 2026):** On firmware 13.x? Please run the [path diagnostic](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/wegdiagnose-13x) once. It is not a new version of PS5 Cleanup and cannot delete anything. It only checks how PS5 Cleanup can reach the folders on your console. After the scan, send the feedback under “Log & feedback”. That's it.
 
 <details>
 <summary><b>🇩🇪 Deutsch</b> (zum Aufklappen)</summary>
