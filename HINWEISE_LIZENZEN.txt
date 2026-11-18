@@ -47,7 +47,7 @@ PS5-App (1.1/, ps5cleanup_v1.1.elf) - NEU in 1.0.6
   PS5 Cleanup direkt auf der PS5. / PS5 Cleanup running directly on the PS5.
   Ab 1.0.7 die einzige Fassung. / From 1.0.7 on the only version.
   Lizenz / License: GNU General Public License v3.0 or later
-  (LICENSE_GPL-3.0.txt), Copyright (C) 2026 da_Chris86.
+  (LICENSE), Copyright (C) 2026 da_Chris86.
   Enthält / contains:
     - ELF-Lader aus ps5-payload-dev/websrv (John Törnblom, GPL-3.0)
     - gebaut mit / built with ps5-payload-sdk (John Törnblom, GPL-3.0)
