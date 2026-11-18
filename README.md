@@ -4,20 +4,10 @@
 
 </div>
 
-> [!CAUTION]
-> **🇩🇪 Wichtiger Hinweis (17.11.2026): Auf Firmware 13.x vorerst nichts löschen.**
-> Auf Konsolen mit Firmware **13.20 und 13.60** scheitert das Löschen mit „Bad file descriptor“. Ursache ist ein nachgewiesener Fehler in unserem Programm (Fehlerbehandlung beim Öffnen von Ordnern), nicht die Firmware selbst. Dabei kann die Spielstand-Liste der PS5 schon Einträge verlieren, obwohl die Spielstand-Dateien noch da sind. Außerdem kann die Abschlussmeldung Dinge als gelöscht nennen, die unverändert geblieben sind.
+> [!NOTE]
+> **🇩🇪 Firmware 13.x: in Version 1.2 behoben.** Auf Firmware 13.20/13.60 scheiterte in älteren Versionen das Löschen mit „Bad file descriptor“. Ab **Version 1.2** ist das behoben – PS5 Cleanup geht dort jeden Schritt über den ganzen Pfad, genau wie auf 12.x. Wenn du auf Firmware 13.x bist, nutze bitte **Version 1.2** (siehe [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)).
 >
-> **Bis zur Korrektur in Version 1.2:** Auf Firmware 13.x bitte nur nachschauen, nichts löschen. Andere 13er-Fassungen sind ungeprüft, darum dort ebenfalls nicht löschen. Nachschauen verändert nichts. Auf anderen Firmwares gilt: Meldet das Löschen Fehler, nicht wiederholen, sondern uns das Protokoll schicken.
->
-> **Hilfe gesucht (18.11.2026):** Du hast Firmware 13.x? Dann starte bitte einmal die [Weg-Diagnose](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/wegdiagnose-13x). Sie ist keine neue Version von PS5 Cleanup und kann nichts löschen. Sie prüft nur, wie PS5 Cleanup auf deiner Konsole an die Ordner kommt. Nach dem Nachschauen unter „Protokoll & Rückmeldung“ die Rückmeldung senden, fertig.
->
-> **🇬🇧 Important notice (Nov 17, 2026): do not delete anything on firmware 13.x for now.**
-> On consoles with firmware **13.20 and 13.60**, deleting fails with "Bad file descriptor". The cause is a confirmed bug in our program (error handling when opening folders), not the firmware itself. In that case the PS5's saved-data list can already lose entries while the save files are still there. The final summary can also name things as deleted that were left unchanged.
->
-> **Until the fix in version 1.2:** on firmware 13.x please only scan, do not delete. Other 13.x versions are untested, so please do not delete there either. Scanning changes nothing. On other firmwares: if deleting reports errors, do not repeat it, send us the log instead.
->
-> **Help wanted (Nov 18, 2026):** On firmware 13.x? Please run the [path diagnostic](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/wegdiagnose-13x) once. It is not a new version of PS5 Cleanup and cannot delete anything. It only checks how PS5 Cleanup can reach the folders on your console. After the scan, send the feedback under “Log & feedback”. That's it.
+> **🇬🇧 Firmware 13.x: fixed in version 1.2.** On firmware 13.20/13.60, deleting used to fail with "Bad file descriptor" in older versions. As of **version 1.2** this is fixed – PS5 Cleanup takes every step via the full path there, just like on 12.x. If you are on firmware 13.x, please use **version 1.2** (see [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)).
 
 <details>
 <summary><b>🇩🇪 Deutsch</b> (zum Aufklappen)</summary>
@@ -30,9 +20,9 @@
 
 [![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Getestet](https://img.shields.io/badge/getestet-PS5%20Pro%20%C2%B7%20FW%2012.00-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE.txt)
 
-### [⬇️ PS5 Cleanup 1.1 herunterladen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
+### [⬇️ PS5 Cleanup 1.2 herunterladen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
 
-<sub>Du brauchst nur eine Datei: <code>ps5cleanup_v1.1.elf</code>. Die ZIP enthält dieselbe Datei plus Anleitungen und Prüfsummen.</sub>
+<sub>Du brauchst nur eine Datei: <code>ps5cleanup_v1.2.elf</code>. Die ZIP enthält dieselbe Datei plus Anleitungen und Prüfsummen.</sub>
 
 [Auf einen Blick](#auf-einen-blick) · [So geht's](#so-gehts) · [Rückmeldung](#rückmeldungen) · [Community](#community)
 
@@ -127,7 +117,7 @@ Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird n
 
 ## So geht's
 
-1. Jailbreak laden, `ps5cleanup_v1.1.elf` aus den [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) über den Payload-Lader oder den Payload Manager starten. Steckt ein USB-Laufwerk, kommt das Protokoll darauf. Wer lieber am Handy oder PC bedient, öffnet dort im Browser die Adresse unten auf der Startseite.
+1. Jailbreak laden, `ps5cleanup_v1.2.elf` aus den [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) über den Payload-Lader oder den Payload Manager starten. Steckt ein USB-Laufwerk, kommt das Protokoll darauf. Wer lieber am Handy oder PC bedient, öffnet dort im Browser die Adresse unten auf der Startseite.
 2. **Nachschauen** und anschauen, was gefunden wurde. Die App ist im **Testmodus** und löscht nichts. Stimmt die Liste, den Testmodus in den Optionen ausschalten.
 3. ✕ = **Selbst auswählen**: Einträge anhaken, □ = Weiter zum Löschen, zum Bestätigen ✕ 2 Sekunden halten – oder △ = **Alles bereinigen**: Laufwerke wählen, `LÖSCHEN` eintippen.
 4. Am Ende zeigt die Ergebnisseite jeden Eintrag, Übriggebliebenes mit Grund. Dann **✕ Neu starten** (empfohlen) oder **○ Beenden** – vorher kommt die freiwillige Rückmeldung. Nach dem Neustart den Jailbreak wie gewohnt starten.
@@ -252,7 +242,7 @@ Ausführlicher: Über [Issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/i
 
 ## Lizenz
 
-Die PS5-App (`1.1/`, `ps5cleanup_v1.1.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Details und Bestandteile anderer Urheber in [LICENSE.txt](LICENSE.txt).
+Die PS5-App (`1.1/`, `ps5cleanup_v1.2.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Details und Bestandteile anderer Urheber in [LICENSE.txt](LICENSE.txt).
 
 ## Danke an
 
@@ -271,9 +261,9 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 [![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Tested](https://img.shields.io/badge/tested-PS5%20Pro%20%C2%B7%20FW%2012.00-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![License](https://img.shields.io/badge/License-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE.txt)
 
-### [⬇️ Download PS5 Cleanup 1.1](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
+### [⬇️ Download PS5 Cleanup 1.2](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
 
-<sub>You only need one file: <code>ps5cleanup_v1.1.elf</code>. The ZIP contains the same file plus guides and checksums.</sub>
+<sub>You only need one file: <code>ps5cleanup_v1.2.elf</code>. The ZIP contains the same file plus guides and checksums.</sub>
 
 [At a glance](#at-a-glance) · [How to use](#how-to-use) · [Feedback](#feedback) · [Community](#community-en)
 
@@ -306,7 +296,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## What is it?
 
-**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It runs **directly on the PS5** (`ps5cleanup_v1.1.elf`, own home-screen tile, no PC and no Homebrew Launcher needed, DualSense on your TV – or in a browser on your phone or PC), lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. Available in **English and German** (follows the PS5 system language; Square on the start screen switches it).
+**PS5 Cleanup** brings a jailbroken PS5 back to a freshly-set-up state – without reinstalling or resetting the system software. It runs **directly on the PS5** (`ps5cleanup_v1.2.elf`, own home-screen tile, no PC and no Homebrew Launcher needed, DualSense on your TV – or in a browser on your phone or PC), lists everything with readable names and deletes only what you select – single games, saved data, trophies (e.g. when one game or tool causes problems) or everything at once. Available in **English and German** (follows the PS5 system language; Square on the start screen switches it).
 
 ## At a glance
 
@@ -360,7 +350,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 ## How to use
 
-1. Load your jailbreak, start `ps5cleanup_v1.1.elf` from the [releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) with your payload loader or Payload Manager. To use your phone or PC instead, open the address shown at the bottom of the start screen in a browser.
+1. Load your jailbreak, start `ps5cleanup_v1.2.elf` from the [releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) with your payload loader or Payload Manager. To use your phone or PC instead, open the address shown at the bottom of the start screen in a browser.
 2. *Scan* and look at what was found. The app is in **test mode** and deletes nothing. If the list is right, switch test mode off in the Options.
 3. ✕ = *Choose yourself*: tick entries, □ = Continue to delete, hold ✕ for 2 seconds to confirm – or △ = *Clean up everything*: choose the drives, type `DELETE`.
 4. At the end the result screen shows every entry, anything left over with the reason. Then ✕ *Restart* (recommended) or ○ *Quit* – the optional feedback comes first. Then start your jailbreak as usual.
@@ -465,7 +455,7 @@ More detail: via [issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/issues
 
 ## License and thanks
 
-The PS5 app (`1.1/`, `ps5cleanup_v1.1.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – details and third-party components in [LICENSE.txt](LICENSE.txt).
+The PS5 app (`1.1/`, `ps5cleanup_v1.2.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – details and third-party components in [LICENSE.txt](LICENSE.txt).
 
 Thanks to [drakmor](https://github.com/drakmor) (ftpsrv, ps5-hwinfo), [earthonion](https://github.com/earthonion) (ddd_status), John Törnblom (ps5-payload-sdk, ftpsrv), [seregonwar](https://github.com/seregonwar) (zftpd), the makers of ShadowMountPlus and PS5Upload, [Project Nayuki](https://www.nayuki.io/page/qr-code-generator-library) (QR code library) and Markus Scholtes (PS2EXE).
 
