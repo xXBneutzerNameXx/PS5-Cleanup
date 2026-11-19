@@ -5,6 +5,10 @@
 </div>
 
 > [!NOTE]
+> **🇩🇪 Getestet von Firmware 10.60 bis 13.60** – auf PS5, PS5 Slim und PS5 Pro (laut Rückmeldungen der Nutzer).
+>
+> **🇬🇧 Tested from firmware 10.60 to 13.60** – on PS5, PS5 Slim and PS5 Pro (according to user feedback).
+>
 > **🇩🇪 Firmware 13.x: in Version 1.2 behoben.** Auf Firmware 13.20/13.60 scheiterte in älteren Versionen das Löschen mit „Bad file descriptor“. Ab **Version 1.2** ist das behoben – PS5 Cleanup geht dort jeden Schritt über den ganzen Pfad, genau wie auf 12.x. Wenn du auf Firmware 13.x bist, nutze bitte **Version 1.2** (siehe [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)).
 >
 > **🇬🇧 Firmware 13.x: fixed in version 1.2.** On firmware 13.20/13.60, deleting used to fail with "Bad file descriptor" in older versions. As of **version 1.2** this is fixed – PS5 Cleanup takes every step via the full path there, just like on 12.x. If you are on firmware 13.x, please use **version 1.2** (see [Releases](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)).
@@ -18,7 +22,7 @@
 
 **Deine PS5 aufräumen wie frisch eingerichtet – ohne Neuinstallation, ohne Zurücksetzen.**
 
-[![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Getestet](https://img.shields.io/badge/getestet-PS5%20Pro%20%C2%B7%20FW%2012.00-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Getestet](https://img.shields.io/badge/getestet-FW%2010.60%20bis%2013.60-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE)
 
 ### [⬇️ PS5 Cleanup 1.2 herunterladen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
 
@@ -259,7 +263,7 @@ Inoffizielles Community-Projekt, keine Verbindung zu Sony. PlayStation und PS5 s
 
 **Clean up your PS5 like freshly set up – no reinstall, no reset.**
 
-[![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Tested](https://img.shields.io/badge/tested-PS5%20Pro%20%C2%B7%20FW%2012.00-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![License](https://img.shields.io/badge/License-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/xXBneutzerNameXx/PS5-Cleanup?style=for-the-badge&label=Version&color=2f6fdf)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest) [![Downloads](https://img.shields.io/github/downloads/xXBneutzerNameXx/PS5-Cleanup/total?style=for-the-badge&label=Downloads&color=1f7a3a)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases) [![Tested](https://img.shields.io/badge/tested-FW%2010.60%20to%2013.60-444444?style=for-the-badge)](https://github.com/xXBneutzerNameXx/PS5-Cleanup/discussions/categories/compatibility) [![License](https://img.shields.io/badge/License-GPL--3.0-6e40c9?style=for-the-badge)](LICENSE)
 
 ### [⬇️ Download PS5 Cleanup 1.2](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/latest)
 
