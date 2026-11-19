@@ -176,7 +176,7 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 **Unter der Haube**
 - Alte Sonderwege aus der Zeit von 1.0.5 und 1.0.6 entfernt, ein gemeinsames Regelwerk für alle Löschwege. Jede Änderung wurde einzeln geprüft und mit dem automatischen Gesamttest abgesichert.
 
-Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00, M.2 und USB-Laufwerk – „Selbst auswählen“ und „Alles bereinigen“, am Fernseher und im Browser. Andere Modelle und Firmwares sind nicht gesperrt, aber noch nicht getestet – dort bitte im Testmodus zuerst schauen, ob die Liste stimmt. [Alle Neuerungen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
+Getestet auf einer PS5 Pro (CFI-7021) mit Firmware 12.00, M.2 und USB-Laufwerk – „Selbst auswählen“ und „Alles bereinigen“, am Fernseher und im Browser. Laut Rückmeldungen der Nutzer läuft es außerdem auf PS5, PS5 Slim und PS5 Pro mit Firmware 10.60 bis 13.60. [Alle Neuerungen](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
 
 </details>
 
@@ -409,7 +409,7 @@ Full guide: [README_EN.txt](README_EN.txt)
 **Under the hood**
 - Old special paths from the 1.0.5 and 1.0.6 days removed, one shared set of rules for all ways of deleting. Every change was checked on its own and secured with the automatic full test.
 
-Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2 and USB drive – "Choose yourself" and "Clean up everything", on the TV and in the browser. Other models and firmwares are not blocked but untested – there, please check in test mode first that the list is right. [All changes](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
+Tested on a PS5 Pro (CFI-7021), firmware 12.00, with M.2 and USB drive – "Choose yourself" and "Clean up everything", on the TV and in the browser. According to user feedback it also runs on PS5, PS5 Slim and PS5 Pro with firmware 10.60 to 13.60. [All changes](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases)
 
 </details>
 
