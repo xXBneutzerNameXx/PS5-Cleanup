@@ -31,7 +31,9 @@ ZWEI WEGE
     eingerichtet - auch Reste, bei denen nicht sicher ist, welchem
     Programm sie gehören (z. B. Ordner mit unklarem Inhalt oder
     Sicherungskopien, die Tools angelegt haben). Willst du davon etwas
-    behalten, nimm "Selbst auswählen". Der Bereich Jailbreak bleibt immer.
+    behalten, nimm "Selbst auswählen". Systemsoftware, Laufwerks-Kopplung,
+    Konto und echte Lizenzen fasst PS5 Cleanup nie an, der Bereich
+    Jailbreak bleibt immer.
     M.2 und erweiterten Speicher schaltest du einzeln dazu.
     Vorher steht genau da, wie viele Spiele und Einträge je Speicher
     gelöscht werden und wie viel Platz danach frei ist.
@@ -118,6 +120,10 @@ UPDATES
   daneben. Geht etwas schief, bleibt die alte Version unverändert.
   Gestartet wird nichts von selbst: PS5 Cleanup beenden und danach die
   neue Datei starten.
+  Update von 1.2 aus: Der Updater in 1.2 kann die neue Datei neben die
+  alte legen, statt sie zu ersetzen. Dann die alte Datei (z. B.
+  ps5cleanup_v1.2.elf) einfach selbst löschen. Ab 1.3 ersetzt das Update
+  richtig.
 
 
 NEU IN 1.3
@@ -145,11 +151,14 @@ NEU IN 1.3
   beim PS4Mount im PS5 Cooling & System Center); alles, was ps4mount zu
   einem Spiel führt, geht mit dem Spiel weg.
 - WK Store (Jailbreak-Start über die PS-Store-Kachel) steht unter
-  "Jailbreak"; die Store-Kachel und Sonys Datenbank bleiben unangetastet.
-- "Alles bereinigen" räumt wirklich alles: auch Ordner mit unklarem
+  "Jailbreak"; beim Löschen von WK Store bleiben die Store-Kachel und
+  Sonys Datenbank unangetastet.
+- "Alles bereinigen" nimmt jetzt auch Reste mit: Ordner mit unklarem
   Inhalt, nur vermutete Ordner und Sicherungskopien, die Tools neben
-  Sonys Datenbank angelegt haben. Es bleiben nur der Bereich Jailbreak
-  und Speicher, die du behältst.
+  Sonys Datenbank angelegt haben. Wie immer nie angefasst werden
+  Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung und
+  echte Lizenzen. Außerdem bleiben der Bereich Jailbreak und die
+  Speicher, die du behältst.
 - Reste, die eindeutig zu einem Programm gehören, stehen bei diesem
   Programm unter Apps, auch wenn es nicht mehr installiert ist (z. B. die
   leeren Ordner und Spieldaten von PS4Mount).

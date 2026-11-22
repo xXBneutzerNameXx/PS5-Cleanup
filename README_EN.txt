@@ -30,8 +30,10 @@ TWO WAYS
   - Clean up everything: everything on the internal SSD at once, like
     freshly set up - including leftovers whose owner is not certain (e.g.
     folders with unclear content or backup copies made by tools). If you
-    want to keep any of them, use "Choose yourself". The Jailbreak
-    section always stays. You add the M.2 and extended storage one by one.
+    want to keep any of them, use "Choose yourself". System software,
+    drive pairing, account and real licenses are never touched, and the
+    Jailbreak section always stays. You add the M.2 and extended storage
+    one by one.
     Beforehand it shows exactly how many games and entries are deleted on
     each drive and how much space is free afterwards.
 
@@ -110,6 +112,10 @@ UPDATES
   one is fully checked; "No, keep both" puts it next to it. If anything
   goes wrong, the old version stays unchanged. Nothing is started
   automatically: quit PS5 Cleanup and then start the new file.
+  Updating from 1.2: the updater in 1.2 may put the new file next to
+  the old one instead of replacing it. In that case simply delete the old
+  file (e.g. ps5cleanup_v1.2.elf) yourself. From 1.3 on, the update
+  replaces it properly.
 
 
 NEW IN 1.3
@@ -135,11 +141,13 @@ NEW IN 1.3
   the PS4Mount inside the PS5 Cooling & System Center); everything
   ps4mount keeps for a game goes with the game.
 - WK Store (jailbreak start via the PS Store tile) is listed under
-  "Jailbreak"; the Store tile and Sony's database stay untouched.
-- "Clean up everything" really cleans everything: also folders with
-  unclear content, merely suspected folders and backup copies that tools
-  made next to Sony's database. Only the Jailbreak section and drives you
-  keep stay.
+  "Jailbreak"; when WK Store is deleted, the Store tile and Sony's
+  database stay untouched.
+- "Clean up everything" now also takes leftovers: folders with unclear
+  content, merely suspected folders and backup copies that tools made next
+  to Sony's database. As always, system software, drive pairing, user
+  account, activation and real licenses are never touched, and the
+  Jailbreak section and the drives you keep stay.
 - Leftovers that clearly belong to a program are listed with that program
   under Apps, even if it is no longer installed (e.g. the empty folders
   and game data of PS4Mount).

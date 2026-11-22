@@ -59,7 +59,7 @@ Wer seine PS5 mit Jailbreak eine Weile nutzt, kennt das: tote Kacheln, Reste gel
 
 **Zwei Wege:**
 - **Selbst auswählen** – einzelne Einträge anhaken, z. B. wenn ein Spiel oder Tool Probleme macht: nur dessen Daten, Spielstand oder Trophäen löschen, der Rest bleibt.
-- **Alles bereinigen** – alles auf der internen SSD auf einmal, wie frisch eingerichtet – auch Reste, bei denen nicht sicher ist, welchem Programm sie gehören (wer davon etwas behalten will, nimmt „Selbst auswählen“). Der Bereich Jailbreak bleibt immer. M.2 und erweiterten Speicher schaltest du selbst dazu; vorher steht je Speicher, wie viele Spiele und Einträge gelöscht werden (Bestätigung mit `LÖSCHEN`).
+- **Alles bereinigen** – alles auf der internen SSD auf einmal, wie frisch eingerichtet – auch Reste, bei denen nicht sicher ist, welchem Programm sie gehören (wer davon etwas behalten will, nimmt „Selbst auswählen“). Systemsoftware, Laufwerks-Kopplung, Konto und echte Lizenzen fasst PS5 Cleanup nie an, der Bereich Jailbreak bleibt immer. M.2 und erweiterten Speicher schaltest du selbst dazu; vorher steht je Speicher, wie viele Spiele und Einträge gelöscht werden (Bestätigung mit `LÖSCHEN`).
 
 Beim Start ist der **Testmodus** an: Du kannst alles anschauen, gelöscht wird nichts.
 
@@ -132,11 +132,11 @@ PS5 Cleanup erscheint dann mit Symbol in der Liste und lässt sich direkt starte
 Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 
 <details>
-<summary><b>✨ Neu in 1.3 – Alles bereinigen räumt wirklich alles, Reste beim richtigen Programm</b> (zum Aufklappen)</summary>
+<summary><b>✨ Neu in 1.3 – „Alles bereinigen“ nimmt auch Reste mit, Reste beim richtigen Programm</b> (zum Aufklappen)</summary>
 
 <br>
 
-- **Alles bereinigen räumt wirklich alles:** auch Ordner mit unklarem Inhalt, nur vermutete Ordner und Sicherungskopien, die Tools neben Sonys Datenbank angelegt haben. Es bleiben nur der Bereich Jailbreak und die Speicher, die du behältst.
+- **„Alles bereinigen“ nimmt jetzt auch Reste mit:** Ordner mit unklarem Inhalt, nur vermutete Ordner und Sicherungskopien, die Tools neben Sonys Datenbank angelegt haben. Wie immer nie angefasst werden Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, Aktivierung und echte Lizenzen. Außerdem bleiben der Bereich Jailbreak und die Speicher, die du behältst.
 - **Reste beim richtigen Programm:** Was eindeutig zu einem Programm gehört, steht bei diesem Programm unter Apps, auch wenn es nicht mehr installiert ist. Datenordner gehören zu dem Programm, das sie anlegt, nicht zu einem, das sie nur liest.
 - **Reste von Spielen, die an Sony vorbei gelöscht wurden** (FTP, Dateimanager): genau diese Kennung wird aus Sonys Datenbank ausgetragen – geprüft, ganz oder gar nicht, ohne Neuaufbau.
 - **PS4-Spiele aus PS4Mount** (auch im PS5 Cooling & System Center): Einbindungen löst PS5 Cleanup selbst, alles zum Spiel geht mit dem Spiel weg. Playden und seine Spiele gehen in einem Durchgang.
@@ -144,6 +144,19 @@ Ausführliche Anleitung: [LIESMICH.txt](LIESMICH.txt)
 - **Rückmeldung genauer:** bei „Nein, etwas hat nicht geklappt“ sagst du mit einem Tipp, was schiefging.
 
 [Alle Neuerungen von 1.3](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/v1.3)
+
+</details>
+
+<details>
+<summary><b>✨ Neu in 1.2 – Löschen auf Firmware 13.x behoben</b> (zum Aufklappen)</summary>
+
+<br>
+
+- **Behoben – Firmware 13.x:** Auf Firmware 13.x (u. a. 13.20/13.60) scheiterte das Löschen mit „Bad file descriptor“. PS5 Cleanup geht jetzt jeden Schritt über den ganzen Pfad, sobald die Konsole den kurzen Weg ablehnt – Löschen läuft auf 13.x genauso wie auf 12.x.
+- **Sicherheit:** Vor dem Löschen wird geprüft, dass der Weg zu allen Dateien frei ist, bevor etwas an Sonys Spielstand-Liste geändert wird. Scheitert ein Löschen, steht der echte Grund im Protokoll.
+- **Kleinigkeiten:** Die Zwischendatei der Teilen-Funktion wird nicht mehr zum Löschen angeboten; kleinere Korrekturen in der Rückmeldeseite.
+
+[Release 1.2](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/v1.2)
 
 </details>
 
@@ -383,11 +396,11 @@ PS5 Cleanup then shows up in the list with its icon and can be started right awa
 Full guide: [README_EN.txt](README_EN.txt)
 
 <details>
-<summary><b>✨ New in 1.3 – clean up everything really cleans everything, leftovers with the right program</b> (click to expand)</summary>
+<summary><b>✨ New in 1.3 – “Clean up everything” now also takes leftovers, leftovers with the right program</b> (click to expand)</summary>
 
 <br>
 
-- **Clean up everything really cleans everything:** also folders with unclear content, merely suspected folders and backup copies that tools made next to Sony's database. Only the Jailbreak section and drives you keep stay.
+- **“Clean up everything” now also takes leftovers:** folders with unclear content, merely suspected folders and backup copies that tools made next to Sony's database. As always, system software, drive pairing, user account, activation and real licenses are never touched, and the Jailbreak section and the drives you keep stay.
 - **Leftovers with the right program:** anything that clearly belongs to a program is listed with that program under Apps, even if it is no longer installed. Data folders belong to the program that creates them, not to one that only reads them.
 - **Leftovers of games deleted outside Sony** (FTP, file manager): exactly that title is removed from Sony's database – checked, all or nothing, no rebuild.
 - **PS4 games from PS4Mount** (also inside the PS5 Cooling & System Center): PS5 Cleanup unmounts them itself, everything for a game goes with the game. Playden and its games go in one pass.
@@ -395,6 +408,19 @@ Full guide: [README_EN.txt](README_EN.txt)
 - **More precise feedback:** with "No, something did not work" you say in one tap what went wrong.
 
 [All changes in 1.3](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/v1.3)
+
+</details>
+
+<details>
+<summary><b>✨ New in 1.2 – deleting on firmware 13.x fixed</b> (click to expand)</summary>
+
+<br>
+
+- **Fixed – firmware 13.x:** On firmware 13.x (e.g. 13.20/13.60) deleting failed with “Bad file descriptor”. PS5 Cleanup now takes every step via the full path as soon as the console refuses the short way – deleting works on 13.x just like on 12.x.
+- **Safety:** Before deleting, PS5 Cleanup checks that the way to all files is clear before anything in Sony's saved-data list changes. If a deletion fails, the real reason is in the log.
+- **Small things:** The temporary file of the share function is no longer offered for deletion; small fixes on the feedback page.
+
+[Release 1.2](https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases/tag/v1.2)
 
 </details>
 
