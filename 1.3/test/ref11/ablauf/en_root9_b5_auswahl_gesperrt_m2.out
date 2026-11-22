@@ -1,0 +1,161 @@
+=== ABLAUF
+> WAEHLE TEXT M.2 – Spiel PPSA11111
+NICHT WÄHLBAR M.2 – Spiel PPSA11111
+> WAEHLE BEREICH 5
+> ZEIGE
+KOPF [1] Games   (29 entries · 2 KB)
+  [ ] Altes Spiel (CUSA12345) - game   126 bytes
+  [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Altes Spiel (CUSA12345) - add-on: Die Erweiterung   62 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] unknown name (PPSA01325) - game   23 bytes
+  [ ] ASTRO PLAYROOM (PPSA01326) - game   151 bytes
+  [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD   179 bytes
+  [ ] Spiel PPSA33333 (PPSA33333) - game file Game C - PPSA33333.exfat   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile   140 bytes  {ShadowMount: if the game is deleted, its tile disappears from the menu too.}
+  [ ] Real Game (PPSA55555) - game   116 bytes
+  [ ] Real Game (PPSA55555) - Update   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Real Game (PPSA55555) - add-on: dlc1   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - game   2 bytes
+  [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - add-on: Bonus Cars   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - ShadowMount game  [LOCKED: Game Compressor is working on it]   155 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - game file Game A - PPSA11111.exfat   2 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game   131 bytes
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - game file Game B - PPSA22222   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] M.2 – Top Game (PPSA99999) - ShadowMount game   131 bytes
+  [ ] M.2 – Top Game (PPSA99999) - game file Top Game - PPSA99999.exfat   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - game   130 bytes
+  [ ] M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04)   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster   86 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – ASTRO PLAYROOM (PPSA01327) - game   67 bytes
+  [ ] M.2 – M2 Spiel (PPSA66666) - game   25 bytes
+  [ ] M.2 – M2 Spiel (PPSA66666) - Update   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - game   2 bytes
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - Update   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+KOPF [6] Apps   (6 entries · 286 bytes)
+  [ ] Tool tile: PS5Upload Minion (PSUP00001)   158 bytes
+  [ ]    – ps5upload   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Tool tile: Mein Tool (TOOL00001)   122 bytes
+  [ ] shadowmount   2 bytes
+  [ ] M.2 – homebrew/anderes.txt   2 bytes
+  [ ] M.2 – homebrew/sub   0 bytes
+KOPF [2] Saved data   (3 entries · 4 bytes)
+  [ ] Saved data PPSA01326 (ASTRO PLAYROOM)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Saved data PPSA01327 (ASTRO PLAYROOM)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Saved data PPSA55555 (Real Game)   0 bytes  {Individually only - gone for good afterwards.}
+KOPF [3] Trophies   (8 entries · 20 bytes)
+  [ ] Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)   2 bytes
+  [ ] Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress)   2 bytes
+  [ ]    – Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Trophy list: NPWR20188_00 (game/app unknown) - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+  [ ]    – Trophy progress: NPWR20188_00 (game/app unknown)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Trophy list: ASTRO PLAYROOM (NPWR20189_00) - game still installed, delete only with the game (names/images, not your progress)   2 bytes  (gelb)
+  [ ] Trophy list: Real Game (NPWR30405_00) - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+  [ ]    – Trophy progress: Real Game (NPWR30405_00)   2 bytes  {Individually only - gone for good afterwards.}
+KOPF [4] Screenshots & videos   (4 entries · 137 bytes)
+  [ ] Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 screenshot   115 bytes  {Individually only - gone for good afterwards.}
+  [ ] Captures of Real Game (PPSA55555): 3 screenshots, 1 video   18 bytes  {Individually only - gone for good afterwards.}
+  [ ] Thumbnails without capture (1) - leftovers   2 bytes
+  [ ] Unfinished capture of Real Game (PPSA55555) (1 file)   2 bytes
+KOPF [5] Other   (11 entries · 120 bytes)
+  [x] Update without game: PPSA77777 (game/app unknown)   0 bytes
+  [x] Leftovers: Altes Spiel (PPSA88888)   28 bytes
+  [x] Share settings of old games (2)   4 bytes
+  [x] Store image cache (1, re-downloaded by the PS5)   2 bytes
+  [x] Temporary files (2)   4 bytes
+  [x] Error reports (3)   9 bytes
+  [x] Info on games on USB drives (1, recreated by the PS5)   2 bytes
+  [x] Empty tile (lock icon): Geisterspiel (PPSA12121)   63 bytes
+  [x] Fake license: UP0000-SLIB00001_00 - game/app unknown (game no longer installed)   4 bytes
+  [x] M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1   2 bytes
+  [x] M.2 – games/x.iso   2 bytes
+KOPF [7] Jailbreak   (1 entry · 2 bytes)
+  [ ] Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)  [jailbreak entry - individually only]   2 bytes  {Belongs to the jailbreak: WebKit jailbreak (browser). Can only be selected individually. If it is deleted, this jailbreak only works again once it has been set up again. The full cleanup leaves it in place.}
+STAND 11 entries selected (120 bytes).
+> ABLAUF AUSWAHL
+DIALOG Outside the internal SSD
+  | WARNING - you selected 2 entries outside the internal SSD (M.2, extended storage, USB drive):
+  |    M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1
+  |    M.2 – games/x.iso
+  | 
+  | Everything in them (games, folders, files) will be deleted permanently.
+  | 
+  | Nothing is deleted before the final question.
+  KNOPF sicher: Cancel
+  KNOPF gefährlich: Continue (delete these entries)
+  ANTWORT N
+Cancelled - nothing changed.
+> ABLAUF ENDE verbunden=True
+> ZEIGE
+KOPF [1] Games   (29 entries · 2 KB)
+  [ ] Altes Spiel (CUSA12345) - game   126 bytes
+  [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Altes Spiel (CUSA12345) - add-on: Die Erweiterung   62 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] unknown name (PPSA01325) - game   23 bytes
+  [ ] ASTRO PLAYROOM (PPSA01326) - game   151 bytes
+  [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount game on the internal SSD   179 bytes
+  [ ] Spiel PPSA33333 (PPSA33333) - game file Game C - PPSA33333.exfat   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: game gone, dead tile   140 bytes  {ShadowMount: if the game is deleted, its tile disappears from the menu too.}
+  [ ] Real Game (PPSA55555) - game   116 bytes
+  [ ] Real Game (PPSA55555) - Update   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Real Game (PPSA55555) - add-on: dlc1   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - game   2 bytes
+  [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - add-on: Season Pass Teil 1   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] Testspiel Fünf (PPSA77700) - add-on: Bonus Cars   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - ShadowMount game  [LOCKED: Game Compressor is working on it]   155 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - game file Game A - PPSA11111.exfat   2 bytes  [gesperrt]  {Locked - the Game Compressor is working on it.}
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount game   131 bytes
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - game file Game B - PPSA22222   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] M.2 – Top Game (PPSA99999) - ShadowMount game   131 bytes
+  [ ] M.2 – Top Game (PPSA99999) - game file Top Game - PPSA99999.exfat   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - game   130 bytes
+  [ ] M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04)   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - add-on: The Nicholson Electroplating Disaster   86 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – ASTRO PLAYROOM (PPSA01327) - game   67 bytes
+  [ ] M.2 – M2 Spiel (PPSA66666) - game   25 bytes
+  [ ] M.2 – M2 Spiel (PPSA66666) - Update   0 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - game   2 bytes
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - Update   2 bytes  [gesperrt]  {Goes only together with the game - select the game for that.}
+KOPF [6] Apps   (6 entries · 286 bytes)
+  [ ] Tool tile: PS5Upload Minion (PSUP00001)   158 bytes
+  [ ]    – ps5upload   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Tool tile: Mein Tool (TOOL00001)   122 bytes
+  [ ] shadowmount   2 bytes
+  [ ] M.2 – homebrew/anderes.txt   2 bytes
+  [ ] M.2 – homebrew/sub   0 bytes
+KOPF [2] Saved data   (3 entries · 4 bytes)
+  [ ] Saved data PPSA01326 (ASTRO PLAYROOM)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Saved data PPSA01327 (ASTRO PLAYROOM)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Saved data PPSA55555 (Real Game)   0 bytes  {Individually only - gone for good afterwards.}
+KOPF [3] Trophies   (8 entries · 20 bytes)
+  [ ] Trophy totals (level, bronze/silver/gold - rebuilt by the PS5)   2 bytes
+  [ ] Trophy list: DRIVECLUB (NPWR16560_00) - game removed, can go (names/images, not your progress)   2 bytes
+  [ ]    – Trophy progress: DRIVECLUB (NPWR16560_00) (PS4 game) - game no longer on the console   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Trophy list: NPWR20188_00 (game/app unknown) - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+  [ ]    – Trophy progress: NPWR20188_00 (game/app unknown)   2 bytes  {Individually only - gone for good afterwards.}
+  [ ] Trophy list: ASTRO PLAYROOM (NPWR20189_00) - game still installed, delete only with the game (names/images, not your progress)   2 bytes  (gelb)
+  [ ] Trophy list: Real Game (NPWR30405_00) - game still installed, delete only with the game (names/images, not your progress)   4 bytes  (gelb)
+  [ ]    – Trophy progress: Real Game (NPWR30405_00)   2 bytes  {Individually only - gone for good afterwards.}
+KOPF [4] Screenshots & videos   (4 entries · 137 bytes)
+  [ ] Captures of DRIVECLUB (CUSA00003, game no longer on the console): 1 screenshot   115 bytes  {Individually only - gone for good afterwards.}
+  [ ] Captures of Real Game (PPSA55555): 3 screenshots, 1 video   18 bytes  {Individually only - gone for good afterwards.}
+  [ ] Thumbnails without capture (1) - leftovers   2 bytes
+  [ ] Unfinished capture of Real Game (PPSA55555) (1 file)   2 bytes
+KOPF [5] Other   (11 entries · 120 bytes)
+  [x] Update without game: PPSA77777 (game/app unknown)   0 bytes
+  [x] Leftovers: Altes Spiel (PPSA88888)   28 bytes
+  [x] Share settings of old games (2)   4 bytes
+  [x] Store image cache (1, re-downloaded by the PS5)   2 bytes
+  [x] Temporary files (2)   4 bytes
+  [x] Error reports (3)   9 bytes
+  [x] Info on games on USB drives (1, recreated by the PS5)   2 bytes
+  [x] Empty tile (lock icon): Geisterspiel (PPSA12121)   63 bytes
+  [x] Fake license: UP0000-SLIB00001_00 - game/app unknown (game no longer installed)   4 bytes
+  [x] M.2 – Leftover from an earlier cleanup: /mnt/ext1/_zu_loeschen_1   2 bytes
+  [x] M.2 – games/x.iso   2 bytes
+KOPF [7] Jailbreak   (1 entry · 2 bytes)
+  [ ] Browser storage (jailbreak pages, may contain an offline-saved jailbreak page)  [jailbreak entry - individually only]   2 bytes  {Belongs to the jailbreak: WebKit jailbreak (browser). Can only be selected individually. If it is deleted, this jailbreak only works again once it has been set up again. The full cleanup leaves it in place.}
+STAND 11 entries selected (120 bytes).
+ENDE fehler=0

@@ -1,0 +1,147 @@
+=== ABLAUF
+> ABLAUF KOMPLETT
+DIALOG Vollständige Bereinigung
+  | VOLLSTÄNDIGE BEREINIGUNG: Auf der internen SSD wird ALLES gelöscht:
+  |    - Spiele: 9 (mit Daten und Updates 16 Einträge)
+  |    - Apps: 3 (mit App-Daten 4 Einträge)
+  |    - Spielstände: 3
+  |    - Trophäen: 4 (5 Einträge)
+  |    - Bilder & Videos: 4
+  |    - Sonstiges: 9
+  |    - Trophäen-Listen installierter Spiele: 3 - gehen nur mit, wenn auf keinem Speicher ein Spiel bleibt
+  | 
+  | Auf der M.2-SSD - gleich kommt die Frage: behalten oder auch leeren.
+  |    - Spiele: 6 (mit Daten und Updates 10 Einträge)
+  |    - Apps: 2
+  |    - Sonstiges: 2
+  | 
+  | (Hat ein Spiel Daten auf mehreren Speichern, steht es bei jedem - z. B. ShadowMount-Spiel: Kachel intern, Spieldatei auf der M.2.)
+  | 
+  | Das heißt:
+  |  - Spielstände, die du nicht vorher gesichert hast, sind endgültig weg.
+  |  - Nie mit dem PSN abgeglichene Trophäen sind weg.
+  |  - Jailbreak-Tools samt Einstellungen sind weg - danach den Jailbreak NEU EINRICHTEN.
+  | 
+  | Bleibt auf jeden Fall:
+  |  - Jailbreak-Einstiege: 1 - die vollständige Bereinigung fasst den Bereich „Jailbreak“ nie an (einzeln löschen geht dort)
+  |  - Gesperrt: 1 Eintrag (der Grund steht am Eintrag)
+  |  - Systemsoftware, Laufwerks-Kopplung, Benutzerkonto, echte Lizenzen, Sony-Systemanwendungen.
+  KNOPF sicher: Abbrechen
+  KNOPF gefährlich: Weiter
+  ANTWORT J
+DIALOG M.2-SSD
+  | Auf der M.2-SSD liegen:
+  |    - Spiele: 6 (mit Daten und Updates 10 Einträge)
+  |    - Apps: 2
+  |    - Sonstiges: 2
+  | 
+  | BEHALTEN: Die Spiele bleiben. Nur die Kacheln der ShadowMount-Spiele, deren Spieldateien darauf liegen, gehen weg (die Kacheln liegen intern) - sie kommen wieder, sobald ShadowMount neu eingerichtet ist.
+  | 
+  | AUCH LEEREN: Alle Spiele und Dateien darauf werden endgültig gelöscht.
+  KNOPF sicher: M.2-SSD behalten (empfohlen)
+  KNOPF gefährlich: M.2-SSD auch leeren
+  ANTWORT N
+(Trophäen-Listen bleiben, weil Spiele auf der M.2, dem erweiterten Speicher oder dem USB-Laufwerk bleiben.)
+Ausgewählt: etwa 2 KB in 72 Dateien und 80 Ordnern.
+DIALOG Endgültig löschen?
+  | Die M.2-SSD bleibt unangetastet.
+  | 
+  | Danach endgültig weg: 3 Spielstände (Spiele), 1 Spieldatei, 3 Trophäen-Fortschritte, 2 Spiele mit Aufnahmen, deine Sicherungen (z. B. Spielstände) (ps5upload).
+  | 
+  | Wird ENDGÜLTIG gelöscht: 41 Einträge
+  |    - Spiele: 9 (mit Daten und Updates 16 Einträge)
+  |    - Apps: 3 (mit App-Daten 4 Einträge)
+  |    - Spielstände: 3
+  |    - Trophäen: 4 (5 Einträge)
+  |    - Bilder & Videos: 4
+  |    - Sonstiges: 9
+  |    davon ShadowMount-Spiele MIT Spieldatei: 1
+  |    PS4-Spiele, die GELÖSCHT werden (installiertes Spiel weg, PKG neu installieren nötig):
+  |       Altes Spiel (CUSA12345) – intern – Inhalt nicht eindeutig (gilt als installiert) – Version 01.00 – 1 Zusatzinhalt(e) – keine Lizenzdatei
+  |    PS4-Spiele, die geschützt bleiben: 1
+  |    Am Ende startet die PS5 neu.
+  |    Bleibt unverändert: M.2-SSD
+  |    Bleibt (Game Compressor arbeitet daran): 1
+  | 
+  | Das sind etwa 2 KB in 72 Dateien und 80 Ordnern.
+  | 
+  | Nicht abgefragt: Konnte nicht gelesen werden. Das Programm fasst die Kopplung nie an.
+  | Benutzung auf eigene Gefahr - Gelöschtes ist endgültig weg.
+  | 
+  | Zum Bestätigen LÖSCHEN eintippen (alles andere = abbrechen):
+  EINGABE
+  ANTWORT ABBRECHEN
+Abgebrochen - nichts verändert.
+> ABLAUF ENDE verbunden=True
+> ZEIGE
+KOPF [1] Spiele   (29 Einträge · 2 KB)
+  [ ] Altes Spiel (CUSA12345) - Spiel   126 Byte
+  [ ] Altes Spiel (CUSA12345) - Update (Version 01.09)   90 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] Altes Spiel (CUSA12345) - Zusatzinhalt: Die Erweiterung   62 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] unbekannter Name (PPSA01325) - Spiel   23 Byte
+  [ ] ASTRO PLAYROOM (PPSA01326) - Spiel   151 Byte
+  [ ] Spiel PPSA33333 (PPSA33333) - ShadowMount-Spiel auf der internen SSD   179 Byte
+  [ ] Spiel PPSA33333 (PPSA33333) - Spieldatei Game C - PPSA33333.exfat   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spiel PPSA44444 (PPSA44444) - ShadowMount: Spiel nicht mehr da, tote Kachel   140 Byte  {ShadowMount: Wird das Spiel gelöscht, verschwindet auch seine Kachel im Menü.}
+  [ ] Echtes Spiel (PPSA55555) - Spiel   116 Byte
+  [ ] Echtes Spiel (PPSA55555) - Update   0 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] Echtes Spiel (PPSA55555) - Zusatzinhalt: dlc1   0 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+  [ ] Testspiel Fünf (PPSA77700) - Update (Version 01.005.000)   34 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Season Pass Teil 1   2 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] Testspiel Fünf (PPSA77700) - Zusatzinhalt: Bonus Cars   2 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - ShadowMount-Spiel  [GESPERRT: Game Compressor arbeitet gerade daran]   155 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] M.2 – Spiel PPSA11111 (PPSA11111) - Spieldatei Game A - PPSA11111.exfat   2 Byte  [gesperrt]  {Gesperrt - der Game Compressor arbeitet gerade daran.}
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - ShadowMount-Spiel   131 Byte
+  [ ] M.2 – Spiel PPSA22222 (PPSA22222) - Spieldatei Game B - PPSA22222   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] M.2 – Top Game (PPSA99999) - ShadowMount-Spiel   131 Byte
+  [ ] M.2 – Top Game (PPSA99999) - Spieldatei Top Game - PPSA99999.exfat   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - Spiel   130 Byte
+  [ ] M.2 – L.A. Noire (CUSA09172) - Update (Version 01.04)   2 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] M.2 – L.A. Noire (CUSA09172) - Zusatzinhalt: The Nicholson Electroplating Disaster   86 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] M.2 – ASTRO PLAYROOM (PPSA01327) - Spiel   67 Byte
+  [ ] M.2 – M2 Spiel (PPSA66666) - Spiel   25 Byte
+  [ ] M.2 – M2 Spiel (PPSA66666) - Update   0 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - Spiel   2 Byte
+  [ ] M.2 – Testspiel Fünf (PPSA77700) - Update   2 Byte  [gesperrt]  {Geht nur zusammen mit dem Spiel weg - wähle dafür das Spiel.}
+KOPF [6] Apps   (6 Einträge · 286 Byte)
+  [ ] Tool-Kachel: PS5Upload Minion (PSUP00001)   158 Byte
+  [ ]    – ps5upload   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Tool-Kachel: Mein Tool (TOOL00001)   122 Byte
+  [ ] shadowmount   2 Byte
+  [ ] M.2 – homebrew/anderes.txt   2 Byte
+  [ ] M.2 – homebrew/sub   0 Byte
+KOPF [2] Spielstände   (3 Einträge · 4 Byte)
+  [ ] Spielstand PPSA01326 (ASTRO PLAYROOM)   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA01327 (ASTRO PLAYROOM)   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Spielstand PPSA55555 (Echtes Spiel)   0 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+KOPF [3] Trophäen   (8 Einträge · 20 Byte)
+  [ ] Trophäen-Gesamtzähler (Level, Bronze/Silber/Gold - baut die PS5 neu auf)   2 Byte
+  [ ] Trophäen-Liste: DRIVECLUB (NPWR16560_00) - Spiel nicht mehr da, kann weg (Namen/Bilder, nicht dein Fortschritt)   2 Byte
+  [ ]    – Trophäen-Fortschritt: DRIVECLUB (NPWR16560_00) (PS4-Spiel) - Spiel nicht mehr auf der Konsole   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Trophäen-Liste: NPWR20188_00 (Spiel/App unbekannt) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   4 Byte  (gelb)
+  [ ]    – Trophäen-Fortschritt: NPWR20188_00 (Spiel/App unbekannt)   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Trophäen-Liste: ASTRO PLAYROOM (NPWR20189_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   2 Byte  (gelb)
+  [ ] Trophäen-Liste: Echtes Spiel (NPWR30405_00) - Spiel noch da, nur mit dem Spiel löschen (Namen/Bilder, nicht dein Fortschritt)   4 Byte  (gelb)
+  [ ]    – Trophäen-Fortschritt: Echtes Spiel (NPWR30405_00)   2 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+KOPF [4] Bilder & Videos   (4 Einträge · 137 Byte)
+  [ ] Aufnahmen von DRIVECLUB (CUSA00003, Spiel nicht mehr auf der Konsole): 1 Screenshot   115 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Aufnahmen von Echtes Spiel (PPSA55555): 3 Screenshots, 1 Video   18 Byte  {Nur einzeln wählbar - danach endgültig weg.}
+  [ ] Vorschaubilder ohne Aufnahme (1) - Reste   2 Byte
+  [ ] Unfertige Aufnahme von Echtes Spiel (PPSA55555) (1 Datei)   2 Byte
+KOPF [5] Sonstiges   (11 Einträge · 120 Byte)
+  [ ] Update ohne Spiel: PPSA77777 (Spiel/App unbekannt)   0 Byte
+  [ ] Reste: Altes Spiel (PPSA88888)   28 Byte
+  [ ] Share-Einstellungen alter Spiele (2)   4 Byte
+  [ ] Store-Bildercache (1, lädt die PS5 neu)   2 Byte
+  [ ] Temporäre Dateien (2)   4 Byte
+  [ ] Fehlerberichte (3)   9 Byte
+  [ ] Infos zu Spielen auf USB-Platten (1, legt die PS5 neu an)   2 Byte
+  [ ] Leere Kachel (Schloss): Geisterspiel (PPSA12121)   63 Byte
+  [ ] Fake-Lizenz: UP0000-SLIB00001_00 - Spiel/App unbekannt (Spiel nicht mehr installiert)   4 Byte
+  [ ] M.2 – Rest einer früheren Aufräumaktion: /mnt/ext1/_zu_loeschen_1   2 Byte
+  [ ] M.2 – games/x.iso   2 Byte
+KOPF [7] Jailbreak   (1 Eintrag · 2 Byte)
+  [ ] Browserspeicher (Jailbreak-Seiten, evtl. mit offline gespeichertem Jailbreak)  [Jailbreak-Einstieg - nur einzeln]   2 Byte  {Gehört zum Jailbreak: WebKit-Jailbreak (Browser). Nur einzeln wählbar. Wird es gelöscht, funktioniert dieser Jailbreak erst wieder, wenn er neu eingerichtet ist. Die vollständige Bereinigung lässt es liegen.}
+STAND Nichts ausgewählt.
+ENDE fehler=0

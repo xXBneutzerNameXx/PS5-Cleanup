@@ -1,0 +1,15 @@
+LOG: Halte ShadowMount an (sonst legt es die Kacheln sofort wieder an) ...
+LOG:   Die Stopp-Datei für ShadowMount ließ sich nicht anlegen.
+LOG: 
+LOG:  ShadowMount konnte nicht sicher angehalten werden. Läuft es noch, können
+LOG:  eingebundene Spieldaten beim Löschen beschädigt werden.
+LOG:  Darum bleibt diesmal alles unverändert, was ShadowMount betrifft (Spiele, Kacheln, M.2/USB, Abbilder, ShadowMounts Ordner).
+LOG:  Empfehlung: die PS5 neu starten, ShadowMount nicht laden, dann nochmal löschen.
+LOG: 
+LOG: Lösche ... (große Spiele können etwas dauern)
+LOG:   unverändert   Tool-Kachel: Mein Tool (TOOL00001)   (ShadowMount ließ sich nicht sicher anhalten - nichts gelöscht)
+OK   Fall stopfail: als unverändert gezählt, nicht abgebrochen
+ERG Fall=stopfail gefragt=False weg=False abgebrochen=False Grund=Die Stopp-Datei für ShadowMount ließ sich nicht anlegen.
+OK   Fall stopfail: Rückfrage kommt nicht
+OK   Fall stopfail: nichts gelöscht
+FEHLERZAHL 0

@@ -1,3 +1,0 @@
-mbedTLS 3.6.7  https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.7/mbedtls-3.6.7.tar.bz2  SHA-256 a7e8bcbec0e6f761b4af24f25677626b35f762f68eef79c08677a363212d11f6
-ca-bundle.crt = https://curl.se/ca/cacert.pem (Mozilla)  SHA-256 427c064216761a1e72a8b30f0d954d08cb6e4435a82091fb865afd20c8497285  geladen 2026-11-15
-gebaut mit bauen_mbedtls.sh, PS5-SDK 

@@ -258,20 +258,20 @@ Ausführlicher: Über [Issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/i
 
 | Ordner | Inhalt |
 |---|---|
-| `1.1/kern/` | Kern der PS5-App: Schutzliste, Suche, Löschen, Abläufe |
-| `1.1/app/` | Oberfläche am Fernseher (SDL2, DualSense), Bedienung im Browser (`fern.c`, `fern_seite.html`) und PS5-Anbindung (Sony-Deinstallation, Löschdienst, Spielstand-Liste) |
-| `1.1/start/` | `ps5cleanup.elf`: Start, eigene Kachel (PSCL00001), Hintergrundteil für Selbstentfernung und Neustart |
-| `1.1/db/` | Prüfung von Sonys Datenbanken (SQLite) |
-| `1.1/rueckmeldung/` | Handy-Seite für die Rückmeldung per QR-Code (Cloudflare Worker) |
-| `1.1/test/` | Tests am PC |
-| `1.1/fremd/` | Anleitung und Skript für die fremden Bibliotheken (PCRE2, cJSON) |
+| `1.3/kern/` | Kern der PS5-App: Schutzliste, Suche, Löschen, Abläufe |
+| `1.3/app/` | Oberfläche am Fernseher (SDL2, DualSense), Bedienung im Browser (`fern.c`, `fern_seite.html`) und PS5-Anbindung (Sony-Deinstallation, Löschdienst, Spielstand-Liste) |
+| `1.3/start/` | `ps5cleanup.elf`: Start, eigene Kachel (PSCL00001), Hintergrundteil für Selbstentfernung und Neustart |
+| `1.3/db/` | Prüfung von Sonys Datenbanken (SQLite) |
+| `1.3/rueckmeldung/` | Handy-Seite für die Rückmeldung per QR-Code (Cloudflare Worker) |
+| `1.3/test/` | Tests am PC |
+| `1.3/fremd/` | Anleitung und Skript für die fremden Bibliotheken (PCRE2, cJSON) |
 | `Quellcode/` | die bisherige Windows-Fassung 1.0.6 (C#) und ältere Fassungen – nicht mehr weiterentwickelt |
 
 </details>
 
 ## Lizenz
 
-Die PS5-App (`1.1/`, `ps5cleanup_v1.3.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Lizenztext: [LICENSE](LICENSE). Bestandteile anderer Urheber: [HINWEISE_LIZENZEN.txt](HINWEISE_LIZENZEN.txt).
+Die PS5-App (`1.3/`, `ps5cleanup_v1.3.elf`) steht unter der GPL-3.0 (oder später) – Copyright (c) 2026 da_Chris86. Der Code der bisherigen Windows-Fassung steht unter MIT. Lizenztext: [LICENSE](LICENSE). Bestandteile anderer Urheber: [HINWEISE_LIZENZEN.txt](HINWEISE_LIZENZEN.txt).
 
 ## Danke an
 
@@ -515,7 +515,7 @@ More detail: via [issues](https://github.com/xXBneutzerNameXx/PS5-Cleanup/issues
 
 ## License and thanks
 
-The PS5 app (`1.1/`, `ps5cleanup_v1.3.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – license text: [LICENSE](LICENSE), third-party components: [HINWEISE_LIZENZEN.txt](HINWEISE_LIZENZEN.txt).
+The PS5 app (`1.3/`, `ps5cleanup_v1.3.elf`) is GPL-3.0-or-later (c) 2026 da_Chris86; the code of the former Windows version is MIT – license text: [LICENSE](LICENSE), third-party components: [HINWEISE_LIZENZEN.txt](HINWEISE_LIZENZEN.txt).
 
 Thanks to [drakmor](https://github.com/drakmor) (ftpsrv, ps5-hwinfo), [earthonion](https://github.com/earthonion) (ddd_status), John Törnblom (ps5-payload-sdk, ftpsrv), [seregonwar](https://github.com/seregonwar) (zftpd), the makers of ShadowMountPlus and PS5Upload, [Project Nayuki](https://www.nayuki.io/page/qr-code-generator-library) (QR code library) and Markus Scholtes (PS2EXE).
 
