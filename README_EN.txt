@@ -1,4 +1,4 @@
-﻿PS5 CLEANUP 1.1 by da_Chris86
+﻿PS5 CLEANUP 1.3 by da_Chris86
 =============================
 
 Brings a jailbroken PS5 back to a freshly-set-up state - without
@@ -8,7 +8,7 @@ licenses, system software or the disc drive pairing. For all PS5 models
 
 WHICH FILE IS WHICH? - PLEASE READ FIRST!
 -----------------------------------------
-  ps5cleanup_v1.1.elf ...... the PS5 app. It starts in TEST MODE ("TEST
+  ps5cleanup_v1.3.elf ...... the PS5 app. It starts in TEST MODE ("TEST
                             MODE" at the top): it shows everything and
                             deletes nothing. It only deletes once you
                             switch test mode off in the Options AND
@@ -28,13 +28,16 @@ TWO WAYS
     causes problems, delete only its data, saved data or trophies.
     Everything else stays. Nothing is ticked beforehand.
   - Clean up everything: everything on the internal SSD at once, like
-    freshly set up. You add the M.2 and extended storage one by one.
+    freshly set up - including leftovers whose owner is not certain (e.g.
+    folders with unclear content or backup copies made by tools). If you
+    want to keep any of them, use "Choose yourself". The Jailbreak
+    section always stays. You add the M.2 and extended storage one by one.
     Beforehand it shows exactly how many games and entries are deleted on
     each drive and how much space is free afterwards.
 
-TESTED on a PS5 Pro (CFI-7021) with firmware 12.00, M.2 and USB drive.
-Other models and firmwares are not blocked but have not been tested yet -
-there, please check in test mode first that the list is right.
+TESTED on a PS5 Pro (CFI-7021) with firmware 12.00. According to your
+feedback, PS5 Cleanup runs on firmware 4.03 to 13.60. For 5.50, 7.61 and
+9.00 there is no mostly positive feedback yet that PS5 Cleanup works there.
 
 FEEDBACK
   At the end PS5 Cleanup briefly asks whether everything worked - it is
@@ -43,14 +46,14 @@ FEEDBACK
   a QR code: scan it with your phone, tap "Worked" or "Did not work",
   done - no account and no PC needed. What is sent is shown on the right
   of that screen under "This will be sent" and here in DETAILS under
-  "Feedback". For more detail use GitHub (issues or discussions) or
-  psxtools.de - ideally with model, firmware and the log (see "Log"
+  "Feedback". For more detail use GitHub (issues or discussions) -
+  ideally with model, firmware and the log (see "Log"
   under DETAILS). This also works without deleting anything.
 
 
 HOW TO USE (PS5 app, directly on the PS5)
 -----------------------------------------
-1. Load your jailbreak and start ps5cleanup_v1.1.elf with your payload
+1. Load your jailbreak and start ps5cleanup_v1.3.elf with your payload
    loader or Payload Manager. No USB drive needed - if one is plugged in,
    the log is saved there.
    In the Payload Manager it also works as its own source: Settings ->
@@ -89,11 +92,8 @@ BUTTONS
 CONTROL IN A BROWSER (on your phone or PC)
   Everything also works in a browser - with mouse, keyboard or finger.
   The address is at the bottom right of the start screen (e.g.
-  192.168.178.20:9100), in the Options under "Browser control" also as a
-  QR code. If port 9100 is already in use, PS5 Cleanup takes the next
-  free one up to 9109 - the exact address is always on the start screen.
-  From outside your home only via a VPN into your home network.
-  Phone or PC must be in the same home network as the PS5. No
+  192.168.178.20:9100; if 9100 is taken, the next free up to 9109), in the Options under "Browser control" also as a
+  QR code. Phone or PC must be in the same home network as the PS5. No
   login, nothing to install.
   The page shows the same as the TV: the same steps, the same test mode,
   the same confirmations (hold "Delete" for 2 seconds, type DELETE for
@@ -112,37 +112,53 @@ UPDATES
   automatically: quit PS5 Cleanup and then start the new file.
 
 
-NEW IN 1.1
+NEW IN 1.3
 ----------
-- Completely new look on the TV: start screen with console, disc drive
-  pairing and jailbreak, after scanning an overview of all areas with
-  sizes. Selecting with tabs, every entry with tile image, location and
-  size; on the right it says what will be deleted and what happens
-  afterwards.
-- Games and programs are shown as a block with their parts - open it and
-  choose single parts. The block's header names exactly what its tick
-  takes along.
-- New confirmation screen: on the left what will be deleted, on the right
-  what stays in any case and how much space is free afterwards. Scanning
-  and deleting show the real progress ("entry x of y").
-- "Clean up everything" with a preview per drive (games, entries, space)
-  and a clear warning when games on the M.2 or extended storage are
-  deleted too. Right before deleting, PS5 Cleanup compares once more with
-  the real selection - if it is more than shown, it asks again.
-- More thorough and safer: selected programs are closed before deleting,
-  for all by the same rules. Tiles and game updates are removed by
-  Sony's own uninstall, PS5 Cleanup waits for Sony's answer. Start folders
-  of other apps under /system_ex/app are detected. If something only
-  partly works, the result says "partly" - and if something is left
-  over, the reason is shown right on the result screen.
-- More detected, more images: programs without a tile get their image
-  from the program file or from the payload manager's catalog. Download
-  and data folders are listed with the right program. Playden: saved data
-  with image and name from Playden's library.
-- Get updates directly in the app (see UPDATES), send feedback directly
-  from the app - without internet via QR code.
-- Under the hood: old special paths removed, one common set of rules for
-  all ways of deleting, every change secured by the automatic full test.
+- Leftovers of games that were deleted outside Sony (e.g. via FTP or a
+  file manager): empty folders and entries in Sony's database used to stay.
+  PS5 Cleanup now removes exactly that one title from Sony's database
+  (checked first, all or nothing, no backup and no rebuild) and then
+  deletes the folders. If Sony says the game is on USB or M.2 storage,
+  nothing is touched - that drive may just be unplugged.
+- Real names instead of "unknown name": if the tile is missing, the name
+  comes from Sony's title list. Data folders of an app without a tile show
+  its name.
+- Error reasons and console answers follow the interface language -
+  English logs are now fully English.
+- Faster: drawing is about twice as fast, scanning is faster.
+- More pictures: the result page shows the pictures of deleted tiles,
+  pictures also in the browser and for game files without a tile.
+- More precise feedback: with "No, something did not work" you say in
+  one tap what went wrong. The names of the loaded programs that are
+  running are sent along (names only, no paths).
+- PS4 games from ps4mount: PS5 Cleanup unmounts them itself (also with
+  the PS4Mount inside the PS5 Cooling & System Center); everything
+  ps4mount keeps for a game goes with the game.
+- WK Store (jailbreak start via the PS Store tile) is listed under
+  "Jailbreak"; the Store tile and Sony's database stay untouched.
+- "Clean up everything" really cleans everything: also folders with
+  unclear content, merely suspected folders and backup copies that tools
+  made next to Sony's database. Only the Jailbreak section and drives you
+  keep stay.
+- Leftovers that clearly belong to a program are listed with that program
+  under Apps, even if it is no longer installed (e.g. the empty folders
+  and game data of PS4Mount).
+- Playden and its games go in one pass.
+- If a program brings its own copy of a jailbreak tool (e.g. TITAN CORE
+  or Elf Launcher), deleting that program does not close the running
+  tool.
+- More recognised: Kraken Mount, TITAN CORE, PS5Upload backups on M.2/USB
+  (single selection only); onionHEN keeps running while deleting.
+- Fixed: videos with a .ext companion file can be deleted again; saved
+  data that Sony's list does not know is deleted instead of "unclear";
+  "Get update - Yes, replace" finds the old file even without scanning
+  first; an empty file in the tile folder (e.g. KRKN00001, made by the
+  PS5 Cooling & System Center) is listed as a leftover under Other
+  instead of as a game; PS4Mount no longer leaves empty folders behind.
+- If there is an update, the start screen shows right away what is new.
+
+Thanks to everyone who sent feedback and logs - many of the improvements
+in 1.3 come straight from your reports.
 
 Older changes are listed on GitHub under Releases:
 https://github.com/xXBneutzerNameXx/PS5-Cleanup/releases
@@ -156,7 +172,8 @@ THE PROGRAM NEVER TOUCHES
 The PS5 app changes Sony's databases only selectively: the entries of
 deleted saved data, broken add-on information of a game you delete, and
 tiles that a tool entered directly into Sony's app list (e.g. TabShifter)
-and that you select for deletion.
+and that you select for deletion, and the entries of games whose files
+were deleted outside Sony.
 Each of these changes is checked first and made completely or not at all.
 
 
@@ -194,7 +211,9 @@ IMPORTANT
   scanning and shows "WARNING: broken add-on entries". Fix: delete this
   game with PS5 Cleanup (the entries are repaired first) and install it
   again with an unmodified update.
-- Deleted data is gone for good. So is saved data without a cloud backup.
+- Deleted data is gone for good - including saved data you did not back
+  up first.
+- PS5 Cleanup closes the open game when it starts - save first.
 - Nothing is deleted until you confirm (hold Cross for 2 seconds or type
   DELETE) - and never in test mode. The safe choice is preselected in
   every question. If a size has not been counted yet, the program counts
@@ -208,8 +227,8 @@ IMPORTANT
   than to delete with an incomplete list.
 - If an M.2 is installed but the program reports "no M.2 found": do not
   delete, restart the PS5 instead.
-- Use at your own risk. Errors are possible. Back up
-  anything important to you first.
+- Use at your own risk. Errors are possible. Back up anything
+  important to you first (e.g. saved data, pictures and videos).
 - If there are problems: in the Options, "Save log" saves the log to the
   USB drive (Square shows it). Please send it to us (see "FEEDBACK" and
   "Log" under DETAILS).
@@ -229,11 +248,15 @@ Disc drive pairing
   PS5 cannot tell whether a drive was ever paired with another console.
 
 Closing programs
-  If a running program belongs to what you delete, PS5 Cleanup closes it
-  first - otherwise it would recreate deleted items right away. The same
-  rules apply to all programs. Programs that only mounted other folders
-  are left alone. The jailbreak and PS5 Cleanup itself always keep
-  running.
+  When it starts, PS5 Cleanup closes the game that is currently open -
+  save first.
+  Before deleting, PS5 Cleanup closes the loaded programs running in the
+  background - otherwise they would recreate deleted items right away.
+  The jailbreak (loader, kstuff, etaHEN, onionHEN, Byepervisor), nanoDNS,
+  the Payload Manager and the FTP servers keep running - unless exactly
+  they are selected for deletion. ShadowMount, ps4mount and Playden are
+  stopped in their own way. PS5 Cleanup itself always keeps running.
+  Afterwards, load again what you need or restart the PS5 (recommended).
 
 ShadowMount games
   The menu only has a tile; the game itself is on the M.2, the internal
@@ -272,7 +295,9 @@ Assignment (which data belongs to which tile?)
   nothing is changed. If two tiles fit equally well or a program could
   not be read completely, nothing is guessed: the entry stays under
   Other. Anything only assumed is listed in the app's block with its own
-  checkbox and is never ticked automatically. ELF files are never
+  checkbox - ticking the block leaves it out, "Clean up everything" takes
+  it. Leftovers of a program that is no longer installed stay under Apps
+  with that program if they clearly belong to it. ELF files are never
   assigned via another app's program - a program often names other tools
   it only uses.
 
@@ -359,8 +384,12 @@ Feedback (optional)
     everything"
   - for errors, up to 5 short codes: step, kind of entry, location and
     error code (e.g. "Sony uninstall, PS4 game, internal, 0x80990001")
-  - your answer ("all good" or "something did not work") and, if you
-    like, a short note (up to 200 characters)
+  - your answer ("all good" or "something did not work"), with "did not
+    work" optionally one tap on what (Something missing, Wrongly grouped,
+    Deleting failed, Hangs / crashes), and, if you like, a short note (up
+    to 200 characters)
+  - with internet: the names of the loaded programs that are running
+    (e.g. nanodns, pldmgr) - names only, no paths
   - with internet also the cleaned log. It contains names of games and
     apps and folder paths of your console; IP, e-mail and MAC addresses,
     serial numbers and the user ID are removed beforehand.
@@ -392,10 +421,12 @@ Language
   scanning (then it scans again).
 
 Files
-  ps5cleanup_v1.1.elf          the PS5 app (starts in test mode)
+  ps5cleanup_v1.3.elf          the PS5 app (starts in test mode)
   README_EN.txt                this guide (English)
   LIESMICH.txt                 this guide (German)
-  LICENSE.txt                  licenses and components by other authors
+  LICENSE                      the license of the PS5 app (GPL-3.0)
+  HINWEISE_LIZENZEN.txt        components by other authors and the MIT
+                               license of the former Windows version
   SHA256.txt                   checksums of the files
   The source code is on GitHub:
   https://github.com/xXBneutzerNameXx/PS5-Cleanup
@@ -411,7 +442,7 @@ Entertainment Inc.
 License: the PS5 app is licensed under the GNU General Public License v3.0
 or later (GPL-3.0) - Copyright (c) 2026 da_Chris86. The code of the former
 Windows version is licensed under the MIT License. Details and components
-by other authors in LICENSE.txt.
+by other authors in HINWEISE_LIZENZEN.txt.
 
 Developed by da_Chris86 with Claude (Anthropic). Independent code review:
 OpenAI Codex. Idea, requirements and the tests on the real console come
