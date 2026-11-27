@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="bilder/1.0.10/banner.jpg" width="100%" alt="PS5 Cleanup – Clean up your PS5, no reinstall, no reset">
+<img src="bilder/1.4/banner.jpg" width="100%" alt="PS5 Cleanup – Clean up your PS5, no reinstall, no reset">
 
 </div>
 
